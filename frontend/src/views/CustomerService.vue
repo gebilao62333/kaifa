@@ -77,7 +77,7 @@ const agentList = ref([
     id: 1,
     userId: 1001,
     name: '小雪',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+    avatar: '',
     online: true,
     role: 'senior'
   },
@@ -85,7 +85,7 @@ const agentList = ref([
     id: 2,
     userId: 1002,
     name: '阿杰',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+    avatar: '',
     online: true,
     role: 'normal'
   },
@@ -93,7 +93,7 @@ const agentList = ref([
     id: 3,
     userId: 1003,
     name: '小美',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200',
+    avatar: '',
     online: false,
     role: 'normal'
   },
@@ -101,7 +101,7 @@ const agentList = ref([
     id: 4,
     userId: 1004,
     name: '大飞',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a433?w=200',
+    avatar: '',
     online: true,
     role: 'senior'
   },
@@ -109,7 +109,7 @@ const agentList = ref([
     id: 5,
     userId: 1005,
     name: '小鹿',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+    avatar: '',
     online: false,
     role: 'normal'
   }

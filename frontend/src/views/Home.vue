@@ -45,12 +45,36 @@ const loadingCompanions = ref(true)
 const currentPage = ref(1)
 const hasMore = ref(true)
 
+const getAdminRecommendUsers = () => {
+  try {
+    const stored = localStorage.getItem('admin_recommend_users')
+    if (!stored) return []
+    const list = JSON.parse(stored)
+    return list.map((u, idx) => ({
+      userId: u.userId,
+      nickName: u.nickname || '用户' + u.userId,
+      avatar: u.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin' + u.userId,
+      level: u.level || 1,
+      tags: u.tags || ['推荐'],
+      price: u.price || 50,
+      online: true,
+      location: u.location || '',
+      serviceType: 'both',
+      vip: u.vip || false,
+      vipLevel: u.vipLevel || 0,
+      isAdminRecommend: true
+    }))
+  } catch (e) {
+    return []
+  }
+}
+
 const goSearch = () => {
   router.push('/search')
 }
 
 const goFriend = () => {
-  router.push('/friend')
+  router.push({ name: 'Friend' })
 }
 
 const goUserProfile = (userId) => {
@@ -76,10 +100,11 @@ const loadRecommendCompanions = async (reset = false) => {
   if (reset) {
     currentPage.value = 1
     hasMore.value = true
+    loadingCompanions.value = true
     recommendList.value = []
   }
 
-  if (!hasMore.value || loadingCompanions.value) return
+  if (!hasMore.value) return
 
   try {
     if (reset) {
@@ -94,7 +119,8 @@ const loadRecommendCompanions = async (reset = false) => {
     if (result.code === 200 && result.data) {
       const list = result.data.list || result.data
       if (list.length > 0) {
-        recommendList.value = [...recommendList.value, ...list]
+        const adminUsers = reset ? getAdminRecommendUsers() : []
+        recommendList.value = [...adminUsers, ...recommendList.value, ...list]
         currentPage.value++
         hasMore.value = list.length >= 10
       } else {
@@ -140,12 +166,14 @@ onMounted(async () => {
   } catch (error) {
     console.error('加载首页数据失败:', error)
     
-    recommendList.value = [
+    const adminUsers = getAdminRecommendUsers()
+    const fallbackUsers = adminUsers.length ? adminUsers : [
       { userId: 1, nickName: '小雪', avatar: 'https://picsum.photos/200/200', level: 28, tags: ['温柔', '甜音', '技术好'], price: 58, online: true, location: '北京', serviceType: 'both', vip: true, vipLevel: 2 },
       { userId: 2, nickName: '阿杰', avatar: 'https://picsum.photos/200/200', level: 35, tags: ['打野', '带飞', '幽默'], price: 65, online: true, location: '上海', serviceType: 'online', vip: true, vipLevel: 3 },
       { userId: 3, nickName: '小美', avatar: 'https://picsum.photos/200/200', level: 22, tags: ['娱乐', '聊天', '唱歌'], price: 45, online: false, location: '广州', serviceType: 'offline', vip: false },
       { userId: 4, nickName: '大飞', avatar: 'https://picsum.photos/200/200', level: 42, tags: ['技术陪', '上分', '教学'], price: 78, online: true, location: '深圳', serviceType: 'both', vip: true, vipLevel: 4 }
     ]
+    recommendList.value = fallbackUsers
     loadingCompanions.value = false
   }
 })

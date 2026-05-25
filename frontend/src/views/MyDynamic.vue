@@ -188,79 +188,77 @@ const updateTabCounts = () => {
 .mydynamic-page {
   min-height: 100vh;
   background-color: #f5f5f5;
+  padding-bottom: 80px;
 }
 
 .header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 60px 16px 16px;
-  background-color: #fff;
-  position: sticky;
+  padding: 12px 16px;
+  height: 50px;
+  position: fixed;
   top: 0;
-  z-index: 10;
+  left: 0;
+  right: 0;
+  z-index: 100;
 }
 
 .back-btn {
   font-size: 24px;
-  color: #333;
+  color: white;
   cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .title {
   font-size: 17px;
   font-weight: bold;
-  color: #333;
+  color: white;
 }
 
 .add-btn {
   font-size: 15px;
-  color: #667eea;
+  color: white;
   cursor: pointer;
 }
 
 .posts-tabs {
   display: flex;
   background-color: #fff;
-  padding: 0 16px;
-  border-bottom: 1px solid #f5f5f5;
+  gap: 12px;
+  padding: 62px 16px 12px;
 }
 
 .tab-item {
   flex: 1;
   text-align: center;
-  padding: 14px 0;
+  padding: 10px 0;
   font-size: 14px;
   color: #666;
-  position: relative;
   cursor: pointer;
+  border-radius: 24px;
+  transition: all 0.2s;
 }
 
 .tab-item.active {
-  color: #667eea;
-  font-weight: bold;
-}
-
-.tab-item.active::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 40px;
-  height: 3px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 2px;
+  color: white;
+  font-weight: 600;
 }
 
 .tab-count {
   font-size: 12px;
   margin-left: 4px;
-  color: #999;
 }
 
 .tab-item.active .tab-count {
-  color: #667eea;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .posts-list {
@@ -269,7 +267,7 @@ const updateTabCounts = () => {
 
 .post-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 16px;
   margin-bottom: 12px;
   padding: 16px;
   cursor: pointer;

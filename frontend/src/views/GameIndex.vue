@@ -113,7 +113,7 @@ const loadCompanionList = async () => {
   companionList.value = [
     {
       id: 1,
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+      avatar: '',
       nickname: '小雪',
       level: 28,
       vip: true,
@@ -126,7 +126,7 @@ const loadCompanionList = async () => {
     },
     {
       id: 2,
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+      avatar: '',
       nickname: '阿杰',
       level: 35,
       vip: false,
@@ -139,7 +139,7 @@ const loadCompanionList = async () => {
     },
     {
       id: 3,
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200',
+      avatar: '',
       nickname: '小美',
       level: 22,
       vip: true,
@@ -152,7 +152,7 @@ const loadCompanionList = async () => {
     },
     {
       id: 4,
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200',
+      avatar: '',
       nickname: '大飞',
       level: 42,
       vip: true,
@@ -165,7 +165,7 @@ const loadCompanionList = async () => {
     },
     {
       id: 5,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+      avatar: '',
       nickname: '小萌',
       level: 18,
       vip: false,

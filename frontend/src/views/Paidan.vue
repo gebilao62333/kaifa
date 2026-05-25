@@ -226,7 +226,7 @@ const loadOrders = async () => {
   orderList.value = [
     {
       id: 1,
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+      avatar: '',
       nickname: '玩家小李',
       level: 18,
       title: '王者荣耀排位上分',
@@ -240,7 +240,7 @@ const loadOrders = async () => {
     },
     {
       id: 2,
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+      avatar: '',
       nickname: '菜鸟玩家',
       level: 12,
       title: '和平精英娱乐局',
@@ -254,7 +254,7 @@ const loadOrders = async () => {
     },
     {
       id: 3,
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200',
+      avatar: '',
       nickname: '原神玩家',
       level: 30,
       title: '原神刷本组队',
@@ -268,7 +268,7 @@ const loadOrders = async () => {
     },
     {
       id: 4,
-      avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200',
+      avatar: '',
       nickname: '电竞小王子',
       level: 45,
       title: 'LOL灵活组排',

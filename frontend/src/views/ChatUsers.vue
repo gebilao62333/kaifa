@@ -60,9 +60,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '../store/user-info'
 import homeService from '../services/homeService'
 import { toast } from '../composables/useToast'
-import { isLoggedIn } from '../common/common'
 
 const router = useRouter()
 const activeTab = ref('online')
@@ -97,61 +97,63 @@ const filteredUsers = computed(() => {
 })
 
 const loadUsers = async () => {
-  try {
-    loading.value = true
-    
-    if (!isLoggedIn()) {
-      useMockData()
-      return
+  loading.value = true
+  
+  const userStore = useUserStore()
+  const rawToken = localStorage.getItem('token')
+  const storeToken = userStore.token
+  const validToken = rawToken && rawToken !== 'undefined' && rawToken !== 'null' ? rawToken : storeToken
+  const properlyLoggedIn = !!validToken && !!userStore.profile
+
+  if (properlyLoggedIn) {
+    try {
+      const result = await homeService.getRecommendCompanions({ page: 1, pageSize: 50 })
+      
+      if (result && result.code === 200 && result.data) {
+        const list = result.data.list || result.data
+        allUsers.value = list.map(user => ({
+          userId: user.userId || user.id,
+          nickName: user.nickName || user.nickname,
+          avatar: user.avatar || 'https://picsum.photos/200/200',
+          gender: user.gender || 'unknown',
+          level: user.level || 1,
+          online: user.online || false,
+          isVip: user.vip === 1 || user.vip === true,
+          isNewbie: user.level < 10,
+          activityScore: user.activityScore || 50,
+          tags: user.tags || [],
+          region: user.region || user.city || ''
+        }))
+        return
+      }
+    } catch (error) {
+      console.warn('加载用户列表失败，使用模拟数据:', error.message)
     }
-    
-    const result = await homeService.getRecommendCompanions({ page: 1, pageSize: 50 })
-    
-    if (result && result.code === 200 && result.data) {
-      const list = result.data.list || result.data
-      allUsers.value = list.map(user => ({
-        userId: user.userId || user.id,
-        nickName: user.nickName || user.nickname,
-        avatar: user.avatar || 'https://picsum.photos/200/200',
-        gender: user.gender || 'unknown',
-        level: user.level || 1,
-        online: user.online || false,
-        isVip: user.vip === 1 || user.vip === true,
-        isNewbie: user.level < 10,
-        activityScore: user.activityScore || 50,
-        tags: user.tags || [],
-        region: user.region || user.city || ''
-      }))
-    } else {
-      useMockData()
-    }
-  } catch (error) {
-    console.error('加载用户列表失败:', error)
-    useMockData()
-  } finally {
-    loading.value = false
   }
+  
+  useMockData()
+  loading.value = false
 }
 
 const useMockData = () => {
     allUsers.value = [
       {
-        userId: 1, nickName: '小雪', avatar: 'https://picsum.photos/seed/girl1/200/200',
+        userId: 1, nickName: '小雪', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=girl1',
         gender: 'female', level: 28, online: true, isVip: true, isNewbie: false, activityScore: 95,
         tags: ['温柔', '甜音', '技术好'], region: '北京'
       },
       {
-        userId: 2, nickName: '阿杰', avatar: 'https://picsum.photos/seed/boy1/200/200',
+        userId: 2, nickName: '阿杰', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=boy1',
         gender: 'male', level: 35, online: true, isVip: false, isNewbie: false, activityScore: 88,
         tags: ['打野', '带飞', '幽默'], region: '上海'
       },
       {
-        userId: 3, nickName: '小美', avatar: 'https://picsum.photos/seed/girl2/200/200',
+        userId: 3, nickName: '小美', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=girl2',
         gender: 'female', level: 22, online: false, isVip: true, isNewbie: true, activityScore: 45,
         tags: ['娱乐', '聊天', '唱歌'], region: '广州'
       },
       {
-        userId: 4, nickName: '大飞', avatar: 'https://picsum.photos/seed/boy2/200/200',
+        userId: 4, nickName: '大飞', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=boy2',
         gender: 'male', level: 42, online: true, isVip: true, isNewbie: false, activityScore: 100,
         tags: ['技术陪', '上分', '教学'], region: '深圳'
       }
@@ -183,45 +185,46 @@ onMounted(() => {
 .chat-users-page {
   min-height: 100vh;
   background: #f5f5f5;
-  padding-bottom: 20px;
+  padding-bottom: 80px;
 }
 
 .header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 30px 20px 30px;
-  background: white;
-  border-bottom: 1px solid #eee;
-  position: sticky;
+  padding: 12px 16px;
+  height: 50px;
+  position: fixed;
   top: 0;
-  z-index: 10;
+  left: 0;
+  right: 0;
+  z-index: 100;
 }
 
 .back-btn {
   font-size: 24px;
+  color: white;
   cursor: pointer;
   width: 40px;
-  text-align: center;
-  color: #333;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .title {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: bold;
-  color: #333;
+  color: white;
 }
 
 .category-tabs {
   display: flex;
   background: white;
-  padding: 0 12px 0;
+  padding: 62px 12px 0;
   overflow-x: auto;
   gap: 8px;
-  border-bottom: 1px solid #f0f0f0;
-  position: sticky;
-  top: 100px;
-  z-index: 9;
   height: 70px;
 }
 
@@ -265,9 +268,9 @@ onMounted(() => {
   align-items: center;
   padding: 16px 12px;
   background: white;
-  border-radius: 12px;
+  border-radius: 16px;
   margin-bottom: 10px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -286,7 +289,7 @@ onMounted(() => {
 .avatar {
   width: 54px;
   height: 54px;
-  border-radius: 10px;
+  border-radius: 12px;
   object-fit: cover;
 }
 
@@ -428,5 +431,31 @@ onMounted(() => {
 .empty-text {
   font-size: 14px;
   color: #999;
+}
+
+@media (min-width: 768px) {
+  .chat-users-page {
+    max-width: 650px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 0 0 16px 16px;
+    padding: 14px 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .chat-users-page {
+    max-width: 720px;
+  }
+
+  .header {
+    max-width: 720px;
+  }
 }
 </style>

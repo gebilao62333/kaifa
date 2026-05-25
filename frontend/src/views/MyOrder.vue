@@ -181,7 +181,7 @@ const defaultOrders = [
   {
     id: 1,
     game: '王者荣耀',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=order1',
     companionName: '小雪',
     title: '钻石到星耀段位陪练',
     price: 60,
@@ -194,7 +194,7 @@ const defaultOrders = [
   {
     id: 2,
     game: '和平精英',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=order2',
     companionName: '阿杰',
     title: '娱乐局打打吃鸡',
     price: 75,
@@ -207,7 +207,7 @@ const defaultOrders = [
   {
     id: 5,
     game: '永劫无间',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=order5',
     companionName: '战神',
     title: '上分冲榜',
     price: 88,
@@ -220,7 +220,7 @@ const defaultOrders = [
   {
     id: 3,
     game: '原神',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=order3',
     companionName: '小美',
     title: '刷圣遗物和材料',
     price: 90,
@@ -234,7 +234,7 @@ const defaultOrders = [
   {
     id: 4,
     game: '英雄联盟',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a433?w=200',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=order4',
     companionName: '大飞',
     title: '白银到黄金排位',
     price: 120,
@@ -380,33 +380,47 @@ const submitRating = () => {
 }
 
 .header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 50px 20px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  position: relative;
+  justify-content: space-between;
+  padding: 12px 16px;
+  height: 50px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
 }
 
 .back-btn {
   font-size: 24px;
-  color: #fff;
+  color: white;
   cursor: pointer;
-  position: absolute;
-  left: 20px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: static;
+  padding: 0;
+  margin: 0;
 }
 
 .header .title {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: bold;
-  color: #fff;
+  color: white;
+  padding: 0;
+  margin: 0;
+  transform: none;
 }
 
 .tabs {
   background: white;
   display: flex;
   justify-content: space-around;
-  padding: 12px 0;
+  padding: 62px 0 12px;
   overflow-x: auto;
 }
 
@@ -784,5 +798,31 @@ const submitRating = () => {
 .btn-submit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+@media (min-width: 768px) {
+  .my-order-page {
+    max-width: 650px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 0 0 16px 16px;
+    padding: 14px 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .my-order-page {
+    max-width: 720px;
+  }
+
+  .header {
+    max-width: 720px;
+  }
 }
 </style>

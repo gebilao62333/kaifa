@@ -274,6 +274,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   z-index: 100;
+  border-radius: 0 0 16px 16px;
 }
 
 .user-info {
@@ -396,6 +397,8 @@ onMounted(() => {
   display: flex;
   justify-content: space-around;
   padding: 24px 0;
+  margin-top: 24px;
+  margin-bottom: 24px;
   border-bottom: 1px solid #f0f0f0;
 }
 
@@ -470,6 +473,8 @@ onMounted(() => {
 
 .menu-section {
   padding: 0 16px;
+  margin-top: -12px;
+  margin-bottom: -12px;
 }
 
 .menu-grid {

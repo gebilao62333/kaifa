@@ -165,7 +165,7 @@
           <input 
             type="number" 
             v-model="viewPrice" 
-            placeholder="请输入查看价格(元)"
+            placeholder="请输入查看价格(金币)"
             min="0"
             max="999"
           />
@@ -328,7 +328,7 @@ const publish = () => {
     return
   }
   if (visibility.value === 'pay' && (!viewPrice.value || viewPrice.value <= 0)) {
-    alert('请输入有效的查看价格')
+    alert('请输入有效的查看金币数')
     return
   }
   
@@ -372,55 +372,78 @@ const publish = () => {
 .publish-page {
   min-height: 100vh;
   background: #f5f5f5;
+  padding-bottom: 80px;
 }
 
 .header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 60px 20px 20px;
-  background: white;
-  border-bottom: 1px solid #eee;
+  padding: 12px 16px;
+  height: 50px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
 }
 
 .back-btn {
   font-size: 24px;
+  color: white;
   cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .title {
-  font-size: 18px;
+  font-size: 17px;
   font-weight: bold;
+  color: white;
 }
 
 .publish-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: rgba(255, 255, 255, 0.2);
   color: white;
   padding: 8px 20px;
   border-radius: 20px;
   font-size: 14px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .content {
-  padding: 20px;
+  padding: 12px;
+  padding-top: 62px;
 }
 
 .text-input {
   width: 100%;
   min-height: 150px;
   border: none;
-  background: transparent;
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   font-size: 16px;
   outline: none;
   resize: none;
+  box-sizing: border-box;
 }
 
 .image-upload {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  margin: 20px 0;
+  margin: 12px 0;
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 .upload-item {
@@ -494,9 +517,12 @@ const publish = () => {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 0;
-  border-bottom: 1px solid #eee;
+  padding: 14px 16px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   cursor: pointer;
+  margin-bottom: 12px;
 }
 
 .location-tag .icon, .topic-tag .icon {
@@ -506,10 +532,15 @@ const publish = () => {
 .location-tag .text, .topic-tag .text {
   font-size: 15px;
   color: #333;
+  flex: 1;
 }
 
 .visibility-setting {
-  margin-top: 20px;
+  margin-top: 12px;
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 .visibility-setting .label {
@@ -807,5 +838,31 @@ const publish = () => {
   color: #667eea;
   font-size: 16px;
   font-weight: bold;
+}
+
+@media (min-width: 768px) {
+  .publish-page {
+    max-width: 650px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 0 0 16px 16px;
+    padding: 14px 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .publish-page {
+    max-width: 720px;
+  }
+
+  .header {
+    max-width: 720px;
+  }
 }
 </style>

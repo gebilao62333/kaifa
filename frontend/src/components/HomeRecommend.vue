@@ -19,6 +19,7 @@
       >
         <div class="name-and-status">
           <div class="companion-name">{{ item.nickName }}</div>
+          <span class="admin-recommend-badge" v-if="item.isAdminRecommend">推荐</span>
           <span class="vip-badge-mini" v-if="item.vip">VIP{{ item.vipLevel }}</span>
           <div class="online-status" :class="{ online: item.online, offline: !item.online }">
             <span class="status-dot"></span>
@@ -194,6 +195,17 @@ defineEmits(['load-more', 'user-click'])
   flex-shrink: 0;
   margin-left: 20px;
   margin-right: 20px;
+}
+
+.admin-recommend-badge {
+  font-size: 9px;
+  font-weight: 600;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  padding: 1px 6px;
+  border-radius: 8px;
+  line-height: 1.5;
+  flex-shrink: 0;
 }
 
 .name-and-status .online-status {

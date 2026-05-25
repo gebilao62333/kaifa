@@ -1,11 +1,9 @@
 <template>
   <div class="companion-apply-page">
-    <div class="page-header">
-      <div class="header-back" @click="goBack">‹</div>
-      <div class="header-content">
-        <div class="header-title">申请服务</div>
-        <div class="header-subtitle">选择您需要的陪玩服务类型</div>
-      </div>
+    <div class="header">
+      <span class="back-btn" @click="goBack">←</span>
+      <span class="title">申请服务</span>
+      <span style="width: 40px;"></span>
     </div>
 
     <div class="service-tabs">
@@ -724,62 +722,44 @@ onUnmounted(() => {
 .companion-apply-page {
   min-height: 100vh;
   background: #f5f5f5;
+  padding-bottom: 80px;
 }
 
-.page-header {
-  padding: 40px 24px 20px;
-  position: relative;
-  height: 100px;
-  width: 535px;
-  padding-top: 20px;
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  height: 50px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
 }
 
-.header-back {
-  position: absolute;
-  left: 16px;
-  top: 36px;
-  font-size: 32px;
-  color: #333;
+.back-btn {
+  font-size: 24px;
+  color: white;
   cursor: pointer;
-  line-height: 1;
   width: 40px;
   height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  transition: background 0.2s;
-  padding-top: 0;
-  padding-bottom: 0;
-  margin-top: -15px;
-  margin-bottom: -15px;
 }
 
-.header-back:hover {
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.header-content {
-  text-align: center;
-}
-
-.header-title {
-  font-size: 28px;
-  font-weight: 700;
-  color: #333;
-  margin-bottom: 8px;
-}
-
-.header-subtitle {
-  font-size: 14px;
-  color: #999;
+.title {
+  font-size: 17px;
+  font-weight: bold;
+  color: white;
 }
 
 .service-tabs {
   display: flex;
   gap: 12px;
-  padding: 0 16px;
-  margin-top: 12px;
+  padding: 74px 16px 12px;
 }
 
 .tab-btn {
@@ -792,13 +772,14 @@ onUnmounted(() => {
   background: white;
   border: none;
   border-radius: 16px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s;
 }
 
 .tab-btn:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
 }
 
 .tab-btn.active {

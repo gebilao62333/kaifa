@@ -28,6 +28,10 @@ const GameOrder = sequelize.define('xn_game_order', {
     type: DataTypes.STRING(50),
     allowNull: true
   },
+  type: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0
+  },
   price: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false

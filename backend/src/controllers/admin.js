@@ -422,9 +422,9 @@ const getOrderList = async (req, res) => {
     
     try {
       const where = {};
-      if (orderNo) where.order_no = orderNo;
+      if (orderNo) where.order_no = { [Op.like]: `%${orderNo}%` };
       if (userId) where.user_id = parseInt(userId);
-      if (status !== undefined) where.status = status;
+      if (status !== undefined && status !== '') where.status = status;
       
       const result = await GameOrder.findAndCountAll({
         where,
@@ -435,30 +435,53 @@ const getOrderList = async (req, res) => {
       
       orders = result.rows || [];
       total = result.count || 0;
+      
+      // 手动查询用户信息
+      const userIds = new Set();
+      orders.forEach(o => { userIds.add(o.user_id); userIds.add(o.target_user_id); });
+      if (userIds.size > 0) {
+        const users = await User.findAll({ where: { id: { [Op.in]: [...userIds] } }, attributes: ['id', 'nickname'] });
+        const userMap = {};
+        users.forEach(u => { userMap[u.id] = u.nickname; });
+        orders = orders.map(o => {
+          o.dataValues = o.dataValues || o;
+          o.dataValues.buyerName = userMap[o.user_id] || '';
+          o.dataValues.sellerName = userMap[o.target_user_id] || '';
+          return o;
+        });
+      }
     } catch (dbError) {
       console.warn('数据库查询失败，使用Mock数据:', dbError.message);
       const mockOrders = [
-        { id: 1, order_no: 'ORD202605230001', user_id: 1, target_id: 2, game_id: 1, game_name: '王者荣耀', status: 'pending', amount: 100, create_time: Date.now() - 3600000 },
-        { id: 2, order_no: 'ORD202605230002', user_id: 2, target_id: 3, game_id: 2, game_name: '英雄联盟', status: 'ongoing', amount: 150, create_time: Date.now() - 7200000 },
-        { id: 3, order_no: 'ORD202605230003', user_id: 3, target_id: 4, game_id: 1, game_name: '王者荣耀', status: 'completed', amount: 200, create_time: Date.now() - 10800000 },
-        { id: 4, order_no: 'ORD202605230004', user_id: 4, target_id: 5, game_id: 3, game_name: '绝地求生', status: 'cancelled', amount: 120, create_time: Date.now() - 14400000 },
-        { id: 5, order_no: 'ORD202605230005', user_id: 5, target_id: 1, game_id: 2, game_name: '英雄联盟', status: 'pending', amount: 180, create_time: Date.now() - 18000000 }
+        { id: 1, order_no: 'ORD202605230001', user_id: 1, target_user_id: 2, game_name: '王者荣耀', price: 50, total_price: 100, num: 2, status: 0, type: 0, create_time: Math.floor(Date.now() / 1000) - 3600 },
+        { id: 2, order_no: 'ORD202605230002', user_id: 2, target_user_id: 3, game_name: '英雄联盟', price: 75, total_price: 150, num: 2, status: 2, type: 0, create_time: Math.floor(Date.now() / 1000) - 7200 },
+        { id: 3, order_no: 'ORD202605230003', user_id: 3, target_user_id: 4, game_name: '王者荣耀', price: 100, total_price: 200, num: 2, status: 3, type: 1, create_time: Math.floor(Date.now() / 1000) - 10800 },
+        { id: 4, order_no: 'ORD202605230004', user_id: 4, target_user_id: 5, game_name: '绝地求生', price: 60, total_price: 120, num: 2, status: 4, type: 2, create_time: Math.floor(Date.now() / 1000) - 14400 },
+        { id: 5, order_no: 'ORD202605230005', user_id: 5, target_user_id: 1, game_name: '英雄联盟', price: 90, total_price: 180, num: 2, status: 0, type: 0, create_time: Math.floor(Date.now() / 1000) - 18000 }
       ];
       
       orders = mockOrders.slice(offset, offset + parseInt(pageSize));
       total = mockOrders.length;
     }
     
+    const typeMap = { 0: '线上服务', 1: '线下服务', 2: '预约服务' };
+    
     const result = orders.map(order => ({
       orderId: order.id,
       orderNo: order.order_no,
       userId: order.user_id,
-      targetId: order.target_id,
-      gameId: order.game_id,
+      buyerName: order.buyerName || (order.dataValues?.buyerName || ''),
+      targetId: order.target_user_id,
+      sellerName: order.sellerName || (order.dataValues?.sellerName || ''),
       gameName: order.game_name || '未知游戏',
+      type: order.type !== undefined ? order.type : 0,
+      typeText: typeMap[order.type] || '线上服务',
+      price: Number(order.price || 0),
+      totalPrice: Number(order.total_price || order.price || 0),
+      num: order.num || 1,
       status: order.status,
-      amount: order.amount,
-      createTime: order.create_time
+      createTime: order.create_time,
+      endTime: order.end_time
     }));
     
     response.success(res, {
@@ -482,29 +505,43 @@ const getOrderList = async (req, res) => {
 const getOrderDetail = async (req, res) => {
   try {
     const { id } = req.params;
-    const order = await GameOrder.findByPk(id);
+    const order = await GameOrder.findByPk(id, {
+      include: [
+        { model: User, as: 'buyer', attributes: ['id', 'nickname', 'avatar'] },
+        { model: User, as: 'seller', attributes: ['id', 'nickname', 'avatar'] }
+      ]
+    });
     
     if (!order) {
       return response.error(res, '订单不存在');
     }
     
+    const typeMap = { 0: '线上服务', 1: '线下服务', 2: '预约服务' };
+    
     response.success(res, {
       orderId: order.id,
       orderNo: order.order_no,
       userId: order.user_id,
+      buyerName: order.buyer?.nickname || '',
+      buyerAvatar: order.buyer?.avatar || '',
+      targetId: order.target_user_id,
+      sellerName: order.seller?.nickname || '',
+      sellerAvatar: order.seller?.avatar || '',
       gameId: order.game_id,
       gameName: order.game_name,
-      companionId: order.companion_id,
-      companionName: order.companion_name,
-      duration: order.duration,
-      price: order.price,
-      amount: order.amount || order.price,
+      type: order.type !== undefined ? order.type : 0,
+      typeText: typeMap[order.type] || '线上服务',
+      price: Number(order.price || 0),
+      totalPrice: Number(order.total_price || 0),
+      num: order.num || 1,
       status: order.status,
       remark: order.remark,
       createTime: order.create_time,
       startTime: order.start_time,
       endTime: order.end_time,
-      cancelTime: order.cancel_time
+      cancelTime: order.cancel_time,
+      gamesServerName: order.games_server_name || '',
+      gameRoleName: order.game_role_name || ''
     });
   } catch (error) {
     console.error('获取订单详情错误:', error);

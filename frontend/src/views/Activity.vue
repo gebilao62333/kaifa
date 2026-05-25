@@ -40,6 +40,7 @@
                   <span class="user-name">{{ item.nickName }}</span>
                   <span class="user-level" v-if="item.level">Lv.{{ item.level }}</span>
                   <span class="vip-tag" v-if="item.vip">VIP</span>
+                  <span class="recommend-badge" v-if="item.isSystemRecommend">推荐</span>
                 </div>
                 <span class="feed-time">{{ formatTime(item.createTime) }}</span>
               </div>
@@ -119,6 +120,37 @@ const feedList = ref([])
 const page = ref(1)
 const loading = ref(false)
 const hasMore = ref(true)
+
+const getSystemRecommendFeeds = () => {
+  try {
+    const stored = localStorage.getItem('admin_system_recommend')
+    if (!stored) return []
+    const list = JSON.parse(stored)
+    return list.map((u, idx) => ({
+      postId: 10000 + idx,
+      userId: u.userId,
+      nickName: u.nickname || '用户' + u.userId,
+      avatar: u.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=sys' + u.userId,
+      level: u.level || 1,
+      vip: u.vip || false,
+      gameName: '热门推荐',
+      content: `🔥 热门推荐用户：${u.nickname || '用户' + u.userId}，快来互动吧！`,
+      images: [],
+      tagName: '推荐',
+      likes: u.likeCount || u.likes || 0,
+      comments: u.followerCount || u.followers || 0,
+      isLike: false,
+      isFollow: false,
+      createTime: Date.now() - idx * 3600000,
+      onlineService: true,
+      offlineService: true,
+      offlineLocation: '',
+      isSystemRecommend: true
+    }))
+  } catch (e) {
+    return []
+  }
+}
 
 // 预约弹窗
 const showReserveModal = ref(false)
@@ -263,7 +295,8 @@ const loadFeedList = async (reset = false) => {
     }
     
     if (reset) {
-      feedList.value = mockData
+      const systemFeeds = activeTag.value === 0 ? getSystemRecommendFeeds() : []
+      feedList.value = [...systemFeeds, ...mockData]
     } else {
       feedList.value = [...feedList.value, ...mockData]
     }
@@ -365,14 +398,14 @@ onMounted(() => {
   background: #fff;
   margin: 12px auto;
   margin-top: 121px;
-  border-radius: 20px;
+  border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
   max-width: 650px;
 }
 
 .header {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 12px 32px;
   text-align: center;
   height: 56px;
@@ -383,7 +416,7 @@ onMounted(() => {
   z-index: 100;
   max-width: 650px;
   margin: 0 auto;
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
 }
 
 .title {
@@ -441,8 +474,8 @@ onMounted(() => {
 .tag-item.active {
   color: #fff;
   font-weight: 600;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
 }
 
 .tag-item.active::after {
@@ -487,7 +520,7 @@ onMounted(() => {
 }
 
 .user-avatar:hover {
-  border-color: #6366f1;
+  border-color: #667eea;
   transform: scale(1.05);
 }
 
@@ -511,7 +544,7 @@ onMounted(() => {
 }
 
 .user-name:hover {
-  color: #6366f1;
+  color: #667eea;
 }
 
 .user-level {
@@ -521,6 +554,16 @@ onMounted(() => {
   padding: 2px 8px;
   border-radius: 10px;
   font-weight: 500;
+}
+
+.recommend-badge {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-weight: 600;
+  margin-left: 4px;
 }
 
 .vip-tag {
@@ -554,15 +597,15 @@ onMounted(() => {
 }
 
 .reserve-btn {
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #667eea, #764ba2);
 }
 
 .reserve-btn:hover {
-  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  background: linear-gradient(135deg, #5a6ed4, #663d92);
 }
 
 .follow-action {
-  color: #6366f1;
+  color: #667eea;
   font-weight: 500;
 }
 
@@ -614,7 +657,7 @@ onMounted(() => {
 }
 
 .feed-tag {
-  color: #6366f1;
+  color: #667eea;
   font-size: 14px;
   font-weight: 500;
 }
@@ -639,7 +682,7 @@ onMounted(() => {
 
 .action-item:hover {
   background-color: #f8fafc;
-  color: #6366f1;
+  color: #667eea;
   transform: translateY(-1px);
 }
 
@@ -675,7 +718,7 @@ onMounted(() => {
   bottom: 120px;
   width: 64px;
   height: 64px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  background: linear-gradient(135deg, #667eea, #764ba2);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -684,7 +727,7 @@ onMounted(() => {
   cursor: pointer;
   z-index: 20;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
 }
 
 .publish-btn span {
@@ -696,7 +739,7 @@ onMounted(() => {
 
 .publish-btn:hover {
   transform: scale(1.15);
-  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.5);
+  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
 }
 
 .publish-btn:active {
@@ -709,7 +752,7 @@ onMounted(() => {
     padding-top: 70px;
     padding-left: 20px;
     padding-right: 20px;
-    max-width: 620px;
+    max-width: 650px;
     margin: 0 auto;
     position: relative;
   }
@@ -717,14 +760,14 @@ onMounted(() => {
   .content-container {
     margin: 0;
     margin-top: 126px;
-    max-width: 620px;
+    max-width: 650px;
   }
   
   .header {
-    max-width: 620px;
+    max-width: 650px;
     left: 50%;
     transform: translateX(-50%);
-    border-radius: 0 0 20px 20px;
+    border-radius: 0 0 16px 16px;
     padding: 14px 28px;
     height: 56px;
   }
@@ -736,11 +779,11 @@ onMounted(() => {
   .tags-section {
     top: 56px;
     height: 60px;
-    max-width: 620px;
+    max-width: 650px;
   }
   
   .tags-scroll {
-    max-width: 620px;
+    max-width: 650px;
   }
   
   .feed-list {

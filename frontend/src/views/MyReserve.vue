@@ -297,7 +297,7 @@ onUnmounted(() => {
 
 .order-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 16px;
   margin-bottom: 12px;
   overflow: hidden;
   cursor: pointer;

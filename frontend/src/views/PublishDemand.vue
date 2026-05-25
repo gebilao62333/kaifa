@@ -235,7 +235,7 @@
         </div>
         <div class="budget-hint">
           <span class="hint-icon">💡</span>
-          <span class="hint-text">建议：线上陪玩约50元/小时，线下陪玩约125元/小时</span>
+          <span class="hint-text">建议：线上陪玩约50金币/小时，线下陪玩约125金币/小时</span>
         </div>
       </div>
 
@@ -766,13 +766,16 @@ onMounted(() => {
 }
 
 .header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
+  height: 50px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -807,15 +810,16 @@ onMounted(() => {
 
 .content {
   padding: 16px;
+  padding-top: 62px;
   padding-bottom: 40px;
 }
 
 .form-section {
   background: white;
-  border-radius: 10px;
-  padding: 10px;
-  margin-bottom: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
   font-size: 12px;
 }
 
@@ -1608,7 +1612,7 @@ onMounted(() => {
 
 .submit-btn {
   padding: 16px 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   background-color: var(--tw-ring-color);
   color: white;
   border: none;
@@ -1652,12 +1656,13 @@ onMounted(() => {
 
   .content {
     padding: 12px;
+    padding-top: 62px;
     padding-bottom: 100px;
   }
 
   .form-section {
     padding: 14px;
-    border-radius: 10px;
+    border-radius: 16px;
   }
 
   .type-item {
@@ -1690,19 +1695,40 @@ onMounted(() => {
 
 @media screen and (min-width: 768px) {
   .content {
-    max-width: 600px;
+    max-width: 650px;
     margin: 0 auto;
     padding-bottom: 40px;
   }
 
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 0 0 16px 16px;
+  }
+
   .footer {
-    max-width: 600px;
+    max-width: 650px;
     margin: 20px auto;
     border-radius: 20px;
   }
 
   .publish-demand-page {
     padding-bottom: 40px;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  .content {
+    max-width: 720px;
+  }
+
+  .header {
+    max-width: 720px;
+  }
+
+  .footer {
+    max-width: 720px;
   }
 }
 </style>

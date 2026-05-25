@@ -106,7 +106,7 @@ const props = defineProps({
       author: {
         id: '',
         name: '未知用户',
-        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100'
+        avatar: ''
       }
     })
   },

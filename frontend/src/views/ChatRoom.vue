@@ -323,13 +323,13 @@ const loadVipItems = () => {
 const userInfo = ref({
  userId: 1,
  nickName: '小雪',
- avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+ avatar: '',
  isOnline: true
 });
 const myInfo = ref({
  userId: 100001,
  nickName: '我',
- avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200'
+ avatar: '',
 });
 const messages = ref([]);
 const text = ref('');

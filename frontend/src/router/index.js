@@ -252,6 +252,11 @@ const routes = [
     component: lazyLoad('AdminDashboard')
   },
   {
+    path: '/admin/recommend',
+    name: 'AdminRecommend',
+    component: lazyLoad('AdminDashboard')
+  },
+  {
     path: '/admin/companion-applications',
     name: 'AdminCompanionApplications',
     component: lazyLoad('AdminDashboard')
@@ -427,6 +432,7 @@ const router = createRouter({
 })
 
 const publicRoutes = ['Login', 'Home', 'Search', 'Activity', 'PostDetail', 'Preferred', 'Mine', 'Friend', 'AdminLogin']
+const publicPaths = ['/', '/login', '/home', '/search', '/activity', '/friend']
 
 router.beforeEach((to, from, next) => {
   if (to.path.startsWith('/admin')) {
@@ -444,12 +450,12 @@ router.beforeEach((to, from, next) => {
   }
   
   const userStore = useUserStore()
-  const isPublicRoute = publicRoutes.includes(to.name)
+  const isPublicRoute = publicRoutes.includes(to.name) || publicPaths.includes(to.path)
   
   const rawToken = localStorage.getItem('token')
   const storeToken = userStore.token
   const validToken = rawToken && rawToken !== 'undefined' && rawToken !== 'null' ? rawToken : storeToken
-  const isLoggedIn = !!validToken && !!userStore.profile
+  const isLoggedIn = !!validToken
 
   if (!isPublicRoute && !isLoggedIn) {
     next({ name: 'Login', query: { redirect: to.fullPath } })

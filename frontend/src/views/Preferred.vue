@@ -152,7 +152,7 @@ const loadChatList = async () => {
         id: 1,
         toId: 2,
         nickName: '小雪',
-        avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100',
+        avatar: '',
         content: '你好呀，今晚一起开黑吗？',
         sendTime: Date.now() - 1800000,
         unreadCount: 2,
@@ -162,7 +162,7 @@ const loadChatList = async () => {
         id: 2,
         toId: 3,
         nickName: '阿杰',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
+        avatar: '',
         content: '好的，那晚上8点见！',
         sendTime: Date.now() - 7200000,
         unreadCount: 0,
@@ -172,7 +172,7 @@ const loadChatList = async () => {
         id: 3,
         toId: 4,
         nickName: '小美',
-        avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100',
+        avatar: '',
         content: '谢谢你的礼物~',
         sendTime: Date.now() - 86400000,
         unreadCount: 1,
@@ -182,7 +182,7 @@ const loadChatList = async () => {
         id: 4,
         toId: 5,
         nickName: '大飞',
-        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100',
+        avatar: '',
         content: '收到，你的预约已确认',
         sendTime: Date.now() - 172800000,
         unreadCount: 0,
@@ -274,16 +274,17 @@ onUnmounted(() => {
 .preferred-page {
   min-height: 100vh;
   background-color: #f5f5f5;
-  padding-bottom: 80px;
-  padding-top: 50px;
+  padding-bottom: 0;
+  padding-top: 0;
 }
 
 .content-container {
   background: #fff;
-  margin: 12px;
+  margin: 0 12px 12px;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  height: 800px;
 }
 
 .header {
@@ -296,6 +297,7 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   z-index: 100;
+  border-radius: 0 0 16px 16px;
 }
 
 .title {
@@ -309,9 +311,10 @@ onUnmounted(() => {
   background-color: #fff;
   padding: 0 40px;
   border-bottom: 1px solid #f0f0f0;
-  position: sticky;
-  top: 50px;
+  position: static;
   z-index: 10;
+  margin-top: -7px;
+  margin-bottom: -7px;
 }
 
 .tab-item {
@@ -353,10 +356,15 @@ onUnmounted(() => {
   background-color: #ff4757;
   color: #fff;
   font-size: 11px;
-  padding: 2px 6px;
+  padding: 2px 0;
   border-radius: 10px;
-  min-width: 18px;
+  min-width: 20px;
+  height: 20px;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px -15px;
 }
 
 .content {
@@ -372,7 +380,7 @@ onUnmounted(() => {
 .chat-item {
   display: flex;
   align-items: center;
-  padding: 12px;
+  padding: 10px 12px;
   background-color: #fff;
   border-radius: 12px;
   cursor: pointer;
@@ -391,7 +399,7 @@ onUnmounted(() => {
 .avatar-wrap.kefu {
   width: 48px;
   height: 48px;
-  border-radius: 50%;
+  border-radius: 10px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
@@ -402,7 +410,7 @@ onUnmounted(() => {
 .avatar {
   width: 48px;
   height: 48px;
-  border-radius: 50%;
+  border-radius: 10px;
   object-fit: cover;
 }
 
