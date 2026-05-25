@@ -51,3 +51,10 @@ duoke_logs/
 
 # Temp
 *.tmp
+
+# Large files
+qqqqqq2222.7z
+frontend/dist/
+frontend/coverage/
+*.7z
+*.zip
