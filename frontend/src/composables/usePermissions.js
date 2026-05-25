@@ -153,8 +153,6 @@ const requestMicrophonePermission = async () => {
 }
 
 const getBrowserInfo = () => {
-  const ua = navigator.userAgent.toLowerCase()
-  
   if (navigator.userAgentData && navigator.userAgentData.brands) {
     const brands = navigator.userAgentData.brands
     if (brands.some(b => b.brand.includes('Chrome') && !b.brand.includes('Chromium'))) {
@@ -169,7 +167,10 @@ const getBrowserInfo = () => {
     if (brands.some(b => b.brand.includes('Firefox'))) {
       return 'firefox'
     }
+    return 'other'
   }
+  
+  const ua = navigator.userAgent.toLowerCase()
   
   if (ua.indexOf('chrome') > -1 && ua.indexOf('google') > -1) {
     return 'chrome'

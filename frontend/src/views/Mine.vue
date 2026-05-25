@@ -51,7 +51,7 @@
         <div class="menu-grid">
           <div class="menu-item" @click="goWallet">
             <span class="menu-icon">💰</span>
-            <span class="menu-text">我的余额</span>
+            <span class="menu-text">我的钱包</span>
             <span class="menu-arrow">›</span>
           </div>
           <div class="menu-item" @click="goMyOrder">

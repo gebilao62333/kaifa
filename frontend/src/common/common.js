@@ -213,20 +213,41 @@ export const validateParams = (params, rules) => {
 
 const DEFAULT_TIMEOUT = 15000
 
+let isRedirecting = false
+
 export class RequestError extends Error {
-  constructor(message, code = -1, status = 0) {
+  constructor(message, code = -1, status = 0, fieldErrors = {}) {
     super(message)
     this.name = 'RequestError'
     this.code = code
     this.status = status
+    this.fieldErrors = fieldErrors
   }
 }
 
-export const request = async (url, method = 'GET', data = {}, headers = {}, timeout = DEFAULT_TIMEOUT) => {
+export const isLoggedIn = () => {
+  return !!localStorage.getItem('token') || !!localStorage.getItem('admin_token')
+}
+
+export const checkLoginStatus = (requireLogin = false) => {
+  if (requireLogin && !isLoggedIn()) {
+    throw new RequestError('请先登录', -2, 401)
+  }
+  return isLoggedIn()
+}
+
+export const request = async (url, method = 'GET', data = {}, headers = {}, timeout = DEFAULT_TIMEOUT, options = {}) => {
+  const { requireLogin = false, silentAbort = true } = options
+  
+  if (requireLogin && !isLoggedIn()) {
+    window.location.href = '/login'
+    throw new RequestError('请先登录', -2, 401)
+  }
+
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeout)
 
-  const options = {
+  const requestOptions = {
     method: method.toUpperCase(),
     headers: {
       'Content-Type': 'application/json',
@@ -235,28 +256,33 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
     signal: controller.signal
   }
 
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem('admin_token') || localStorage.getItem('token')
   if (token) {
-    options.headers['Authorization'] = `Bearer ${token}`
+    requestOptions.headers['Authorization'] = `Bearer ${token}`
   }
 
-  if (options.method === 'GET') {
+  if (requestOptions.method === 'GET') {
     const params = new URLSearchParams(data)
     if (params.toString()) {
       url += '?' + params.toString()
     }
   } else {
-    options.body = JSON.stringify(data)
+    requestOptions.body = JSON.stringify(data)
   }
 
   try {
-    const response = await fetch(url, options)
+    const response = await fetch(url, requestOptions)
     clearTimeout(timeoutId)
 
     if (response.status === 401) {
-      localStorage.removeItem('token')
-      localStorage.removeItem('pinia-app-state')
-      window.location.href = '/login'
+      if (!isRedirecting) {
+        isRedirecting = true
+        localStorage.removeItem('token')
+        localStorage.removeItem('pinia-app-state')
+        setTimeout(() => {
+          window.location.href = '/login'
+        }, 100)
+      }
       throw new RequestError('登录失效，请重新登录', -1, 401)
     }
 
@@ -266,6 +292,17 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
 
     if (response.status === 404) {
       throw new RequestError('请求的资源不存在', -1, 404)
+    }
+
+    if (response.status === 422) {
+      const text = await response.text()
+      let fieldErrors = {}
+      try {
+        const result = JSON.parse(text)
+        fieldErrors = result.errors || {}
+      } catch (e) {
+      }
+      throw new RequestError('请求参数验证失败', -1, 422, fieldErrors)
     }
 
     if (!response.ok) {
@@ -290,6 +327,10 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
       throw error
     }
     if (error.name === 'AbortError') {
+      if (silentAbort) {
+        console.debug('请求已中止（可能是页面跳转导致）:', url)
+        return null
+      }
       throw new RequestError('请求超时，请检查网络连接', -1, 0)
     }
     throw new RequestError('网络连接失败，请检查网络', -1, 0)

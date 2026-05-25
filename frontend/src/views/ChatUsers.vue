@@ -62,6 +62,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import homeService from '../services/homeService'
 import { toast } from '../composables/useToast'
+import { isLoggedIn } from '../common/common'
 
 const router = useRouter()
 const activeTab = ref('online')
@@ -98,9 +99,15 @@ const filteredUsers = computed(() => {
 const loadUsers = async () => {
   try {
     loading.value = true
+    
+    if (!isLoggedIn()) {
+      useMockData()
+      return
+    }
+    
     const result = await homeService.getRecommendCompanions({ page: 1, pageSize: 50 })
     
-    if (result.code === 200 && result.data) {
+    if (result && result.code === 200 && result.data) {
       const list = result.data.list || result.data
       allUsers.value = list.map(user => ({
         userId: user.userId || user.id,
@@ -115,36 +122,40 @@ const loadUsers = async () => {
         tags: user.tags || [],
         region: user.region || user.city || ''
       }))
+    } else {
+      useMockData()
     }
   } catch (error) {
     console.error('加载用户列表失败:', error)
-    toast.error('加载用户列表失败')
-    
+    useMockData()
+  } finally {
+    loading.value = false
+  }
+}
+
+const useMockData = () => {
     allUsers.value = [
       {
-        userId: 1, nickName: '小雪', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+        userId: 1, nickName: '小雪', avatar: 'https://picsum.photos/seed/girl1/200/200',
         gender: 'female', level: 28, online: true, isVip: true, isNewbie: false, activityScore: 95,
         tags: ['温柔', '甜音', '技术好'], region: '北京'
       },
       {
-        userId: 2, nickName: '阿杰', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200',
+        userId: 2, nickName: '阿杰', avatar: 'https://picsum.photos/seed/boy1/200/200',
         gender: 'male', level: 35, online: true, isVip: false, isNewbie: false, activityScore: 88,
         tags: ['打野', '带飞', '幽默'], region: '上海'
       },
       {
-        userId: 3, nickName: '小美', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200',
+        userId: 3, nickName: '小美', avatar: 'https://picsum.photos/seed/girl2/200/200',
         gender: 'female', level: 22, online: false, isVip: true, isNewbie: true, activityScore: 45,
         tags: ['娱乐', '聊天', '唱歌'], region: '广州'
       },
       {
-        userId: 4, nickName: '大飞', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200',
+        userId: 4, nickName: '大飞', avatar: 'https://picsum.photos/seed/boy2/200/200',
         gender: 'male', level: 42, online: true, isVip: true, isNewbie: false, activityScore: 100,
         tags: ['技术陪', '上分', '教学'], region: '深圳'
       }
     ]
-  } finally {
-    loading.value = false
-  }
 }
 
 const switchTab = (tabKey) => {

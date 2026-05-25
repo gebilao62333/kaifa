@@ -102,10 +102,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
+import { RequestError } from '../common/common'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -122,6 +123,34 @@ const forgotPhone = ref('')
 const forgotCode = ref('')
 const forgotPwd = ref('')
 const codeSending = ref(false)
+
+const handleFieldErrors = (error) => {
+  if (error.fieldErrors && typeof error.fieldErrors === 'object') {
+    const errorMessages = []
+    for (const [field, messages] of Object.entries(error.fieldErrors)) {
+      const fieldNames = {
+        username: '用户名',
+        password: '密码',
+        phone: '手机号',
+        code: '验证码',
+        email: '邮箱'
+      }
+      const fieldName = fieldNames[field] || field
+      if (Array.isArray(messages)) {
+        messages.forEach(msg => {
+          errorMessages.push(`${fieldName}${msg}`)
+        })
+      } else {
+        errorMessages.push(`${fieldName}${messages}`)
+      }
+    }
+    if (errorMessages.length > 0) {
+      toast.error(errorMessages.join('；'))
+      return true
+    }
+  }
+  return false
+}
 
 const handleLogin = async () => {
   if (!username.value || !password.value) {
@@ -143,14 +172,50 @@ const handleLogin = async () => {
 
     if (result.success) {
       toast.success('登录成功')
-      const redirect = router.currentRoute.value.query.redirect || '/home'
-      router.push(redirect)
+      let redirect = router.currentRoute.value.query.redirect || '/home'
+      
+      if (redirect) {
+        try {
+          const decoded = decodeURIComponent(redirect)
+          const validRoutes = router.getRoutes().map(r => r.path)
+          if (!validRoutes.includes(decoded)) {
+            console.warn('无效的重定向路径:', decoded, '，将跳转到首页')
+            redirect = '/home'
+          }
+        } catch (e) {
+          console.warn('重定向路径解码失败:', redirect, '，将跳转到首页')
+          redirect = '/home'
+        }
+      }
+      
+      setTimeout(async () => {
+        try {
+          await router.push(redirect)
+          console.log('跳转成功:', redirect)
+        } catch (error) {
+          console.error('跳转失败:', error)
+          await router.push('/home')
+        }
+      }, 500)
     } else {
-      toast.error(result.message || '登录失败')
+      if (result.error && result.error.fieldErrors) {
+        handleFieldErrors(result.error)
+      } else {
+        toast.error(result.message || '登录失败')
+      }
     }
   } catch (error) {
     console.error('登录失败:', error)
-    toast.error('登录失败，请重试')
+    if (error instanceof RequestError) {
+      if (error.status === 422 && handleFieldErrors(error)) {
+        return
+      }
+      if (error.status === 422) {
+        toast.error('登录信息验证失败，请检查用户名和密码格式')
+        return
+      }
+    }
+    toast.error(error.message || '登录失败，请重试')
   } finally {
     isLoading.value = false
   }

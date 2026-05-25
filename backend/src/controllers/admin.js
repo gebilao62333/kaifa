@@ -1,4 +1,4 @@
-const { User, GameOrder, Withdraw, GiftLog, Post, VipPackage, Banner } = require('../models');
+const { User, GameOrder, Withdraw, GiftLog, Post, VipPackage, Banner, CompanionProfile } = require('../models');
 const { signToken } = require('../config/jwt');
 const response = require('../utils/response');
 const { Op } = require('sequelize');
@@ -9,26 +9,26 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
 
 // 全局Mock用户数据
 const mockUsers = [
-  { id: 1, nickname: '游戏达人小王', phone: '138****1234', avatar: 'https://picsum.photos/100/100?random=1', gender: 1, status: 0, create_time: Date.now() - 86400000, vip: 1, vip_lv: 2, money: 5000, score: 1500, fans_num: 120, sex: 1, city: '北京', dec: '喜欢玩各种游戏', gift_money: 200 },
-  { id: 2, nickname: '玩家小美', phone: '139****5678', avatar: 'https://picsum.photos/100/100?random=2', gender: 0, status: 0, create_time: Date.now() - 172800000, vip: 0, vip_lv: 0, money: 1200, score: 300, fans_num: 35, sex: 0, city: '上海', dec: '', gift_money: 50 },
-  { id: 3, nickname: '新手玩家', phone: '137****9012', avatar: 'https://picsum.photos/100/100?random=3', gender: 1, status: 1, create_time: Date.now() - 259200000, vip: 0, vip_lv: 0, money: 0, score: 200, fans_num: 0, sex: 1, city: '广州', dec: '刚注册的用户', gift_money: 0 },
-  { id: 4, nickname: '游戏爱好者', phone: '136****3456', avatar: 'https://picsum.photos/100/100?random=4', gender: 1, status: 0, create_time: Date.now() - 345600000, vip: 0, vip_lv: 0, money: 800, score: 200, fans_num: 15, sex: 0, city: '深圳', dec: '新人报道', gift_money: 100 },
-  { id: 5, nickname: '资深玩家', phone: '135****7890', avatar: 'https://picsum.photos/100/100?random=5', gender: 1, status: 0, create_time: Date.now() - 432000000, vip: 1, vip_lv: 3, money: 15000, score: 5000, fans_num: 500, sex: 1, city: '杭州', dec: '资深游戏玩家', gift_money: 500 },
-  { id: 6, nickname: '电竞小白', phone: '134****1111', avatar: 'https://picsum.photos/100/100?random=6', gender: 1, status: 0, create_time: Date.now() - 518400000, vip: 0, vip_lv: 0, money: 500, score: 100, fans_num: 8, sex: 1, city: '成都', dec: '喜欢打电竞', gift_money: 30 },
-  { id: 7, nickname: '萌妹子玩家', phone: '133****2222', avatar: 'https://picsum.photos/100/100?random=7', gender: 0, status: 0, create_time: Date.now() - 604800000, vip: 1, vip_lv: 1, money: 2000, score: 800, fans_num: 200, sex: 0, city: '武汉', dec: '声音超好听', gift_money: 300 },
-  { id: 8, nickname: '王者荣耀大神', phone: '132****3333', avatar: 'https://picsum.photos/100/100?random=8', gender: 1, status: 0, create_time: Date.now() - 691200000, vip: 1, vip_lv: 2, money: 8000, score: 3000, fans_num: 350, sex: 1, city: '南京', dec: '王者百星选手', gift_money: 800 },
-  { id: 9, nickname: '和平精英玩家', phone: '131****4444', avatar: 'https://picsum.photos/100/100?random=9', gender: 1, status: 0, create_time: Date.now() - 777600000, vip: 0, vip_lv: 0, money: 300, score: 400, fans_num: 25, sex: 1, city: '重庆', dec: '和平精英吃鸡', gift_money: 20 },
-  { id: 10, nickname: '原神旅行者', phone: '130****5555', avatar: 'https://picsum.photos/100/100?random=10', gender: 0, status: 0, create_time: Date.now() - 864000000, vip: 1, vip_lv: 3, money: 20000, score: 10000, fans_num: 800, sex: 0, city: '西安', dec: '原神满命玩家', gift_money: 2000 },
-  { id: 11, nickname: '永劫无间高手', phone: '129****6666', avatar: 'https://picsum.photos/100/100?random=11', gender: 1, status: 1, create_time: Date.now() - 950400000, vip: 0, vip_lv: 0, money: 100, score: 50, fans_num: 5, sex: 1, city: '苏州', dec: '练刀中', gift_money: 10 },
-  { id: 12, nickname: '英雄联盟钻石', phone: '128****7777', avatar: 'https://picsum.photos/100/100?random=12', gender: 1, status: 0, create_time: Date.now() - 1036800000, vip: 1, vip_lv: 2, money: 6000, score: 2500, fans_num: 280, sex: 1, city: '天津', dec: 'LOL钻石段位', gift_money: 600 },
-  { id: 13, nickname: '休闲玩家小雨', phone: '127****8888', avatar: 'https://picsum.photos/100/100?random=13', gender: 0, status: 0, create_time: Date.now() - 1123200000, vip: 0, vip_lv: 0, money: 200, score: 150, fans_num: 12, sex: 0, city: '长沙', dec: '玩游戏开心就好', gift_money: 40 },
-  { id: 14, nickname: '陪玩师小乐', phone: '126****9999', avatar: 'https://picsum.photos/100/100?random=14', gender: 0, status: 0, create_time: Date.now() - 1209600000, vip: 1, vip_lv: 1, money: 3000, score: 1200, fans_num: 150, sex: 0, city: '青岛', dec: '专业陪玩', gift_money: 400 },
-  { id: 15, nickname: '吃鸡大神', phone: '125****0000', avatar: 'https://picsum.photos/100/100?random=15', gender: 1, status: 0, create_time: Date.now() - 1296000000, vip: 1, vip_lv: 3, money: 12000, score: 4500, fans_num: 450, sex: 1, city: '大连', dec: '场均10杀', gift_money: 1200 },
-  { id: 16, nickname: '游戏小萌新', phone: '124****1212', avatar: 'https://picsum.photos/100/100?random=16', gender: 0, status: 0, create_time: Date.now() - 1382400000, vip: 0, vip_lv: 0, money: 50, score: 30, fans_num: 2, sex: 0, city: '厦门', dec: '刚玩游戏，求带', gift_money: 5 },
-  { id: 17, nickname: '王者荣耀主播', phone: '123****3434', avatar: 'https://picsum.photos/100/100?random=17', gender: 1, status: 0, create_time: Date.now() - 1468800000, vip: 1, vip_lv: 3, money: 50000, score: 20000, fans_num: 2000, sex: 1, city: '广州', dec: '王者荣耀主播', gift_money: 5000 },
-  { id: 18, nickname: '休闲斗地主', phone: '122****5656', avatar: 'https://picsum.photos/100/100?random=18', gender: 1, status: 1, create_time: Date.now() - 1555200000, vip: 0, vip_lv: 0, money: 0, score: 0, fans_num: 0, sex: 1, city: '福州', dec: '喜欢玩斗地主', gift_money: 0 },
-  { id: 19, nickname: '原神萌新', phone: '121****7878', avatar: 'https://picsum.photos/100/100?random=19', gender: 0, status: 0, create_time: Date.now() - 1641600000, vip: 0, vip_lv: 0, money: 150, score: 80, fans_num: 8, sex: 0, city: '东莞', dec: '原神新手玩家', gift_money: 15 },
-  { id: 20, nickname: '电竞少女', phone: '120****9090', avatar: 'https://picsum.photos/100/100?random=20', gender: 0, status: 0, create_time: Date.now() - 1728000000, vip: 1, vip_lv: 2, money: 4000, score: 1800, fans_num: 180, sex: 0, city: '宁波', dec: '电竞少女一枚', gift_money: 400 }
+  { id: 1, nickname: '游戏达人小王', phone: '138****1234', avatar: 'https://picsum.photos/100/100?random=1', gender: 1, status: 0, create_time: Date.now() - 86400000, vip: 1, vip_lv: 2, money: 5000, fans_num: 120, sex: 1, city: '北京', dec: '喜欢玩各种游戏', gift_money: 200 },
+  { id: 2, nickname: '玩家小美', phone: '139****5678', avatar: 'https://picsum.photos/100/100?random=2', gender: 0, status: 0, create_time: Date.now() - 172800000, vip: 0, vip_lv: 0, money: 1200, fans_num: 35, sex: 0, city: '上海', dec: '', gift_money: 50 },
+  { id: 3, nickname: '新手玩家', phone: '137****9012', avatar: 'https://picsum.photos/100/100?random=3', gender: 1, status: 1, create_time: Date.now() - 259200000, vip: 0, vip_lv: 0, money: 0, fans_num: 0, sex: 1, city: '广州', dec: '刚注册的用户', gift_money: 0 },
+  { id: 4, nickname: '游戏爱好者', phone: '136****3456', avatar: 'https://picsum.photos/100/100?random=4', gender: 1, status: 0, create_time: Date.now() - 345600000, vip: 0, vip_lv: 0, money: 800, fans_num: 15, sex: 0, city: '深圳', dec: '新人报道', gift_money: 100 },
+  { id: 5, nickname: '资深玩家', phone: '135****7890', avatar: 'https://picsum.photos/100/100?random=5', gender: 1, status: 0, create_time: Date.now() - 432000000, vip: 1, vip_lv: 3, money: 15000, fans_num: 500, sex: 1, city: '杭州', dec: '资深游戏玩家', gift_money: 500 },
+  { id: 6, nickname: '电竞小白', phone: '134****1111', avatar: 'https://picsum.photos/100/100?random=6', gender: 1, status: 0, create_time: Date.now() - 518400000, vip: 0, vip_lv: 0, money: 500, fans_num: 8, sex: 1, city: '成都', dec: '喜欢打电竞', gift_money: 30 },
+  { id: 7, nickname: '萌妹子玩家', phone: '133****2222', avatar: 'https://picsum.photos/100/100?random=7', gender: 0, status: 0, create_time: Date.now() - 604800000, vip: 1, vip_lv: 1, money: 2000, fans_num: 200, sex: 0, city: '武汉', dec: '声音超好听', gift_money: 300 },
+  { id: 8, nickname: '王者荣耀大神', phone: '132****3333', avatar: 'https://picsum.photos/100/100?random=8', gender: 1, status: 0, create_time: Date.now() - 691200000, vip: 1, vip_lv: 2, money: 8000, fans_num: 350, sex: 1, city: '南京', dec: '王者百星选手', gift_money: 800 },
+  { id: 9, nickname: '和平精英玩家', phone: '131****4444', avatar: 'https://picsum.photos/100/100?random=9', gender: 1, status: 0, create_time: Date.now() - 777600000, vip: 0, vip_lv: 0, money: 300, fans_num: 25, sex: 1, city: '重庆', dec: '和平精英吃鸡', gift_money: 20 },
+  { id: 10, nickname: '原神旅行者', phone: '130****5555', avatar: 'https://picsum.photos/100/100?random=10', gender: 0, status: 0, create_time: Date.now() - 864000000, vip: 1, vip_lv: 3, money: 20000, fans_num: 800, sex: 0, city: '西安', dec: '原神满命玩家', gift_money: 2000 },
+  { id: 11, nickname: '永劫无间高手', phone: '129****6666', avatar: 'https://picsum.photos/100/100?random=11', gender: 1, status: 1, create_time: Date.now() - 950400000, vip: 0, vip_lv: 0, money: 100, fans_num: 5, sex: 1, city: '苏州', dec: '练刀中', gift_money: 10 },
+  { id: 12, nickname: '英雄联盟钻石', phone: '128****7777', avatar: 'https://picsum.photos/100/100?random=12', gender: 1, status: 0, create_time: Date.now() - 1036800000, vip: 1, vip_lv: 2, money: 6000, fans_num: 280, sex: 1, city: '天津', dec: 'LOL钻石段位', gift_money: 600 },
+  { id: 13, nickname: '休闲玩家小雨', phone: '127****8888', avatar: 'https://picsum.photos/100/100?random=13', gender: 0, status: 0, create_time: Date.now() - 1123200000, vip: 0, vip_lv: 0, money: 200, fans_num: 12, sex: 0, city: '长沙', dec: '玩游戏开心就好', gift_money: 40 },
+  { id: 14, nickname: '陪玩师小乐', phone: '126****9999', avatar: 'https://picsum.photos/100/100?random=14', gender: 0, status: 0, create_time: Date.now() - 1209600000, vip: 1, vip_lv: 1, money: 3000, fans_num: 150, sex: 0, city: '青岛', dec: '专业陪玩', gift_money: 400 },
+  { id: 15, nickname: '吃鸡大神', phone: '125****0000', avatar: 'https://picsum.photos/100/100?random=15', gender: 1, status: 0, create_time: Date.now() - 1296000000, vip: 1, vip_lv: 3, money: 12000, fans_num: 450, sex: 1, city: '大连', dec: '场均10杀', gift_money: 1200 },
+  { id: 16, nickname: '游戏小萌新', phone: '124****1212', avatar: 'https://picsum.photos/100/100?random=16', gender: 0, status: 0, create_time: Date.now() - 1382400000, vip: 0, vip_lv: 0, money: 50, fans_num: 2, sex: 0, city: '厦门', dec: '刚玩游戏，求带', gift_money: 5 },
+  { id: 17, nickname: '王者荣耀主播', phone: '123****3434', avatar: 'https://picsum.photos/100/100?random=17', gender: 1, status: 0, create_time: Date.now() - 1468800000, vip: 1, vip_lv: 3, money: 50000, fans_num: 2000, sex: 1, city: '广州', dec: '王者荣耀主播', gift_money: 5000 },
+  { id: 18, nickname: '休闲斗地主', phone: '122****5656', avatar: 'https://picsum.photos/100/100?random=18', gender: 1, status: 1, create_time: Date.now() - 1555200000, vip: 0, vip_lv: 0, money: 0, fans_num: 0, sex: 1, city: '福州', dec: '喜欢玩斗地主', gift_money: 0 },
+  { id: 19, nickname: '原神萌新', phone: '121****7878', avatar: 'https://picsum.photos/100/100?random=19', gender: 0, status: 0, create_time: Date.now() - 1641600000, vip: 0, vip_lv: 0, money: 150, fans_num: 8, sex: 0, city: '东莞', dec: '原神新手玩家', gift_money: 15 },
+  { id: 20, nickname: '电竞少女', phone: '120****9090', avatar: 'https://picsum.photos/100/100?random=20', gender: 0, status: 0, create_time: Date.now() - 1728000000, vip: 1, vip_lv: 2, money: 4000, fans_num: 180, sex: 0, city: '宁波', dec: '电竞少女一枚', gift_money: 400 }
 ];
 
 const adminLogin = async (req, res) => {
@@ -110,15 +110,22 @@ const getUserList = async (req, res) => {
     const result = users.map(user => ({
       userId: user.id,
       nickname: user.nickname,
+      username: user.username || '',
       avatar: user.avatar || '',
-      phone: user.phone,
-      gender: user.gender || 0,
+      phone: user.phone || user.mobile || '',
+      gender: user.gender || user.sex || 0,
+      sex: user.sex || 0,
+      city: user.city || '',
+      dec: user.dec || '',
       status: user.status || 0,
       vip: user.vip || 0,
       vipLv: user.vip_lv || 0,
       money: user.money || 0,
-      score: user.score || 0,
+      giftMoney: user.gift_money || 0,
+      lv: user.lv || 1,
+      email: user.email || '',
       fansNum: user.fans_num || 0,
+      lastLoginTime: user.last_login_time || 0,
       createTime: user.create_time
     }));
     
@@ -156,23 +163,44 @@ const getUserDetail = async (req, res) => {
       return response.error(res, '用户不存在');
     }
     
+    let companionService = null
+    try {
+      const profile = await CompanionProfile.findOne({ where: { user_id: user.id } })
+      if (profile) {
+        companionService = {
+          status: profile.status,
+          price: Number(profile.price),
+          tags: profile.tags || '',
+          voiceIntro: profile.voice_intro || '',
+          orderNum: profile.order_num || 0,
+          star: Number(profile.star) || 5.00
+        }
+      }
+    } catch (e) {
+      console.warn('查询陪玩师信息失败:', e.message)
+    }
+    
     response.success(res, {
       userId: user.id,
       nickname: user.nickname,
+      username: user.username || '',
       avatar: user.avatar || '',
-      phone: user.phone,
+      phone: user.phone || user.mobile || '',
+      email: user.email || '',
       status: user.status,
       vip: user.vip,
       vipLv: user.vip_lv,
       money: user.money,
       giftMoney: user.gift_money,
-      score: user.score,
+      lv: user.lv || 1,
       fansNum: user.fans_num,
       followNum: user.follow_num || 0,
       dec: user.dec,
       sex: user.sex,
       city: user.city,
-      createTime: user.create_time
+      lastLoginTime: user.last_login_time || 0,
+      createTime: user.create_time,
+      companionService
     });
   } catch (error) {
     console.error('获取用户详情错误:', error);
@@ -183,7 +211,7 @@ const getUserDetail = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nickname, phone, sex, city, status, vipLv, money, giftMoney, score, dec } = req.body;
+    const { nickname, phone, sex, city, status, vipLv, money, giftMoney, dec, username, email } = req.body;
     
     let user = null;
     let dbErrorOccurred = false;
@@ -206,26 +234,28 @@ const updateUser = async (req, res) => {
     if (dbErrorOccurred) {
       const userIndex = mockUsers.findIndex(u => u.id === parseInt(id));
       if (nickname !== undefined) mockUsers[userIndex].nickname = nickname;
+      if (username !== undefined) mockUsers[userIndex].username = username;
       if (phone !== undefined) mockUsers[userIndex].phone = phone;
+      if (email !== undefined) mockUsers[userIndex].email = email;
       if (sex !== undefined) mockUsers[userIndex].sex = parseInt(sex);
       if (city !== undefined) mockUsers[userIndex].city = city;
       if (status !== undefined) mockUsers[userIndex].status = parseInt(status);
       if (vipLv !== undefined) mockUsers[userIndex].vip_lv = parseInt(vipLv);
       if (money !== undefined) mockUsers[userIndex].money = parseFloat(money);
       if (giftMoney !== undefined) mockUsers[userIndex].gift_money = parseFloat(giftMoney);
-      if (score !== undefined) mockUsers[userIndex].score = parseInt(score);
       if (dec !== undefined) mockUsers[userIndex].dec = dec;
     } else {
       const updateData = {};
       if (nickname !== undefined) updateData.nickname = nickname;
+      if (username !== undefined) updateData.username = username;
       if (phone !== undefined) updateData.phone = phone;
+      if (email !== undefined) updateData.email = email;
       if (sex !== undefined) updateData.sex = parseInt(sex);
       if (city !== undefined) updateData.city = city;
       if (status !== undefined) updateData.status = parseInt(status);
       if (vipLv !== undefined) updateData.vip_lv = parseInt(vipLv);
       if (money !== undefined) updateData.money = parseFloat(money);
       if (giftMoney !== undefined) updateData.gift_money = parseFloat(giftMoney);
-      if (score !== undefined) updateData.score = parseInt(score);
       if (dec !== undefined) updateData.dec = dec;
       
       await user.update(updateData);
@@ -314,20 +344,21 @@ const deleteUser = async (req, res) => {
 
 const createUser = async (req, res) => {
   try {
-    const { nickname, phone, sex, city, vipLv, money, giftMoney, score, dec } = req.body;
+    const { nickname, phone, sex, city, vipLv, money, giftMoney, dec, username, email } = req.body;
     
     let newUser = null;
     
     try {
       newUser = await User.create({
         nickname: nickname || '新用户',
+        username: username || '',
         phone: phone || '',
+        email: email || '',
         sex: parseInt(sex) || 0,
         city: city || '',
         vip_lv: parseInt(vipLv) || 0,
         money: parseFloat(money) || 0,
         gift_money: parseFloat(giftMoney) || 0,
-        score: parseInt(score) || 0,
         dec: dec || ''
       });
     } catch (dbError) {
@@ -336,7 +367,9 @@ const createUser = async (req, res) => {
       newUser = {
         id: maxId + 1,
         nickname: nickname || '新用户',
+        username: username || '',
         phone: phone || '',
+        email: email || '',
         avatar: '',
         sex: parseInt(sex) || 0,
         gender: parseInt(sex) || 0,
@@ -345,7 +378,7 @@ const createUser = async (req, res) => {
         vip: parseInt(vipLv) > 0 ? 1 : 0,
         money: parseFloat(money) || 0,
         gift_money: parseFloat(giftMoney) || 0,
-        score: parseInt(score) || 0,
+        lv: 1,
         dec: dec || '',
         status: 0,
         fans_num: 0,
@@ -357,17 +390,20 @@ const createUser = async (req, res) => {
     response.success(res, {
       userId: newUser.id,
       nickname: newUser.nickname,
+      username: newUser.username || '',
       avatar: newUser.avatar || '',
-      phone: newUser.phone,
-      sex: newUser.sex,
-      city: newUser.city,
-      status: newUser.status,
-      vip: newUser.vip,
-      vipLv: newUser.vip_lv,
-      money: newUser.money,
-      giftMoney: newUser.gift_money,
-      score: newUser.score,
-      fansNum: newUser.fans_num,
+      phone: newUser.phone || newUser.mobile || '',
+      email: newUser.email || '',
+      sex: newUser.sex || 0,
+      city: newUser.city || '',
+      dec: newUser.dec || '',
+      status: newUser.status || 0,
+      vip: newUser.vip || 0,
+      vipLv: newUser.vip_lv || 0,
+      money: newUser.money || 0,
+      giftMoney: newUser.gift_money || 0,
+      lv: newUser.lv || 1,
+      fansNum: newUser.fans_num || 0,
       createTime: newUser.create_time
     }, '用户创建成功');
   } catch (error) {

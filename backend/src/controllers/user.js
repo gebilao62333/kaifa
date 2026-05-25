@@ -18,8 +18,12 @@ const login = async (req, res) => {
     response.success(res, result, '登录成功');
   } catch (error) {
     console.error('登录错误:', error);
-    if (error.message === '用户不存在' || error.message === '密码错误' || error.message === '该用户未设置密码') {
-      response.unprocessableEntity(res, error.message);
+    if (error.message === '用户不存在') {
+      response.unprocessableEntity(res, '用户不存在', { username: ['用户不存在，请检查用户名或使用手机号登录'] });
+    } else if (error.message === '密码错误') {
+      response.unprocessableEntity(res, '密码错误', { password: ['密码错误，请重新输入'] });
+    } else if (error.message === '该用户未设置密码') {
+      response.unprocessableEntity(res, '该用户未设置密码', { password: ['该用户未设置密码，请使用验证码登录或重置密码'] });
     } else {
       response.error(res, '登录失败');
     }

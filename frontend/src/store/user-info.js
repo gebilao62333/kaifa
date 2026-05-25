@@ -52,21 +52,25 @@ export const useUserStore = defineStore('user', {
       if (!userInfo) return
       this.profile = {
         userId: userInfo.userId || 0,
-        nickName: userInfo.nickName || '',
+        nickName: userInfo.nickName || userInfo.nickname || '',
         avatar: userInfo.avatar || '',
-        level: userInfo.level || 0,
+        level: userInfo.level || userInfo.lv || 0,
         vip: userInfo.vip || 0,
-        vipLevel: userInfo.vipLevel || 0,
-        balance: userInfo.balance || 0,
+        vipLevel: userInfo.vipLevel || userInfo.vip_lv || 0,
+        balance: userInfo.balance || userInfo.money || 0,
         score: userInfo.score || 0,
-        fansCount: userInfo.fansCount || 0,
-        followCount: userInfo.followCount || 0,
-        likeCount: userInfo.likeCount || 0,
-        gender: userInfo.gender || 'unknown',
-        region: userInfo.region || '',
-        signature: userInfo.signature || '',
-        phone: userInfo.phone || ''
+        fansCount: userInfo.fansCount || userInfo.fans_num || 0,
+        followCount: userInfo.followCount || userInfo.follow_num || 0,
+        likeCount: userInfo.likeCount || userInfo.like_num || 0,
+        gender: userInfo.gender || userInfo.sex === 1 ? 'male' : userInfo.sex === 2 ? 'female' : 'unknown',
+        region: userInfo.region || userInfo.city || '',
+        signature: userInfo.signature || userInfo.dec || '',
+        phone: userInfo.phone || userInfo.mobile || ''
       }
+    },
+
+    extractToken(data) {
+      return data.accessToken || data.token || ''
     },
 
     async login(credentials) {
@@ -75,16 +79,20 @@ export const useUserStore = defineStore('user', {
         const result = await authService.login(credentials.username, credentials.password)
         
         if (result.code === 200 && result.data) {
-          const { token, userInfo } = result.data
+          const token = this.extractToken(result.data)
           this.setToken(token)
-          this.setUserInfo(userInfo)
+          this.setUserInfo(result.data)
           return { success: true, data: result.data }
         } else {
           return { success: false, message: result.message || '登录失败' }
         }
       } catch (error) {
         console.error('登录失败:', error)
-        return { success: false, message: error.message || '网络错误' }
+        const response = { success: false, message: error.message || '网络错误' }
+        if (error.fieldErrors) {
+          response.error = error
+        }
+        return response
       } finally {
         this.loading = false
       }
@@ -96,9 +104,9 @@ export const useUserStore = defineStore('user', {
         const result = await authService.loginMobile(phone, code)
         
         if (result.code === 200 && result.data) {
-          const { token, userInfo } = result.data
+          const token = this.extractToken(result.data)
           this.setToken(token)
-          this.setUserInfo(userInfo)
+          this.setUserInfo(result.data)
           return { success: true, data: result.data }
         } else {
           return { success: false, message: result.message || '登录失败' }
@@ -117,9 +125,9 @@ export const useUserStore = defineStore('user', {
         const result = await authService.loginThird(provider, openId, userInfo)
         
         if (result.code === 200 && result.data) {
-          const { token, userInfo: info } = result.data
+          const token = this.extractToken(result.data)
           this.setToken(token)
-          this.setUserInfo(info)
+          this.setUserInfo(result.data)
           return { success: true, data: result.data }
         } else {
           return { success: false, message: result.message || '登录失败' }
@@ -275,9 +283,14 @@ export const useUserStore = defineStore('user', {
     },
 
     initFromStorage() {
-      const token = localStorage.getItem('token')
-      if (token) {
-        this.token = token
+      const rawToken = localStorage.getItem('token')
+      if (rawToken && rawToken !== 'undefined' && rawToken !== 'null') {
+        this.token = rawToken
+      } else {
+        this.token = ''
+        this.profile = null
+        localStorage.removeItem('token')
+        localStorage.removeItem('pinia-app-state')
       }
     },
 

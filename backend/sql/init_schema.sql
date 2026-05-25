@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS `xn_user` (
   KEY `idx_open_id` (`open_id`),
   KEY `idx_lv` (`lv`),
   KEY `idx_create_time` (`create_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+) ENGINE=InnoDB AUTO_INCREMENT=11000 DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
 
 -- 管理员角色表
 CREATE TABLE IF NOT EXISTS `xn_admin_role` (

@@ -445,8 +445,13 @@ router.beforeEach((to, from, next) => {
   
   const userStore = useUserStore()
   const isPublicRoute = publicRoutes.includes(to.name)
+  
+  const rawToken = localStorage.getItem('token')
+  const storeToken = userStore.token
+  const validToken = rawToken && rawToken !== 'undefined' && rawToken !== 'null' ? rawToken : storeToken
+  const isLoggedIn = !!validToken && !!userStore.profile
 
-  if (!isPublicRoute && !userStore.isLogin) {
+  if (!isPublicRoute && !isLoggedIn) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
   } else {
     next()

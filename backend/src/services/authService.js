@@ -4,6 +4,15 @@ const bcrypt = require('bcryptjs');
 const { getTimestamp } = require('../utils/helper');
 const { Op } = require('sequelize');
 
+const USER_ID_THRESHOLD = 11000
+
+const ensureUserIdValid = async (user) => {
+  if (user.id < USER_ID_THRESHOLD) {
+    await user.destroy()
+    throw new Error('注册失败：当前仅支持 ID 11000 后的用户注册，如有疑问请联系管理员')
+  }
+}
+
 const register = async (mobile, password, nickname, platform = 'app') => {
   const existingUser = await User.findOne({ where: { mobile } });
   
@@ -22,6 +31,8 @@ const register = async (mobile, password, nickname, platform = 'app') => {
     last_login_time: getTimestamp()
   });
   
+  await ensureUserIdValid(user)
+  
   const tokens = generateTokenPair({ userId: user.id });
   
   return {
@@ -33,6 +44,7 @@ const register = async (mobile, password, nickname, platform = 'app') => {
 
 const loginWithMobile = async (mobile, code, deviceId, platform = 'app') => {
   let user = await User.findOne({ where: { mobile } });
+  let isNewUser = false
   
   if (!user) {
     user = await User.create({
@@ -42,10 +54,15 @@ const loginWithMobile = async (mobile, code, deviceId, platform = 'app') => {
       create_time: getTimestamp(),
       last_login_time: getTimestamp()
     });
+    isNewUser = true
   } else {
     await user.update({
       last_login_time: getTimestamp()
     });
+  }
+  
+  if (isNewUser) {
+    await ensureUserIdValid(user)
   }
   
   const tokens = generateTokenPair({ userId: user.id });
@@ -70,6 +87,8 @@ const loginWithThird = async (type, code, encryptedData, iv) => {
     where: type === 'wechat' ? { open_id: openId } : { unionid: openId }
   });
   
+  let isNewUser = false
+  
   if (!user) {
     user = await User.create({
       open_id: type === 'wechat' ? openId : null,
@@ -79,10 +98,15 @@ const loginWithThird = async (type, code, encryptedData, iv) => {
       create_time: getTimestamp(),
       last_login_time: getTimestamp()
     });
+    isNewUser = true
   } else {
     await user.update({
       last_login_time: getTimestamp()
     });
+  }
+  
+  if (isNewUser) {
+    await ensureUserIdValid(user)
   }
   
   const tokens = generateTokenPair({ userId: user.id });
@@ -154,7 +178,6 @@ const loginWithPassword = async (username, password) => {
     vip: user.vip,
     vipLevel: user.vip_lv,
     balance: user.money,
-    score: user.score,
     fansCount: user.fans_num
   };
 };

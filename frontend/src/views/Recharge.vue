@@ -6,7 +6,7 @@
     </div>
 
     <div class="balance-card">
-      <div class="label">我的余额</div>
+      <div class="label">我的钱包</div>
       <div class="amount">{{ formatAmount(balance) }}</div>
       <div class="unit">金币</div>
     </div>

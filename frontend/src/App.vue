@@ -123,6 +123,8 @@ body {
   .mine-page,
   .login-page,
   .search-page,
+  .edit-profile-page,
+  .settings-page,
   .service-list-page,
   .service-detail-page,
   .chat-room-page,

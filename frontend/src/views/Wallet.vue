@@ -96,37 +96,45 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '../store/user-info'
 
 const router = useRouter()
+const userStore = useUserStore()
+
+const getHost = () => {
+  return window.globalData?.host || 'http://localhost:3000'
+}
 
 const userInfo = ref({
-  balance: 500000.00,
+  balance: 0,
   todayIncome: 68.50,
   todayExpense: 12.00,
   totalWithdraw: 520.00,
   totalIncome: 1280.00,
-  vip: true,
-  vipLevel: 2
+  vip: false,
+  vipLevel: 0
 })
 
-const saveUserInfo = () => {
-  localStorage.setItem('userInfo', JSON.stringify(userInfo.value))
+const fetchBalance = async () => {
+  try {
+    const token = userStore.token || localStorage.getItem('token')
+    const res = await fetch(`${getHost()}/api/pay/wallet/balance`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    const result = await res.json()
+    if (result.code === 200 && result.data) {
+      userInfo.value.balance = result.data.balance || 0
+    }
+  } catch (err) {
+    console.error('获取钱包余额失败:', err)
+  }
 }
 
-onMounted(() => {
-  const saved = localStorage.getItem('userInfo')
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved)
-      userInfo.value = { ...userInfo.value, ...parsed }
-    } catch {}
-  }
-  saveUserInfo()
+onMounted(async () => {
+  await fetchBalance()
 })
-
-watch(userInfo, saveUserInfo, { deep: true })
 
 const formatBalance = (balance) => {
   return balance?.toFixed(2) || '0.00'

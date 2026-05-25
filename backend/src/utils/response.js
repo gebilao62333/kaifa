@@ -43,10 +43,11 @@ const response = {
     });
   },
   
-  unprocessableEntity: (res, message = '业务逻辑错误') => {
+  unprocessableEntity: (res, message = '业务逻辑错误', errors = {}) => {
     return res.status(422).json({
       code: 422,
-      message
+      message,
+      errors
     });
   },
   

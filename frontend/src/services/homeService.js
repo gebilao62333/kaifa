@@ -14,7 +14,7 @@ const homeService = {
     const data = { page, pageSize }
     if (gameId) data.gameId = gameId
     if (serviceType) data.serviceType = serviceType
-    return request('/api/games/companions', 'GET', data)
+    return request('/api/games/companions', 'GET', data, {}, 15000)
   },
 
   async searchCompanions(params = {}) {

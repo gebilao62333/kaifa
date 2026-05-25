@@ -1,107 +1,109 @@
 <template>
-  <div class="activity-page">
-    <div class="header">
-      <div class="title">广场</div>
-    </div>
-
-    <div class="content-container">
-      <div class="tags-section">
-        <div class="tags-scroll">
-          <div 
-            class="tag-item" 
-            :class="{ active: activeTag === 0 }" 
-            @click="onTagClick(0)">
-            <span>推荐</span>
-          </div>
-          <div 
-            class="tag-item" 
-            :class="{ active: activeTag === -1 }" 
-            @click="onTagClick(-1)">
-            <span>最新</span>
-          </div>
-          <div 
-            class="tag-item" 
-            :class="{ active: activeTag === tag.id }" 
-            v-for="tag in tagList" 
-            :key="tag.id"
-            @click="onTagClick(tag.id)">
-            <span>{{ tag.name }}</span>
-          </div>
-        </div>
+  <div class="activity-wrapper">
+    <div class="activity-page">
+      <div class="header">
+        <div class="title">广场</div>
       </div>
 
-      <div class="feed-list">
-        <div class="feed-card" v-for="(item, index) in feedList" :key="index">
-          <div class="feed-user" @click="goUserProfile(item)">
-            <img class="user-avatar" :src="item.avatar" alt="" />
-            <div class="user-info">
-              <div class="user-name-row">
-                <span class="user-name">{{ item.nickName }}</span>
-                <span class="user-level" v-if="item.level">Lv.{{ item.level }}</span>
-                <span class="vip-tag" v-if="item.vip">VIP</span>
+      <div class="content-container">
+        <div class="tags-section">
+          <div class="tags-scroll">
+            <div 
+              class="tag-item" 
+              :class="{ active: activeTag === 0 }" 
+              @click="onTagClick(0)">
+              <span>推荐</span>
+            </div>
+            <div 
+              class="tag-item" 
+              :class="{ active: activeTag === -1 }" 
+              @click="onTagClick(-1)">
+              <span>最新</span>
+            </div>
+            <div 
+              class="tag-item" 
+              :class="{ active: activeTag === tag.id }" 
+              v-for="tag in tagList" 
+              :key="tag.id"
+              @click="onTagClick(tag.id)">
+              <span>{{ tag.name }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="feed-list">
+          <div class="feed-card" v-for="(item, index) in feedList" :key="index">
+            <div class="feed-user" @click="goUserProfile(item)">
+              <img class="user-avatar" :src="item.avatar" alt="" />
+              <div class="user-info">
+                <div class="user-name-row">
+                  <span class="user-name">{{ item.nickName }}</span>
+                  <span class="user-level" v-if="item.level">Lv.{{ item.level }}</span>
+                  <span class="vip-tag" v-if="item.vip">VIP</span>
+                </div>
+                <span class="feed-time">{{ formatTime(item.createTime) }}</span>
               </div>
-              <span class="feed-time">{{ formatTime(item.createTime) }}</span>
+              <div class="follow-btn reserve-btn" @click.stop="openReserveModal(item)">
+                <span>预约</span>
+              </div>
             </div>
-            <div class="follow-btn reserve-btn" @click.stop="openReserveModal(item)">
-              <span>预约</span>
+
+            <div class="feed-content" @click="goDetail(item)">
+              <p class="content-text">{{ item.content }}</p>
+            </div>
+
+            <div class="feed-images" v-if="item.images && item.images.length" @click="previewImages(item.images)">
+              <img 
+                class="feed-image" 
+                v-for="(img, idx) in item.images.slice(0, 21)" 
+                :key="idx"
+                :src="img" 
+                alt="" />
+            </div>
+
+          <div class="feed-tags" v-if="item.tagName">
+            <span class="feed-tag">#{{ item.tagName }}</span>
+          </div>
+
+          <div class="feed-actions">
+            <div class="action-item" @click="likePost(item)">
+              <span class="action-icon" :class="{ liked: item.isLike }">❤️</span>
+              <span class="action-text">{{ item.likes || 0 }}</span>
+            </div>
+            <div class="action-item" @click="goDetail(item)">
+              <span class="action-icon">💬</span>
+              <span class="action-text">{{ item.comments || 0 }}</span>
+            </div>
+            <div class="action-item follow-action" :class="{ followed: item.isFollow }" @click.stop="toggleFollow(item)">
+              <span class="action-icon" v-if="!item.isFollow">+</span>
+              <span class="action-text">{{ item.isFollow ? '已关注' : '关注' }}</span>
             </div>
           </div>
-
-          <div class="feed-content" @click="goDetail(item)">
-            <p class="content-text">{{ item.content }}</p>
-          </div>
-
-          <div class="feed-images" v-if="item.images && item.images.length" @click="previewImages(item.images)">
-            <img 
-              class="feed-image" 
-              v-for="(img, idx) in item.images.slice(0, 21)" 
-              :key="idx"
-              :src="img" 
-              alt="" />
-          </div>
-
-        <div class="feed-tags" v-if="item.tagName">
-          <span class="feed-tag">#{{ item.tagName }}</span>
         </div>
 
-        <div class="feed-actions">
-          <div class="action-item" @click="likePost(item)">
-            <span class="action-icon" :class="{ liked: item.isLike }">❤️</span>
-            <span class="action-text">{{ item.likes || 0 }}</span>
-          </div>
-          <div class="action-item" @click="goDetail(item)">
-            <span class="action-icon">💬</span>
-            <span class="action-text">{{ item.comments || 0 }}</span>
-          </div>
-          <div class="action-item follow-action" :class="{ followed: item.isFollow }" @click.stop="toggleFollow(item)">
-            <span class="action-icon" v-if="!item.isFollow">+</span>
-            <span class="action-text">{{ item.isFollow ? '已关注' : '关注' }}</span>
-          </div>
+        <div class="loading-more" v-if="loading">
+          <span>加载中...</span>
+        </div>
+        <div class="no-more" v-if="!hasMore && feedList.length">
+          <span>没有更多了</span>
         </div>
       </div>
-
-      <div class="loading-more" v-if="loading">
-        <span>加载中...</span>
       </div>
-      <div class="no-more" v-if="!hasMore && feedList.length">
-        <span>没有更多了</span>
+
+      <div class="publish-btn" @click="goEdit">
+        <span>+</span>
       </div>
-    </div>
-    </div>
 
-    <div class="publish-btn" @click="goEdit">
-      <span>+</span>
-    </div>
+      <div class="bottom-placeholder"></div>
 
-    <div class="bottom-placeholder"></div>
+      <ReserveModal 
+        :visible="showReserveModal" 
+        :companion="currentCompanion"
+        @close="closeReserveModal"
+        @submit="handleReserveSubmit"
+      />
+    </div>
   </div>
-
-  <ReserveModal 
-    :visible="showReserveModal" 
-    :companion="currentCompanion"
-    @close="closeReserveModal"
-    @submit="handleReserveSubmit"
-  />
 </template>
 
 <script setup>
@@ -348,6 +350,11 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.activity-wrapper {
+  width: 100%;
+  min-height: 100vh;
+}
+
 .activity-page {
   min-height: calc(100vh - 80px);
   background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
