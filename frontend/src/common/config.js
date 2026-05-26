@@ -1,8 +1,8 @@
 const isDev = import.meta.env.DEV
 
-export const host = isDev ? 'http://localhost:3000' : (import.meta.env.VITE_API_BASE || 'https://api.your-domain.com')
-export const api = isDev ? '/api' : `${host}/api`
-export const socketUrl = isDev ? 'http://localhost:3000' : (import.meta.env.VITE_SOCKET_URL || `${host}`)
+export const host = isDev ? 'http://localhost:3001' : (import.meta.env.VITE_API_BASE || 'https://api.your-domain.com')
+export const api = isDev ? 'http://localhost:3001/api' : `${host}/api`
+export const socketUrl = isDev ? 'http://localhost:3001' : (import.meta.env.VITE_SOCKET_URL || `${host}`)
 export const webSocket = import.meta.env.VITE_WEBSOCKET || 'wss://your-domain.com/socket.io/'
 export const sdkappid = Number(import.meta.env.VITE_SDK_APP_ID) || 1400745478
 export const uploadUrl = import.meta.env.VITE_UPLOAD_URL || (isDev ? '/api/upload/file' : `${host}/api/upload/file`)

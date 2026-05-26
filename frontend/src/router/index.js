@@ -52,6 +52,18 @@ const routes = [
     component: lazyLoad('CompanionApply')
   },
   {
+    path: '/online-companions',
+    name: 'OnlineCompanion',
+    component: lazyLoad('OnlineCompanion'),
+    meta: { title: '线上陪玩' }
+  },
+  {
+    path: '/offline-companions',
+    name: 'OfflineCompanion',
+    component: lazyLoad('OfflineCompanion'),
+    meta: { title: '线下陪玩' }
+  },
+  {
     path: '/post-detail/:id',
     name: 'PostDetail',
     component: lazyLoad('PostDetail')
@@ -449,19 +461,7 @@ router.beforeEach((to, from, next) => {
     return
   }
   
-  const userStore = useUserStore()
-  const isPublicRoute = publicRoutes.includes(to.name) || publicPaths.includes(to.path)
-  
-  const rawToken = localStorage.getItem('token')
-  const storeToken = userStore.token
-  const validToken = rawToken && rawToken !== 'undefined' && rawToken !== 'null' ? rawToken : storeToken
-  const isLoggedIn = !!validToken
-
-  if (!isPublicRoute && !isLoggedIn) {
-    next({ name: 'Login', query: { redirect: to.fullPath } })
-  } else {
-    next()
-  }
+  next()
 })
 
 router.afterEach((to) => {

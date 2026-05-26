@@ -239,11 +239,14 @@ import OfflineCompanion from './OfflineCompanion.vue'
 import OnlineApplyForm from './OnlineApplyForm.vue'
 import OfflineApplyForm from './OfflineApplyForm.vue'
 import { usePermissions } from '../composables/usePermissions'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const { 
   requestMicrophonePermission,
   getPermissionGuideSteps 
 } = usePermissions()
+
+const { requireLogin } = useLoginManager()
 
 const activeTab = ref('online')
 const showCompanionModal = ref(false)
@@ -422,7 +425,12 @@ const closeAllPickers = () => {
   currentPicker.value = ''
 }
 
-const submitForm = () => {
+const submitForm = async () => {
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) {
+    return
+  }
+
   // 检查当前标签的协议状态
   if (!currentAgreement.value.agreeRegister || !currentAgreement.value.agreePrivacy || !currentAgreement.value.agreeMinor) {
     showToastMsg('请先同意所有协议')

@@ -295,6 +295,7 @@
 <script setup>import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '../store/user-info';
+import { useLoginManager } from '../composables/useLoginManager';
 import chatService from '../services/chatService';
 import socketService from '../services/socketService';
 import authService from '../services/authService';
@@ -303,6 +304,8 @@ import RedPacketPanel from '../components/RedPacketPanel.vue';
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
+const { requireLogin } = useLoginManager();
+
 const selectedBadge = ref(null);
 const avatarFrameStyle = ref({});
 
@@ -520,6 +523,12 @@ const handleInput = () => {
 const sendText = async () => {
  if (!text.value.trim())
  return;
+ 
+ const loginResult = await requireLogin();
+ if (!loginResult.loggedIn) {
+ return;
+ }
+ 
  const msgId = Date.now();
  const newMessage = {
  id: msgId,

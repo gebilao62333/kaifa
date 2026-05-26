@@ -279,9 +279,11 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useLoginManager } from '../composables/useLoginManager'
 import { demandService } from '@/services/demandService'
 
 const router = useRouter()
+const { requireLogin } = useLoginManager()
 
 const onlineGames = [
   { name: '王者荣耀', icon: '🎮' },
@@ -708,6 +710,11 @@ const submitting = ref(false)
 
 const submitDemand = async () => {
   if (!canSubmit.value || submitting.value) return
+
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) {
+    return
+  }
 
   submitting.value = true
 

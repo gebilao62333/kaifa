@@ -55,6 +55,12 @@
           <span class="menu-text">隐私设置</span>
           <span class="menu-arrow">›</span>
         </div>
+        <div class="menu-item" @click="showCallPrice = true; callPriceType = 'chat'">
+          <span class="menu-icon">💬</span>
+          <span class="menu-text">聊天</span>
+          <span class="menu-status">{{ callSettings.chatPrice }}金币/分钟</span>
+          <span class="menu-arrow">›</span>
+        </div>
         <div class="menu-item" @click="showCallPrice = true; callPriceType = 'voice'">
           <span class="menu-icon">🎤</span>
           <span class="menu-text">语音通话</span>
@@ -77,11 +83,6 @@
 
       <div class="section">
         <div class="section-title">其他</div>
-        <div class="menu-item" @click="goAdmin">
-          <span class="menu-icon">⚙️</span>
-          <span class="menu-text">管理后台</span>
-          <span class="menu-arrow">›</span>
-        </div>
         <div class="menu-item" @click="goAboutUs">
           <span class="menu-icon">ℹ️</span>
           <span class="menu-text">关于我们</span>
@@ -270,8 +271,8 @@
           </div>
           <div class="call-toggle-row">
             <div class="call-toggle-info">
-              <span class="call-toggle-icon">{{ callPriceType === 'voice' ? '🎤' : '📹' }}</span>
-              <span class="call-toggle-text">启用{{ callPriceType === 'voice' ? '语音' : '视频' }}通话</span>
+              <span class="call-toggle-icon">{{ callPriceType === 'chat' ? '💬' : (callPriceType === 'voice' ? '🎤' : '📹') }}</span>
+              <span class="call-toggle-text">启用{{ callPriceType === 'chat' ? '聊天' : (callPriceType === 'voice' ? '语音' : '视频') }}功能</span>
             </div>
             <label class="call-toggle">
               <input type="checkbox" v-model="callPriceEnabled" />
@@ -285,6 +286,7 @@
         </div>
       </div>
     </div>
+
   </div>
 </template>
 
@@ -299,8 +301,10 @@ const userStore = useUserStore()
 
 const darkMode = ref(false)
 const callSettings = ref({
+  chat: true,
   voice: true,
   video: true,
+  chatPrice: 30,
   voicePrice: 30,
   videoPrice: 60
 })
@@ -457,10 +461,6 @@ const goFeedback = () => {
   router.push('/feedback')
 }
 
-const goAdmin = () => {
-  router.push('/admin/login')
-}
-
 const sendCode = () => {
   if (codeCount.value > 0) return
   if (!phone.value || phone.value.length !== 11) {
@@ -496,7 +496,10 @@ const selectDestroyTime = (value) => {
 }
 
 const saveCallPrice = () => {
-  if (callPriceType.value === 'voice') {
+  if (callPriceType.value === 'chat') {
+    callSettings.value.chatPrice = callPriceValue.value
+    callSettings.value.chat = callPriceEnabled.value
+  } else if (callPriceType.value === 'voice') {
     callSettings.value.voicePrice = callPriceValue.value
     callSettings.value.voice = callPriceEnabled.value
   } else {
@@ -509,7 +512,10 @@ const saveCallPrice = () => {
 watch(showCallPrice, (val) => {
   if (val) {
     const settings = callSettings.value
-    if (callPriceType.value === 'voice') {
+    if (callPriceType.value === 'chat') {
+      callPriceValue.value = settings.chatPrice
+      callPriceEnabled.value = settings.chat
+    } else if (callPriceType.value === 'voice') {
       callPriceValue.value = settings.voicePrice
       callPriceEnabled.value = settings.voice
     } else {
@@ -1172,5 +1178,73 @@ const handleLogout = () => {
 
 .dark .call-btn-cancel:active {
   background: #444;
+}
+
+/* 聊天收费设置样式 */
+.price-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.preset-btn {
+  padding: 8px 16px;
+  border: 1px solid #667eea;
+  background: white;
+  color: #667eea;
+  border-radius: 20px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.preset-btn:hover {
+  background: #667eea;
+  color: white;
+}
+
+.preset-btn.active {
+  background: #667eea;
+  color: white;
+}
+
+.setting-tips {
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 12px;
+}
+
+.setting-tips p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.dark .price-presets {
+  margin-top: 16px;
+  margin-bottom: 16px;
+}
+
+.dark .preset-btn {
+  border-color: #667eea;
+  background: #2a2a3e;
+  color: #667eea;
+}
+
+.dark .preset-btn:hover,
+.dark .preset-btn.active {
+  background: #667eea;
+  color: white;
+}
+
+.dark .setting-tips {
+  background: #2a2a2a;
+}
+
+.dark .setting-tips p {
+  color: #aaa;
 }
 </style>

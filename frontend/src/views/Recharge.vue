@@ -68,9 +68,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useLoginManager } from '../composables/useLoginManager'
 import { getRechargeMethods } from '../common/payMethods'
 
 const router = useRouter()
+const { requireLogin } = useLoginManager()
 
 const loadBalance = () => {
   try {
@@ -140,6 +142,11 @@ const goBack = () => {
 
 const doRecharge = async () => {
   if (submitting.value) return
+
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) {
+    return
+  }
 
   if (payMethod.value === 'card') {
     if (!cardCode.value.trim()) {

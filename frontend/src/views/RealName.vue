@@ -88,8 +88,10 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
+const { requireLogin } = useLoginManager()
 
 const isVerified = ref(false)
 const realName = ref('')
@@ -131,7 +133,12 @@ const handleFileChange = (e) => {
   }
 }
 
-const submitForm = () => {
+const submitForm = async () => {
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) {
+    return
+  }
+
   if (!realName.value.trim()) {
     alert('请输入真实姓名')
     return

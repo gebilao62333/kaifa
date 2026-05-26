@@ -43,19 +43,23 @@ const getCompanions = async (gameId, page, pageSize) => {
     const user = await User.findByPk(profile.user_id);
     return {
       userId: profile.user_id,
-      nickname: user?.nickname || '',
+      nickName: user?.nickname || '',
       avatar: user?.avatar || '',
-      city: user?.city || '',
+      location: user?.city || '',
       level: user?.lv || 1,
       fansCount: user?.fans_num || 0,
       gameId: profile.game_id,
-      servicePrice: Number(profile.price),
+      price: Number(profile.price),
       tags: profile.tags ? profile.tags.split(',') : [],
       voiceIntro: profile.voice_intro,
       voiceDuration: profile.voice_time,
       totalOrders: profile.order_num,
       rating: Number(profile.star),
-      ratingCount: profile.pingjia_num
+      ratingCount: profile.pingjia_num,
+      online: true,
+      serviceType: profile.service_type || 'both',
+      vip: user?.vip === 1,
+      vipLevel: user?.vip_lv || 0
     };
   }));
   

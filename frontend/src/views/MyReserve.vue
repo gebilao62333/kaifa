@@ -119,8 +119,10 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
+const { requireLogin } = useLoginManager()
 
 const currentTab = ref('pending')
 const showDetail = ref(false)
@@ -162,7 +164,12 @@ const goHome = () => {
 
 const findOrderIndex = (order) => orders.value.findIndex(o => o.id === order.id)
 
-const cancelOrder = (order) => {
+const cancelOrder = async (order) => {
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) {
+    return
+  }
+  
   if (confirm('确定要取消这个预约吗？')) {
     const index = findOrderIndex(order)
     if (index > -1) orders.value.splice(index, 1)
@@ -170,7 +177,12 @@ const cancelOrder = (order) => {
   }
 }
 
-const confirmOrder = (order) => {
+const confirmOrder = async (order) => {
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) {
+    return
+  }
+  
   const index = findOrderIndex(order)
   if (index > -1) {
     orders.value[index].status = 'confirmed'
@@ -199,7 +211,12 @@ const confirmOrder = (order) => {
   alert('预约已确认')
 }
 
-const contactUser = (order) => {
+const contactUser = async (order) => {
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) {
+    return
+  }
+  
   router.push(`/chat-room/${order.id}`)
 }
 

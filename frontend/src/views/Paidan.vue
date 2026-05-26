@@ -139,8 +139,10 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
+const { requireLogin } = useLoginManager()
 
 const activeTab = ref('all')
 const loading = ref(false)
@@ -302,7 +304,12 @@ const goUserProfile = (item) => {
   router.push({ name: 'UserProfile', params: { id: item.id } })
 }
 
-const applyOrder = (item) => {
+const applyOrder = async (item) => {
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) {
+    return
+  }
+  
   console.log('接单:', item.id)
   item.status = 'closed'
   item.applyCount++

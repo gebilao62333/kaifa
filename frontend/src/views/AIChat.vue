@@ -74,10 +74,12 @@
 <script setup>
 import { ref, onMounted, nextTick, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useLoginManager } from '../composables/useLoginManager'
 import { virtualUserService } from '../services/virtualUserService'
 
 const router = useRouter()
 const route = useRoute()
+const { requireLogin } = useLoginManager()
 
 const chatUser = ref({
   id: route.params.id,
@@ -146,6 +148,11 @@ const loadUserInfo = async () => {
 const sendMessage = async () => {
   const text = inputText.value.trim()
   if (!text || sending.value) return
+
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) {
+    return
+  }
 
   inputText.value = ''
   messages.value.push({

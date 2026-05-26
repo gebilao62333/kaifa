@@ -1,12 +1,13 @@
 import { request } from '../common/common'
+import { api } from '../common/config'
 
 const homeService = {
   async getBanners() {
-    return request('/api/banner/list', 'GET')
+    return request(`${api}/banner/list`, 'GET')
   },
 
   async getCategories() {
-    return request('/api/games/categories', 'GET')
+    return request(`${api}/games/categories`, 'GET')
   },
 
   async getRecommendCompanions(params = {}) {
@@ -14,7 +15,7 @@ const homeService = {
     const data = { page, pageSize }
     if (gameId) data.gameId = gameId
     if (serviceType) data.serviceType = serviceType
-    return request('/api/games/companions', 'GET', data, {}, 15000)
+    return request(`${api}/games/companions`, 'GET', data, {}, 15000)
   },
 
   async searchCompanions(params = {}) {
@@ -22,23 +23,23 @@ const homeService = {
     const data = { keyword, page, pageSize }
     if (gameId) data.gameId = gameId
     if (serviceType) data.serviceType = serviceType
-    return request('/api/games/search', 'GET', data)
+    return request(`${api}/games/search`, 'GET', data)
   },
 
   async getConfig() {
-    return request('/api/config/home', 'GET')
+    return request(`${api}/config/home`, 'GET')
   },
 
   async getHotSearch() {
-    return request('/api/search/hot', 'GET')
+    return request(`${api}/search/hot`, 'GET')
   },
 
   async getActivities() {
-    return request('/api/activity/list', 'GET')
+    return request(`${api}/activity/list`, 'GET')
   },
 
   async getNotice() {
-    return request('/api/notice/list', 'GET')
+    return request(`${api}/notice/list`, 'GET')
   }
 }
 

@@ -94,9 +94,11 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
 const route = useRoute()
+const { requireLogin } = useLoginManager()
 
 const type = ref(route.query.type || 'recharge')
 const methodId = ref(route.query.method || 'alipay')
@@ -181,7 +183,12 @@ const goBack = () => {
   router.back()
 }
 
-const startPay = () => {
+const startPay = async () => {
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) {
+    return
+  }
+
   if (methodId.value === 'coin') {
     isProcessing.value = true
     setTimeout(() => {

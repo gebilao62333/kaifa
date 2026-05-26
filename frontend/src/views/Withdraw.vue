@@ -175,9 +175,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useLoginManager } from '../composables/useLoginManager'
 import { getWithdrawMethods } from '../common/payMethods'
 
 const router = useRouter()
+const { requireLogin } = useLoginManager()
 
 const loadBalance = () => {
   try {
@@ -315,6 +317,12 @@ const handleQrUpload = (e) => {
 
 const doWithdraw = async () => {
   if (!canWithdraw.value || submitting.value) return
+
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) {
+    return
+  }
+
   submitting.value = true
 
   try {

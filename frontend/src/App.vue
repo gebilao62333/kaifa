@@ -11,6 +11,11 @@
     <Toast v-bind="toast.state"></Toast>
     <IncomingCall ref="incomingCallRef"></IncomingCall>
     <NetworkStatus></NetworkStatus>
+    <LoginModal 
+      :visible="loginModalVisible" 
+      @close="hideLoginModal"
+      @login-success="handleLoginSuccess"
+    />
   </div>
 </template>
 
@@ -20,7 +25,9 @@ import Toast from './components/Toast.vue'
 import IncomingCall from './components/IncomingCall.vue'
 import NetworkStatus from './components/NetworkStatus.vue'
 import ErrorBoundary from './components/ErrorBoundary.vue'
+import LoginModal from './components/LoginModal.vue'
 import { useToast } from './composables/useToast'
+import { useLoginManager } from './composables/useLoginManager'
 import { socketService } from './services/socketService'
 import { useUserStore } from './store/user-info'
 import { onMounted, ref, computed } from 'vue'
@@ -30,6 +37,13 @@ const toast = useToast()
 const userStore = useUserStore()
 const incomingCallRef = ref(null)
 const route = useRoute()
+
+const {
+  loginModalVisible,
+  hideLoginModal,
+  handleLoginSuccess,
+  initAutoLogin
+} = useLoginManager()
 
 const isAdminRoute = computed(() => {
   return route.path.startsWith('/admin')
@@ -58,6 +72,7 @@ const initSocket = () => {
 }
 
 onMounted(() => {
+  initAutoLogin()
   if (userStore.isLogin) {
     initSocket()
   }

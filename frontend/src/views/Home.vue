@@ -96,6 +96,131 @@ const loadBanners = async () => {
   }
 }
 
+const getMockCompanions = () => {
+  return [
+    {
+      userId: 1001,
+      nickName: '王者大神小明',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player1',
+      location: '北京',
+      level: 8,
+      fansCount: 2580,
+      gameId: 1,
+      price: 88,
+      tags: ['技术流', '幽默', '上分快'],
+      voiceIntro: '',
+      voiceDuration: 0,
+      totalOrders: 1256,
+      rating: 4.9,
+      ratingCount: 328,
+      online: true,
+      serviceType: 'online',
+      vip: true,
+      vipLevel: 3
+    },
+    {
+      userId: 1002,
+      nickName: '萌妹陪玩小雪',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player2',
+      location: '上海',
+      level: 6,
+      fansCount: 1890,
+      gameId: 2,
+      price: 66,
+      tags: ['声音甜美', '可爱', '娱乐'],
+      voiceIntro: '',
+      voiceDuration: 0,
+      totalOrders: 892,
+      rating: 4.8,
+      ratingCount: 256,
+      online: true,
+      serviceType: 'both',
+      vip: true,
+      vipLevel: 2
+    },
+    {
+      userId: 1003,
+      nickName: '战神阿杰',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player3',
+      location: '广州',
+      level: 9,
+      fansCount: 5620,
+      gameId: 1,
+      price: 128,
+      tags: ['职业选手', '带飞', '高效'],
+      voiceIntro: '',
+      voiceDuration: 0,
+      totalOrders: 3421,
+      rating: 4.95,
+      ratingCount: 892,
+      online: true,
+      serviceType: 'online',
+      vip: true,
+      vipLevel: 5
+    },
+    {
+      userId: 1004,
+      nickName: '电竞少女柚子',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player4',
+      location: '成都',
+      level: 7,
+      fansCount: 3200,
+      gameId: 3,
+      price: 78,
+      tags: ['全能', '颜值高', '互动好'],
+      voiceIntro: '',
+      voiceDuration: 0,
+      totalOrders: 1856,
+      rating: 4.85,
+      ratingCount: 445,
+      online: true,
+      serviceType: 'both',
+      vip: true,
+      vipLevel: 3
+    },
+    {
+      userId: 1005,
+      nickName: '打野小王子',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player5',
+      location: '深圳',
+      level: 8,
+      fansCount: 4100,
+      gameId: 1,
+      price: 99,
+      tags: ['野王', '节奏大师', '意识流'],
+      voiceIntro: '',
+      voiceDuration: 0,
+      totalOrders: 2134,
+      rating: 4.9,
+      ratingCount: 567,
+      online: true,
+      serviceType: 'online',
+      vip: true,
+      vipLevel: 4
+    },
+    {
+      userId: 1006,
+      nickName: '软萌小甜心',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player6',
+      location: '杭州',
+      level: 5,
+      fansCount: 1560,
+      gameId: 4,
+      price: 58,
+      tags: ['温柔', '聊天', '陪伴'],
+      voiceIntro: '',
+      voiceDuration: 0,
+      totalOrders: 678,
+      rating: 4.7,
+      ratingCount: 189,
+      online: true,
+      serviceType: 'offline',
+      vip: false,
+      vipLevel: 0
+    }
+  ]
+}
+
 const loadRecommendCompanions = async (reset = false) => {
   if (reset) {
     currentPage.value = 1
@@ -129,6 +254,11 @@ const loadRecommendCompanions = async (reset = false) => {
     }
   } catch (error) {
     console.error('加载推荐失败:', error)
+    console.log('使用mock数据展示推荐陪玩师')
+    const adminUsers = reset ? getAdminRecommendUsers() : []
+    const mockData = getMockCompanions()
+    recommendList.value = [...adminUsers, ...recommendList.value, ...mockData]
+    hasMore.value = false
   } finally {
     loadingCompanions.value = false
     loadingMore.value = false

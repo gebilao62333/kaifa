@@ -13,7 +13,7 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5174,
+    port: 5173,
     host: '0.0.0.0',
     open: false,
     hmr: {
@@ -21,7 +21,7 @@ export default defineConfig({
     },
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         secure: false,
         ws: true

@@ -42,7 +42,6 @@ export const uploadFile = async (file, type = 'image', onProgress = null) => {
         }
       } else if (xhr.status === 401) {
         localStorage.removeItem('token')
-        window.location.href = '/login'
         reject(new Error('登录已过期，请重新登录'))
       } else {
         reject(new Error(`上传失败 (${xhr.status})`))

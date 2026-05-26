@@ -85,9 +85,11 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useLoginManager } from '../composables/useLoginManager'
 import { tagService } from '../services/tagService'
 
 const router = useRouter()
+const { requireLogin } = useLoginManager()
 const activeTab = ref('all')
 const loading = ref(false)
 const showDialog = ref(false)
@@ -162,6 +164,11 @@ const closeDialog = () => {
 }
 
 const submitForm = async () => {
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) {
+    return
+  }
+
   try {
     if (isEditing.value) {
       await tagService.updateTag(formData.value.id, {

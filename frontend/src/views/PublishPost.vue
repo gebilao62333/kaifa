@@ -178,8 +178,10 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
+const { requireLogin } = useLoginManager()
 
 const content = ref('')
 const mediaItems = ref([])
@@ -318,9 +320,14 @@ const toggleTopic = (t) => {
   }
 }
 
-const publish = () => {
+const publish = async () => {
   if (!content.value.trim() && mediaItems.value.length === 0) {
     alert('请输入内容或添加图片')
+    return
+  }
+
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) {
     return
   }
   if (visibility.value === 'password' && !viewPassword.value.trim()) {

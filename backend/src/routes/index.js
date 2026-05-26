@@ -55,6 +55,7 @@ const setupRoutes = (app) => {
     { path: './album', name: '相册', prefix: '/api/album' },
     { path: './project', name: '项目管理', prefix: '/api/project' },
     { path: './health', name: '健康检查', prefix: '/api' },
+    { path: './share', name: '分享', prefix: '/api/share' },
   ];
 
   let loadedCount = 0;

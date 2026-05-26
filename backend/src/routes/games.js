@@ -4,7 +4,7 @@ const gamesController = require('../controllers/games');
 const { authMiddleware } = require('../middlewares');
 
 router.get('/categories', gamesController.getCategories);
-router.get('/companions', authMiddleware, gamesController.getCompanions);
+router.get('/companions', gamesController.getCompanions);
 router.post('/push', authMiddleware, gamesController.createOrder);
 router.post('/grab', authMiddleware, gamesController.grabOrder);
 router.post('/start', authMiddleware, gamesController.startOrder);

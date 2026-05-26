@@ -92,8 +92,31 @@ const handleSelect = (item) => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   position: relative;
   border: 2px solid transparent;
-  width: 140px;
-  height: 140px;
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .offline-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .offline-card {
+    padding: 12px 8px;
+    border-radius: 12px;
+  }
+}
+
+@media (max-width: 375px) {
+  .offline-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
 }
 
 .offline-card:hover {
@@ -113,22 +136,35 @@ const handleSelect = (item) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 10px;
-  margin-bottom: 10px;
-  padding-left: 25px;
-  padding-right: 25px;
-  padding-top: 0;
-  padding-bottom: 0;
-  margin-left: 25px;
-  margin-right: 25px;
+  margin: 10px auto;
+  flex-shrink: 0;
 }
 
 .offline-icon {
   font-size: 28px;
   height: 40px;
   width: 40px;
-  margin-left: 20px;
-  margin-right: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .offline-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+  }
+
+  .offline-icon {
+    font-size: 24px;
+    height: 32px;
+    width: 32px;
+  }
+
+  .offline-name {
+    font-size: 13px;
+  }
 }
 
 .offline-info {

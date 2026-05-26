@@ -1,4 +1,4 @@
-require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -89,6 +89,25 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// 数据库健康检查
+app.get('/api/health/db', async (req, res) => {
+  try {
+    const dbHealthChecker = require('./src/utils/dbHealthChecker');
+    const health = await dbHealthChecker.checkAllHealth();
+    res.json({
+      code: 200,
+      message: health.overall === 'healthy' ? '所有数据库连接正常' : '部分数据库连接异常',
+      data: health
+    });
+  } catch (error) {
+    res.status(500).json({
+      code: 500,
+      message: '健康检查失败',
+      data: { error: error.message }
+    });
+  }
+});
+
 // 简单的测试路由
 app.get('/api/test', (req, res) => {
   res.json({
@@ -172,39 +191,36 @@ try {
 
 const startServer = async () => {
   try {
-    if (sequelize && sequelize.authenticate) {
-      await sequelize.authenticate();
-      console.log('✅ MySQL 数据库连接成功');
-    }
-
-    if (connectMongo) {
-      try {
-        await connectMongo();
-        console.log('✅ MongoDB 连接成功');
-      } catch (error) {
-        console.log('⚠️  MongoDB 连接失败:', error.message);
-      }
-    }
-
-    if (connectRedis) {
-      try {
-        await connectRedis();
-        console.log('✅ Redis 连接成功');
-      } catch (error) {
-        console.log('⚠️  Redis 连接失败:', error.message);
-      }
-    }
-
+    console.log('\n🔄 正在初始化数据库连接...');
+    
+    const dbHealthChecker = require('./src/utils/dbHealthChecker');
+    const connectionResults = await dbHealthChecker.initializeDatabases();
+    
+    const allConnected = connectionResults.every(r => r.status === 'fulfilled' && r.value.status === 'healthy');
+    
     server.listen(config.port, () => {
       console.log('\n========================================');
       console.log('🎉 多客陪玩后端服务已成功启动！');
       console.log(`📍 服务地址: http://localhost:${config.port}`);
       console.log(`🔍 健康检查: http://localhost:${config.port}/api/health`);
+      console.log(`🔍 数据库状态: http://localhost:${config.port}/api/health/db`);
       console.log(`🧪 API测试: http://localhost:${config.port}/api/test`);
       console.log(`📖 环境: ${config.nodeEnv}`);
       console.log(`⚡ 模式: ${config.useMockDb ? 'Mock (开发)' : 'Production (生产)'}`);
       console.log(`⚡ Socket.IO 已启用`);
+      console.log(`📊 数据库连接: ${allConnected ? '全部正常' : '部分异常'}`);
       console.log('========================================\n');
+    });
+
+    process.on('SIGINT', async () => {
+      console.log('\n👋 正在优雅关闭服务...');
+      try {
+        await server.close();
+        console.log('✅ HTTP 服务器已关闭');
+      } catch (error) {
+        console.error('❌ 关闭服务器时出错:', error);
+      }
+      process.exit(0);
     });
 
   } catch (error) {

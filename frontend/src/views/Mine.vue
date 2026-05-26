@@ -99,6 +99,14 @@
       </div>
 
       <div class="service-section">
+        <div class="service-item" @click="goShare">
+          <span class="service-icon">🔗</span>
+          <div class="service-info">
+            <div class="service-name">分享邀请</div>
+            <div class="service-desc">分享链接邀请好友</div>
+          </div>
+          <span class="service-arrow">›</span>
+        </div>
         <div class="service-item" @click="goCustomerService">
           <span class="service-icon">🎧</span>
           <div class="service-info">
@@ -110,6 +118,40 @@
       </div>
     </div>
 
+    <!-- 分享功能弹窗 -->
+    <div class="modal-overlay" v-if="showShareModal" @click="showShareModal = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>分享邀请</h3>
+          <span class="modal-close" @click="showShareModal = false">✕</span>
+        </div>
+        <div class="modal-body">
+          <div class="share-qr-section">
+            <div class="qr-code-container">
+              <img :src="shareQRCode" alt="二维码" class="qr-code-image" />
+            </div>
+            <p class="qr-tip">扫描二维码访问我的主页</p>
+          </div>
+          <div class="share-link-section">
+            <label class="share-link-label">邀请链接</label>
+            <div class="share-link-row">
+              <input 
+                type="text" 
+                :value="shareLink" 
+                class="share-link-input"
+                readonly
+              />
+              <button class="copy-btn" @click="copyShareLink">复制</button>
+            </div>
+          </div>
+          <div class="share-tips">
+            <p>💡 分享链接或二维码，邀请好友访问您的主页</p>
+            <p>💡 好友通过您的链接注册，您将获得奖励</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -117,6 +159,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
+import { api } from '../common/config'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -244,6 +287,57 @@ const goSettings = () => {
 
 const goCustomerService = () => {
   router.push('/customer-service')
+}
+
+// 分享功能
+const showShareModal = ref(false)
+const shareLink = ref('')
+const shareQRCode = ref('')
+const isGeneratingQR = ref(false)
+
+const goShare = () => {
+  showShareModal.value = true
+  generateShareLink()
+}
+
+const generateShareLink = async () => {
+  const userId = userInfo.value.userId
+  shareLink.value = `${window.location.origin}/user/${userId}?invite=true`
+  
+  isGeneratingQR.value = true
+  try {
+    const response = await fetch(`${api}/share/qrcode`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        text: shareLink.value,
+        width: 200
+      })
+    })
+    
+    const data = await response.json()
+    if (data.code === 200 && data.data) {
+      shareQRCode.value = data.data.base64
+    } else {
+      shareQRCode.value = `https://api.qrserver.com/v1/create-qrcode/?size=200x200&data=${encodeURIComponent(shareLink.value)}`
+    }
+  } catch (error) {
+    console.error('生成二维码失败:', error)
+    shareQRCode.value = `https://api.qrserver.com/v1/create-qrcode/?size=200x200&data=${encodeURIComponent(shareLink.value)}`
+  } finally {
+    isGeneratingQR.value = false
+  }
+}
+
+const copyShareLink = async () => {
+  try {
+    await navigator.clipboard.writeText(shareLink.value)
+    alert('链接已复制到剪贴板')
+  } catch (err) {
+    console.error('复制失败:', err)
+  }
 }
 
 onMounted(() => {
@@ -609,11 +703,11 @@ onMounted(() => {
 }
 
 .service-arrow {
-  font-size: 20px;
-  color: #ccc;
+    font-size: 20px;
+    color: #ccc;
 }
 
-/* PC端我的页面优化 */
+/* PC 端我的页面优化 */
 @media (min-width: 768px) {
   .mine-page {
     padding-top: 60px;
@@ -727,5 +821,145 @@ onMounted(() => {
   .header {
     max-width: 720px;
   }
+}
+
+/* 分享弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.modal-close {
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+}
+
+.modal-close:hover {
+  color: #333;
+}
+
+.modal-body {
+  padding: 20px;
+}
+
+/* 分享功能样式 */
+.share-qr-section {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.qr-code-container {
+  display: inline-block;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  margin-bottom: 12px;
+}
+
+.qr-code-image {
+  width: 200px;
+  height: 200px;
+}
+
+.qr-tip {
+  font-size: 14px;
+  color: #666;
+  margin: 0;
+}
+
+.share-link-section {
+  margin-bottom: 20px;
+}
+
+.share-link-label {
+  display: block;
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.share-link-row {
+  display: flex;
+  gap: 12px;
+}
+
+.share-link-input {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #f9f9f9;
+}
+
+.share-link-input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.copy-btn {
+  padding: 0 20px;
+  border: none;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.copy-btn:hover {
+  opacity: 0.9;
+}
+
+.share-tips {
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+.share-tips p {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #666;
 }
 </style>

@@ -295,8 +295,10 @@
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
+const { requireLogin } = useLoginManager()
 
 const avatarInput = ref(null)
 const bgInput = ref(null)
@@ -611,7 +613,12 @@ const bindPhone = () => {
 const goRealName = () => { router.push('/real-name') }
 const goVip = () => { router.push('/vip-center') }
 
-const saveProfile = () => {
+const saveProfile = async () => {
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) {
+    return
+  }
+  
   if (!form.nickname.trim()) {
     alert('请输入昵称')
     return

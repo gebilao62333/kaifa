@@ -240,7 +240,6 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
   const { requireLogin = false, silentAbort = true } = options
   
   if (requireLogin && !isLoggedIn()) {
-    window.location.href = '/login'
     throw new RequestError('请先登录', -2, 401)
   }
 
@@ -275,14 +274,8 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
     clearTimeout(timeoutId)
 
     if (response.status === 401) {
-      if (!isRedirecting) {
-        isRedirecting = true
-        localStorage.removeItem('token')
-        localStorage.removeItem('pinia-app-state')
-        setTimeout(() => {
-          window.location.href = '/login'
-        }, 100)
-      }
+      localStorage.removeItem('token')
+      localStorage.removeItem('pinia-app-state')
       throw new RequestError('登录失效，请重新登录', -1, 401)
     }
 
