@@ -141,15 +141,28 @@ const submitFeedback = () => {
 <style scoped>
 .feedback-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
+  padding-top: 82px;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 0 20px;
+  height: 70px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-btn,
@@ -158,6 +171,7 @@ const submitFeedback = () => {
   font-size: 20px;
   color: white;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .title {
@@ -168,13 +182,15 @@ const submitFeedback = () => {
 
 .content {
   padding: 16px;
+  padding-bottom: calc(16px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
 }
 
 .type-card,
 .form-card,
 .history-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 20px;
   margin-bottom: 16px;
 }
@@ -198,9 +214,11 @@ const submitFeedback = () => {
   align-items: center;
   padding: 20px;
   border: 2px solid #f0f0f0;
-  border-radius: 12px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s;
+  -webkit-transition: all 0.3s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .type-item.active {
@@ -251,6 +269,9 @@ const submitFeedback = () => {
   resize: vertical;
   box-sizing: border-box;
   transition: border-color 0.3s;
+  -webkit-transition: border-color 0.3s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .form-textarea:focus {
@@ -266,6 +287,9 @@ const submitFeedback = () => {
   border-radius: 8px;
   box-sizing: border-box;
   transition: border-color 0.3s;
+  -webkit-transition: border-color 0.3s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .form-input:focus {
@@ -290,6 +314,8 @@ const submitFeedback = () => {
   height: 100%;
   border-radius: 8px;
   object-fit: cover;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .upload-remove {
@@ -306,6 +332,7 @@ const submitFeedback = () => {
   justify-content: center;
   font-size: 16px;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .upload-btn {
@@ -319,6 +346,8 @@ const submitFeedback = () => {
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s;
+  -webkit-transition: all 0.3s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .upload-btn:hover {
@@ -340,17 +369,21 @@ const submitFeedback = () => {
   width: 100%;
   padding: 16px;
   background: linear-gradient(135deg, #667eea, #764ba2);
+  background: -webkit-linear-gradient(315deg, #667eea, #764ba2);
   color: white;
   font-size: 16px;
   border: none;
   border-radius: 25px;
   cursor: pointer;
   transition: all 0.3s;
+  -webkit-transition: all 0.3s;
+  -webkit-tap-highlight-color: transparent;
   margin-bottom: 16px;
 }
 
 .submit-btn:active {
   transform: scale(0.98);
+  -webkit-transform: scale(0.98);
 }
 
 .history-list {

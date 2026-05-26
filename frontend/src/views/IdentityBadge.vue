@@ -134,7 +134,10 @@ const selectBadge = (badge) => {
 <style scoped>
 .identity-badge-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
@@ -165,7 +168,7 @@ const selectBadge = (badge) => {
 
 .preview-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 20px;
   margin-bottom: 16px;
 }

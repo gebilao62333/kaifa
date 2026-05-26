@@ -128,9 +128,10 @@
         <div class="modal-body">
           <div class="share-qr-section">
             <div class="qr-code-container">
-              <img :src="shareQRCode" alt="二维码" class="qr-code-image" />
+              <img :src="shareQRCode" alt="二维码" class="qr-code-image" referrerpolicy="no-referrer" crossorigin="anonymous" />
             </div>
             <p class="qr-tip">扫描二维码访问我的主页</p>
+            <button class="save-qr-btn" @click="saveQRCode">💾 保存二维码</button>
           </div>
           <div class="share-link-section">
             <label class="share-link-label">邀请链接</label>
@@ -340,6 +341,34 @@ const copyShareLink = async () => {
   }
 }
 
+const saveQRCode = async () => {
+  
+  if (navigator.share) {
+    navigator.share({
+      title: '我的主页二维码',
+      text: '扫描二维码访问我的主页',
+      url: shareLink.value
+    }).catch(() => {})
+    return
+  }
+
+  try {
+    const response = await fetch(shareQRCode.value)
+    const blob = await response.blob()
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = '二维码.png'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    alert('二维码已保存')
+  } catch {
+    window.open(shareQRCode.value, '_blank')
+  }
+}
+
 onMounted(() => {
   loadVipItems()
 })
@@ -354,21 +383,23 @@ onMounted(() => {
 
 .content-container {
   background: #fff;
-  margin: 12px;
-  border-radius: 16px;
+  margin: 82px 12px 12px;
+  border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 12px 20px;
+  padding: 0 20px;
+  height: 70px;
+  display: flex;
+  align-items: center;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
-  border-radius: 0 0 16px 16px;
 }
 
 .user-info {
@@ -377,8 +408,8 @@ onMounted(() => {
 }
 
 .avatar {
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   border-radius: 10px;
   object-fit: cover;
   cursor: pointer;
@@ -426,7 +457,7 @@ onMounted(() => {
   color: #fff;
   font-size: 11px;
   padding: 3px 8px;
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .vip-tag {
@@ -434,7 +465,7 @@ onMounted(() => {
   color: #fff;
   font-size: 11px;
   padding: 3px 8px;
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .badge-tag {
@@ -472,6 +503,7 @@ onMounted(() => {
   margin-right: 20px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.1);
   transition: all 0.3s ease;
+  height: 30px;
 }
 
 .edit-btn:hover {
@@ -527,7 +559,7 @@ onMounted(() => {
   margin: 10px 0px;
   padding: 10px 0px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
+  border-radius: 10px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   cursor: pointer;
   height: 70px;
@@ -567,20 +599,24 @@ onMounted(() => {
 
 .menu-section {
   padding: 0 16px;
-  margin-top: -12px;
-  margin-bottom: -12px;
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 .menu-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
+  gap: 0;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
 }
 
 .menu-group {
   background-color: #fff;
-  border-radius: 16px;
-  margin-bottom: 16px;
+  border-radius: 10px;
+  margin-bottom: 0;
   overflow: hidden;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -599,13 +635,14 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16px 8px;
+  padding: 12px 4px;
   border-right: 1px solid #f5f5f5;
   border-bottom: 1px solid #f5f5f5;
   cursor: pointer;
   transition: background-color 0.2s;
-  min-height: 100px;
-  gap: 8px;
+  height: 88px;
+  gap: 6px;
+  box-sizing: border-box;
 }
 
 .menu-item:nth-child(3n) {
@@ -616,22 +653,28 @@ onMounted(() => {
   border-bottom: none;
 }
 
-.menu-item:last-child,
-.menu-item:nth-last-child(-n+2) {
-  border-bottom: none;
-}
-
 .menu-item:hover {
   background-color: #fafafa;
 }
 
 .menu-icon {
-  font-size: 28px;
+  font-size: 24px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .menu-text {
-  font-size: 14px;
+  font-size: 12px;
   color: #333;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
 }
 
 .menu-arrow {
@@ -650,24 +693,33 @@ onMounted(() => {
 .vip-badge {
   background: linear-gradient(135deg, #ffd700, #ff8c00);
   color: #fff;
-  font-size: 11px;
-  padding: 3px 10px;
-  border-radius: 12px;
-  margin-left: 8px;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  margin-left: 0;
+  margin-top: 2px;
+  white-space: nowrap;
 }
 
 .service-section {
   padding: 0 16px;
   padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .service-item {
   display: flex;
   align-items: center;
-  padding: 16px;
+  padding: 14px 16px;
+  background: #fff;
+  border-radius: 10px;
   cursor: pointer;
   transition: background-color 0.2s;
-  border-top: 1px solid #f0f0f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  min-height: 56px;
+  box-sizing: border-box;
 }
 
 .service-item:active {
@@ -675,15 +727,16 @@ onMounted(() => {
 }
 
 .service-icon {
-  font-size: 28px;
-  width: 44px;
-  height: 44px;
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #667eea15, #764ba215);
-  border-radius: 12px;
-  margin-right: 14px;
+  border-radius: 10px;
+  margin-right: 12px;
+  flex-shrink: 0;
 }
 
 .service-info {
@@ -691,20 +744,22 @@ onMounted(() => {
 }
 
 .service-name {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 500;
   color: #333;
   margin-bottom: 2px;
 }
 
 .service-desc {
-  font-size: 13px;
+  font-size: 12px;
   color: #999;
 }
 
 .service-arrow {
-    font-size: 20px;
-    color: #ccc;
+  font-size: 18px;
+  color: #ccc;
+  flex-shrink: 0;
+  margin-left: 8px;
 }
 
 /* PC 端我的页面优化 */
@@ -840,7 +895,7 @@ onMounted(() => {
 
 .modal-content {
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   width: 100%;
   max-width: 400px;
   max-height: 80vh;
@@ -888,7 +943,7 @@ onMounted(() => {
   display: inline-block;
   padding: 16px;
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   margin-bottom: 12px;
 }
@@ -902,6 +957,28 @@ onMounted(() => {
   font-size: 14px;
   color: #666;
   margin: 0;
+}
+
+.save-qr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 8px 20px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  font-size: 14px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.save-qr-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.save-qr-btn:active {
+  transform: scale(0.97);
 }
 
 .share-link-section {

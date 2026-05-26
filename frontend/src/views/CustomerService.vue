@@ -163,15 +163,28 @@ const callPhone = () => {
 <style scoped>
 .customer-service-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
+  padding-top: 82px;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 0 20px;
+  height: 70px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-btn,
@@ -180,6 +193,7 @@ const callPhone = () => {
   font-size: 20px;
   color: white;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .title {
@@ -190,6 +204,8 @@ const callPhone = () => {
 
 .content {
   padding: 16px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .greeting-card {
@@ -197,7 +213,7 @@ const callPhone = () => {
   align-items: center;
   gap: 12px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 16px 20px;
   margin-bottom: 16px;
 }
@@ -404,7 +420,7 @@ const callPhone = () => {
 
 .faq-list {
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 }
 

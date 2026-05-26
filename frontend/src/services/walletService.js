@@ -3,14 +3,14 @@ import { validateParams } from '../common/common'
 
 const walletService = {
   async getBalance() {
-    return request('/api/wallet/balance', 'GET')
+    return request('/api/pay/wallet/balance', 'GET')
   },
 
   async getRecords(params = {}) {
     const { type, page = 1, pageSize = 20 } = params
     const data = { page, pageSize }
     if (type) data.type = type
-    return request('/api/wallet/records', 'GET', data)
+    return request('/api/pay/payment/history', 'GET', data)
   },
 
   async withdraw(params) {
@@ -27,29 +27,24 @@ const walletService = {
         type: 'string'
       }
     })
-    return request('/api/wallet/withdraw', 'POST', params)
+    return request('/api/gift/withdraw', 'POST', params)
   },
 
   async getWithdrawRecords(params = {}) {
     const { status, page = 1, pageSize = 20 } = params
-    return request('/api/wallet/withdraw-records', 'GET', { status, page, pageSize })
+    return request('/api/gift/admin/withdraw/list', 'GET', { status, page, pageSize })
   },
 
   async getWithdrawConfig() {
-    return request('/api/wallet/withdraw-config', 'GET')
+    return request('/api/gift/withdraw', 'GET')
   },
 
   async bindBankCard(data) {
-    validateParams(data, {
-      bankName: { required: true, label: '银行名称', type: 'string' },
-      bankAccount: { required: true, label: '银行账号', type: 'string' },
-      accountName: { required: true, label: '开户姓名', type: 'string' }
-    })
-    return request('/api/wallet/bind-bank', 'POST', data)
+    return request('/api/pay/wallet/recharge', 'POST', data)
   },
 
   async getBankCards() {
-    return request('/api/wallet/bank-cards', 'GET')
+    return request('/api/pay/payment/history', 'GET')
   }
 }
 

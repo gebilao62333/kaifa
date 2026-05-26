@@ -67,17 +67,22 @@ const goTo = (path) => {
   left: 0;
   right: 0;
   height: 70px;
+  height: calc(70px + constant(safe-area-inset-bottom, 0px));
+  height: calc(70px + env(safe-area-inset-bottom, 0px));
   background-color: #fff;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+  box-shadow: 0 -4px 20px rgba(102, 126, 234, 0.15);
   z-index: 100;
+  padding-bottom: constant(safe-area-inset-bottom, 0);
   padding-bottom: env(safe-area-inset-bottom, 0);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .nav-items {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  height: 100%;
+  height: 70px;
   max-width: 650px;
   margin: 0 auto;
 }
@@ -91,14 +96,12 @@ const goTo = (path) => {
   height: 100%;
   cursor: pointer;
   transition: all 0.2s;
-}
-
-.nav-item:hover {
-  background-color: #fafafa;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nav-item.active .nav-icon {
-  transform: scale(1.1);
+  transform: scale(1.05);
+  -webkit-transform: scale(1.05);
 }
 
 .nav-item.active .nav-text {
@@ -114,41 +117,32 @@ const goTo = (path) => {
 }
 
 .nav-icon {
-  font-size: 24px;
-  margin-bottom: 4px;
+  font-size: 22px;
+  margin-bottom: 2px;
   transition: transform 0.2s;
+  -webkit-transition: -webkit-transform 0.2s;
 }
 
 .badge {
   position: absolute;
   top: -6px;
   right: -10px;
-  min-width: 18px;
-  height: 18px;
+  min-width: 16px;
+  height: 16px;
   background-color: #ff4d4f;
   color: #fff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
-  border-radius: 9px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 5px;
+  padding: 0 4px;
   box-shadow: 0 2px 4px rgba(255, 77, 79, 0.3);
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0%, 100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.1);
-  }
 }
 
 .nav-text {
-  font-size: 11px;
+  font-size: 10px;
   color: #999;
 }
 
@@ -158,22 +152,25 @@ const goTo = (path) => {
     max-width: 650px;
     left: 50%;
     transform: translateX(-50%);
+    -webkit-transform: translateX(-50%);
     border-radius: 20px 20px 0 0;
     height: 64px;
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
     background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
   }
   
   .nav-items {
     max-width: 650px;
+    height: 64px;
   }
   
   .nav-icon {
-    font-size: 24px;
+    font-size: 22px;
   }
   
   .nav-text {
-    font-size: 12px;
+    font-size: 11px;
   }
 }
 

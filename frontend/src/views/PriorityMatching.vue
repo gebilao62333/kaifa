@@ -187,7 +187,10 @@ watch(settings, saveSettings, { deep: true })
 <style scoped>
 .priority-matching-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
@@ -221,7 +224,7 @@ watch(settings, saveSettings, { deep: true })
   align-items: center;
   gap: 16px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 20px;
   margin-bottom: 16px;
 }
@@ -250,7 +253,7 @@ watch(settings, saveSettings, { deep: true })
 
 .status-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 20px;
   margin-bottom: 16px;
 }
@@ -274,7 +277,7 @@ watch(settings, saveSettings, { deep: true })
   font-size: 12px;
   font-weight: 600;
   padding: 4px 12px;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #f0f0f0;
   color: #999;
 }
@@ -325,7 +328,7 @@ watch(settings, saveSettings, { deep: true })
 
 .setting-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
@@ -362,7 +365,7 @@ watch(settings, saveSettings, { deep: true })
   width: 48px;
   height: 28px;
   background: #e5e5e5;
-  border-radius: 14px;
+  border-radius: 10px;
   position: relative;
   cursor: pointer;
   transition: background 0.2s;
@@ -403,7 +406,7 @@ watch(settings, saveSettings, { deep: true })
 
 .stat-card {
   background: white;
-  border-radius: 14px;
+  border-radius: 10px;
   padding: 20px;
   text-align: center;
 }
@@ -431,7 +434,7 @@ watch(settings, saveSettings, { deep: true })
 
 .compare-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
 }
 

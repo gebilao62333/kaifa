@@ -168,7 +168,10 @@ onMounted(() => {
 <style scoped>
 .virtual-user-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: #f5f5f5;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {

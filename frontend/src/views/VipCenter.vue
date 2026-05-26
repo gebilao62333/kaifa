@@ -271,24 +271,42 @@ onMounted(() => {
 <style scoped>
 .vip-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: #f5f5f5;
   padding-bottom: 80px;
+  padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  padding-top: 82px;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
   display: flex;
   align-items: center;
-  padding: 20px 20px 20px;
+  justify-content: center;
+  padding: 0 20px;
+  height: 70px;
   background: linear-gradient(135deg, #ffd700, #ff8c00);
+  background: -webkit-linear-gradient(315deg, #ffd700, #ff8c00);
   color: white;
-  height: auto;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-btn {
+  position: absolute;
+  left: 20px;
   font-size: 24px;
   cursor: pointer;
   color: #fff;
   line-height: 1;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .title {
@@ -302,7 +320,7 @@ onMounted(() => {
 .vip-card {
   margin: 16px 20px 20px;
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   position: relative;
@@ -311,12 +329,13 @@ onMounted(() => {
 
 .card-background {
   background: linear-gradient(135deg, #ffd700, #ff8c00);
+  background: -webkit-linear-gradient(315deg, #ffd700, #ff8c00);
   padding: 24px;
   padding-top: 8px;
   padding-bottom: 8px;
   text-align: center;
   color: white;
-  border-radius: 16px 16px 0 0;
+  border-radius: 10px 10px 0 0;
   height: 80px;
 }
 
@@ -344,7 +363,7 @@ onMounted(() => {
   padding: 20px 20px;
   background: white;
   margin: 0 20px;
-  border-radius: 12px;
+  border-radius: 10px;
   gap: 16px 0;
 }
 
@@ -353,6 +372,7 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .privilege-item .icon {
@@ -375,16 +395,19 @@ onMounted(() => {
 
 .vip-level-badge.vip1 {
   background: linear-gradient(135deg, #ffd700, #ffaa00);
+  background: -webkit-linear-gradient(315deg, #ffd700, #ffaa00);
   color: #7a5a00;
 }
 
 .vip-level-badge.vip2 {
   background: linear-gradient(135deg, #c0c0c0, #a0a0c0);
+  background: -webkit-linear-gradient(315deg, #c0c0c0, #a0a0c0);
   color: #3a3a5a;
 }
 
 .vip-level-badge.vip3 {
   background: linear-gradient(135deg, #00b4d8, #0077b6);
+  background: -webkit-linear-gradient(315deg, #00b4d8, #0077b6);
   color: white;
 }
 
@@ -401,11 +424,13 @@ onMounted(() => {
 
 .package-item {
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 20px;
   border: 2px solid transparent;
   cursor: pointer;
   transition: all 0.3s ease;
+  -webkit-transition: all 0.3s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .package-item.active {
@@ -491,10 +516,13 @@ onMounted(() => {
   cursor: pointer;
   text-align: center;
   transition: all 0.2s;
+  -webkit-transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .duration-option.active {
   background: linear-gradient(135deg, #ffd700, #ff8c00);
+  background: -webkit-linear-gradient(315deg, #ffd700, #ff8c00);
   color: white;
   font-weight: 600;
 }

@@ -23,7 +23,7 @@ const payService = {
 
   async getRechargeRecords(params = {}) {
     const { page = 1, pageSize = 20 } = params
-    return request('/api/pay/records', 'GET', { page, pageSize })
+    return request('/api/pay/recharge/list', 'GET', { page, pageSize })
   }
 }
 

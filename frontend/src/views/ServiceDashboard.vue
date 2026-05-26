@@ -268,8 +268,11 @@ onMounted(() => {
 <style scoped>
 .dashboard-container {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: #f0f2f5;
   padding: 24px;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .dashboard-header {

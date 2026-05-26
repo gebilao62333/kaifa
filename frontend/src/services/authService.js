@@ -138,26 +138,26 @@ const authService = {
     return request('/api/user/update', 'POST', data)
   },
 
-  async follow(userId) {
-    validateParams({ userId }, {
-      userId: {
+  async follow(targetUserId) {
+    validateParams({ targetUserId }, {
+      targetUserId: {
         required: true,
         label: '用户ID',
         type: 'number'
       }
     })
-    return request('/api/user/follow', 'POST', { userId })
+    return request('/api/user/follow', 'POST', { targetUserId, action: 1 })
   },
 
-  async unfollow(userId) {
-    validateParams({ userId }, {
-      userId: {
+  async unfollow(targetUserId) {
+    validateParams({ targetUserId }, {
+      targetUserId: {
         required: true,
         label: '用户ID',
         type: 'number'
       }
     })
-    return request('/api/user/unfollow', 'POST', { userId })
+    return request('/api/user/follow', 'POST', { targetUserId, action: 0 })
   },
 
   async getFans(params = {}) {
@@ -168,17 +168,6 @@ const authService = {
   async getFollows(params = {}) {
     const { page = 1, pageSize = 20 } = params
     return request('/api/user/follows', 'GET', { page, pageSize })
-  },
-
-  async checkFollowStatus(userId) {
-    validateParams({ userId }, {
-      userId: {
-        required: true,
-        label: '用户ID',
-        type: 'number'
-      }
-    })
-    return request(`/api/user/check-follow?userId=${userId}`, 'GET')
   }
 }
 

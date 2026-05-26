@@ -315,33 +315,37 @@ defineExpose({
 
 <style scoped>
 .home-page {
-  min-height: calc(100vh - 80px);
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
-  padding-top: 62px;
+  padding-top: 70px;
   padding-bottom: 80px;
+  padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .content-container {
   background: #fff;
   margin: 12px;
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .nav-bar {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 15px 20px;
+  padding: 0 20px;
   display: flex;
   align-items: center;
   gap: 16px;
-  height: 50px;
+  height: 70px;
   position: fixed;
   top: 0;
-  left: 12px;
-  right: 12px;
+  left: 0;
+  right: 0;
   z-index: 100;
-  border-radius: 0 0 16px 16px;
 }
 
 .search-box {
@@ -352,8 +356,7 @@ defineExpose({
   padding: 12px 20px;
   color: rgba(255, 255, 255, 0.8);
   height: 40px;
-  width: 350px;
-  flex: none;
+  flex: 1;
 }
 
 .search-icon {
@@ -367,19 +370,16 @@ defineExpose({
 
 .friend-btn {
   flex: none;
-  width: 60px;
-  height: 40px;
-  padding-left: 10px;
-  padding-right: 10px;
-  margin-top: 0;
-  margin-bottom: 0;
-  margin-left: 60px;
-  margin-right: 60px;
+  width: auto;
+  min-width: 60px;
+  height: 36px;
+  padding: 0 14px;
+  margin: 0;
   background-color: rgba(255, 255, 255, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 10px;
+  border-radius: 18px;
   color: #fff;
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -391,13 +391,14 @@ defineExpose({
   transform: scale(0.95);
 }
 
-/* PC端导航栏优化 */
+/* CP浏览器 & 移动端适配 */
 @media (min-width: 768px) {
   .home-page {
     padding-top: 60px;
     padding-bottom: 20px;
     padding-left: 16px;
     padding-right: 16px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     max-width: 650px;
     margin: 0 auto;
   }
@@ -412,11 +413,10 @@ defineExpose({
     margin: 0 auto;
     border-radius: 0 0 16px 16px;
     padding: 12px 24px;
-    height: 50px;
+    height: 70px;
   }
   
   .search-box {
-    width: auto;
     flex: 1;
     max-width: 420px;
     padding: 8px 18px;
@@ -430,7 +430,6 @@ defineExpose({
   .friend-btn {
     margin-left: 16px;
     margin-right: 0;
-    width: auto;
     padding: 8px 16px;
     height: 36px;
   }

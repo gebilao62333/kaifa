@@ -201,9 +201,13 @@ onUnmounted(() => {
 <style scoped>
 .call-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background: -webkit-linear-gradient(315deg, #1a1a2e 0%, #16213e 100%);
   display: flex;
   flex-direction: column;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .call-header {

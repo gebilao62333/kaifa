@@ -75,36 +75,50 @@ const goBack = () => {
 <style scoped>
 .records-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
+  padding-top: 82px;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 60px 16px 16px;
-  background-color: #fff;
-  position: sticky;
+  padding: 0 20px;
+  height: 70px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  position: fixed;
   top: 0;
-  z-index: 10;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-btn {
   font-size: 24px;
-  color: #333;
+  color: #fff;
   cursor: pointer;
+  width: 40px;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.title {
-  font-size: 17px;
+.header .title {
+  font-size: 18px;
   font-weight: bold;
-  color: #333;
+  color: #fff;
 }
 
 .total {
   font-size: 15px;
-  color: #333;
+  color: #fff;
   font-weight: 600;
+  width: 80px;
+  text-align: right;
 }
 
 .summary-card {
@@ -113,7 +127,7 @@ const goBack = () => {
   background: #fff;
   margin: 12px;
   padding: 20px;
-  border-radius: 14px;
+  border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
 }
 
@@ -162,7 +176,7 @@ const goBack = () => {
 .record-icon-wrap {
   width: 44px;
   height: 44px;
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;

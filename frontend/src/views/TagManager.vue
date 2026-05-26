@@ -212,7 +212,10 @@ onMounted(() => {
 <style scoped>
 .tag-manager-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: #f5f5f5;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
@@ -220,8 +223,16 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
+  padding-top: calc(12px + constant(safe-area-inset-top, 0px));
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
   background: #fff;
   border-bottom: 1px solid #eee;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+.back-btn {
+  -webkit-tap-highlight-color: transparent;
 }
 
 .back-btn {
@@ -253,7 +264,7 @@ onMounted(() => {
 
 .tab-item {
   padding: 6px 14px;
-  border-radius: 16px;
+  border-radius: 10px;
   background: #f0f0f0;
   font-size: 13px;
   white-space: nowrap;
@@ -369,7 +380,7 @@ onMounted(() => {
   width: 85%;
   max-width: 340px;
   background: #fff;
-  border-radius: 12px;
+  border-radius: 8px;
   overflow: hidden;
 }
 

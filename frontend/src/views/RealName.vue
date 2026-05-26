@@ -164,15 +164,28 @@ const submitForm = async () => {
 <style scoped>
 .realname-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
+  padding-top: 82px;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 0 20px;
+  height: 70px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-btn,
@@ -181,6 +194,7 @@ const submitForm = async () => {
   font-size: 20px;
   color: white;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .title {
@@ -191,11 +205,13 @@ const submitForm = async () => {
 
 .content {
   padding: 20px;
+  padding-bottom: calc(20px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
 }
 
 .tips-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 16px;
   display: flex;
   align-items: center;
@@ -221,7 +237,7 @@ const submitForm = async () => {
 
 .form-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 20px;
 }
 
@@ -244,6 +260,9 @@ const submitForm = async () => {
   border-radius: 8px;
   box-sizing: border-box;
   transition: border-color 0.3s;
+  -webkit-transition: border-color 0.3s;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .form-input:focus {
@@ -255,15 +274,17 @@ const submitForm = async () => {
   width: 100%;
   aspect-ratio: 16 / 10;
   border: 2px dashed #ddd;
-  border-radius: 12px;
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.3s;
+  -webkit-transition: all 0.3s;
   overflow: hidden;
   position: relative;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .upload-area:hover {
@@ -283,6 +304,8 @@ const submitForm = async () => {
   position: absolute;
   top: 0;
   left: 0;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .upload-text {
@@ -296,6 +319,7 @@ const submitForm = async () => {
   gap: 8px;
   margin-bottom: 24px;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .agreement input {
@@ -314,23 +338,27 @@ const submitForm = async () => {
   width: 100%;
   padding: 16px;
   background: linear-gradient(135deg, #667eea, #764ba2);
+  background: -webkit-linear-gradient(315deg, #667eea, #764ba2);
   color: white;
   font-size: 16px;
   border: none;
   border-radius: 25px;
   cursor: pointer;
   transition: all 0.3s;
+  -webkit-transition: all 0.3s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .submit-btn:active {
   transform: scale(0.98);
+  -webkit-transform: scale(0.98);
 }
 
 .success-card {
   text-align: center;
   padding: 40px 20px;
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   margin-bottom: 20px;
 }
 
@@ -353,7 +381,7 @@ const submitForm = async () => {
 
 .info-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 20px;
   margin-bottom: 20px;
 }

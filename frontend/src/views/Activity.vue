@@ -386,19 +386,23 @@ onMounted(() => {
 .activity-wrapper {
   width: 100%;
   min-height: 100vh;
+  min-height: -webkit-fill-available;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .activity-page {
   min-height: calc(100vh - 80px);
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-  padding-top: 50px;
+  min-height: -webkit-fill-available;
+  background: #f5f5f5;
+  padding-top: 82px;
 }
 
 .content-container {
   background: #fff;
   margin: 12px auto;
   margin-top: 121px;
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
   max-width: 650px;
@@ -406,24 +410,27 @@ onMounted(() => {
 
 .header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 12px 32px;
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  padding: 0 20px;
   text-align: center;
-  height: 56px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
-  max-width: 650px;
-  margin: 0 auto;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
-.title {
-  font-size: 20px;
+.header .title {
+  font-size: 18px;
   font-weight: 700;
   color: #fff;
-  letter-spacing: 1px;
+  margin: 0;
 }
 
 .tags-section {
@@ -448,6 +455,7 @@ onMounted(() => {
   gap: 16px;
   max-width: 650px;
   margin: 0 auto;
+  margin-bottom: 30px;
 }
 
 .tags-scroll::-webkit-scrollbar {
@@ -483,18 +491,27 @@ onMounted(() => {
 }
 
 .feed-list {
-  padding: 16px;
-  margin-top: 0;
-  margin-bottom: 0;
+  padding: 10px 16px;
+  padding-left: 14px;
+  margin-top: -40px;
+  margin-bottom: -40px;
+  width: 394px;
+  display: grid;
 }
 
 .feed-card {
   background-color: #fff;
   border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 16px;
+  width: 380px;
+  height: 300px;
+  padding: 4px 54px;
+  margin-bottom: -20px;
+  margin-top: 0px;
+  margin-left: -7px;
+  margin-right: -7px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   transition: all 0.3s ease;
+  visibility: hidden;
 }
 
 .feed-card:hover {
@@ -505,12 +522,16 @@ onMounted(() => {
 .feed-user {
   display: flex;
   align-items: center;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
+  margin-top: 61px;
+  width: 360px;
+  margin-left: -40px;
+  height: 70px;
 }
 
 .user-avatar {
-  width: 50px;
-  height: 50px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   margin-right: 14px;
   object-fit: cover;
@@ -628,13 +649,18 @@ onMounted(() => {
   line-height: 1.65;
   margin: 0;
   letter-spacing: 0.3px;
+  margin-bottom: -9px;
+  width: 360px;
+  margin-left: -40px;
 }
 
 .feed-images {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
+  width: 360px;
+  margin-left: -40px;
 }
 
 .feed-image {
@@ -653,7 +679,7 @@ onMounted(() => {
 }
 
 .feed-tags {
-  margin-bottom: 14px;
+  margin-bottom: 0px;
 }
 
 .feed-tag {
@@ -665,8 +691,11 @@ onMounted(() => {
 .feed-actions {
   display: flex;
   justify-content: space-around;
-  padding-top: 14px;
+  padding-top: 0px;
   border-top: 1px solid #f1f5f9;
+  width: 360px;
+  margin-left: -45px;
+  margin-right: -45px;
 }
 
 .action-item {

@@ -287,8 +287,13 @@ onMounted(() => {
 <style scoped>
 .admin-withdraw-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: #f5f5f5;
   padding-bottom: 20px;
+  padding-bottom: calc(20px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {

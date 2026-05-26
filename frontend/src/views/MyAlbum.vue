@@ -139,6 +139,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { albumService } from '@/services/albumService'
+import { isLoggedIn } from '../common/common'
 
 const router = useRouter()
 
@@ -165,7 +166,7 @@ const goBack = () => {
 }
 
 const checkLogin = () => {
-  if (!albumService.isLoggedIn()) {
+  if (!isLoggedIn()) {
     router.push('/login')
     return false
   }
@@ -332,15 +333,28 @@ onMounted(() => {
 <style scoped>
 .album-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
+  padding-top: 82px;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 0 20px;
+  height: 70px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-btn,
@@ -349,6 +363,7 @@ onMounted(() => {
   font-size: 24px;
   color: white;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .title {
@@ -358,14 +373,14 @@ onMounted(() => {
 }
 
 .content {
-  padding: 20px;
+  padding: 16px;
 }
 
 .album-info {
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 24px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
   gap: 24px;

@@ -128,11 +128,15 @@ onMounted(() => {
 <style scoped>
 .admin-login {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   padding: 20px;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .login-container {

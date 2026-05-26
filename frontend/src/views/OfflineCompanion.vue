@@ -85,10 +85,11 @@ const handleSelect = (item) => {
 
 .offline-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 16px;
   cursor: pointer;
   transition: all 0.3s;
+  -webkit-transition: all 0.3s;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   position: relative;
   border: 2px solid transparent;
@@ -98,6 +99,7 @@ const handleSelect = (item) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  -webkit-tap-highlight-color: transparent;
 }
 
 @media (max-width: 768px) {

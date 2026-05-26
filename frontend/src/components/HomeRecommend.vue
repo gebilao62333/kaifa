@@ -21,14 +21,14 @@
           <div class="companion-name">{{ item.nickName }}</div>
           <span class="admin-recommend-badge" v-if="item.isAdminRecommend">推荐</span>
           <span class="vip-badge-mini" v-if="item.vip">VIP{{ item.vipLevel }}</span>
-          <div class="online-status" :class="{ online: item.online, offline: !item.online }">
-            <span class="status-dot"></span>
-            <span class="status-text">{{ item.online ? '在线' : '离线' }}</span>
-          </div>
         </div>
         <div class="avatar-wrapper">
           <div class="avatar-frame-inline" :class="{ vip: item.vip }">
             <img class="companion-avatar" v-lazy="item.avatar" alt="" />
+            <div class="online-status" :class="{ online: item.online, offline: !item.online }">
+              <span class="status-dot"></span>
+              <span class="status-text">{{ item.online ? '在线' : '离线' }}</span>
+            </div>
           </div>
         </div>
         <div class="companion-tags">
@@ -82,22 +82,21 @@ defineEmits(['load-more', 'user-click'])
 
 <style scoped>
 .recommend-section {
-  padding: 20px;
+  padding: 16px;
   margin-top: 10px;
   margin-bottom: 10px;
-  border-radius: 4px;
 }
 
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
-  height: 35px;
+  margin-bottom: 14px;
+  height: 30px;
 }
 
 .section-title {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: bold;
   color: #333;
 }
@@ -106,8 +105,9 @@ defineEmits(['load-more', 'user-click'])
   display: flex;
   align-items: center;
   color: #999;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .loading-state {
@@ -115,27 +115,31 @@ defineEmits(['load-more', 'user-click'])
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 0;
+  padding: 30px 0;
   width: 100%;
 }
 
 .loading-spinner {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: 3px solid #f0f0f0;
   border-top-color: #667eea;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
+  -webkit-animation: spin 0.8s linear infinite;
 }
 
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+@-webkit-keyframes spin {
+  to { -webkit-transform: rotate(360deg); }
+}
 
 .loading-text {
-  font-size: 14px;
+  font-size: 13px;
   color: #999;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .empty-state {
@@ -143,13 +147,13 @@ defineEmits(['load-more', 'user-click'])
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 0;
+  padding: 30px 0;
   width: 100%;
 }
 
 .empty-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
+  font-size: 40px;
+  margin-bottom: 10px;
   opacity: 0.6;
 }
 
@@ -159,29 +163,31 @@ defineEmits(['load-more', 'user-click'])
 }
 
 .recommend-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 0 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 0;
+  width: 100%;
 }
 
 .companion-card {
-  width: calc(50% - 6px);
+  width: 100%;
   background-color: #fff;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 10px;
   position: relative;
   text-align: left;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
 }
 
 .name-and-status {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
   margin-bottom: 8px;
-  font-size: 20px;
-  width: 200px;
+  width: 100%;
 }
 
 .vip-badge-mini {
@@ -193,8 +199,7 @@ defineEmits(['load-more', 'user-click'])
   border-radius: 8px;
   line-height: 1.5;
   flex-shrink: 0;
-  margin-left: 20px;
-  margin-right: 20px;
+  margin-left: auto;
 }
 
 .admin-recommend-badge {
@@ -208,11 +213,6 @@ defineEmits(['load-more', 'user-click'])
   flex-shrink: 0;
 }
 
-.name-and-status .online-status {
-  margin-left: auto;
-  margin-right: -5px;
-}
-
 .avatar-wrapper {
   display: flex;
   justify-content: center;
@@ -220,25 +220,28 @@ defineEmits(['load-more', 'user-click'])
 }
 
 .avatar-frame-inline {
-  width: 180px;
-  height: 180px;
+  width: 100%;
+  max-width: 160px;
+  aspect-ratio: 1;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
 }
 
 .avatar-frame-inline.vip {
-  border: 3px solid #ffd700;
-  box-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+  border: 2px solid #ffd700;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
 }
 
 .avatar-frame-inline .companion-avatar {
-  width: 168px;
-  height: 168px;
-  border-radius: 8px;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  border-radius: 8px;
 }
 
 .companion-level {
@@ -247,34 +250,37 @@ defineEmits(['load-more', 'user-click'])
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 20px;
+  white-space: nowrap;
 }
 
 .online-status {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  font-size: 11px;
+  gap: 3px;
+  font-size: 10px;
   margin-bottom: 0;
   padding: 2px 8px;
-  border-radius: 20px;
-  width: 50px;
-  height: 22px;
+  border-radius: 10px;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 10;
 }
 
 .online-status.online {
-  background-color: #e6f7e6;
+  background-color: rgba(230, 247, 230, 0.9);
   color: #52c41a;
 }
 
 .online-status.offline {
-  background-color: #f5f5f5;
+  background-color: rgba(245, 245, 245, 0.9);
   color: #999;
 }
 
 .status-dot {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
   border-radius: 50%;
   display: inline-block;
 }
@@ -288,28 +294,30 @@ defineEmits(['load-more', 'user-click'])
 }
 
 .companion-name {
-  font-size: 15px;
+  font-size: 14px;
   color: #333;
-  margin-bottom: -1px;
-  margin-top: -1px;
   font-weight: 600;
   text-align: left;
   flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
 }
 
 .companion-tags {
   display: flex;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
+  gap: 4px;
+  margin-bottom: 10px;
 }
 
 .companion-tags .tag {
-  font-size: 11px;
+  font-size: 10px;
   color: #666;
   background-color: #f5f5f5;
-  padding: 3px 10px;
+  padding: 2px 8px;
   border-radius: 20px;
 }
 
@@ -318,24 +326,32 @@ defineEmits(['load-more', 'user-click'])
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
+  gap: 4px;
 }
 
 .companion-service {
   display: flex;
   align-items: center;
-  font-size: 11px;
+  font-size: 10px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .companion-service .service-label {
   color: #666;
+  flex-shrink: 0;
 }
 
 .companion-service .service-tag {
   color: #fff;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 2px 10px;
+  padding: 2px 8px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
 }
 
 .companion-bottom {
@@ -347,7 +363,7 @@ defineEmits(['load-more', 'user-click'])
 .companion-location {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   font-size: 11px;
   color: #999;
   margin-bottom: 0;
@@ -359,7 +375,7 @@ defineEmits(['load-more', 'user-click'])
 
 .companion-price .price {
   color: #ff6b6b;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: bold;
 }
 
@@ -379,13 +395,12 @@ defineEmits(['load-more', 'user-click'])
   
   .recommend-list {
     gap: 14px;
-    padding: 0;
   }
   
   .companion-card {
-    width: calc(50% - 7px);
+    width: 100%;
     padding: 12px;
-    border-radius: 14px;
+    border-radius: 10px;
     background: #fff;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   }
@@ -410,7 +425,7 @@ defineEmits(['load-more', 'user-click'])
     width: 100%;
     height: auto;
     aspect-ratio: 1;
-    border-radius: 10px;
+    border-radius: 8px;
   }
   
   .companion-tags {

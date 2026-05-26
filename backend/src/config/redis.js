@@ -84,6 +84,7 @@ const connectRedis = async () => {
         timeout: 5000
       },
       password: config.db.redis.password || undefined,
+      username: config.db.redis.username || undefined,
       database: 0,
       maxRetriesPerRequest: 3,
       lazyConnect: true

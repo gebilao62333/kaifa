@@ -132,7 +132,10 @@ onMounted(() => {
 <style scoped>
 .level-acceleration-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
@@ -163,7 +166,7 @@ onMounted(() => {
 
 .level-card {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 24px;
   margin-bottom: 16px;
 }
@@ -237,7 +240,7 @@ onMounted(() => {
 
 .vip-boost-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 20px;
   margin-bottom: 16px;
 }

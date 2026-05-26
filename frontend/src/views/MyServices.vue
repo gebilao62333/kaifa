@@ -806,19 +806,31 @@ onUnmounted(() => {
 <style scoped>
 .my-services-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
   padding-bottom: 80px;
+  padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  padding-top: 82px;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 35px 20px 35px;
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 80px;
-  text-align: center;
-  font-size: 20px;
+  padding: 0 20px;
+  height: 70px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-btn {
@@ -830,6 +842,7 @@ onUnmounted(() => {
   font-size: 28px;
   color: white;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .title {

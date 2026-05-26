@@ -220,8 +220,13 @@ onMounted(() => {
 <style scoped>
 .post-detail-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: #f5f5f5;
   padding-bottom: 70px;
+  padding-bottom: calc(70px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
@@ -229,8 +234,13 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 60px 20px 20px;
+  padding-top: calc(60px + constant(safe-area-inset-top, 0px));
+  padding-top: calc(60px + env(safe-area-inset-top, 0px));
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   color: white;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-btn, .more-btn {
@@ -284,7 +294,7 @@ onMounted(() => {
   background: #667eea;
   color: white;
   padding: 6px 14px;
-  border-radius: 16px;
+  border-radius: 10px;
   font-size: 13px;
 }
 
@@ -482,7 +492,7 @@ onMounted(() => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   padding: 6px 16px;
-  border-radius: 16px;
+  border-radius: 10px;
   font-size: 14px;
   cursor: pointer;
 }

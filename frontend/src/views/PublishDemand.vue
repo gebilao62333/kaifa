@@ -766,8 +766,13 @@ onMounted(() => {
 <style scoped>
 .publish-demand-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: #f5f7fa;
   padding-bottom: 200px;
+  padding-bottom: calc(200px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(200px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -782,10 +787,17 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
+  padding-top: calc(12px + constant(safe-area-inset-top, 0px));
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
   height: 50px;
+  height: calc(50px + constant(safe-area-inset-top, 0px));
+  height: calc(50px + env(safe-area-inset-top, 0px));
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-btn {

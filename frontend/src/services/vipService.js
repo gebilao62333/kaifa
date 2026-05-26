@@ -6,39 +6,27 @@ const vipService = {
   },
 
   async getUserVipInfo() {
-    return request('/api/vip/my-info', 'GET')
+    return request('/api/vip/info', 'GET')
   },
 
-  async createVipOrder(packageId) {
-    return request('/api/vip/buy', 'POST', { packageId })
+  async createVipOrder(params) {
+    return request('/api/vip/order', 'POST', params)
   },
 
-  async completeVipOrder(orderId) {
-    return request('/api/vip/complete', 'POST', { orderId })
+  async completeVipOrder(orderNo, transactionId) {
+    return request('/api/vip/order/complete', 'POST', { orderNo, transactionId })
   },
 
-  async getVipBenefits() {
-    return request('/api/vip/benefits', 'GET')
+  async getVipOrderStatus(orderNo) {
+    return request('/api/vip/order/status', 'GET', { orderNo })
   },
 
   async getVipRecords(params = {}) {
     const { page = 1, pageSize = 20 } = params
-    return request('/api/vip/records', 'GET', { page, pageSize })
-  },
-
-  getPackages: async function() {
-    return request('/api/vip/packages', 'GET')
-  },
-
-  getMyVipInfo: async function() {
-    return request('/api/vip/my-info', 'GET')
-  },
-
-  buyVip: async function(packageId) {
-    return request('/api/vip/buy', 'POST', { packageId })
+    return request('/api/vip/orders', 'GET', { page, pageSize })
   }
 }
 
 export default vipService
 
-export const { getVipPackages, getUserVipInfo, createVipOrder, completeVipOrder, getVipBenefits, getVipRecords } = vipService
+export const { getVipPackages, getUserVipInfo, createVipOrder, completeVipOrder, getVipOrderStatus, getVipRecords } = vipService

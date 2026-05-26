@@ -118,15 +118,28 @@ const closeModal = () => {
 <style scoped>
 .about-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
+  padding-top: 82px;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 0 20px;
+  height: 70px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-btn,
@@ -135,6 +148,7 @@ const closeModal = () => {
   font-size: 20px;
   color: white;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .title {
@@ -145,11 +159,13 @@ const closeModal = () => {
 
 .content {
   padding: 20px;
+  padding-bottom: calc(20px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
 }
 
 .logo-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 30px 20px;
   text-align: center;
   margin-bottom: 20px;
@@ -174,7 +190,7 @@ const closeModal = () => {
 
 .menu-list {
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   margin-bottom: 20px;
   overflow: hidden;
 }
@@ -187,6 +203,8 @@ const closeModal = () => {
   border-bottom: 1px solid #f5f5f5;
   cursor: pointer;
   transition: background-color 0.2s;
+  -webkit-transition: background-color 0.2s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .menu-item:last-child {
@@ -218,7 +236,7 @@ const closeModal = () => {
 
 .info-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 20px;
   margin-bottom: 20px;
 }
@@ -269,13 +287,15 @@ const closeModal = () => {
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .modal-content {
   width: 85%;
   max-width: 360px;
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
   max-height: 80vh;
 }
@@ -298,12 +318,14 @@ const closeModal = () => {
   font-size: 24px;
   color: #999;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .modal-body {
   padding: 20px;
   max-height: 60vh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-text p {

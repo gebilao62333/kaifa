@@ -538,10 +538,15 @@ const handleLogout = () => {
 <style scoped>
 .settings-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
   padding-bottom: 90px;
+  padding-bottom: calc(90px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
   max-width: 650px;
   margin: 0 auto;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
@@ -549,7 +554,12 @@ const handleLogout = () => {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
+  padding-top: calc(16px + constant(safe-area-inset-top, 0px));
+  padding-top: calc(16px + env(safe-area-inset-top, 0px));
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-btn,
@@ -558,6 +568,7 @@ const handleLogout = () => {
   font-size: 20px;
   color: white;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .title {
@@ -573,7 +584,7 @@ const handleLogout = () => {
 .section {
   background: white;
   margin-bottom: 12px;
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
@@ -627,7 +638,7 @@ const handleLogout = () => {
 .switch {
   width: 48px;
   height: 28px;
-  border-radius: 14px;
+  border-radius: 10px;
   background-color: #ddd;
   position: relative;
   transition: all 0.3s;
@@ -691,7 +702,7 @@ const handleLogout = () => {
   width: 85%;
   max-width: 320px;
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
@@ -747,7 +758,7 @@ const handleLogout = () => {
 .price-card {
   background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
   border: 2px solid #e8eaff;
-  border-radius: 14px;
+  border-radius: 10px;
   padding: 16px 20px;
   margin-bottom: 12px;
   text-align: center;
@@ -802,7 +813,7 @@ const handleLogout = () => {
   justify-content: space-between;
   padding: 10px 16px;
   background: #f8f9fa;
-  border-radius: 14px;
+  border-radius: 8px;
   height: 40px;
 }
 

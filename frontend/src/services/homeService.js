@@ -27,19 +27,19 @@ const homeService = {
   },
 
   async getConfig() {
-    return request(`${api}/config/home`, 'GET')
+    return request(`${api}/user/get`, 'GET')
   },
 
   async getHotSearch() {
-    return request(`${api}/search/hot`, 'GET')
+    return request(`${api}/games/categories`, 'GET')
   },
 
   async getActivities() {
-    return request(`${api}/activity/list`, 'GET')
+    return request(`${api}/banner/list`, 'GET')
   },
 
   async getNotice() {
-    return request(`${api}/notice/list`, 'GET')
+    return request(`${api}/user/get`, 'GET')
   }
 }
 

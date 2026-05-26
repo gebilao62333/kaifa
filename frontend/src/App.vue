@@ -153,21 +153,21 @@ body {
   .card,
   .list-item,
   .menu-item {
-    border-radius: 12px !important;
+    border-radius: 10px !important;
     margin-bottom: 12px !important;
   }
   
   /* 通用按钮优化 */
   .btn,
   button {
-    border-radius: 10px !important;
+    border-radius: 8px !important;
   }
   
   /* 输入框优化 */
   input,
   textarea,
   .form-input {
-    border-radius: 10px !important;
+    border-radius: 8px !important;
     font-size: 15px !important;
   }
 }

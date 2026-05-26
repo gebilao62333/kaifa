@@ -5,7 +5,7 @@
       <span class="title">我的钱包</span>
     </div>
 
-    <div class="balance-section">
+    <div class="content-container">
       <div class="balance-card">
         <div class="balance-header">
           <span class="balance-label">总资产</span>
@@ -33,61 +33,61 @@
           <span class="action-text">提现</span>
         </div>
       </div>
-    </div>
 
-    <div class="stats-section">
-      <div class="section-title">今日概览</div>
-      <div class="stats-row">
-        <div class="stat-card income" @click="goIncomeRecords">
-          <div class="stat-header">
-            <span class="stat-icon">📈</span>
-            <span class="stat-label">今日收入</span>
+      <div class="stats-section">
+        <div class="section-title">今日概览</div>
+        <div class="stats-row">
+          <div class="stat-card income" @click="goIncomeRecords">
+            <div class="stat-header">
+              <span class="stat-icon">📈</span>
+              <span class="stat-label">今日收入</span>
+            </div>
+            <span class="stat-value income">+{{ formatBalance(userInfo.todayIncome) }}</span>
           </div>
-          <span class="stat-value income">+{{ formatBalance(userInfo.todayIncome) }}</span>
+          <div class="stat-card expense" @click="goExpenseRecords">
+            <div class="stat-header">
+              <span class="stat-icon">📉</span>
+              <span class="stat-label">今日支出</span>
+            </div>
+            <span class="stat-value expense">-{{ formatBalance(userInfo.todayExpense) }}</span>
+          </div>
         </div>
-        <div class="stat-card expense" @click="goExpenseRecords">
-          <div class="stat-header">
-            <span class="stat-icon">📉</span>
-            <span class="stat-label">今日支出</span>
+        <div class="stats-row">
+          <div class="stat-card" @click="goWithdrawRecords">
+            <div class="stat-header">
+              <span class="stat-icon">💳</span>
+              <span class="stat-label">累计提现</span>
+            </div>
+            <span class="stat-value">{{ formatBalance(userInfo.totalWithdraw) }}</span>
           </div>
-          <span class="stat-value expense">-{{ formatBalance(userInfo.todayExpense) }}</span>
+          <div class="stat-card" @click="goIncomeRecords">
+            <div class="stat-header">
+              <span class="stat-icon">💵</span>
+              <span class="stat-label">累计收入</span>
+            </div>
+            <span class="stat-value income">+{{ formatBalance(userInfo.totalIncome) }}</span>
+          </div>
         </div>
       </div>
-      <div class="stats-row">
-        <div class="stat-card" @click="goWithdrawRecords">
-          <div class="stat-header">
-            <span class="stat-icon">💳</span>
-            <span class="stat-label">累计提现</span>
-          </div>
-          <span class="stat-value">{{ formatBalance(userInfo.totalWithdraw) }}</span>
-        </div>
-        <div class="stat-card" @click="goIncomeRecords">
-          <div class="stat-header">
-            <span class="stat-icon">💵</span>
-            <span class="stat-label">累计收入</span>
-          </div>
-          <span class="stat-value income">+{{ formatBalance(userInfo.totalIncome) }}</span>
-        </div>
-      </div>
-    </div>
 
-    <div class="menu-section">
-      <div class="menu-group">
-        <div class="menu-title">交易记录</div>
-        <div class="menu-item" @click="goIncomeRecords">
-          <span class="menu-icon">📈</span>
-          <span class="menu-text">收入记录</span>
-          <span class="menu-arrow">›</span>
-        </div>
-        <div class="menu-item" @click="goExpenseRecords">
-          <span class="menu-icon">📉</span>
-          <span class="menu-text">支出记录</span>
-          <span class="menu-arrow">›</span>
-        </div>
-        <div class="menu-item" @click="goWithdrawRecords">
-          <span class="menu-icon">💳</span>
-          <span class="menu-text">提现记录</span>
-          <span class="menu-arrow">›</span>
+      <div class="menu-section">
+        <div class="menu-group">
+          <div class="menu-title">交易记录</div>
+          <div class="menu-item" @click="goIncomeRecords">
+            <span class="menu-icon">📈</span>
+            <span class="menu-text">收入记录</span>
+            <span class="menu-arrow">›</span>
+          </div>
+          <div class="menu-item" @click="goExpenseRecords">
+            <span class="menu-icon">📉</span>
+            <span class="menu-text">支出记录</span>
+            <span class="menu-arrow">›</span>
+          </div>
+          <div class="menu-item" @click="goWithdrawRecords">
+            <span class="menu-icon">💳</span>
+            <span class="menu-text">提现记录</span>
+            <span class="menu-arrow">›</span>
+          </div>
         </div>
       </div>
     </div>
@@ -168,17 +168,32 @@ const goWithdrawRecords = () => {
 <style scoped>
 .wallet-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
   padding-bottom: 80px;
+  padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 30px 20px 30px;
+  padding: 0 20px;
+  padding-top: calc(0px + constant(safe-area-inset-top, 0px));
+  padding-top: calc(0px + env(safe-area-inset-top, 0px));
+  height: 70px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  position: relative;
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-btn {
@@ -187,26 +202,30 @@ const goWithdrawRecords = () => {
   cursor: pointer;
   position: absolute;
   left: 20px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .header .title {
   font-size: 18px;
   font-weight: bold;
   color: #fff;
-  margin-top: 0;
-  margin-bottom: 0;
-  padding-top: 0;
-  padding-bottom: 0;
+  margin: 0;
+  padding: 0;
 }
 
-.balance-section {
-  padding: 20px;
+.content-container {
+  background: #fff;
+  margin: 82px 12px 12px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .balance-card {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 10px;
-  padding: 10px;
+  padding: 20px;
+  margin: 16px 16px 0;
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
   height: 140px;
 }
@@ -251,11 +270,8 @@ const goWithdrawRecords = () => {
 
 .quick-actions {
   display: flex;
-  gap: 16px;
-  padding: 10px 20px 10px;
-  margin-top: 10px;
-  margin-bottom: 10px;
-  height: 70px;
+  gap: 12px;
+  padding: 0 16px 16px;
 }
 
 .action-btn {
@@ -266,7 +282,7 @@ const goWithdrawRecords = () => {
   gap: 10px;
   padding: 16px;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 10px;
   cursor: pointer;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s, box-shadow 0.2s;
@@ -288,7 +304,7 @@ const goWithdrawRecords = () => {
 }
 
 .stats-section {
-  padding: 0 20px 20px;
+  padding: 0 16px 16px;
 }
 
 .section-title {
@@ -315,7 +331,7 @@ const goWithdrawRecords = () => {
   gap: 8px;
   padding: 16px;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 10px;
   cursor: pointer;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
   transition: transform 0.2s;
@@ -389,30 +405,31 @@ const goWithdrawRecords = () => {
 }
 
 .menu-section {
-  padding: 20px;
+  padding: 0 16px 16px;
 }
 
 .menu-group {
   background: #fff;
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
 .menu-title {
-  padding: 16px 20px 12px;
-  font-size: 15px;
+  padding: 14px 16px 10px;
+  font-size: 14px;
   color: #333;
   font-weight: bold;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .menu-item {
   display: flex;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #f5f5f5;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0;
   cursor: pointer;
   transition: background-color 0.2s;
+  min-height: 48px;
 }
 
 .menu-item:last-child {
@@ -424,19 +441,38 @@ const goWithdrawRecords = () => {
 }
 
 .menu-icon {
-  font-size: 22px;
+  font-size: 20px;
   margin-right: 12px;
+  width: 28px;
+  text-align: center;
 }
 
 .menu-text {
   flex: 1;
-  font-size: 15px;
+  font-size: 14px;
   color: #333;
 }
 
 .menu-arrow {
-  font-size: 20px;
+  font-size: 18px;
   color: #ccc;
+}
+
+/* PC端优化 */
+@media (min-width: 768px) {
+  .wallet-page {
+    padding-top: 60px;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-bottom: 16px;
+    max-width: 650px;
+    margin: 0 auto;
+  }
+
+  .content-container {
+    margin: 0;
+    margin-top: 12px;
+  }
 }
 
 

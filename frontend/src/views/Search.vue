@@ -304,13 +304,18 @@ const formatTime = (timestamp) => {
 <style scoped>
 .search-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: #f5f5f5;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .search-header {
   display: flex;
   align-items: center;
   padding: 12px 16px;
+  padding-top: calc(12px + constant(safe-area-inset-top, 0px));
+  padding-top: calc(12px + env(safe-area-inset-top, 0px));
   background: #fff;
   position: sticky;
   top: 0;

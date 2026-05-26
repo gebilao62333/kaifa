@@ -3,7 +3,7 @@
     <div class="header">
       <span class="back-btn" @click="goBack">←</span>
       <span class="title">编辑资料</span>
-      <span class="save-btn" @click="saveProfile">保存</span>
+      <button class="save-btn" @click="saveProfile">保存</button>
     </div>
 
     <div class="content">
@@ -34,7 +34,7 @@
       <div class="form-section">
         <div class="form-item">
           <span class="label">昵称</span>
-          <input type="text" class="input" v-model="form.nickname" placeholder="请输入昵称" maxlength="20" />
+          <input type="text" id="nickname" name="nickname" class="input" v-model="form.nickname" placeholder="请输入昵称" maxlength="20" autocomplete="off" />
           <span class="char-count">{{ form.nickname.length }}/20</span>
         </div>
 
@@ -58,7 +58,7 @@
 
         <div class="form-item">
           <span class="label">生日</span>
-          <input type="date" class="input" v-model="form.birthday" />
+          <input type="date" id="birthday" name="birthday" class="input" v-model="form.birthday" autocomplete="off" />
         </div>
 
         <div class="form-item">
@@ -72,14 +72,14 @@
         <div class="form-item">
           <span class="label">身高</span>
           <div class="input-with-unit">
-            <input type="number" class="input small" v-model="form.height" placeholder="170" />
+            <input type="number" id="height" name="height" class="input small" v-model="form.height" placeholder="170" autocomplete="off" />
             <span class="unit">cm</span>
           </div>
         </div>
 
         <div class="form-item">
           <span class="label">职业</span>
-          <input type="text" class="input" v-model="form.profession" placeholder="请输入职业" />
+          <input type="text" id="profession" name="profession" class="input" v-model="form.profession" placeholder="请输入职业" autocomplete="off" />
         </div>
       </div>
 
@@ -87,7 +87,7 @@
       <div class="form-section">
         <div class="form-item">
           <span class="label">个性签名</span>
-          <textarea class="textarea" v-model="form.signature" placeholder="说点什么介绍自己..." maxlength="200"></textarea>
+          <textarea id="signature" name="signature" class="textarea" v-model="form.signature" placeholder="说点什么介绍自己..." maxlength="200" autocomplete="off"></textarea>
           <span class="char-count">{{ form.signature.length }}/200</span>
         </div>
 
@@ -97,7 +97,19 @@
             <span class="hobby-tag" v-for="hobby in hobbyOptions" :key="hobby" :class="{ active: form.hobbies.includes(hobby) }" @click="toggleHobby(hobby)">
               {{ hobby }}
             </span>
+            <span class="hobby-tag add" @click="showHobbyInput = true">+ 添加</span>
           </div>
+        </div>
+
+        <div class="form-item">
+          <span class="label">个人标签</span>
+          <div class="tags-selector">
+            <div class="tag-item" v-for="tag in tagOptions" :key="tag.id" :class="{ selected: form.tags.includes(tag.id) }" @click="toggleTag(tag.id)">
+              {{ tag.name }}
+            </div>
+            <span class="tag-item add" @click="showTagInput = true">+ 添加</span>
+          </div>
+          <div class="tag-tip">选择3-8个标签展示你的特点</div>
         </div>
 
         <div class="form-item">
@@ -114,7 +126,7 @@
           <span class="label">陪玩价格</span>
           <div class="price-input">
             <span class="price-unit">¥</span>
-            <input type="number" class="input price" v-model="form.price" placeholder="88" />
+            <input type="number" id="price" name="price" class="input price" v-model="form.price" placeholder="88" autocomplete="off" />
             <span class="price-suffix">/小时</span>
           </div>
         </div>
@@ -124,7 +136,7 @@
       <div class="form-section">
         <div class="form-item">
           <span class="label">微信号</span>
-          <input type="text" class="input" v-model="form.wechat" placeholder="请输入微信号" />
+          <input type="text" id="wechat" name="wechat" class="input" v-model="form.wechat" placeholder="请输入微信号" autocomplete="off" />
         </div>
 
         <div class="form-item">
@@ -137,7 +149,7 @@
 
         <div class="form-item">
           <span class="label">邮箱</span>
-          <input type="email" class="input" v-model="form.email" placeholder="请输入邮箱" />
+          <input type="email" id="email" name="email" class="input" v-model="form.email" placeholder="请输入邮箱" autocomplete="off" />
         </div>
       </div>
 
@@ -152,16 +164,6 @@
             </div>
           </div>
           <input type="file" ref="bgInput" accept="image/*" style="display: none" @change="handleBgChange" />
-        </div>
-
-        <div class="form-item">
-          <span class="label">个人标签</span>
-          <div class="tags-selector">
-            <div class="tag-item" v-for="tag in tagOptions" :key="tag.id" :class="{ selected: form.tags.includes(tag.id) }" @click="toggleTag(tag.id)">
-              {{ tag.name }}
-            </div>
-          </div>
-          <div class="tag-tip">选择3-8个标签展示你的特点</div>
         </div>
       </div>
 
@@ -204,13 +206,7 @@
         </div>
       </div>
 
-      <div class="preview-section">
-        <button class="preview-btn" @click="showPreview = true">
-          <span class="preview-icon">👁️</span>
-          预览我的主页
-        </button>
       </div>
-    </div>
 
     <div class="region-picker" v-if="showRegionPicker">
       <div class="picker-mask" @click="showRegionPicker = false"></div>
@@ -289,6 +285,55 @@
         </div>
       </div>
     </div>
+
+    <!-- 添加兴趣爱好的弹窗 -->
+    <div class="modal" v-if="showHobbyInput" @click.self="showHobbyInput = false">
+      <div class="modal-content">
+        <div class="modal-title">添加兴趣爱好</div>
+        <div class="modal-body">
+          <input type="text" class="modal-input" v-model="newHobby" placeholder="请输入兴趣爱好" maxlength="20" @keyup.enter="confirmAddHobby" />
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn cancel" @click="showHobbyInput = false">取消</button>
+          <button class="modal-btn confirm" @click="confirmAddHobby">确定添加</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 添加个人标签的弹窗 -->
+    <div class="modal" v-if="showTagInput" @click.self="showTagInput = false">
+      <div class="modal-content">
+        <div class="modal-title">添加个人标签</div>
+        <div class="modal-body">
+          <input type="text" class="modal-input" v-model="newTag" placeholder="请输入标签名称" maxlength="10" @keyup.enter="confirmAddTag" />
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn cancel" @click="showTagInput = false">取消</button>
+          <button class="modal-btn confirm" @click="confirmAddTag">确定添加</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 添加擅长游戏的弹窗 -->
+    <div class="modal" v-if="showGamePicker" @click.self="showGamePicker = false">
+      <div class="modal-content">
+        <div class="modal-title">选择擅长游戏</div>
+        <div class="modal-body">
+          <input type="text" class="modal-input" v-model="newGame" placeholder="搜索或输入游戏名称" maxlength="20" @keyup.enter="confirmAddGame" />
+          <div class="game-list">
+            <div class="game-list-item" v-for="game in gameOptions" :key="game.name"
+                 :class="{ selected: form.games.includes(game.name) }"
+                 @click="toggleGame(game.name)">
+              <span class="game-list-name">{{ game.name }}</span>
+              <span class="game-list-check" v-if="form.games.includes(game.name)">✓</span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn cancel" @click="showGamePicker = false">完成</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -296,6 +341,7 @@
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLoginManager } from '../composables/useLoginManager'
+import authService from '../services/authService'
 
 const router = useRouter()
 const { requireLogin } = useLoginManager()
@@ -346,8 +392,8 @@ const form = reactive({
   ]
 })
 
-const hobbyOptions = ['游戏', '音乐', '电影', '美食', '旅行', '运动', '阅读', '摄影', '音乐', '绘画']
-const gameOptions = [
+const hobbyOptions = ref(['游戏', '音乐', '电影', '美食', '旅行', '运动', '阅读', '摄影', '绘画'])
+const gameOptions = ref([
   { name: '王者荣耀' },
   { name: '和平精英' },
   { name: '英雄联盟' },
@@ -355,10 +401,18 @@ const gameOptions = [
   { name: '守望先锋' },
   { name: 'DOTA2' },
   { name: '我的世界' },
-  { name: '原神' }
-]
+  { name: '原神' },
+  { name: '金铲铲之战' },
+  { name: '蛋仔派对' },
+  { name: '永劫无间' },
+  { name: 'APEX英雄' },
+  { name: 'CSGO' },
+  { name: '穿越火线' },
+  { name: 'QQ飞车' },
+  { name: '梦幻西游' }
+])
 
-const tagOptions = [
+const tagOptions = ref([
   { id: 1, name: '游戏达人' },
   { id: 2, name: '技术流' },
   { id: 3, name: '声音好听' },
@@ -371,11 +425,18 @@ const tagOptions = [
   { id: 10, name: '认真负责' },
   { id: 11, name: '高颜值' },
   { id: 12, name: '萝莉音' }
-]
+])
 
 const showRegionPicker = ref(false)
 const showPhoneModal = ref(false)
 const showPreview = ref(false)
+const showGamePicker = ref(false)
+const showHobbyInput = ref(false)
+const showTagInput = ref(false)
+const newHobby = ref('')
+const newTag = ref('')
+const newGame = ref('')
+const nextTagId = ref(13)
 const regionStep = ref('province')
 const tempRegion = reactive({
   province: '',
@@ -568,6 +629,61 @@ const toggleGame = (game) => {
   else form.games.push(game)
 }
 
+const confirmAddHobby = () => {
+  const hobby = newHobby.value.trim()
+  if (!hobby) {
+    alert('请输入兴趣爱好')
+    return
+  }
+  if (hobbyOptions.value.includes(hobby)) {
+    alert('该兴趣爱好已存在')
+    return
+  }
+  hobbyOptions.value.push(hobby)
+  if (!form.hobbies.includes(hobby)) {
+    form.hobbies.push(hobby)
+  }
+  newHobby.value = ''
+  showHobbyInput.value = false
+}
+
+const confirmAddTag = () => {
+  const tagName = newTag.value.trim()
+  if (!tagName) {
+    alert('请输入标签名称')
+    return
+  }
+  const exists = tagOptions.value.some(t => t.name === tagName)
+  if (exists) {
+    alert('该标签已存在')
+    return
+  }
+  const newTagId = nextTagId.value++
+  tagOptions.value.push({ id: newTagId, name: tagName })
+  if (!form.tags.includes(newTagId)) {
+    form.tags.push(newTagId)
+  }
+  newTag.value = ''
+  showTagInput.value = false
+}
+
+const confirmAddGame = () => {
+  const gameName = newGame.value.trim()
+  if (!gameName) {
+    alert('请输入游戏名称')
+    return
+  }
+  const exists = gameOptions.value.some(g => g.name === gameName)
+  if (!exists) {
+    gameOptions.value.push({ name: gameName })
+  }
+  if (!form.games.includes(gameName)) {
+    form.games.push(gameName)
+  }
+  newGame.value = ''
+  showGamePicker.value = false
+}
+
 const selectProvince = (province) => {
   tempRegion.province = province.name
   tempRegion.city = ''
@@ -614,6 +730,8 @@ const goRealName = () => { router.push('/real-name') }
 const goVip = () => { router.push('/vip-center') }
 
 const saveProfile = async () => {
+  console.log('saveProfile clicked')
+  
   const loginResult = await requireLogin()
   if (!loginResult.loggedIn) {
     return
@@ -623,47 +741,77 @@ const saveProfile = async () => {
     alert('请输入昵称')
     return
   }
-  if (form.tags.length < 3) {
-    alert('请至少选择3个标签')
-    return
+  
+  try {
+    const result = await authService.updateProfile({
+      nickname: form.nickname,
+      avatar: form.avatar,
+      gender: form.gender,
+      birthday: form.birthday,
+      region: form.region,
+      height: form.height,
+      profession: form.profession,
+      signature: form.signature,
+      hobbies: form.hobbies.join(','),
+      games: form.games.join(','),
+      tags: form.tags.join(','),
+      price: form.price,
+      wechat: form.wechat,
+      email: form.email,
+      bgImage: form.bgImage
+    })
+    console.log('API返回:', result)
+    alert(result.message || '保存成功！')
+    router.back()
+  } catch (error) {
+    console.error('保存失败:', error)
+    alert(error.message || '保存失败，请稍后重试')
   }
-  console.log('保存资料:', { ...form })
-  alert('保存成功！')
-  router.back()
 }
 </script>
 
 <style scoped>
 .edit-profile-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
+  padding-top: 82px;
   padding-bottom: 90px;
+  padding-bottom: calc(90px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
   max-width: 650px;
   margin: 0 auto;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 30px 20px;
-  background: white;
-  border-bottom: 1px solid #eee;
-  position: sticky;
+  padding: 0 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  height: 70px;
+  position: fixed;
   top: 0;
-  z-index: 10;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
-.back-btn, .save-btn { font-size: 16px; color: #333; cursor: pointer; background: none; border: none; padding: 0; }
+.back-btn, .save-btn { font-size: 16px; color: #fff; cursor: pointer; background: none; border: none; padding: 0; -webkit-tap-highlight-color: transparent; }
 .back-btn { font-size: 24px; width: 40px; text-align: center; }
-.title { font-size: 18px; font-weight: bold; color: #333; }
-.save-btn { color: #667eea; font-weight: 500; }
+.title { font-size: 18px; font-weight: bold; color: #fff; }
+.save-btn { color: #fff; font-weight: 500; }
 
 .content { padding: 16px; }
 
 .profile-completeness {
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 16px;
   margin-bottom: 16px;
 }
@@ -688,8 +836,10 @@ const saveProfile = async () => {
 .completeness-fill {
   height: 100%;
   background: linear-gradient(90deg, #667eea, #764ba2);
+  background: -webkit-linear-gradient(0deg, #667eea, #764ba2);
   border-radius: 4px;
   transition: width 0.3s;
+  -webkit-transition: width 0.3s;
 }
 
 .completeness-tip { font-size: 12px; color: #999; }
@@ -714,6 +864,8 @@ const saveProfile = async () => {
   object-fit: cover;
   border: 3px solid white;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .avatar-vip {
@@ -721,6 +873,7 @@ const saveProfile = async () => {
   bottom: 0;
   right: 0;
   background: linear-gradient(135deg, #ffd700, #ff8c00);
+  background: -webkit-linear-gradient(315deg, #ffd700, #ff8c00);
   color: white;
   font-size: 10px;
   padding: 2px 6px;
@@ -734,8 +887,8 @@ const saveProfile = async () => {
   left: 0;
   width: 100%;
   height: 100%;
-  border-radius: 50%;
-  background: rgba(0,0,0,0.5);
+  border-radius: 10px;
+  background-color: rgba(0, 0, 0, 0.1);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -743,6 +896,8 @@ const saveProfile = async () => {
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.3s;
+  -webkit-transition: opacity 0.3s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .avatar-section:hover .avatar-mask { opacity: 1; }
@@ -759,7 +914,7 @@ const saveProfile = async () => {
 
 .form-section {
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
@@ -787,7 +942,10 @@ const saveProfile = async () => {
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.3s;
+  -webkit-transition: border-color 0.3s;
   background: #fafafa;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .input:focus, .textarea:focus { border-color: #667eea; background: white; }
@@ -814,6 +972,8 @@ const saveProfile = async () => {
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s;
+  -webkit-transition: all 0.3s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .gender-option.active {
@@ -834,6 +994,7 @@ const saveProfile = async () => {
   border-radius: 8px;
   color: #666;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .arrow { color: #ccc; font-size: 18px; }
@@ -849,17 +1010,26 @@ const saveProfile = async () => {
   background: #f5f5f5;
   color: #666;
   font-size: 13px;
-  border-radius: 16px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
+  -webkit-transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
 }
 
 .hobby-tag.active, .game-tag.active {
   background: linear-gradient(135deg, #667eea, #764ba2);
+  background: -webkit-linear-gradient(315deg, #667eea, #764ba2);
   color: white;
 }
 
 .game-tag.add {
+  border: 1px dashed #ddd;
+  background: transparent;
+}
+
+.hobby-tag.add {
   border: 1px dashed #ddd;
   background: transparent;
 }
@@ -884,6 +1054,7 @@ const saveProfile = async () => {
   font-size: 13px;
   color: #667eea;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .vip-status.active { background: rgba(255,215,0,0.1); }
@@ -891,7 +1062,7 @@ const saveProfile = async () => {
 
 .phone-display { display: flex; align-items: center; justify-content: space-between; }
 .phone-value { font-size: 14px; color: #666; }
-.phone-btn { font-size: 14px; color: #667eea; cursor: pointer; }
+.phone-btn { font-size: 14px; color: #667eea; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
 .bg-preview {
   width: 100%;
@@ -902,6 +1073,7 @@ const saveProfile = async () => {
   cursor: pointer;
   position: relative;
   overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .bg-overlay {
@@ -917,6 +1089,7 @@ const saveProfile = async () => {
   justify-content: center;
   opacity: 0;
   transition: opacity 0.3s;
+  -webkit-transition: opacity 0.3s;
 }
 
 .bg-preview:hover .bg-overlay { opacity: 1; }
@@ -930,17 +1103,42 @@ const saveProfile = async () => {
   background: #f5f5f5;
   color: #666;
   font-size: 13px;
-  border-radius: 16px;
+  border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
+  -webkit-transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
 }
 
 .tag-item.selected {
   background: linear-gradient(135deg, #667eea, #764ba2);
+  background: -webkit-linear-gradient(315deg, #667eea, #764ba2);
   color: white;
 }
 
+.tag-item.add {
+  border: 1px dashed #ddd;
+  background: transparent;
+}
+
 .tag-tip { font-size: 12px; color: #999; }
+
+.game-list { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; margin-top: 12px; -webkit-overflow-scrolling: touch; }
+.game-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  -webkit-transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.game-list-item:hover { background: #f5f5f5; }
+.game-list-item.selected { background: #f0f2ff; color: #667eea; font-weight: 500; }
+.game-list-check { color: #667eea; font-weight: bold; font-size: 16px; }
 
 .services-list { display: flex; flex-direction: column; gap: 10px; }
 
@@ -985,11 +1183,12 @@ const saveProfile = async () => {
 .service-status {
   font-size: 12px;
   padding: 4px 12px;
-  border-radius: 12px;
+  border-radius: 10px;
 }
 
 .service-status.active {
   background: linear-gradient(135deg, #667eea, #764ba2);
+  background: -webkit-linear-gradient(315deg, #667eea, #764ba2);
   color: white;
 }
 
@@ -1003,6 +1202,7 @@ const saveProfile = async () => {
   width: 100%;
   padding: 14px;
   background: linear-gradient(135deg, #667eea, #764ba2);
+  background: -webkit-linear-gradient(315deg, #667eea, #764ba2);
   color: white;
   font-size: 15px;
   border: none;
@@ -1012,6 +1212,7 @@ const saveProfile = async () => {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .region-picker, .modal {
@@ -1021,6 +1222,8 @@ const saveProfile = async () => {
   right: 0;
   bottom: 0;
   z-index: 1000;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .picker-mask, .modal {
@@ -1038,7 +1241,7 @@ const saveProfile = async () => {
   left: 0;
   right: 0;
   background: white;
-  border-radius: 20px 20px 0 0;
+  border-radius: 10px 10px 0 0;
 }
 
 .picker-header, .modal-header {
@@ -1058,6 +1261,7 @@ const saveProfile = async () => {
 .picker-column {
   flex: 1;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   border-right: 1px solid #f0f0f0;
 }
 
@@ -1066,20 +1270,21 @@ const saveProfile = async () => {
   font-size: 15px;
   color: #666;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .picker-item:hover { background: #f9f9f9; }
 .picker-item.active { color: #667eea; font-weight: 500; background: rgba(102,126,234,0.05); }
 
-.modal-content { max-width: 360px; margin: auto; border-radius: 16px; position: relative; top: 50%; transform: translateY(-50%); }
+.modal-content { max-width: 360px; margin: auto; border-radius: 10px; position: relative; top: 50%; -webkit-transform: translateY(-50%); transform: translateY(-50%); }
 .modal-body { padding: 20px; display: block; }
-.modal-input { width: 100%; padding: 12px; font-size: 15px; border: 1px solid #e5e5e5; border-radius: 8px; box-sizing: border-box; margin-bottom: 12px; }
+.modal-input { width: 100%; padding: 12px; font-size: 15px; border: 1px solid #e5e5e5; border-radius: 8px; box-sizing: border-box; margin-bottom: 12px; -webkit-appearance: none; appearance: none; }
 .code-row { display: flex; gap: 10px; }
 .code { flex: 1; margin-bottom: 0; }
-.code-btn { padding: 0 16px; background: #667eea; color: white; font-size: 14px; border: none; border-radius: 8px; white-space: nowrap; }
+.code-btn { padding: 0 16px; background: #667eea; color: white; font-size: 14px; border: none; border-radius: 8px; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
 
 .modal-footer { display: flex; border-top: 1px solid #f0f0f0; }
-.modal-btn { flex: 1; padding: 16px; text-align: center; font-size: 16px; border: none; background: none; cursor: pointer; }
+.modal-btn { flex: 1; padding: 16px; text-align: center; font-size: 16px; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .modal-btn.cancel { border-right: 1px solid #f0f0f0; color: #666; }
 .modal-btn.confirm { color: #667eea; font-weight: 500; }
 
@@ -1087,11 +1292,12 @@ const saveProfile = async () => {
   position: absolute;
   top: 50%;
   left: 50%;
+  -webkit-transform: translate(-50%, -50%);
   transform: translate(-50%, -50%);
   width: 90%;
   max-width: 360px;
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
 }
 
@@ -1104,7 +1310,7 @@ const saveProfile = async () => {
 }
 
 .preview-title { font-size: 16px; font-weight: bold; }
-.preview-close { font-size: 24px; color: #999; cursor: pointer; }
+.preview-close { font-size: 24px; color: #999; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
 .preview-content { padding: 0; }
 

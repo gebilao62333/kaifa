@@ -94,20 +94,22 @@ onUnmounted(() => {
 
 <style scoped>
 .banner-section {
-  margin: 10px 20px 0;
+  margin: 10px 12px 0;
 }
 
 .banner-swiper {
-  height: 200px;
-  border-radius: 16px;
+  height: 180px;
+  border-radius: 10px;
   overflow: hidden;
   position: relative;
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
 }
 
 .banner-track {
   display: flex;
   height: 100%;
   transition: transform 0.3s ease;
+  -webkit-transition: -webkit-transform 0.3s ease;
 }
 
 .banner-slide {
@@ -120,6 +122,8 @@ onUnmounted(() => {
   height: 100%;
   object-fit: cover;
   cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .banner-dots {
@@ -127,6 +131,7 @@ onUnmounted(() => {
   bottom: 10px;
   left: 50%;
   transform: translateX(-50%);
+  -webkit-transform: translateX(-50%);
   display: flex;
   gap: 6px;
 }
@@ -138,6 +143,7 @@ onUnmounted(() => {
   background: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   transition: all 0.3s ease;
+  -webkit-transition: all 0.3s ease;
 }
 
 .dot.active {
@@ -149,12 +155,12 @@ onUnmounted(() => {
 /* PC端Banner优化 */
 @media (min-width: 768px) {
   .banner-section {
-    margin: 12px 0 0;
+    margin: 12px 12px 0;
   }
   
   .banner-swiper {
     height: 180px;
-    border-radius: 12px;
+    border-radius: 10px;
   }
   
   .banner-dots {

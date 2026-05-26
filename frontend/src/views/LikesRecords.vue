@@ -55,35 +55,49 @@ const viewProfile = (user) => {
 <style scoped>
 .likes-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
+  padding-top: 82px;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 60px 16px 16px;
-  background-color: #fff;
-  position: sticky;
+  padding: 0 20px;
+  height: 70px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  position: fixed;
   top: 0;
-  z-index: 10;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-btn {
   font-size: 24px;
-  color: #333;
+  color: #fff;
   cursor: pointer;
+  width: 40px;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.title {
-  font-size: 17px;
+.header .title {
+  font-size: 18px;
   font-weight: bold;
-  color: #333;
+  color: #fff;
 }
 
 .total {
   font-size: 14px;
   color: #999;
+  width: 80px;
+  text-align: right;
 }
 
 .likes-list {
@@ -95,7 +109,7 @@ const viewProfile = (user) => {
   align-items: center;
   padding: 16px;
   background: white;
-  border-radius: 12px;
+  border-radius: 10px;
   margin-bottom: 10px;
 }
 

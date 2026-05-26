@@ -159,8 +159,13 @@ const goTo = (path) => {
 <style scoped>
 .team-index {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: #f5f5f5;
   padding-bottom: 30px;
+  padding-bottom: calc(30px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
@@ -195,7 +200,7 @@ const goTo = (path) => {
 
 .team-info-card {
   background: linear-gradient(135deg, #667eea, #764ba2);
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 20px;
   display: flex;
   align-items: center;

@@ -475,8 +475,11 @@ onMounted(() => {
 <style scoped>
 .service-detail-container {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: #f0f2f5;
   padding: 24px;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .page-header {

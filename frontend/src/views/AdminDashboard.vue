@@ -4185,7 +4185,10 @@ onMounted(async () => {
 .admin-layout {
   display: flex;
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: #f5f5f5;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .sidebar {

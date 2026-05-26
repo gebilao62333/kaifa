@@ -242,7 +242,10 @@ syncData(themeList.value, 'theme')
 <style scoped>
 .skin-shop-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
@@ -272,7 +275,7 @@ syncData(themeList.value, 'theme')
   gap: 6px;
   background: rgba(255, 255, 255, 0.2);
   padding: 6px 14px;
-  border-radius: 16px;
+  border-radius: 10px;
 }
 
 .balance-icon {

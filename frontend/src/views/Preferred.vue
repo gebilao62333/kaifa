@@ -273,15 +273,18 @@ onUnmounted(() => {
 <style scoped>
 .preferred-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
   padding-bottom: 0;
   padding-top: 0;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .content-container {
   background: #fff;
-  margin: 0 12px 12px;
-  border-radius: 16px;
+  margin: 80px 12px 12px;
+  border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   height: 800px;
@@ -289,41 +292,45 @@ onUnmounted(() => {
 
 .header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 12px 20px;
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  padding: 0 20px;
   text-align: center;
-  height: 50px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
-  border-radius: 0 0 16px 16px;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .title {
-  font-size: 20px;
+  font-size: 22px;
   font-weight: bold;
   color: #fff;
+  letter-spacing: 2px;
 }
 
 .category-tabs {
   display: flex;
   background-color: #fff;
-  padding: 0 40px;
+  padding: 0 20px;
   border-bottom: 1px solid #f0f0f0;
   position: static;
   z-index: 10;
-  margin-top: -7px;
-  margin-bottom: -7px;
 }
 
 .tab-item {
   flex: 1;
   text-align: center;
-  padding: 16px 0;
+  padding: 18px 0;
   position: relative;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
 }
 
 .tab-item span {

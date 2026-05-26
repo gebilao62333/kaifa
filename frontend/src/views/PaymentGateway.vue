@@ -256,21 +256,30 @@ const finish = () => {
 <style scoped>
 .pay-gateway-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: #f5f5f5;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
   display: flex;
   align-items: center;
   padding: 60px 20px 20px;
+  padding-top: calc(60px + constant(safe-area-inset-top, 0px));
+  padding-top: calc(60px + env(safe-area-inset-top, 0px));
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   color: white;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-btn {
   font-size: 24px;
   cursor: pointer;
   margin-right: 20px;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .title {
@@ -286,7 +295,7 @@ const finish = () => {
   display: flex;
   align-items: center;
   padding: 20px;
-  border-radius: 14px;
+  border-radius: 10px;
   color: white;
   margin-bottom: 16px;
 }

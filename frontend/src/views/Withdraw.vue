@@ -380,22 +380,58 @@ const doWithdraw = async () => {
 <style scoped>
 .withdraw-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: #f5f5f5;
   padding-bottom: 80px;
+  padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  padding-top: 82px;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
   display: flex;
   align-items: center;
-  padding: 60px 20px 20px;
+  justify-content: center;
+  padding: 0 20px;
+  height: 70px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   color: white;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+.header .title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #fff;
+  margin: 0;
+  padding: 0;
+}
+
+.history-btn {
+  position: absolute;
+  right: 20px;
+  font-size: 14px;
+  color: rgba(255,255,255,0.8);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .back-btn {
+  position: absolute;
+  left: 20px;
   font-size: 24px;
   cursor: pointer;
-  margin-right: 20px;
+  color: #fff;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .title {
@@ -413,7 +449,7 @@ const doWithdraw = async () => {
 .balance-card {
   margin: 10px 20px 20px;
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 30px;
   text-align: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);

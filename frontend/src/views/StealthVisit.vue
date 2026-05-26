@@ -164,7 +164,10 @@ watch(settings, saveSettings, { deep: true })
 <style scoped>
 .stealth-visit-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background-color: #f5f5f5;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
@@ -198,7 +201,7 @@ watch(settings, saveSettings, { deep: true })
   align-items: center;
   gap: 16px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 20px;
   margin-bottom: 16px;
 }
@@ -227,7 +230,7 @@ watch(settings, saveSettings, { deep: true })
 
 .setting-section {
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   overflow: hidden;
   margin-bottom: 16px;
 }
@@ -271,7 +274,7 @@ watch(settings, saveSettings, { deep: true })
   width: 48px;
   height: 28px;
   background: #e5e5e5;
-  border-radius: 14px;
+  border-radius: 10px;
   position: relative;
   cursor: pointer;
   transition: background 0.2s;
@@ -302,7 +305,7 @@ watch(settings, saveSettings, { deep: true })
 
 .info-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 10px;
   padding: 20px;
   margin-bottom: 16px;
 }

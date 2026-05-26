@@ -27,11 +27,9 @@ defineEmits(['navigate'])
 
 <style scoped>
 .quick-nav {
-  padding: 14px 0px;
+  padding: 10px 0;
   background-color: #fff;
-  margin: 14px 0px;
-  border-radius: 3px;
-  height: 120px;
+  margin: 10px 0;
 }
 
 .nav-grid {
@@ -44,19 +42,20 @@ defineEmits(['navigate'])
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 8px 0;
+  gap: 6px;
+  padding: 6px 0;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .nav-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 24px;
 }
 
 .nav-text {
@@ -69,7 +68,7 @@ defineEmits(['navigate'])
   .quick-nav {
     padding: 12px 0;
     margin: 12px 0;
-    border-radius: 12px;
+    border-radius: 10px;
     height: auto;
   }
   

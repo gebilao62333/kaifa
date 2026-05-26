@@ -337,20 +337,25 @@ const handleResetPwd = async () => {
 <style scoped>
 .login-page {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .login-container {
   width: 100%;
   max-width: 360px;
   background-color: #fff;
-  border-radius: 20px;
+  border-radius: 10px;
   padding: 40px 30px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
 }
 
 .login-header {
@@ -398,7 +403,7 @@ const handleResetPwd = async () => {
   height: 48px;
   padding: 0 15px;
   border: 1px solid #e0e0e0;
-  border-radius: 12px;
+  border-radius: 10px;
   font-size: 15px;
   transition: all 0.3s;
   box-sizing: border-box;
