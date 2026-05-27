@@ -68,7 +68,7 @@ const goBack = () => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: #f5f5f5;
-  padding-top: 82px;
+  padding-top: 70px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -83,11 +83,11 @@ const goBack = () => {
   background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 .back-btn {

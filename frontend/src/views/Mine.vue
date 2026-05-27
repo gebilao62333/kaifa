@@ -383,23 +383,31 @@ onMounted(() => {
 
 .content-container {
   background: #fff;
-  margin: 82px 12px 12px;
+  margin: 82px auto 12px;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  width: 650px;
+  max-width: 650px;
+  margin-left: -16px;
+  padding: 0 12px;
 }
 
 .header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 0 20px;
-  height: 70px;
+  height: 80px;
   display: flex;
   align-items: center;
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
 }
 
 .user-info {
@@ -774,16 +782,19 @@ onMounted(() => {
   }
   
   .header {
-    max-width: 620px;
+    max-width: 650px;
     left: 50%;
     transform: translateX(-50%);
-    border-radius: 0 0 16px 16px;
+    border-radius: 10px 10px 0 0;
     padding: 12px 24px;
   }
   
   .content-container {
     margin: 0;
     margin-top: 12px;
+    width: 650px;
+    max-width: 650px;
+    margin-left: -16px;
   }
   
   .user-info {
@@ -875,6 +886,12 @@ onMounted(() => {
   
   .header {
     max-width: 720px;
+  }
+  
+  .content-container {
+    width: 720px;
+    max-width: 720px;
+    margin-left: calc(50% - 360px);
   }
 }
 

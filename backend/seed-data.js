@@ -216,6 +216,31 @@ async function seedDatabase() {
     }
     console.log(`✅ 充值套餐数据插入完成 (${rechargePackages.length}条)`);
 
+    console.log('📝 插入圈子标签数据...');
+    const circleTags = [
+      '游戏', '闲聊', '技术', '娱乐', '情感',
+      '音乐', '电影', '美食', '旅行', '宠物',
+      '运动', '动漫', '阅读', '摄影', '穿搭',
+      '美妆', '健身', '学习', '职场', '校园',
+      '亲子', '居家', '搞笑', '才艺', '交友',
+      '星座', '数码', '汽车', '财经', '公益'
+    ];
+    for (let i = 0; i < circleTags.length; i++) {
+      await connection.query(`
+        INSERT IGNORE INTO xn_circle_tag
+        (name, icon, sort_order, status, create_time, update_time)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `, [
+        circleTags[i],
+        null,
+        i + 1,
+        1,
+        now,
+        now
+      ]);
+    }
+    console.log(`✅ 圈子标签数据插入完成 (${circleTags.length}条)`);
+
     await connection.query('SET FOREIGN_KEY_CHECKS = 1');
 
     console.log('\n🎉 数据注入完成！');
@@ -227,6 +252,7 @@ async function seedDatabase() {
     console.log('   - VIP套餐: 3条');
     console.log('   - 标签: ' + tags.length + '条');
     console.log('   - 充值套餐: 6条');
+    console.log('   - 圈子标签: ' + circleTags.length + '条');
     console.log('\n💡 测试账号: user_1 ~ user_100, 密码: 123456');
 
   } catch (error) {

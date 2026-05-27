@@ -283,11 +283,15 @@ onUnmounted(() => {
 
 .content-container {
   background: #fff;
-  margin: 80px 12px 12px;
-  border-radius: 10px;
+  margin: 80px auto 12px;
+  border-radius: 3px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  height: 800px;
+  height: 900px;
+  width: 650px;
+  max-width: 650px;
+  margin-left: -15px;
+  padding: 0 12px;
 }
 
 .header {
@@ -301,11 +305,15 @@ onUnmounted(() => {
   justify-content: center;
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
+  border-bottom-left-radius: 3px;
+  border-bottom-right-radius: 3px;
 }
 
 .title {
@@ -642,15 +650,18 @@ onUnmounted(() => {
   .content-container {
     margin: 0;
     margin-top: 12px;
+    width: 650px;
+    max-width: 650px;
+    margin-left: -15px;
   }
   
   .header {
     max-width: 650px;
     left: 50%;
     transform: translateX(-50%);
-    border-radius: 0 0 16px 16px;
-    padding: 12px 24px;
-    height: 50px;
+    border-radius: 10px 10px 3px 3px;
+    padding: 0 24px;
+    height: 70px;
   }
   
   .title {
@@ -669,6 +680,12 @@ onUnmounted(() => {
   
   .header {
     max-width: 720px;
+  }
+  
+  .content-container {
+    width: 720px;
+    max-width: 720px;
+    margin-left: calc(50% - 360px);
   }
 }
 </style>

@@ -161,9 +161,10 @@ const goTo = (path) => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background: #f5f5f5;
-  padding-bottom: 30px;
-  padding-bottom: calc(30px + constant(safe-area-inset-bottom, 0px));
-  padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px));
+  padding-top: 50px;
+  padding-bottom: 80px;
+  padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -173,10 +174,14 @@ const goTo = (path) => {
   align-items: center;
   justify-content: space-between;
   height: 50px;
-  padding: 0 15px;
-  background: #fff;
-  position: sticky;
+  padding: 0 20px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  position: fixed;
   top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
 }
 
@@ -189,13 +194,15 @@ const goTo = (path) => {
 }
 
 .header-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: #333;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
 }
 
 .content {
-  padding: 15px;
+  padding: 12px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .team-info-card {

@@ -320,6 +320,9 @@ const formatTime = (timestamp) => {
   position: sticky;
   top: 0;
   z-index: 100;
+  max-width: 650px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .search-input-wrap {

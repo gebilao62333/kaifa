@@ -20,29 +20,33 @@
               {{ order.typeText }}
             </div>
             <div class="order-status" :class="order.status">{{ order.statusText }}</div>
+            <div class="order-id">订单号：{{ order.id }}</div>
           </div>
           <div class="order-body">
             <img class="order-avatar" :src="order.avatar" alt="" />
             <div class="order-info">
-              <div class="order-name">
-                <span>{{ order.name }}</span>
-                <span v-if="order.isVip" class="vip-badge">VIP</span>
+              <div class="order-info-left">
+                <div class="order-name">
+                  <span>{{ order.name }}</span>
+                  <span v-if="order.isVip" class="vip-badge">VIP</span>
+                </div>
+                <div class="order-game">
+                  <span class="game-icon">{{ order.typeIcon }}</span>
+                  {{ order.typeText }}
+                </div>
+                <div class="order-detail">📅 {{ order.date }} {{ order.time }}</div>
               </div>
-              <div class="order-game">
-                <span class="game-icon">{{ order.gameIcon }}</span>
-                {{ order.gameName }}
-              </div>
-              <div class="order-detail">📅 {{ order.date }} {{ order.time }}</div>
-              <div class="order-detail">⏱️ 时长 {{ order.duration }}</div>
-              <div class="order-detail">📍 {{ order.location }}</div>
-              <div class="order-price">
-                <span class="price-label">订单金额</span>
-                <span class="price-value">¥{{ order.price }}</span>
+              <div class="order-info-right">
+                <div class="order-detail">📍 {{ order.location }}</div>
+                <div class="order-detail">⏱️ 时长 {{ order.duration }}</div>
+                <div class="order-price">
+                  <span class="price-label">订单金额</span>
+                  <span class="price-value">¥{{ order.price }}</span>
+                </div>
               </div>
             </div>
           </div>
           <div class="order-footer">
-            <div class="order-id">订单号：{{ order.id }}</div>
             <div class="order-actions" @click.stop>
               <button class="action-btn secondary" v-if="order.status === 'pending'" @click="cancelOrder(order)">取消预约</button>
               <button class="action-btn primary" v-if="order.status === 'pending'" @click="confirmOrder(order)">确认预约</button>
@@ -264,11 +268,11 @@ onUnmounted(() => {
   background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 .back-btn,
@@ -290,10 +294,11 @@ onUnmounted(() => {
   display: flex;
   background: white;
   border-bottom: 1px solid #f0f0f0;
+  width: 650px;
+  margin-left: 448px;
 }
 
 .tab-item {
-  flex: 1;
   padding: 14px;
   text-align: center;
   font-size: 14px;
@@ -301,6 +306,14 @@ onUnmounted(() => {
   cursor: pointer;
   position: relative;
   transition: all 0.2s;
+  width: 325px;
+  margin-left: 20px;
+  margin-right: 20px;
+}
+
+.tab-item:nth-child(2) {
+  margin-left: 60px;
+  margin-right: 40px;
 }
 
 .tab-item:active {
@@ -310,6 +323,7 @@ onUnmounted(() => {
 .tab-item.active {
   color: #667eea;
   font-weight: 500;
+  width: 300px;
 }
 
 .tab-item.active::after {
@@ -325,7 +339,9 @@ onUnmounted(() => {
 }
 
 .content {
-  padding: 12px;
+  padding: 10px 0;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .order-card {
@@ -348,6 +364,9 @@ onUnmounted(() => {
   align-items: center;
   padding: 12px 16px;
   border-bottom: 1px solid #f5f5f5;
+  height: 46px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .order-type {
@@ -381,24 +400,66 @@ onUnmounted(() => {
   display: flex;
   padding: 16px;
   gap: 12px;
+  width: 650px;
+  margin-left: -16px;
+  height: 110px;
 }
 
 .order-avatar {
-  width: 60px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
   border-radius: 12px;
   object-fit: cover;
+  margin-left: 20px;
+  margin-top: 5px;
+  margin-bottom: 2px;
 }
 
 .order-info {
   flex: 1;
+  padding-right: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.order-info-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 90px;
+  margin-left: 10px;
+}
+
+.order-info-right {
+  display: flex;
+  flex-direction: column;
+  height: 90px;
+  width: 140px;
+}
+
+.order-info-right .order-detail:nth-child(1),
+.order-info-right .order-detail:nth-child(2) {
+  text-align: left;
+}
+
+.order-info-right .order-detail:nth-child(2) {
+  margin-top: 7px;
+  margin-bottom: 7px;
+  height: 20px;
+}
+
+.order-info-right .order-price {
+  text-align: center;
+  margin-top: 7px;
+  margin-bottom: 7px;
 }
 
 .order-name {
   font-size: 16px;
   font-weight: 500;
   color: #333;
-  margin-bottom: 6px;
+  margin-bottom: 10px;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -415,7 +476,7 @@ onUnmounted(() => {
 .order-game {
   font-size: 13px;
   color: #667eea;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -428,7 +489,7 @@ onUnmounted(() => {
 .order-detail {
   font-size: 13px;
   color: #999;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .order-price {
@@ -451,12 +512,11 @@ onUnmounted(() => {
 
 .order-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: space-around;
   align-items: center;
-  padding: 12px 16px;
+  padding: 8px 16px;
   border-top: 1px solid #f5f5f5;
-  flex-wrap: wrap;
-  gap: 10px;
+  height: 44px;
 }
 
 .order-id {
@@ -468,6 +528,7 @@ onUnmounted(() => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  width: 500px;
 }
 
 .action-btn {
@@ -486,11 +547,15 @@ onUnmounted(() => {
 .action-btn.primary {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
+  margin-left: 309px;
+  margin-right: -70px;
 }
 
 .action-btn.secondary {
   background: #f5f5f5;
   color: #666;
+  padding-left: 0px;
+  padding-right: 0px;
 }
 
 .countdown {

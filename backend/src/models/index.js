@@ -261,7 +261,25 @@ if (config.useMockDb) {
     GiftBag: createMockModel('GiftBag'),
     GiftLog: createMockModel('GiftLog'),
     OrderChong: createMockModel('OrderChong'),
-    Game: createMockModel('Gift'),
+    Game: {
+      ...createMockModel('Game'),
+      _games: [
+        { id: 1, name: '王者荣耀', icon: '🎮', image_bg: 'https://picsum.photos/800/400?random=1', type: 'mobile', status: 1, sort: 1, create_time: Date.now() - 86400000 * 100 },
+        { id: 2, name: '英雄联盟', icon: '🎯', image_bg: 'https://picsum.photos/800/400?random=2', type: 'pc', status: 1, sort: 2, create_time: Date.now() - 86400000 * 90 },
+        { id: 3, name: '绝地求生', icon: '🔫', image_bg: 'https://picsum.photos/800/400?random=3', type: 'pc', status: 1, sort: 3, create_time: Date.now() - 86400000 * 80 },
+        { id: 4, name: '原神', icon: '✨', image_bg: 'https://picsum.photos/800/400?random=4', type: 'both', status: 1, sort: 4, create_time: Date.now() - 86400000 * 70 }
+      ],
+      findAll: async (options = {}) => {
+        let games = [...Game._games];
+        if (options.where && options.where.status !== undefined) {
+          games = games.filter(g => g.status === options.where.status);
+        }
+        return games;
+      },
+      findByPk: async (id) => {
+        return Game._games.find(g => g.id === parseInt(id)) || null;
+      }
+    },
     GameOrder: {
       ...createMockModel('GameOrder'),
       _orders: [
@@ -345,7 +363,39 @@ if (config.useMockDb) {
         return 0;
       }
     },
-    CompanionProfile: createMockModel('CompanionProfile'),
+    CompanionProfile: {
+      ...createMockModel('CompanionProfile'),
+      _profiles: [
+        { id: 1, user_id: 1, game_id: 1, price: 30, tags: '技术好,幽默,带飞', star: 4.9, order_num: 156, pingjia_num: 89, voice_intro: '', voice_time: 0, service_type: 'both', status: 2, create_time: Date.now() - 86400000 * 30 },
+        { id: 2, user_id: 2, game_id: 1, price: 25, tags: '温柔,耐心,教学', star: 4.8, order_num: 89, pingjia_num: 56, voice_intro: '', voice_time: 0, service_type: 'both', status: 2, create_time: Date.now() - 86400000 * 20 },
+        { id: 3, user_id: 4, game_id: 2, price: 35, tags: '战神,刚枪,指挥', star: 4.9, order_num: 234, pingjia_num: 145, voice_intro: '', voice_time: 0, service_type: 'online', status: 2, create_time: Date.now() - 86400000 * 45 },
+        { id: 4, user_id: 5, game_id: 3, price: 40, tags: '肝帝,成就,探索', star: 4.7, order_num: 67, pingjia_num: 34, voice_intro: '', voice_time: 0, service_type: 'both', status: 2, create_time: Date.now() - 86400000 * 15 }
+      ],
+      findAndCountAll: async (options) => {
+        let profiles = [...CompanionProfile._profiles];
+        const { where = {}, offset = 0, limit = 20, order = [['star', 'DESC']] } = options;
+        
+        if (where.status !== undefined) {
+          profiles = profiles.filter(p => p.status === where.status);
+        }
+        if (where.game_id !== undefined && where.game_id !== null) {
+          profiles = profiles.filter(p => p.game_id === where.game_id);
+        }
+        
+        const orderField = order[0][0];
+        const orderDirection = order[0][1];
+        profiles.sort((a, b) => {
+          const aVal = a[orderField];
+          const bVal = b[orderField];
+          return orderDirection === 'DESC' ? (bVal - aVal) : (aVal - bVal);
+        });
+        
+        const count = profiles.length;
+        const rows = profiles.slice(offset, offset + limit);
+        
+        return { count, rows };
+      }
+    },
     Post: {
       ...createMockModel('Post'),
       _posts: [
@@ -628,7 +678,8 @@ if (config.useMockDb) {
         return packages.find(p => p.id === parseInt(id)) || null;
       }
     },
-    VipOrder: createMockModel('VipOrder')
+    VipOrder: createMockModel('VipOrder'),
+    CircleTag: createMockModel('CircleTag')
   };
 } else {
   const User = require('./mysql/User');
@@ -665,6 +716,7 @@ if (config.useMockDb) {
   const VipPackage = require('./mysql/VipPackage');
   const VipOrder = require('./mysql/VipOrder');
   const AlbumPhoto = require('./mysql/AlbumPhoto');
+  const CircleTag = require('./mysql/CircleTag');
 
   const ChatMessage = require('./mongo/ChatMessage');
   const UserSession = require('./mongo/UserSession');
@@ -707,6 +759,7 @@ if (config.useMockDb) {
     Notification,
     AlbumPhoto,
     VipPackage,
-    VipOrder
+    VipOrder,
+    CircleTag
   };
 }

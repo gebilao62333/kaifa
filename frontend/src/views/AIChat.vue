@@ -241,22 +241,40 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  min-height: -webkit-fill-available;
   background: #f5f5f5;
+  padding-top: 70px;
+  padding-bottom: calc(70px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  background: #fff;
-  border-bottom: 1px solid #eee;
+  padding: 0 20px;
+  height: 70px;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  z-index: 100;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .back-btn {
   font-size: 20px;
   cursor: pointer;
   width: 40px;
+  color: white;
 }
 
 .header-info {
@@ -268,11 +286,12 @@ onMounted(() => {
 .title {
   font-size: 16px;
   font-weight: 500;
+  color: white;
 }
 
 .status {
   font-size: 11px;
-  color: #999;
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .status.online {
@@ -284,12 +303,16 @@ onMounted(() => {
   cursor: pointer;
   width: 40px;
   text-align: right;
+  color: white;
 }
 
 .messages-area {
   flex: 1;
   overflow-y: auto;
   padding: 12px;
+  max-width: 650px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .message-list {
@@ -364,6 +387,9 @@ onMounted(() => {
   background: #fff;
   border-top: 1px solid #eee;
   padding: 8px 12px;
+  max-width: 650px;
+  margin: 0 auto;
+  width: 100%;
 }
 
 .quick-replies {

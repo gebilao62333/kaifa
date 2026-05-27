@@ -281,11 +281,11 @@ const viewPhoto = (url, index) => {
   background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 .back-btn, .placeholder {
@@ -306,6 +306,8 @@ const viewPhoto = (url, index) => {
   background-size: cover;
   background-position: center;
   position: relative;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .user-info-top {

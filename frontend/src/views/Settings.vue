@@ -540,11 +540,10 @@ const handleLogout = () => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: #f5f5f5;
-  padding-bottom: 90px;
-  padding-bottom: calc(90px + constant(safe-area-inset-bottom, 0px));
-  padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
-  max-width: 650px;
-  margin: 0 auto;
+  padding-top: 70px;
+  padding-bottom: 80px;
+  padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -553,13 +552,25 @@ const handleLogout = () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
-  padding-top: calc(16px + constant(safe-area-inset-top, 0px));
-  padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  padding: 0 20px;
+  height: 70px;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%) translateZ(0);
+  width: 100%;
+  max-width: 650px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
+  color: white;
+  z-index: 100;
+  -webkit-transform: translateX(-50%) translateZ(0);
+}
+
+.content {
+  padding: 12px 0;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .back-btn,
@@ -577,16 +588,15 @@ const handleLogout = () => {
   color: white;
 }
 
-.content {
-  padding: 20px 0;
-}
-
 .section {
   background: white;
   margin-bottom: 12px;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .section-title {

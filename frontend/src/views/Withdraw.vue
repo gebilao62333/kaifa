@@ -382,10 +382,10 @@ const doWithdraw = async () => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background: #f5f5f5;
+  padding-top: 70px;
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-  padding-top: 82px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -401,11 +401,11 @@ const doWithdraw = async () => {
   color: white;
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 .header .title {
@@ -447,7 +447,8 @@ const doWithdraw = async () => {
 }
 
 .balance-card {
-  margin: 10px 20px 20px;
+  margin: 10px auto 20px;
+  max-width: 650px;
   background: white;
   border-radius: 10px;
   padding: 30px;
@@ -477,8 +478,9 @@ const doWithdraw = async () => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 20px;
-  margin: 12px 20px 0;
+  padding: 10px 12px;
+  margin: 12px auto 0;
+  max-width: 650px;
   background: #fff7e6;
   border-radius: 8px;
   border: 1px solid #ffe7ba;
@@ -498,14 +500,17 @@ const doWithdraw = async () => {
   font-size: 16px;
   font-weight: bold;
   color: #333;
-  padding: 20px 20px 12px;
+  padding: 20px 12px 12px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .amount-input-wrap {
   display: flex;
   align-items: center;
   background: white;
-  margin: 0 20px;
+  margin: 0 auto;
+  max-width: 650px;
   padding: 16px 20px;
   border-radius: 14px;
 }
@@ -547,7 +552,9 @@ const doWithdraw = async () => {
 .quick-amounts {
   display: flex;
   gap: 10px;
-  padding: 12px 20px;
+  padding: 12px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .quick-item {
@@ -568,7 +575,9 @@ const doWithdraw = async () => {
 }
 
 .payment-methods {
-  padding: 0 20px;
+  padding: 0 12px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .payment-item {
@@ -622,7 +631,8 @@ const doWithdraw = async () => {
 
 .receiver-card {
   background: white;
-  margin: 0 20px 20px;
+  margin: 0 auto 20px;
+  max-width: 650px;
   border-radius: 14px;
   padding: 4px 16px;
 }
@@ -798,7 +808,8 @@ const doWithdraw = async () => {
 
 .account-card {
   background: white;
-  margin: 0 20px;
+  margin: 0 auto;
+  max-width: 650px;
   border-radius: 14px;
   padding: 4px 16px;
 }

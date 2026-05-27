@@ -328,10 +328,13 @@ defineExpose({
 
 .content-container {
   background: #fff;
-  margin: 12px;
+  margin: 12px auto;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  width: 650px;
+  max-width: 650px;
+  margin-left: -15px;
 }
 
 .nav-bar {
@@ -343,9 +346,13 @@ defineExpose({
   height: 70px;
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
 }
 
 .search-box {
@@ -406,12 +413,13 @@ defineExpose({
   .content-container {
     margin: 0;
     margin-top: 12px;
+    width: 650px;
+    max-width: 650px;
+    margin-left: -15px;
   }
   
   .nav-bar {
-    max-width: 620px;
-    margin: 0 auto;
-    border-radius: 0 0 16px 16px;
+    max-width: 650px;
     padding: 12px 24px;
     height: 70px;
   }
@@ -442,6 +450,12 @@ defineExpose({
   
   .nav-bar {
     max-width: 720px;
+  }
+  
+  .content-container {
+    width: 720px;
+    max-width: 720px;
+    margin-left: calc(50% - 360px);
   }
   
   .search-box {

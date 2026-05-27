@@ -780,8 +780,10 @@ onMounted(() => {
 .header {
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
   display: flex;
   align-items: center;
@@ -796,8 +798,6 @@ onMounted(() => {
   background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 .back-btn {
@@ -831,6 +831,8 @@ onMounted(() => {
   padding: 16px;
   padding-top: 62px;
   padding-bottom: 40px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .form-section {

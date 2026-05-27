@@ -219,8 +219,9 @@ onMounted(() => {
   padding: 50px 20px 20px;
   padding-top: calc(50px + constant(safe-area-inset-top, 0px));
   padding-top: calc(50px + env(safe-area-inset-top, 0px));
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
+  max-width: 650px;
+  margin: 0 auto;
+  border-radius: 0 0 16px 16px;
 }
 
 .search-box {
@@ -247,6 +248,10 @@ onMounted(() => {
   margin-top: -20px;
   position: relative;
   z-index: 1;
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 10px;
 }
 
 .category-list {
@@ -288,6 +293,10 @@ onMounted(() => {
   background: white;
   margin-top: 12px;
   padding: 16px 0;
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
+  border-radius: 10px;
 }
 
 .filter-tabs {
@@ -311,6 +320,8 @@ onMounted(() => {
 
 .companion-list {
   padding: 16px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .companion-card {

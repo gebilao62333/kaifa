@@ -222,10 +222,10 @@ const doRecharge = async () => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background: #f5f5f5;
+  padding-top: 70px;
   padding-bottom: 140px;
   padding-bottom: calc(140px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(140px + env(safe-area-inset-bottom, 0px));
-  padding-top: 82px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -241,11 +241,11 @@ const doRecharge = async () => {
   color: white;
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 .header .title {
@@ -271,7 +271,8 @@ const doRecharge = async () => {
 }
 
 .balance-card {
-  margin: 10px 20px 20px;
+  margin: 10px auto 20px;
+  max-width: 650px;
   background: white;
   border-radius: 10px;
   padding: 30px;
@@ -301,14 +302,18 @@ const doRecharge = async () => {
   font-size: 16px;
   font-weight: bold;
   color: #333;
-  padding: 20px 20px 12px;
+  padding: 20px 12px 12px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .amount-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 12px;
-  padding: 0 20px;
+  padding: 0 12px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .amount-item {
@@ -364,7 +369,9 @@ const doRecharge = async () => {
 }
 
 .payment-methods {
-  padding: 0 20px;
+  padding: 0 12px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .payment-item {
@@ -442,7 +449,9 @@ const doRecharge = async () => {
 }
 
 .card-input-section {
-  padding: 0 20px;
+  padding: 0 12px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .card-inputs {
@@ -484,7 +493,8 @@ const doRecharge = async () => {
   justify-content: space-between;
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-  margin: 20px;
+  margin: 20px auto;
+  max-width: 650px;
 }
 
 .total .label {

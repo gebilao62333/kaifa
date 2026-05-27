@@ -7,11 +7,6 @@
     </div>
 
     <div class="content">
-      <div class="greeting-card">
-        <div class="greeting-icon">👋</div>
-        <div class="greeting-text">您好，请问有什么可以帮您的？</div>
-      </div>
-
       <div class="agent-section">
         <div class="section-title">客服人员</div>
         <div class="agent-list">
@@ -180,11 +175,11 @@ const callPhone = () => {
   background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 .back-btn,
@@ -208,25 +203,7 @@ const callPhone = () => {
   margin: 0 auto;
 }
 
-.greeting-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 10px;
-  padding: 16px 20px;
-  margin-bottom: 16px;
-}
 
-.greeting-icon {
-  font-size: 32px;
-}
-
-.greeting-text {
-  font-size: 15px;
-  color: white;
-  line-height: 1.5;
-}
 
 .agent-section {
   margin-bottom: 16px;

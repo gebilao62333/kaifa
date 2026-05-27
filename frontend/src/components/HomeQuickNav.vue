@@ -1,21 +1,23 @@
 <template>
   <div class="quick-nav">
-    <div class="nav-grid">
-      <div class="nav-item" @click="$emit('navigate', 'offline-companions')">
-        <div class="nav-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">🏃</div>
-        <div class="nav-text">线下陪玩</div>
-      </div>
-      <div class="nav-item" @click="$emit('navigate', 'online-companions')">
-        <div class="nav-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">💻</div>
-        <div class="nav-text">线上陪玩</div>
-      </div>
-      <div class="nav-item" @click="$emit('navigate', 'paidan')">
-        <div class="nav-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">📋</div>
-        <div class="nav-text">派单大厅</div>
-      </div>
-      <div class="nav-item" @click="$emit('navigate', 'publish-demand')">
-        <div class="nav-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">📝</div>
-        <div class="nav-text">需求发布</div>
+    <div class="nav-container">
+      <div class="nav-grid">
+        <div class="nav-item" @click="$emit('navigate', 'offline-companions')">
+          <div class="nav-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">🏃</div>
+          <div class="nav-text">线下陪玩</div>
+        </div>
+        <div class="nav-item" @click="$emit('navigate', 'online-companions')">
+          <div class="nav-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">💻</div>
+          <div class="nav-text">线上陪玩</div>
+        </div>
+        <div class="nav-item" @click="$emit('navigate', 'paidan')">
+          <div class="nav-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">📋</div>
+          <div class="nav-text">派单大厅</div>
+        </div>
+        <div class="nav-item" @click="$emit('navigate', 'publish-demand')">
+          <div class="nav-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">📝</div>
+          <div class="nav-text">需求发布</div>
+        </div>
       </div>
     </div>
   </div>
@@ -32,9 +34,14 @@ defineEmits(['navigate'])
   margin: 10px 0;
 }
 
+.nav-container {
+  width: 100%;
+}
+
 .nav-grid {
   display: flex;
   flex-wrap: wrap;
+  width: 100%;
 }
 
 .nav-item {
@@ -73,17 +80,32 @@ defineEmits(['navigate'])
   }
   
   .nav-item {
-    padding: 6px 0;
+    padding: 8px 0;
   }
   
   .nav-icon {
-    width: 50px;
-    height: 50px;
-    font-size: 24px;
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    font-size: 26px;
   }
   
   .nav-text {
-    font-size: 12px;
+    font-size: 13px;
+  }
+}
+
+/* 大屏幕端 */
+@media (min-width: 1024px) {
+  .nav-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    font-size: 28px;
+  }
+  
+  .nav-text {
+    font-size: 14px;
   }
 }
 </style>

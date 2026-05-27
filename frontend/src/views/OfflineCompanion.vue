@@ -1,31 +1,40 @@
 <template>
-  <div>
-    <div class="offline-grid">
-      <div 
-        class="offline-card" 
-        v-for="item in offlineServices" 
-        :key="item.id" 
-        :class="{ 'offline-card-active': selectedIds.includes(item.id) }"
-        @click="handleSelect(item)"
-      >
-        <div class="offline-icon-wrap" :style="{ background: item.bgColor }">
-          <span class="offline-icon">{{ item.icon }}</span>
-        </div>
-        <div class="offline-info">
-          <span class="offline-name">{{ item.name }}</span>
-        </div>
-        <div v-if="selectedIds.includes(item.id)" class="selected-check">✓</div>
-      </div>
+  <div class="offline-companion-page">
+    <div class="header">
+      <div class="header-back" @click="goBack">‹</div>
+      <div class="title">线下陪玩</div>
     </div>
-    <div class="selection-hint" v-if="selectedIds.length > 0">
-      已选择 {{ selectedIds.length }} 项服务
+
+    <div class="content-container">
+      <div class="offline-grid">
+        <div 
+          class="offline-card" 
+          v-for="item in offlineServices" 
+          :key="item.id" 
+          :class="{ 'offline-card-active': selectedIds.includes(item.id) }"
+          @click="handleSelect(item)"
+        >
+          <div class="offline-icon-wrap" :style="{ background: item.bgColor }">
+            <span class="offline-icon">{{ item.icon }}</span>
+          </div>
+          <div class="offline-info">
+            <span class="offline-name">{{ item.name }}</span>
+          </div>
+          <div v-if="selectedIds.includes(item.id)" class="selected-check">✓</div>
+        </div>
+      </div>
+      <div class="selection-hint" v-if="selectedIds.length > 0">
+        已选择 {{ selectedIds.length }} 项服务
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const emit = defineEmits(['update:modelValue', 'change'])
 const props = defineProps({
   modelValue: { type: Array, default: () => [] }
@@ -34,14 +43,13 @@ const props = defineProps({
 const selectedIds = ref([...props.modelValue])
 
 watch(() => props.modelValue, (newVal) => {
-  // 只有当值真正不同时才更新，避免递归
   if (JSON.stringify(newVal) !== JSON.stringify(selectedIds.value)) {
     selectedIds.value = [...newVal]
   }
 }, { deep: true })
 
 const offlineActivities = [
-  { id: 201, name: '逛街购物', icon: '🛍️', price: 150, desc: '陪同逛街购物', bgColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+  { id: 201, name: '逛街购物', icon: '️', price: 150, desc: '陪同逛街购物', bgColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
   { id: 202, name: '看电影', icon: '🎬', price: 200, desc: '陪同观看电影', bgColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
   { id: 203, name: '美食探店', icon: '🍽️', price: 180, desc: '陪同品尝美食', bgColor: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' },
   { id: 204, name: '密室逃脱', icon: '🔐', price: 160, desc: '组队密室挑战', bgColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }
@@ -51,7 +59,7 @@ const sportsActivities = [
   { id: 301, name: '运动健身', icon: '💪', price: 120, desc: '陪同健身指导', bgColor: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' },
   { id: 302, name: '羽毛球', icon: '🏸', price: 100, desc: '双人羽毛球对打', bgColor: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)' },
   { id: 303, name: '跑步陪练', icon: '🏃', price: 80, desc: '户外跑步陪伴', bgColor: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)' },
-  { id: 304, name: '篮球', icon: '🏀', price: 150, desc: '组队篮球比赛', bgColor: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' }
+  { id: 304, name: '篮球', icon: '', price: 150, desc: '组队篮球比赛', bgColor: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' }
 ]
 
 const offlineServices = computed(() => {
@@ -68,14 +76,71 @@ const handleSelect = (item) => {
   }
   selectedIds.value = newSelectedIds
   
-  // 直接 emit，不通过 watch
   emit('update:modelValue', [...newSelectedIds])
   const selectedItems = offlineServices.value.filter(service => newSelectedIds.includes(service.id))
   emit('change', selectedItems)
 }
+
+const goBack = () => {
+  window.history.back()
+}
 </script>
 
 <style scoped>
+.offline-companion-page {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  background-color: #f5f5f5;
+  padding-top: 70px;
+  padding-bottom: 80px;
+  padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 20px;
+  height: 70px;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
+  z-index: 100;
+}
+
+.header-back {
+  position: absolute;
+  left: 20px;
+  font-size: 28px;
+  color: white;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: bold;
+  color: white;
+}
+
+.content-container {
+  background: #fff;
+  margin: 12px auto;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  max-width: 650px;
+  padding: 16px;
+}
+
 .offline-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -85,7 +150,7 @@ const handleSelect = (item) => {
 
 .offline-card {
   background: white;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 16px;
   cursor: pointer;
   transition: all 0.3s;
@@ -209,5 +274,45 @@ const handleSelect = (item) => {
   background: rgba(102, 126, 234, 0.1);
   border-radius: 12px;
   margin-bottom: 16px;
+}
+
+/* PC端适配 */
+@media (min-width: 768px) {
+  .offline-companion-page {
+    padding-top: 60px;
+    padding-bottom: 20px;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  
+  .content-container {
+    margin: 0;
+    margin-top: 12px;
+    max-width: 650px;
+  }
+  
+  .header {
+    max-width: 650px;
+    border-radius: 0 0 16px 16px;
+    padding: 12px 24px;
+    height: 70px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .offline-companion-page {
+    max-width: 720px;
+  }
+  
+  .header {
+    max-width: 720px;
+  }
+  
+  .content-container {
+    max-width: 720px;
+  }
 }
 </style>

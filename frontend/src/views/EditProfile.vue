@@ -795,11 +795,11 @@ const saveProfile = async () => {
   height: 70px;
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 .back-btn, .save-btn { font-size: 16px; color: #fff; cursor: pointer; background: none; border: none; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -807,7 +807,7 @@ const saveProfile = async () => {
 .title { font-size: 18px; font-weight: bold; color: #fff; }
 .save-btn { color: #fff; font-weight: 500; }
 
-.content { padding: 16px; }
+.content { padding: 16px; max-width: 650px; margin: 0 auto; }
 
 .profile-completeness {
   background: white;

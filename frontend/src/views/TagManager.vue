@@ -214,6 +214,10 @@ onMounted(() => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background: #f5f5f5;
+  padding-top: 70px;
+  padding-bottom: 80px;
+  padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -222,33 +226,38 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  padding-top: calc(12px + constant(safe-area-inset-top, 0px));
-  padding-top: calc(12px + env(safe-area-inset-top, 0px));
-  background: #fff;
-  border-bottom: 1px solid #eee;
+  padding: 0 20px;
+  height: 70px;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  z-index: 100;
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
 }
 
 .back-btn {
   -webkit-tap-highlight-color: transparent;
-}
-
-.back-btn {
   font-size: 20px;
   cursor: pointer;
   width: 40px;
+  color: white;
 }
 
 .title {
-  font-size: 17px;
-  font-weight: 500;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
 }
 
 .add-btn {
   font-size: 24px;
-  color: #007aff;
+  color: white;
   cursor: pointer;
   width: 40px;
   text-align: right;
@@ -256,10 +265,12 @@ onMounted(() => {
 
 .category-tabs {
   display: flex;
-  padding: 12px 16px;
+  padding: 12px;
   background: #fff;
   gap: 12px;
   overflow-x: auto;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .tab-item {
@@ -278,7 +289,11 @@ onMounted(() => {
 
 .tag-list {
   background: #fff;
-  margin-top: 8px;
+  margin: 8px auto 0;
+  max-width: 650px;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .tag-item {

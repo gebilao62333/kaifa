@@ -84,8 +84,8 @@ const allPosts = ref([
     id: 1,
     content: '今天和朋友一起打王者荣耀，连胜5局，太开心了！有没有一起开黑的？',
     images: [
-      'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400',
-      'https://images.unsplash.com/photo-1529543544282-ea9007613f3a?w=400'
+      'https://picsum.photos/400/400?random=1',
+      'https://picsum.photos/400/400?random=2'
     ],
     createTime: '2026-05-18',
     likeCount: 24,
@@ -97,7 +97,7 @@ const allPosts = ref([
     id: 2,
     content: '分享一个和平精英的跳伞技巧，学会轻松上分！',
     images: [
-      'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=400'
+      'https://picsum.photos/400/400?random=3'
     ],
     createTime: '2026-05-15',
     likeCount: 56,
@@ -109,9 +109,9 @@ const allPosts = ref([
     id: 3,
     content: '周末线下聚会，有一起玩桌游的吗？',
     images: [
-      'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400',
-      'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400',
-      'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400'
+      'https://picsum.photos/400/400?random=4',
+      'https://picsum.photos/400/400?random=5',
+      'https://picsum.photos/400/400?random=6'
     ],
     createTime: '2026-05-12',
     likeCount: 18,
@@ -207,11 +207,11 @@ const updateTabCounts = () => {
   height: 70px;
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 .back-btn {
@@ -243,7 +243,9 @@ const updateTabCounts = () => {
   display: flex;
   background-color: #fff;
   gap: 12px;
-  padding: 62px 16px 12px;
+  padding: 12px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .tab-item {
@@ -274,6 +276,8 @@ const updateTabCounts = () => {
 
 .posts-list {
   padding: 12px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .post-card {
@@ -283,6 +287,8 @@ const updateTabCounts = () => {
   padding: 16px;
   cursor: pointer;
   transition: transform 0.2s;
+  width: 650px;
+  margin-left: -12px;
 }
 
 .post-card:hover {

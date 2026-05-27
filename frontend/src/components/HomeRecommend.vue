@@ -82,9 +82,12 @@ defineEmits(['load-more', 'user-click'])
 
 <style scoped>
 .recommend-section {
-  padding: 16px;
+  padding: 16px 0;
   margin-top: 10px;
   margin-bottom: 10px;
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .section-header {

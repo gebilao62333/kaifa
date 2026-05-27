@@ -1,4 +1,4 @@
-const { Post, PostLike, PostComment, PostUnlock, User, UserFollow } = require('../models');
+const { Post, PostLike, PostComment, PostUnlock, User, UserFollow, CircleTag } = require('../models');
 const { getTimestamp, parseQuery } = require('../utils/helper');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
@@ -298,7 +298,16 @@ const getComments = async (postId, page, pageSize) => {
 };
 
 const getTags = async () => {
-  return [];
+  const tags = await CircleTag.findAll({
+    where: { status: 1 },
+    order: [['sortOrder', 'ASC'], ['id', 'ASC']]
+  });
+  return tags.map(tag => ({
+    id: tag.id,
+    name: tag.name,
+    icon: tag.icon,
+    sortOrder: tag.sortOrder
+  }));
 };
 
 module.exports = {

@@ -104,7 +104,7 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const getHost = () => {
-  return window.globalData?.host || 'http://localhost:3000'
+  return window.globalData?.host || ''
 }
 
 const userInfo = ref({
@@ -128,7 +128,7 @@ const fetchBalance = async () => {
       userInfo.value.balance = result.data.balance || 0
     }
   } catch (err) {
-    console.error('获取钱包余额失败:', err)
+    console.debug('后端服务未启动，使用默认值')
   }
 }
 
@@ -170,9 +170,11 @@ const goWithdrawRecords = () => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: #f5f5f5;
+  padding-top: 70px;
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  width: 720px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -189,11 +191,11 @@ const goWithdrawRecords = () => {
   background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 720px;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 .back-btn {
@@ -214,18 +216,21 @@ const goWithdrawRecords = () => {
 }
 
 .content-container {
-  background: #fff;
-  margin: 82px 12px 12px;
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  padding: 4px 22px;
+  max-width: 720px;
+  width: 720px;
+  margin: 10px auto;
+  margin-left: -45px;
 }
 
 .balance-card {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 10px;
   padding: 20px;
-  margin: 16px 16px 0;
+  margin: 16px auto 0;
+  margin-left: -22px;
+  width: 720px;
+  max-width: 720px;
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
   height: 140px;
 }
@@ -271,7 +276,11 @@ const goWithdrawRecords = () => {
 .quick-actions {
   display: flex;
   gap: 12px;
-  padding: 0 16px 16px;
+  padding: 15px 12px 15px;
+  width: 720px;
+  max-width: 720px;
+  margin: 11px auto;
+  margin-left: -23px;
 }
 
 .action-btn {
@@ -304,7 +313,11 @@ const goWithdrawRecords = () => {
 }
 
 .stats-section {
-  padding: 0 16px 16px;
+  padding: 0 12px 16px;
+  width: 720px;
+  max-width: 720px;
+  margin: 0 auto;
+  margin-left: -22px;
 }
 
 .section-title {
@@ -323,6 +336,23 @@ const goWithdrawRecords = () => {
 
 .stats-row:last-child {
   margin-bottom: 0;
+}
+
+.stats-row:nth-child(2) > .stat-card:first-child {
+  margin-left: -11px;
+}
+
+.stats-row:nth-child(3) > .stat-card:first-child {
+  margin-left: -11px;
+}
+
+.stats-row:nth-child(2) > .stat-card:last-child {
+  margin-left: 0;
+  margin-right: -11px;
+}
+
+.stats-row:nth-child(3) > .stat-card:last-child {
+  margin-right: -11px;
 }
 
 .stat-card {
@@ -353,6 +383,7 @@ const goWithdrawRecords = () => {
   display: flex;
   align-items: center;
   gap: 8px;
+  text-align: left;
 }
 
 .stat-icon {
@@ -383,6 +414,8 @@ const goWithdrawRecords = () => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+  margin-right: 7px;
+  margin-left: -8px;
 }
 
 .balance-header .balance-label {
@@ -405,21 +438,32 @@ const goWithdrawRecords = () => {
 }
 
 .menu-section {
-  padding: 0 16px 16px;
+  padding: 0 12px 16px;
+  width: 720px;
+  max-width: 720px;
+  margin: 0 auto;
+  margin-left: -21px;
+  margin-right: 0;
 }
 
 .menu-group {
   background: #fff;
   border-radius: 10px;
   overflow: hidden;
+  margin-left: -50px;
+  margin-right: 0px;
+  width: 720px;
 }
 
 .menu-title {
-  padding: 14px 16px 10px;
+  padding: 14px 0 10px;
   font-size: 14px;
   color: #333;
   font-weight: bold;
   border-bottom: 1px solid #f0f0f0;
+  margin-left: 22px;
+  margin-right: 0;
+  width: 720px;
 }
 
 .menu-item {
@@ -430,6 +474,7 @@ const goWithdrawRecords = () => {
   cursor: pointer;
   transition: background-color 0.2s;
   min-height: 48px;
+  margin-left: 10px;
 }
 
 .menu-item:last-child {
@@ -465,7 +510,7 @@ const goWithdrawRecords = () => {
     padding-left: 16px;
     padding-right: 16px;
     padding-bottom: 16px;
-    max-width: 650px;
+    max-width: 720px;
     margin: 0 auto;
   }
 

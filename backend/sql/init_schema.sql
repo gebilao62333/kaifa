@@ -307,6 +307,20 @@ CREATE TABLE IF NOT EXISTS `xn_post_unlock` (
   KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='动态解锁表';
 
+-- 圈子标签表
+CREATE TABLE IF NOT EXISTS `xn_circle_tag` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(50) NOT NULL COMMENT '标签名称',
+  `icon` VARCHAR(255) DEFAULT NULL COMMENT '标签图标',
+  `sort_order` INT DEFAULT 0 COMMENT '排序',
+  `status` TINYINT(1) DEFAULT 1 COMMENT '状态：0-禁用，1-启用',
+  `create_time` INT(10) DEFAULT 0,
+  `update_time` INT(10) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_sort_order` (`sort_order`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='圈子标签表';
+
 -- 用户关注表
 CREATE TABLE IF NOT EXISTS `xn_user_follow` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,

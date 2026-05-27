@@ -105,13 +105,13 @@ const postData = ref({
   postId: 1,
   userId: 1,
   nickName: '小雪',
-  avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
+  avatar: 'https://picsum.photos/200/200?random=1',
   level: 28,
   vip: true,
   content: '今天王者连赢五局，超开心！分享一下今天的战绩～',
   images: [
-    'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=400',
-    'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400'
+    'https://picsum.photos/400/400?random=2',
+    'https://picsum.photos/400/400?random=3'
   ],
   tagName: '游戏',
   likes: 128,
@@ -126,7 +126,7 @@ const commentList = ref([
     id: 1,
     userId: 2,
     nickName: '阿杰',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
+    avatar: 'https://picsum.photos/100/100?random=4',
     content: '厉害啊，带我飞！',
     likes: 12,
     isLike: false,
@@ -145,7 +145,7 @@ const commentList = ref([
     id: 2,
     userId: 3,
     nickName: '小美',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100',
+    avatar: 'https://picsum.photos/100/100?random=5',
     content: '666，大佬带带我！',
     likes: 8,
     isLike: false,
@@ -200,7 +200,7 @@ const sendComment = () => {
     id: Date.now(),
     userId: 100001,
     nickName: '我',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
+    avatar: 'https://picsum.photos/100/100?random=6',
     content: commentText.value,
     likes: 0,
     isLike: false,
@@ -222,6 +222,7 @@ onMounted(() => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background: #f5f5f5;
+  padding-top: 70px;
   padding-bottom: 70px;
   padding-bottom: calc(70px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
@@ -233,12 +234,18 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 60px 20px 20px;
-  padding-top: calc(60px + constant(safe-area-inset-top, 0px));
-  padding-top: calc(60px + env(safe-area-inset-top, 0px));
+  padding: 0 20px;
+  height: 70px;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   color: white;
+  z-index: 100;
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
 }
@@ -255,9 +262,12 @@ onMounted(() => {
 
 .post-content {
   background: white;
-  margin: 16px;
-  border-radius: 12px;
-  padding: 20px;
+  margin: 12px auto;
+  border-radius: 10px;
+  padding: 16px;
+  max-width: 650px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .user-info {
@@ -353,9 +363,12 @@ onMounted(() => {
 
 .comments-section {
   background: white;
-  margin: 0 16px;
-  border-radius: 12px;
-  padding: 20px;
+  margin: 12px auto;
+  border-radius: 10px;
+  padding: 16px;
+  max-width: 650px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .section-header {

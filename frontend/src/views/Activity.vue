@@ -111,6 +111,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import ReserveModal from '@/components/ReserveModal.vue'
+import circleService from '../services/circleService'
 
 const router = useRouter()
 
@@ -178,13 +179,14 @@ const formatTime = (timestamp) => {
 }
 
 const loadTags = async () => {
-  tagList.value = [
-    { id: 1, name: '游戏' },
-    { id: 2, name: '闲聊' },
-    { id: 3, name: '技术' },
-    { id: 4, name: '娱乐' },
-    { id: 5, name: '情感' }
-  ]
+  try {
+    const res = await circleService.getTags()
+    if (res && res.data) {
+      tagList.value = res.data
+    }
+  } catch (e) {
+    console.error('加载标签失败:', e)
+  }
 }
 
 const loadFeedList = async (reset = false) => {
@@ -400,12 +402,14 @@ onMounted(() => {
 
 .content-container {
   background: #fff;
-  margin: 12px auto;
-  margin-top: 121px;
+  margin: 90px auto;
+  margin-top: 90px;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  width: 650px;
   max-width: 650px;
+  margin-left: -20px;
 }
 
 .header {
@@ -419,11 +423,13 @@ onMounted(() => {
   justify-content: center;
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
+  border-top-left-radius: 10px;
+  border-top-right-radius: 10px;
 }
 
 .header .title {
@@ -435,17 +441,17 @@ onMounted(() => {
 
 .tags-section {
   background-color: #fff;
-  padding-top: 12px;
-  padding-bottom: 12px;
+  padding-top: 0px;
+  padding-bottom: 0px;
   position: fixed;
   top: 56px;
   left: 0;
   right: 0;
   z-index: 10;
   border-bottom: 1px solid #f1f5f9;
-  height: 60px;
+  height: 50px;
   max-width: 650px;
-  margin: 0 auto;
+  margin: 12px auto;
 }
 
 .tags-scroll {
@@ -454,7 +460,9 @@ onMounted(() => {
   padding: 0 20px;
   gap: 16px;
   max-width: 650px;
-  margin: 0 auto;
+  margin: 5px auto;
+  margin-top: 5px;
+  height: 40px;
   margin-bottom: 30px;
 }
 
@@ -788,17 +796,18 @@ onMounted(() => {
   
   .content-container {
     margin: 0;
-    margin-top: 126px;
+    margin-top: 90px;
+    width: 650px;
     max-width: 650px;
+    margin-left: -20px;
   }
   
   .header {
     max-width: 650px;
     left: 50%;
     transform: translateX(-50%);
-    border-radius: 0 0 16px 16px;
-    padding: 14px 28px;
-    height: 56px;
+    padding: 0 28px;
+    height: 70px;
   }
   
   .title {
@@ -807,7 +816,7 @@ onMounted(() => {
   
   .tags-section {
     top: 56px;
-    height: 60px;
+    height: 50px;
     max-width: 650px;
   }
   

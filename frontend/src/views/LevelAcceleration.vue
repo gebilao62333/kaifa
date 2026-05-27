@@ -134,6 +134,10 @@ onMounted(() => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: #f5f5f5;
+  padding-top: 70px;
+  padding-bottom: 80px;
+  padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -142,8 +146,16 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 0 20px;
+  height: 70px;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  z-index: 100;
 }
 
 .back-btn,
@@ -161,7 +173,9 @@ onMounted(() => {
 }
 
 .content {
-  padding: 16px;
+  padding: 12px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .level-card {

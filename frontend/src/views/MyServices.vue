@@ -385,7 +385,7 @@ const defaultServices = {
       id: 1,
       name: '王者荣耀排位',
       gameName: '王者荣耀',
-      icon: 'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=200',
+      icon: 'https://picsum.photos/200/200?random=1',
       description: '专业打野，快速上分，钻石到星耀',
       tags: ['打野', '排位', '上分'],
       price: 35,
@@ -402,7 +402,7 @@ const defaultServices = {
       id: 2,
       name: '和平精英娱乐',
       gameName: '和平精英',
-      icon: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=200',
+      icon: 'https://picsum.photos/200/200?random=2',
       description: '搞笑陪聊，带你躺赢，开心最重要',
       tags: ['娱乐', '聊天', '躺赢'],
       price: 25,
@@ -421,7 +421,7 @@ const defaultServices = {
       id: 101,
       name: '王者荣耀开黑',
       gameName: '王者荣耀',
-      icon: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=200',
+      icon: 'https://picsum.photos/200/200?random=3',
       description: '线下开黑，一起到网咖面基打游戏',
       tags: ['开黑', '面基', '网咖'],
       price: 100,
@@ -826,11 +826,11 @@ onUnmounted(() => {
   height: 70px;
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 .back-btn {
@@ -857,8 +857,9 @@ onUnmounted(() => {
   justify-content: space-around;
   padding: 16px 0;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  margin-top: 10px;
-  margin-bottom: 10px;
+  max-width: 650px;
+  margin: -13px auto 1px;
+  width: 720px;
 }
 
 .tab-item {
@@ -884,6 +885,8 @@ onUnmounted(() => {
 
 .service-list {
   padding: 16px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .service-card {
@@ -892,6 +895,8 @@ onUnmounted(() => {
   padding: 20px;
   margin-bottom: 16px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  width: 650px;
+  margin-left: -16px;
 }
 
 .service-header {
@@ -953,6 +958,7 @@ onUnmounted(() => {
   color: #666;
   line-height: 1.6;
   margin-bottom: 12px;
+  width: 720px;
 }
 
 .service-tags {

@@ -395,11 +395,11 @@ const submitRating = () => {
   height: 70px;
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 .back-btn {
@@ -421,8 +421,11 @@ const submitRating = () => {
   font-size: 17px;
   font-weight: bold;
   color: white;
-  padding: 0;
-  margin: 0;
+  width: 350px;
+  height: 30px;
+  text-align: center;
+  padding: 0 0 10px;
+  margin: 10px 131px 8px 13px;
   transform: none;
 }
 
@@ -430,8 +433,10 @@ const submitRating = () => {
   background: white;
   display: flex;
   justify-content: space-around;
-  padding: 62px 0 12px;
+  padding: 12px 0 0;
   overflow-x: auto;
+  height: 60px;
+  margin-bottom: 0;
 }
 
 .tab-item {
@@ -446,6 +451,11 @@ const submitRating = () => {
 .tab-item.active {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
+  padding-top: 11px;
+  padding-bottom: 5px;
+  height: 40px;
+  border-radius: 10px;
+  margin-top: -2px;
 }
 
 .order-list {
@@ -458,6 +468,8 @@ const submitRating = () => {
   padding: 16px;
   margin-bottom: 12px;
   cursor: pointer;
+  width: 720px;
+  margin-left: -16px;
 }
 
 .order-header {
@@ -821,7 +833,7 @@ const submitRating = () => {
     max-width: 650px;
     left: 50%;
     transform: translateX(-50%);
-    border-radius: 0 0 16px 16px;
+    border-radius: 0 0 10px 10px;
     padding: 14px 20px;
   }
 }

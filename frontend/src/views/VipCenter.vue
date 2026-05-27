@@ -273,10 +273,10 @@ onMounted(() => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background: #f5f5f5;
+  padding-top: 70px;
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-  padding-top: 82px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -292,11 +292,11 @@ onMounted(() => {
   color: white;
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 .back-btn {
@@ -318,7 +318,8 @@ onMounted(() => {
 }
 
 .vip-card {
-  margin: 16px 20px 20px;
+  margin: 16px auto 20px;
+  max-width: 650px;
   background: white;
   border-radius: 10px;
   overflow: hidden;
@@ -354,15 +355,18 @@ onMounted(() => {
   font-size: 16px;
   font-weight: bold;
   color: #333;
-  padding: 16px 20px 12px;
+  padding: 16px 12px 12px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .privilege-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-  padding: 20px 20px;
+  padding: 20px 12px;
   background: white;
-  margin: 0 20px;
+  max-width: 650px;
+  margin: 0 auto;
   border-radius: 10px;
   gap: 16px 0;
 }
@@ -413,13 +417,16 @@ onMounted(() => {
 
 .packages {
   margin-bottom: 8px;
+  max-width: 650px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .package-list {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 0 20px;
+  padding: 0 12px;
 }
 
 .package-item {

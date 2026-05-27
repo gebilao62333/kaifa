@@ -1082,6 +1082,8 @@ onUnmounted(() => {
   overflow: hidden;
   padding-bottom: 70px;
   box-sizing: border-box;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .header {

@@ -1,31 +1,40 @@
 <template>
-  <div>
-    <div class="game-grid">
-      <div 
-        class="game-card" 
-        v-for="game in onlineGames" 
-        :key="game.id" 
-        :class="{ 'game-card-active': selectedIds.includes(game.id) }"
-        @click="handleSelect(game)"
-      >
-        <div class="game-icon-wrap" :style="{ background: game.bgColor }">
-          <span class="game-icon">{{ game.icon }}</span>
-        </div>
-        <div class="game-info">
-          <span class="game-name">{{ game.name }}</span>
-        </div>
-        <div v-if="selectedIds.includes(game.id)" class="selected-check">✓</div>
-      </div>
+  <div class="online-companion-page">
+    <div class="header">
+      <div class="header-back" @click="goBack">‹</div>
+      <div class="title">线上陪玩</div>
     </div>
-    <div class="selection-hint" v-if="selectedIds.length > 0">
-      已选择 {{ selectedIds.length }} 项服务
+
+    <div class="content-container">
+      <div class="game-grid">
+        <div 
+          class="game-card" 
+          v-for="game in onlineGames" 
+          :key="game.id" 
+          :class="{ 'game-card-active': selectedIds.includes(game.id) }"
+          @click="handleSelect(game)"
+        >
+          <div class="game-icon-wrap" :style="{ background: game.bgColor }">
+            <span class="game-icon">{{ game.icon }}</span>
+          </div>
+          <div class="game-info">
+            <span class="game-name">{{ game.name }}</span>
+          </div>
+          <div v-if="selectedIds.includes(game.id)" class="selected-check">✓</div>
+        </div>
+      </div>
+      <div class="selection-hint" v-if="selectedIds.length > 0">
+        已选择 {{ selectedIds.length }} 项服务
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const emit = defineEmits(['update:modelValue', 'change'])
 const props = defineProps({
   modelValue: { type: Array, default: () => [] }
@@ -34,7 +43,6 @@ const props = defineProps({
 const selectedIds = ref([...props.modelValue])
 
 watch(() => props.modelValue, (newVal) => {
-  // 只有当值真正不同时才更新，避免递归
   if (JSON.stringify(newVal) !== JSON.stringify(selectedIds.value)) {
     selectedIds.value = [...newVal]
   }
@@ -59,14 +67,71 @@ const handleSelect = (game) => {
   }
   selectedIds.value = newSelectedIds
   
-  // 直接 emit，不通过 watch
   emit('update:modelValue', [...newSelectedIds])
   const selectedItems = onlineGames.filter(service => newSelectedIds.includes(service.id))
   emit('change', selectedItems)
 }
+
+const goBack = () => {
+  window.history.back()
+}
 </script>
 
 <style scoped>
+.online-companion-page {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  background-color: #f5f5f5;
+  padding-top: 70px;
+  padding-bottom: 80px;
+  padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  -webkit-overflow-scrolling: touch;
+  overflow-x: hidden;
+}
+
+.header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0 20px;
+  height: 70px;
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
+  z-index: 100;
+}
+
+.header-back {
+  position: absolute;
+  left: 20px;
+  font-size: 28px;
+  color: white;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: bold;
+  color: white;
+}
+
+.content-container {
+  background: #fff;
+  margin: 12px auto;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  max-width: 650px;
+  padding: 16px;
+}
+
 .game-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -76,7 +141,7 @@ const handleSelect = (game) => {
 
 .game-card {
   background: white;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 16px;
   cursor: pointer;
   transition: all 0.3s;
@@ -200,5 +265,45 @@ const handleSelect = (game) => {
   background: rgba(102, 126, 234, 0.1);
   border-radius: 12px;
   margin-bottom: 16px;
+}
+
+/* PC端适配 */
+@media (min-width: 768px) {
+  .online-companion-page {
+    padding-top: 60px;
+    padding-bottom: 20px;
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  
+  .content-container {
+    margin: 0;
+    margin-top: 12px;
+    max-width: 650px;
+  }
+  
+  .header {
+    max-width: 650px;
+    border-radius: 0 0 16px 16px;
+    padding: 12px 24px;
+    height: 70px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .online-companion-page {
+    max-width: 720px;
+  }
+  
+  .header {
+    max-width: 720px;
+  }
+  
+  .content-container {
+    max-width: 720px;
+  }
 }
 </style>

@@ -749,11 +749,11 @@ onUnmounted(() => {
   height: 70px;
   position: fixed;
   top: 0;
-  left: 0;
-  right: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
 .back-btn {
@@ -777,7 +777,9 @@ onUnmounted(() => {
 .service-tabs {
   display: flex;
   gap: 12px;
-  padding: 74px 16px 12px;
+  padding: 12px;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .tab-btn {
@@ -815,7 +817,8 @@ onUnmounted(() => {
 }
 
 .selection-tip {
-  margin: 10px 16px 10px;
+  margin: 10px auto;
+  max-width: 650px;
   background: rgba(245, 108, 108, 0.1);
   border-radius: 12px;
   padding: 10px;
@@ -878,9 +881,11 @@ onUnmounted(() => {
 }
 
 .service-content {
-  padding: 24px 16px;
+  padding: 24px 12px;
   height: 700px;
   position: relative;
+  max-width: 650px;
+  margin: 0 auto;
 }
 
 .disabled-content {
