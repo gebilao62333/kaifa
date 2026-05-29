@@ -731,9 +731,7 @@ onUnmounted(() => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background: #f5f5f5;
-  padding-bottom: 80px;
-  padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
-  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px) + 60px);
   padding-top: 82px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
@@ -749,11 +747,11 @@ onUnmounted(() => {
   height: 70px;
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
+  right: 0;
   width: 100%;
-  max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .back-btn {
@@ -778,7 +776,7 @@ onUnmounted(() => {
   display: flex;
   gap: 12px;
   padding: 12px;
-  max-width: 650px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -882,7 +880,7 @@ onUnmounted(() => {
 
 .service-content {
   padding: 24px 12px;
-  height: 700px;
+  min-height: 400px;
   position: relative;
   max-width: 650px;
   margin: 0 auto;
@@ -905,10 +903,30 @@ onUnmounted(() => {
 }
 
 .offline-actions {
-  padding: 16px;
+  position: fixed;
+  bottom: 60px;
+  left: 0;
+  right: 0;
+  padding: 12px 20px;
   background: white;
-  border-radius: 16px;
-  margin-top: 16px;
+  border-top: 1px solid #eee;
+  z-index: 50;
+  box-sizing: border-box;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .offline-actions {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+@media (min-width: 1024px) {
+  .offline-actions {
+    max-width: 720px;
+  }
 }
 
 .confirm-btn {
@@ -1384,5 +1402,25 @@ onUnmounted(() => {
 
 .close-btn:active {
   background: #f5f5f5;
+}
+
+@media (min-width: 768px) {
+  .companion-apply-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .companion-apply-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+  }
 }
 </style>

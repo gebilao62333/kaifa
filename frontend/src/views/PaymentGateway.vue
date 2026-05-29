@@ -615,4 +615,24 @@ const finish = () => {
   opacity: 0.4;
   cursor: not-allowed;
 }
+
+@media (min-width: 768px) {
+  .payment-gateway-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .payment-gateway-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+  }
+}
 </style>

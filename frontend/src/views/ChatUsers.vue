@@ -207,11 +207,10 @@ onMounted(() => {
   height: calc(50px + env(safe-area-inset-top, 0px));
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 100%;
-  max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .back-btn {
@@ -238,8 +237,8 @@ onMounted(() => {
   overflow-x: auto;
   gap: 8px;
   height: 70px;
-  max-width: 650px;
-  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .tab-item {
@@ -275,8 +274,8 @@ onMounted(() => {
 
 .user-list {
   padding: 12px 16px;
-  max-width: 650px;
-  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .user-item {
@@ -462,6 +461,12 @@ onMounted(() => {
     transform: translateX(-50%);
     border-radius: 0 0 16px 16px;
     padding: 14px 20px;
+  }
+
+  .category-tabs,
+  .user-list {
+    padding-left: 20px;
+    padding-right: 20px;
   }
 }
 

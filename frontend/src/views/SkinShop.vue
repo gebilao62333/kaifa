@@ -507,4 +507,24 @@ syncData(themeList.value, 'theme')
     transform: translateX(-50%) translateY(0);
   }
 }
+
+@media (min-width: 768px) {
+  .skin-shop-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .skin-shop-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+  }
+}
 </style>

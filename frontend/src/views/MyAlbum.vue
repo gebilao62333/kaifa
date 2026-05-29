@@ -867,4 +867,22 @@ onMounted(() => {
   cursor: not-allowed;
   box-shadow: none;
 }
+
+@media (min-width: 768px) {
+  .album-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+  }
+}
+@media (min-width: 1024px) {
+  .album-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+  }
+}
 </style>

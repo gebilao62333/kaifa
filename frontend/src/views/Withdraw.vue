@@ -158,16 +158,16 @@
         <span class="account-label">手续费</span>
         <span class="account-value">{{ feeRate }}% ({{ formatAmount(feeCoins) }} 金币 ≈ ¥{{ formatAmount(feeCoins / 10) }})</span>
       </div>
-    </div>
-
-    <div class="withdraw-bottom">
-      <button
-        class="withdraw-btn"
-        :disabled="!canWithdraw || submitting"
-        @click="doWithdraw"
-      >
-        {{ withdrawBtnText }}
-      </button>
+      <div class="account-row withdraw-action-row">
+        <span class="account-label">提现操作</span>
+        <button
+          class="withdraw-btn"
+          :disabled="submitting"
+          @click="doWithdraw"
+        >
+          {{ withdrawBtnText }}
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -177,6 +177,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLoginManager } from '../composables/useLoginManager'
 import { getWithdrawMethods } from '../common/payMethods'
+import walletService from '../services/walletService'
 
 const router = useRouter()
 const { requireLogin } = useLoginManager()
@@ -241,14 +242,7 @@ const canWithdraw = computed(() => {
 
 const withdrawBtnText = computed(() => {
   if (submitting.value) return '提交中...'
-  if (!receiverName.value.trim()) return '请填写收款人姓名'
-  const num = Number(withdrawAmount.value)
-  if (num < 100) return '最低提现 100 金币'
-  if (num > Math.floor(balance.value * 100) / 100) return '超出可提现余额'
-  if (payMethod.value === 'card' && (!cardNo.value.trim() || !bankName.value)) return '请完善密卡信息'
-  if (payMethod.value === 'alipay' && !alipayAccount.value.trim() && !alipayQrUrl.value) return '请填写支付宝账号或上传收款码'
-  if (payMethod.value === 'wechat' && !wechatAccount.value.trim() && !wechatQrUrl.value) return '请填写微信账号或上传收款码'
-  return '确认提现'
+  return '提交申请'
 })
 
 const currentPayMethod = computed(() => {
@@ -315,8 +309,27 @@ const handleQrUpload = (e) => {
   reader.readAsDataURL(file)
 }
 
+const validateForm = () => {
+  const num = Number(withdrawAmount.value)
+  if (isNaN(num) || num <= 0) return '请输入提现金额'
+  if (num < 100) return '最低提现 100 金币'
+  if (num > Math.floor(balance.value * 100) / 100) return '超出可提现余额'
+  if (!receiverName.value.trim()) return '请填写收款人姓名'
+  if (payMethod.value === 'card') {
+    if (!cardNo.value.trim()) return '请填写密卡号'
+    if (!bankName.value) return '请选择开户银行'
+  }
+  if (payMethod.value === 'alipay' && !alipayAccount.value.trim() && !alipayQrUrl.value) return '请填写支付宝账号或上传收款码'
+  if (payMethod.value === 'wechat' && !wechatAccount.value.trim() && !wechatQrUrl.value) return '请填写微信账号或上传收款码'
+  return ''
+}
+
 const doWithdraw = async () => {
-  if (!canWithdraw.value || submitting.value) return
+  const errMsg = validateForm()
+  if (errMsg) {
+    alert(errMsg)
+    return
+  }
 
   const loginResult = await requireLogin()
   if (!loginResult.loggedIn) {
@@ -326,32 +339,20 @@ const doWithdraw = async () => {
   submitting.value = true
 
   try {
-    const host = (window.globalData?.host) || 'https://api.your-domain.com'
-    const token = localStorage.getItem('token') || ''
-
     const bankInfo = {
       bank: bankName.value,
       name: receiverName.value,
-      mobile: payMethod.value === 'alipay' ? alipayAccount.value : wechatAccount.value,
-      image: payMethod.value === 'alipay' ? alipayQrUrl.value : wechatQrUrl.value
+      mobile: payMethod.value === 'alipay' ? alipayAccount.value : (payMethod.value === 'wechat' ? wechatAccount.value : ''),
+      image: payMethod.value === 'alipay' ? alipayQrUrl.value : (payMethod.value === 'wechat' ? wechatQrUrl.value : '')
     }
 
-    const res = await fetch(`${host}/api/gift/withdraw`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        goldCoins: withdrawAmount.value,
-        type: payMethod.value === 'alipay' ? 1 : (payMethod.value === 'wechat' ? 2 : 3),
-        bankInfo
-      })
+    const result = await walletService.withdraw({
+      money: Number(withdrawAmount.value),
+      type: payMethod.value === 'alipay' ? 1 : (payMethod.value === 'wechat' ? 2 : 3),
+      bankInfo
     })
 
-    const result = await res.json()
-
-    if (result.code === 0) {
+    if (result.code === 0 || result.code === 200) {
       balance.value -= Number(withdrawAmount.value)
       const saved = localStorage.getItem('userInfo')
       if (saved) {
@@ -370,7 +371,7 @@ const doWithdraw = async () => {
     }
   } catch (error) {
     console.error('提现错误:', error)
-    alert('网络错误，请重试')
+    alert(error.message || '网络错误，请重试')
   } finally {
     submitting.value = false
   }
@@ -378,148 +379,146 @@ const doWithdraw = async () => {
 </script>
 
 <style scoped>
+/* ============================================
+   Withdraw Page - 提现页面样式
+   布局：固定顶部 Header + 滚动内容 + 固定底部按钮 + BottomNav
+   ============================================ */
+
+/* --- 页面容器 --- */
 .withdraw-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background: #f5f5f5;
-  padding-top: 70px;
-  padding-bottom: 80px;
-  padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
-  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  background: var(--bg-page, #f5f5f5);
+  padding-top: var(--layout-header-height, 70px);
+  /* 底部预留空间：BottomNav */
+  padding-bottom: calc(var(--layout-bottom-nav-height, 60px) + var(--layout-safe-area-bottom, 0px));
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
 
+/* --- 固定顶部 Header --- */
 .header {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 20px;
-  height: 70px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  padding: 0 var(--spacing-xl, 20px);
+  height: var(--layout-header-height, 70px);
+  background: var(--color-gradient-primary, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
   color: white;
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 100%;
-  max-width: 650px;
-  z-index: 100;
+  z-index: var(--z-dropdown, 100);
+  box-sizing: border-box;
 }
 
 .header .title {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: var(--font-size-xl, 18px);
+  font-weight: 700;
   color: #fff;
-  margin: 0;
-  padding: 0;
-}
-
-.history-btn {
-  position: absolute;
-  right: 20px;
-  font-size: 14px;
-  color: rgba(255,255,255,0.8);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
 }
 
 .back-btn {
   position: absolute;
-  left: 20px;
-  font-size: 24px;
+  left: var(--spacing-xl, 20px);
+  font-size: 22px;
   cursor: pointer;
   color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   -webkit-tap-highlight-color: transparent;
 }
 
-.title {
-  flex: 1;
-  font-size: 18px;
-  font-weight: bold;
-}
-
 .history-btn {
-  font-size: 14px;
-  color: rgba(255,255,255,0.8);
+  position: absolute;
+  right: var(--spacing-xl, 20px);
+  font-size: var(--font-size-md, 14px);
+  color: rgba(255, 255, 255, 0.85);
   cursor: pointer;
+  padding: 4px 12px;
+  -webkit-tap-highlight-color: transparent;
 }
 
+/* --- 余额卡片 --- */
 .balance-card {
-  margin: 10px auto 20px;
-  max-width: 650px;
-  background: white;
-  border-radius: 10px;
-  padding: 30px;
+  margin: 12px var(--spacing-md, 12px) 20px;
+  background: var(--bg-card, #fff);
+  border-radius: var(--radius-2xl, 16px);
+  padding: 28px var(--spacing-xl, 20px);
   text-align: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.06));
 }
 
 .balance-card .label {
-  font-size: 14px;
+  font-size: var(--font-size-md, 14px);
   color: #999;
   margin-bottom: 8px;
 }
 
 .balance-card .amount {
-  font-size: 36px;
-  font-weight: bold;
+  font-size: 40px;
+  font-weight: 800;
   color: #333;
   margin-bottom: 4px;
+  line-height: 1.2;
 }
 
 .balance-card .unit {
-  font-size: 13px;
+  font-size: var(--font-size-sm, 12px);
   color: #999;
 }
 
+/* --- 手续费提示 --- */
 .fee-standard {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 12px;
-  margin: 12px auto 0;
-  max-width: 650px;
+  padding: 10px 14px;
+  margin: 0 var(--spacing-md, 12px) 0;
   background: #fff7e6;
-  border-radius: 8px;
+  border-radius: var(--radius-md, 8px);
   border: 1px solid #ffe7ba;
 }
 
 .fee-standard-icon {
-  font-size: 16px;
+  font-size: 15px;
+  flex-shrink: 0;
 }
 
 .fee-standard-text {
-  font-size: 13px;
+  font-size: var(--font-size-sm, 12px);
   color: #d46b08;
   font-weight: 500;
 }
 
+/* --- 分区标题 --- */
 .section-title {
-  font-size: 16px;
-  font-weight: bold;
+  font-size: var(--font-size-lg, 16px);
+  font-weight: 700;
   color: #333;
-  padding: 20px 12px 12px;
-  max-width: 650px;
-  margin: 0 auto;
+  padding: 24px var(--spacing-md, 12px) 10px;
+  margin: 0;
 }
 
+/* --- 金额输入 --- */
 .amount-input-wrap {
   display: flex;
   align-items: center;
-  background: white;
-  margin: 0 auto;
-  max-width: 650px;
-  padding: 16px 20px;
-  border-radius: 14px;
+  background: var(--bg-card, #fff);
+  margin: 0 var(--spacing-md, 12px);
+  padding: 14px var(--spacing-xl, 20px);
+  border-radius: var(--radius-xl, 12px);
+  box-shadow: var(--shadow-sm, 0 2px 12px rgba(0, 0, 0, 0.04));
 }
 
 .amount-symbol {
   font-size: 24px;
-  font-weight: bold;
-  color: #333;
-  margin-right: 8px;
+  margin-right: 10px;
+  flex-shrink: 0;
 }
 
 .amount-input {
@@ -527,85 +526,96 @@ const doWithdraw = async () => {
   border: none;
   outline: none;
   font-size: 28px;
-  font-weight: bold;
+  font-weight: 700;
   color: #333;
   background: transparent;
+  min-width: 0;
 }
 
 .amount-input::placeholder {
   color: #ccc;
 }
 
+.amount-unit {
+  font-size: var(--font-size-md, 14px);
+  color: #999;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
 .amount-tips {
   display: flex;
   justify-content: space-between;
-  padding: 10px 20px 0;
-  font-size: 12px;
+  padding: 8px var(--spacing-xl, 20px) 0;
+  font-size: var(--font-size-sm, 12px);
   color: #999;
 }
 
 .all-btn {
-  color: #667eea;
+  color: var(--color-primary, #667eea);
   cursor: pointer;
+  font-weight: 500;
 }
 
+/* --- 快捷金额 --- */
 .quick-amounts {
   display: flex;
   gap: 10px;
-  padding: 12px;
-  max-width: 650px;
-  margin: 0 auto;
+  padding: 10px var(--spacing-md, 12px);
+  flex-wrap: wrap;
 }
 
 .quick-item {
-  background: white;
+  background: var(--bg-card, #fff);
   border: 2px solid transparent;
   border-radius: 20px;
-  padding: 8px 16px;
-  font-size: 14px;
+  padding: 8px 18px;
+  font-size: var(--font-size-md, 14px);
   color: #666;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast, 0.15s ease);
+  white-space: nowrap;
 }
 
 .quick-item.active {
-  border-color: #667eea;
-  color: #667eea;
+  border-color: var(--color-primary, #667eea);
+  color: var(--color-primary, #667eea);
   background: rgba(102, 126, 234, 0.05);
+  font-weight: 600;
 }
 
+/* --- 支付方式 --- */
 .payment-methods {
-  padding: 0 12px;
-  max-width: 650px;
-  margin: 0 auto;
+  padding: 0 var(--spacing-md, 12px);
 }
 
 .payment-item {
   display: flex;
   align-items: center;
-  background: white;
-  padding: 16px 20px;
-  border-radius: 12px;
-  margin-bottom: 12px;
+  background: var(--bg-card, #fff);
+  padding: 14px var(--spacing-xl, 20px);
+  border-radius: var(--radius-xl, 12px);
+  margin-bottom: 10px;
   border: 2px solid transparent;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all var(--transition-fast, 0.15s ease);
+  box-shadow: var(--shadow-sm, 0 2px 12px rgba(0, 0, 0, 0.04));
 }
 
 .payment-item.active {
-  border-color: #667eea;
+  border-color: var(--color-primary, #667eea);
   background: rgba(102, 126, 234, 0.03);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.1);
 }
 
 .pay-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
-  font-weight: bold;
   color: white;
   margin-right: 14px;
   flex-shrink: 0;
@@ -613,10 +623,11 @@ const doWithdraw = async () => {
 
 .pay-info {
   flex: 1;
+  min-width: 0;
 }
 
 .pay-name {
-  font-size: 15px;
+  font-size: var(--font-size-lg, 16px);
   font-weight: 600;
   color: #333;
   display: block;
@@ -624,21 +635,22 @@ const doWithdraw = async () => {
 }
 
 .pay-desc {
-  font-size: 12px;
+  font-size: var(--font-size-sm, 12px);
   color: #999;
   display: block;
 }
 
+/* --- 收款信息卡片 --- */
 .receiver-card {
-  background: white;
-  margin: 0 auto 20px;
-  max-width: 650px;
-  border-radius: 14px;
-  padding: 4px 16px;
+  background: var(--bg-card, #fff);
+  margin: 0 var(--spacing-md, 12px) 20px;
+  border-radius: var(--radius-xl, 12px);
+  padding: 4px var(--spacing-lg, 16px);
+  box-shadow: var(--shadow-sm, 0 2px 12px rgba(0, 0, 0, 0.04));
 }
 
 .receiver-field {
-  padding: 16px 0;
+  padding: 14px 0;
   border-bottom: 1px solid #f5f5f5;
 }
 
@@ -647,18 +659,18 @@ const doWithdraw = async () => {
 }
 
 .receiver-label {
-  font-size: 13px;
-  color: #666;
+  font-size: var(--font-size-sm, 12px);
+  color: #999;
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .receiver-input {
   width: 100%;
-  padding: 10px 0;
+  padding: 8px 0;
   border: none;
   outline: none;
-  font-size: 16px;
+  font-size: var(--font-size-lg, 16px);
   color: #333;
   background: transparent;
   box-sizing: border-box;
@@ -672,13 +684,17 @@ const doWithdraw = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
+  padding: 8px 0;
   cursor: pointer;
 }
 
 .receiver-select-text {
-  font-size: 16px;
+  font-size: var(--font-size-lg, 16px);
   color: #333;
+}
+
+.receiver-select-text.placeholder {
+  color: #ccc;
 }
 
 .select-arrow {
@@ -686,36 +702,43 @@ const doWithdraw = async () => {
   color: #ccc;
 }
 
+/* --- 二维码上传 --- */
 .qr-upload {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 24px;
   background: #f8f9fa;
-  border-radius: 12px;
+  border-radius: var(--radius-xl, 12px);
   border: 2px dashed #ddd;
   cursor: pointer;
   margin-top: 4px;
+  transition: border-color var(--transition-fast, 0.15s ease);
+}
+
+.qr-upload:hover {
+  border-color: var(--color-primary, #667eea);
 }
 
 .qr-upload-icon {
-  font-size: 36px;
-  margin-bottom: 8px;
+  font-size: 32px;
+  margin-bottom: 6px;
 }
 
 .qr-upload-text {
-  font-size: 13px;
+  font-size: var(--font-size-sm, 12px);
   color: #999;
 }
 
 .qr-preview {
   max-width: 100%;
   max-height: 160px;
-  border-radius: 8px;
+  border-radius: var(--radius-md, 8px);
   object-fit: contain;
 }
 
+/* --- 银行选择器 --- */
 .bank-picker-overlay {
   position: fixed;
   top: 0;
@@ -725,7 +748,7 @@ const doWithdraw = async () => {
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: flex-end;
-  z-index: 100;
+  z-index: var(--z-overlay, 500);
 }
 
 .bank-picker-content {
@@ -746,14 +769,15 @@ const doWithdraw = async () => {
   border-bottom: 1px solid #f5f5f5;
 }
 
-.bank-picker-cancel, .bank-picker-confirm {
+.bank-picker-cancel,
+.bank-picker-confirm {
   font-size: 15px;
-  color: #667eea;
+  color: var(--color-primary, #667eea);
   cursor: pointer;
 }
 
 .bank-picker-title {
-  font-size: 16px;
+  font-size: var(--font-size-lg, 16px);
   font-weight: 600;
   color: #333;
 }
@@ -764,23 +788,25 @@ const doWithdraw = async () => {
 }
 
 .bank-picker-item {
-  padding: 16px 20px;
-  font-size: 16px;
+  padding: 15px 20px;
+  font-size: var(--font-size-lg, 16px);
   color: #333;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background var(--transition-fast, 0.15s ease);
 }
 
-.bank-picker-item:hover {
+.bank-picker-item:hover,
+.bank-picker-item:active {
   background: #f5f5f5;
 }
 
 .bank-picker-item.active {
-  color: #667eea;
+  color: var(--color-primary, #667eea);
   font-weight: 600;
   background: rgba(102, 126, 234, 0.08);
 }
 
+/* --- 单选圆圈 --- */
 .radio {
   width: 20px;
   height: 20px;
@@ -788,11 +814,11 @@ const doWithdraw = async () => {
   border: 2px solid #ddd;
   position: relative;
   flex-shrink: 0;
-  transition: all 0.2s;
+  transition: all var(--transition-fast, 0.15s ease);
 }
 
 .radio.checked {
-  border-color: #667eea;
+  border-color: var(--color-primary, #667eea);
 }
 
 .radio.checked::after {
@@ -803,22 +829,23 @@ const doWithdraw = async () => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #667eea;
+  background: var(--color-primary, #667eea);
 }
 
+/* --- 到账信息卡片 --- */
 .account-card {
-  background: white;
-  margin: 0 auto;
-  max-width: 650px;
-  border-radius: 14px;
-  padding: 4px 16px;
+  background: var(--bg-card, #fff);
+  margin: 0 var(--spacing-md, 12px);
+  border-radius: var(--radius-xl, 12px);
+  padding: 4px var(--spacing-lg, 16px);
+  box-shadow: var(--shadow-sm, 0 2px 12px rgba(0, 0, 0, 0.04));
 }
 
 .account-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 0;
+  padding: 13px 0;
   border-bottom: 1px solid #f5f5f5;
 }
 
@@ -827,19 +854,21 @@ const doWithdraw = async () => {
 }
 
 .account-label {
-  font-size: 14px;
+  font-size: var(--font-size-md, 14px);
   color: #666;
+  flex-shrink: 0;
 }
 
 .account-value {
-  font-size: 14px;
+  font-size: var(--font-size-md, 14px);
   color: #333;
   font-weight: 500;
+  text-align: right;
 }
 
 .account-value.amount {
-  font-size: 18px;
-  font-weight: bold;
+  font-size: var(--font-size-xl, 18px);
+  font-weight: 700;
   color: #ff6b6b;
 }
 
@@ -847,33 +876,71 @@ const doWithdraw = async () => {
   color: #10b981;
 }
 
-.withdraw-bottom {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 16px 20px;
-  background: white;
-  border-top: 1px solid #eee;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom) + 50px);
-  z-index: 999;
+/* --- 提现操作行（在到账信息卡片内） --- */
+.withdraw-action-row {
+  border-bottom: none;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .withdraw-btn {
-  width: 100%;
-  padding: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 10px 24px;
+  background: var(--color-gradient-primary, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
   color: white;
   border: none;
-  border-radius: 24px;
-  font-size: 16px;
-  font-weight: bold;
+  border-radius: 20px;
+  font-size: var(--font-size-md, 14px);
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: all var(--transition-fast, 0.15s ease);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
+  white-space: nowrap;
+}
+
+.withdraw-btn:not(:disabled):active {
+  transform: scale(0.96);
+  box-shadow: 0 1px 4px rgba(102, 126, 234, 0.15);
 }
 
 .withdraw-btn:disabled {
-  opacity: 0.4;
+  opacity: 0.45;
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ============================================
+   PC 端响应式
+   ============================================ */
+@media (min-width: 768px) {
+  .withdraw-page {
+    max-width: var(--layout-pc-width, 650px);
+    margin: 0 auto;
+  }
+
+  .header {
+    max-width: var(--layout-pc-width, 650px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .balance-card,
+  .fee-standard,
+  .amount-input-wrap,
+  .payment-methods,
+  .receiver-card,
+  .account-card {
+    margin-left: 0;
+    margin-right: 0;
+  }
+}
+
+@media (min-width: 1024px) {
+  .withdraw-page {
+    max-width: var(--layout-pc-width-lg, 720px);
+  }
+
+  .header {
+    max-width: var(--layout-pc-width-lg, 720px);
+  }
 }
 </style>

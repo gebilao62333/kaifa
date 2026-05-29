@@ -385,6 +385,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* --- 外层包裹 --- */
 .activity-wrapper {
   width: 100%;
   min-height: 100vh;
@@ -393,28 +394,29 @@ onMounted(() => {
   overflow-x: hidden;
 }
 
+/* --- 页面容器 --- */
 .activity-page {
-  min-height: calc(100vh - 80px);
+  min-height: calc(100vh - 70px);
   min-height: -webkit-fill-available;
   background: #f5f5f5;
-  padding-top: 82px;
+  padding-top: 70px;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
+/* --- 内容容器 --- */
 .content-container {
   background: #fff;
-  margin: 90px auto;
-  margin-top: 90px;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
-  width: 650px;
-  max-width: 650px;
-  margin-left: -20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
 }
 
+/* --- 头部 --- */
 .header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   padding: 0 20px;
   text-align: center;
   height: 70px;
@@ -423,13 +425,10 @@ onMounted(() => {
   justify-content: center;
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 100%;
-  max-width: 650px;
   z-index: 100;
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
+  box-sizing: border-box;
 }
 
 .header .title {
@@ -439,19 +438,16 @@ onMounted(() => {
   margin: 0;
 }
 
+/* --- 标签区 --- */
 .tags-section {
   background-color: #fff;
-  padding-top: 0px;
-  padding-bottom: 0px;
-  position: fixed;
-  top: 56px;
-  left: 0;
-  right: 0;
+  position: sticky;
+  top: 0;
   z-index: 10;
   border-bottom: 1px solid #f1f5f9;
   height: 50px;
-  max-width: 650px;
-  margin: 12px auto;
+  display: flex;
+  align-items: center;
 }
 
 .tags-scroll {
@@ -459,11 +455,7 @@ onMounted(() => {
   overflow-x: auto;
   padding: 0 20px;
   gap: 16px;
-  max-width: 650px;
-  margin: 5px auto;
-  margin-top: 5px;
-  height: 40px;
-  margin-bottom: 30px;
+  width: 100%;
 }
 
 .tags-scroll::-webkit-scrollbar {
@@ -475,16 +467,10 @@ onMounted(() => {
   padding: 10px 20px;
   font-size: 14px;
   color: #64748b;
-  position: relative;
   cursor: pointer;
   border-radius: 20px;
   transition: all 0.25s ease;
   background-color: #f8fafc;
-}
-
-.tag-item:hover {
-  background-color: #f1f5f9;
-  transform: translateY(-1px);
 }
 
 .tag-item.active {
@@ -494,74 +480,53 @@ onMounted(() => {
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
 }
 
-.tag-item.active::after {
-  display: none;
-}
-
+/* --- Feed 列表 --- */
 .feed-list {
-  padding: 10px 16px;
-  padding-left: 14px;
-  margin-top: -40px;
-  margin-bottom: -40px;
-  width: 394px;
-  display: grid;
+  padding: 12px 16px;
 }
 
 .feed-card {
   background-color: #fff;
-  border-radius: 16px;
-  width: 380px;
-  height: 300px;
-  padding: 4px 54px;
-  margin-bottom: -20px;
-  margin-top: 0px;
-  margin-left: -7px;
-  margin-right: -7px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: all 0.3s ease;
-  visibility: hidden;
 }
 
 .feed-card:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   transform: translateY(-2px);
 }
 
 .feed-user {
   display: flex;
   align-items: center;
-  margin-bottom: 10px;
-  margin-top: 61px;
-  width: 360px;
-  margin-left: -40px;
-  height: 70px;
+  margin-bottom: 12px;
 }
 
 .user-avatar {
-  width: 60px;
-  height: 60px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  margin-right: 14px;
+  margin-right: 12px;
   object-fit: cover;
   cursor: pointer;
   border: 2px solid #f1f5f9;
-  transition: all 0.25s ease;
-}
-
-.user-avatar:hover {
-  border-color: #667eea;
-  transform: scale(1.05);
+  flex-shrink: 0;
 }
 
 .user-info {
   flex: 1;
+  min-width: 0;
 }
 
 .user-name-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
 }
 
 .user-name {
@@ -569,15 +534,19 @@ onMounted(() => {
   color: #1e293b;
   font-weight: 600;
   cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.user-name:hover {
-  color: #667eea;
 }
 
 .user-level {
   background: linear-gradient(135deg, #f87171, #ef4444);
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.vip-tag {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
   color: #fff;
   font-size: 11px;
   padding: 2px 8px;
@@ -592,16 +561,6 @@ onMounted(() => {
   padding: 1px 6px;
   border-radius: 8px;
   font-weight: 600;
-  margin-left: 4px;
-}
-
-.vip-tag {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  color: #fff;
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-weight: 500;
 }
 
 .feed-time {
@@ -618,6 +577,7 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.25s ease;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .follow-btn:hover {
@@ -629,26 +589,8 @@ onMounted(() => {
   background: linear-gradient(135deg, #667eea, #764ba2);
 }
 
-.reserve-btn:hover {
-  background: linear-gradient(135deg, #5a6ed4, #663d92);
-}
-
-.follow-action {
-  color: #667eea;
-  font-weight: 500;
-}
-
-.follow-action.followed {
-  color: #94a3b8;
-}
-
-.follow-action .action-icon {
-  font-size: 20px;
-  font-weight: 300;
-}
-
 .feed-content {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .content-text {
@@ -656,26 +598,20 @@ onMounted(() => {
   color: #334155;
   line-height: 1.65;
   margin: 0;
-  letter-spacing: 0.3px;
-  margin-bottom: -9px;
-  width: 360px;
-  margin-left: -40px;
+  word-break: break-word;
 }
 
 .feed-images {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  margin-bottom: 10px;
-  width: 360px;
-  margin-left: -40px;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
 .feed-image {
   width: 100%;
-  height: 100%;
   aspect-ratio: 1;
-  border-radius: 12px;
+  border-radius: 8px;
   object-fit: cover;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -683,11 +619,10 @@ onMounted(() => {
 
 .feed-image:hover {
   transform: scale(1.03);
-  border-radius: 14px;
 }
 
 .feed-tags {
-  margin-bottom: 0px;
+  margin-bottom: 8px;
 }
 
 .feed-tag {
@@ -699,17 +634,14 @@ onMounted(() => {
 .feed-actions {
   display: flex;
   justify-content: space-around;
-  padding-top: 0px;
+  padding-top: 10px;
   border-top: 1px solid #f1f5f9;
-  width: 360px;
-  margin-left: -45px;
-  margin-right: -45px;
 }
 
 .action-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   color: #64748b;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -720,11 +652,10 @@ onMounted(() => {
 .action-item:hover {
   background-color: #f8fafc;
   color: #667eea;
-  transform: translateY(-1px);
 }
 
 .action-icon {
-  font-size: 19px;
+  font-size: 18px;
 }
 
 .action-icon.liked {
@@ -741,6 +672,15 @@ onMounted(() => {
   font-weight: 500;
 }
 
+.follow-action {
+  color: #667eea;
+  font-weight: 500;
+}
+
+.follow-action.followed {
+  color: #94a3b8;
+}
+
 .loading-more,
 .no-more {
   text-align: center;
@@ -749,12 +689,13 @@ onMounted(() => {
   font-size: 14px;
 }
 
+/* --- 发布按钮 --- */
 .publish-btn {
   position: fixed;
   right: 20px;
   bottom: 120px;
-  width: 64px;
-  height: 64px;
+  width: 56px;
+  height: 56px;
   background: linear-gradient(135deg, #667eea, #764ba2);
   border-radius: 50%;
   display: flex;
@@ -763,19 +704,18 @@ onMounted(() => {
   color: #fff;
   cursor: pointer;
   z-index: 20;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s ease;
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
 }
 
 .publish-btn span {
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 300;
   line-height: 1;
-  margin-top: -8px;
 }
 
 .publish-btn:hover {
-  transform: scale(1.15);
+  transform: scale(1.1);
   box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
 }
 
@@ -783,69 +723,21 @@ onMounted(() => {
   transform: scale(0.95);
 }
 
-/* PC端广场页面优化 */
+/* --- PC 端适配 --- */
 @media (min-width: 768px) {
   .activity-page {
-    padding-top: 70px;
-    padding-left: 20px;
-    padding-right: 20px;
     max-width: 650px;
     margin: 0 auto;
-    position: relative;
   }
-  
-  .content-container {
-    margin: 0;
-    margin-top: 90px;
-    width: 650px;
-    max-width: 650px;
-    margin-left: -20px;
-  }
-  
+
   .header {
-    max-width: 650px;
     left: 50%;
     transform: translateX(-50%);
-    padding: 0 28px;
-    height: 70px;
-  }
-  
-  .title {
-    font-size: 20px;
-  }
-  
-  .tags-section {
-    top: 56px;
-    height: 50px;
     max-width: 650px;
   }
-  
-  .tags-scroll {
-    max-width: 650px;
-  }
-  
-  .feed-list {
-    padding: 20px;
-  }
-  
-  .feed-card {
-    padding: 20px;
-    border-radius: 16px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  }
-  
-  .user-avatar {
-    width: 52px;
-    height: 52px;
-  }
-  
-  .feed-images {
-    gap: 10px;
-  }
-  
+
   .publish-btn {
     right: calc(50% - 325px + 20px);
-    transform: none;
   }
 }
 
@@ -853,31 +745,13 @@ onMounted(() => {
   .activity-page {
     max-width: 720px;
   }
-  
-  .content-container {
-    max-width: 720px;
-  }
-  
+
   .header {
     max-width: 720px;
   }
-  
-  .tags-section {
-    max-width: 720px;
-  }
-  
-  .tags-scroll {
-    max-width: 720px;
-  }
-  
+
   .publish-btn {
     right: calc(50% - 360px + 20px);
   }
 }
-
-.publish-btn:active {
-  transform: scale(0.95);
-}
-
-
 </style>

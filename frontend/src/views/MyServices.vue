@@ -1651,4 +1651,22 @@ onUnmounted(() => {
 .close-btn:active {
   background: #f5f5f5;
 }
+
+@media (min-width: 768px) {
+  .my-services-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+  }
+}
+@media (min-width: 1024px) {
+  .my-services-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+  }
+}
 </style>

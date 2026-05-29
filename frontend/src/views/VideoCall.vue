@@ -403,4 +403,24 @@ onUnmounted(() => {
   background: rgba(255,107,107,1);
   transform: scale(1.05);
 }
+
+@media (min-width: 768px) {
+  .video-call-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .video-call-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+  }
+}
 </style>

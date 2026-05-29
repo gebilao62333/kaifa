@@ -249,4 +249,24 @@ const viewProfile = (user) => {
   font-size: 13px;
   color: #ccc;
 }
+
+@media (min-width: 768px) {
+  .fans-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .fans-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+  }
+}
 </style>

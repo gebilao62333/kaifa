@@ -250,9 +250,7 @@ onUnmounted(() => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: #f5f5f5;
-  padding-bottom: 20px;
-  padding-bottom: calc(20px + constant(safe-area-inset-bottom, 0px));
-  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   padding-top: 82px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
@@ -268,11 +266,10 @@ onUnmounted(() => {
   background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 100%;
-  max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .back-btn,
@@ -294,11 +291,11 @@ onUnmounted(() => {
   display: flex;
   background: white;
   border-bottom: 1px solid #f0f0f0;
-  width: 650px;
-  margin-left: 448px;
+  width: 100%;
 }
 
 .tab-item {
+  flex: 1;
   padding: 14px;
   text-align: center;
   font-size: 14px;
@@ -306,14 +303,6 @@ onUnmounted(() => {
   cursor: pointer;
   position: relative;
   transition: all 0.2s;
-  width: 325px;
-  margin-left: 20px;
-  margin-right: 20px;
-}
-
-.tab-item:nth-child(2) {
-  margin-left: 60px;
-  margin-right: 40px;
 }
 
 .tab-item:active {
@@ -323,7 +312,6 @@ onUnmounted(() => {
 .tab-item.active {
   color: #667eea;
   font-weight: 500;
-  width: 300px;
 }
 
 .tab-item.active::after {
@@ -339,9 +327,10 @@ onUnmounted(() => {
 }
 
 .content {
-  padding: 10px 0;
-  max-width: 650px;
+  padding: 10px 12px;
+  max-width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .order-card {
@@ -352,6 +341,8 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .order-card:active {
@@ -364,7 +355,7 @@ onUnmounted(() => {
   align-items: center;
   padding: 12px 16px;
   border-bottom: 1px solid #f5f5f5;
-  height: 46px;
+  min-height: 46px;
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -400,59 +391,40 @@ onUnmounted(() => {
   display: flex;
   padding: 16px;
   gap: 12px;
-  width: 650px;
-  margin-left: -16px;
-  height: 110px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .order-avatar {
-  width: 70px;
-  height: 70px;
+  width: 60px;
+  height: 60px;
   border-radius: 12px;
   object-fit: cover;
-  margin-left: 20px;
-  margin-top: 5px;
-  margin-bottom: 2px;
+  flex-shrink: 0;
 }
 
 .order-info {
   flex: 1;
-  padding-right: 8px;
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
 }
 
 .order-info-left {
   flex: 1;
   display: flex;
   flex-direction: column;
-  height: 90px;
-  margin-left: 10px;
+  min-width: 0;
 }
 
 .order-info-right {
   display: flex;
   flex-direction: column;
-  height: 90px;
-  width: 140px;
-}
-
-.order-info-right .order-detail:nth-child(1),
-.order-info-right .order-detail:nth-child(2) {
-  text-align: left;
-}
-
-.order-info-right .order-detail:nth-child(2) {
-  margin-top: 7px;
-  margin-bottom: 7px;
-  height: 20px;
-}
-
-.order-info-right .order-price {
-  text-align: center;
-  margin-top: 7px;
-  margin-bottom: 7px;
+  align-items: flex-end;
+  text-align: right;
+  flex-shrink: 0;
 }
 
 .order-name {
@@ -512,11 +484,13 @@ onUnmounted(() => {
 
 .order-footer {
   display: flex;
-  justify-content: space-around;
+  justify-content: space-between;
   align-items: center;
-  padding: 8px 16px;
+  padding: 10px 16px;
   border-top: 1px solid #f5f5f5;
-  height: 44px;
+  min-height: 44px;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .order-id {
@@ -528,7 +502,8 @@ onUnmounted(() => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  width: 500px;
+  justify-content: flex-end;
+  flex: 1;
 }
 
 .action-btn {
@@ -538,6 +513,7 @@ onUnmounted(() => {
   border: none;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .action-btn:active {
@@ -547,15 +523,11 @@ onUnmounted(() => {
 .action-btn.primary {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: white;
-  margin-left: 309px;
-  margin-right: -70px;
 }
 
 .action-btn.secondary {
   background: #f5f5f5;
   color: #666;
-  padding-left: 0px;
-  padding-right: 0px;
 }
 
 .countdown {
@@ -749,5 +721,25 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+@media (min-width: 768px) {
+  .reserve-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .reserve-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+  }
 }
 </style>

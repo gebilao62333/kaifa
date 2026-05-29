@@ -258,16 +258,13 @@ onMounted(() => {
   height: 70px;
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 100%;
-  max-width: 650px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   color: white;
   z-index: 100;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
+  box-sizing: border-box;
 }
 
 .back-btn {
@@ -480,5 +477,27 @@ onMounted(() => {
 
 .menu-icon {
   font-size: 16px;
+}
+
+@media (min-width: 768px) {
+  .ai-chat-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .ai-chat-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
 </style>

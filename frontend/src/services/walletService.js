@@ -15,16 +15,16 @@ const walletService = {
 
   async withdraw(params) {
     validateParams(params, {
-      amount: {
+      money: {
         required: true,
         label: '提现金额',
         type: 'number',
         min: 1
       },
-      method: {
+      type: {
         required: true,
         label: '提现方式',
-        type: 'string'
+        type: 'number'
       }
     })
     return request('/api/gift/withdraw', 'POST', params)

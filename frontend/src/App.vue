@@ -8,6 +8,7 @@
       </router-view>
     </ErrorBoundary>
     <BottomNav v-if="shouldShowNav"></BottomNav>
+    <!-- 全局层级：Toast > 来电 > 网络状态 > 登录弹窗 -->
     <Toast v-bind="toast.state"></Toast>
     <IncomingCall ref="incomingCallRef"></IncomingCall>
     <NetworkStatus></NetworkStatus>
@@ -45,12 +46,15 @@ const {
   initAutoLogin
 } = useLoginManager()
 
-const isAdminRoute = computed(() => {
-  return route.path.startsWith('/admin')
-})
+// 不显示底部导航的页面
+const NO_NAV_ROUTES = ['/login']
+const NO_NAV_PREFIXES = ['/admin', '/chat-room', '/call/']
 
 const shouldShowNav = computed(() => {
-  return !isAdminRoute.value && route.path !== '/login'
+  const path = route.path
+  if (NO_NAV_ROUTES.includes(path)) return false
+  if (NO_NAV_PREFIXES.some(prefix => path.startsWith(prefix))) return false
+  return true
 })
 
 const initSocket = () => {
@@ -80,45 +84,60 @@ onMounted(() => {
 </script>
 
 <style>
+/* ============================================
+   全局基础样式 - 引入设计令牌与布局系统
+   ============================================ */
+@import './styles/tokens.css';
+@import './styles/layout.css';
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
+
 html, body {
   min-height: 100%;
   overflow-x: hidden;
-}
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #f5f5f7;
-}
-.app {
-  min-height: 100%;
-  background: #f5f5f7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* PC端优化 - 响应式宽度体验 */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg-page);
+}
+
+#app {
+  min-height: 100%;
+}
+
+.app {
+  min-height: 100%;
+  background: var(--bg-page);
+}
+
+/* --- PC端容器居中 --- */
 @media (min-width: 768px) {
   .app {
-    padding: 0;
-  }
-  
-  /* 确保页面组件有最小高度，防止空白 */
-  .app .page-enter-active,
-  .app .page-leave-active {
+    max-width: var(--layout-pc-width);
+    margin: 0 auto;
+    position: relative;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.08);
     min-height: 100vh;
   }
 }
 
-/* 大屏优化 */
 @media (min-width: 1024px) {
+  .app {
+    max-width: var(--layout-pc-width-lg);
+  }
 }
 
+/* --- 页面过渡动画 --- */
 .page-enter-active,
 .page-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
-  min-height: 100vh;
 }
 
 .page-enter-from {
@@ -129,46 +148,5 @@ body {
 .page-leave-to {
   opacity: 0;
   transform: translateX(-8px);
-}
-
-/* PC端通用容器优化 */
-@media (min-width: 768px) {
-  /* 通用页面容器 */
-  .home-page,
-  .mine-page,
-  .login-page,
-  .search-page,
-  .edit-profile-page,
-  .settings-page,
-  .service-list-page,
-  .service-detail-page,
-  .chat-room-page,
-  .user-profile-page {
-    padding-left: 16px !important;
-    padding-right: 16px !important;
-    padding-bottom: 16px !important;
-  }
-  
-  /* 通用卡片样式 */
-  .card,
-  .list-item,
-  .menu-item {
-    border-radius: 10px !important;
-    margin-bottom: 12px !important;
-  }
-  
-  /* 通用按钮优化 */
-  .btn,
-  button {
-    border-radius: 8px !important;
-  }
-  
-  /* 输入框优化 */
-  input,
-  textarea,
-  .form-input {
-    border-radius: 8px !important;
-    font-size: 15px !important;
-  }
 }
 </style>

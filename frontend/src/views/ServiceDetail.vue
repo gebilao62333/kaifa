@@ -1037,4 +1037,24 @@ onMounted(() => {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+@media (min-width: 768px) {
+  .service-detail-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .service-detail-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+  }
+}
 </style>

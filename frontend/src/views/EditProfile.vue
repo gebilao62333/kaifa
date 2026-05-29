@@ -775,12 +775,10 @@ const saveProfile = async () => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: #f5f5f5;
-  padding-top: 82px;
-  padding-bottom: 90px;
-  padding-bottom: calc(90px + constant(safe-area-inset-bottom, 0px));
-  padding-bottom: calc(90px + env(safe-area-inset-bottom, 0px));
-  max-width: 650px;
-  margin: 0 auto;
+  padding-top: 70px;
+  padding-bottom: 80px;
+  padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -795,11 +793,10 @@ const saveProfile = async () => {
   height: 70px;
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 100%;
-  max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .back-btn, .save-btn { font-size: 16px; color: #fff; cursor: pointer; background: none; border: none; padding: 0; -webkit-tap-highlight-color: transparent; }
@@ -1344,4 +1341,24 @@ const saveProfile = async () => {
 .preview-stat { text-align: center; }
 .stat-num { font-size: 18px; font-weight: bold; color: #333; }
 .stat-label { font-size: 12px; color: #999; }
+
+@media (min-width: 768px) {
+  .edit-profile-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .edit-profile-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+  }
+}
 </style>

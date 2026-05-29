@@ -556,20 +556,18 @@ const handleLogout = () => {
   height: 70px;
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%) translateZ(0);
+  left: 0;
   width: 100%;
-  max-width: 650px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   color: white;
   z-index: 100;
-  -webkit-transform: translateX(-50%) translateZ(0);
+  box-sizing: border-box;
 }
 
 .content {
   padding: 12px 0;
-  max-width: 650px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -594,7 +592,7 @@ const handleLogout = () => {
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  max-width: 650px;
+  max-width: 100%;
   margin-left: auto;
   margin-right: auto;
 }
@@ -1267,5 +1265,27 @@ const handleLogout = () => {
 
 .dark .setting-tips p {
   color: #aaa;
+}
+
+@media (min-width: 768px) {
+  .settings-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .settings-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
 </style>

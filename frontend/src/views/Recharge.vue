@@ -241,11 +241,10 @@ const doRecharge = async () => {
   color: white;
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 100%;
-  max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .header .title {
@@ -530,5 +529,26 @@ const doRecharge = async () => {
 
 .recharge-btn:disabled {
   opacity: 0.6;
+}
+
+@media (min-width: 768px) {
+  .recharge-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .recharge-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+  }
 }
 </style>

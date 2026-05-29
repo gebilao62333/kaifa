@@ -170,6 +170,7 @@ onMounted(() => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background: #f5f5f5;
+  padding-top: 70px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -377,5 +378,23 @@ onMounted(() => {
   font-size: 12px;
   color: #bbb;
   margin-top: 8px;
+}
+
+@media (min-width: 768px) {
+  .virtual-user-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+  }
+}
+@media (min-width: 1024px) {
+  .virtual-user-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+  }
 }
 </style>

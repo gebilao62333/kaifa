@@ -780,4 +780,24 @@ const handlePermissionContinue = () => {
 .close-btn:active {
   background: #f5f5f5;
 }
+
+@media (min-width: 768px) {
+  .online-apply-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .online-apply-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+  }
+}
 </style>

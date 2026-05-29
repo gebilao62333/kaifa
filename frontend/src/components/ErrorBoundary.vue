@@ -28,11 +28,13 @@ const handleRetry = () => {
 
 onErrorCaptured((error, instance, info) => {
   hasError.value = true
-  errorMessage.value = error.message || '未知错误'
-  componentStack.value = info
+  errorMessage.value = error ? (error.message || String(error)) : '未知错误'
+  componentStack.value = String(info || '')
   
   console.error('[ErrorBoundary] 捕获到错误:', error)
-  console.error('[ErrorBoundary] 组件信息:', instance)
+  if (instance) {
+    console.error('[ErrorBoundary] 组件信息:', String(instance?.$options?.name || instance?.type?.name || instance?.type || '未知组件'))
+  }
   console.error('[ErrorBoundary] 错误位置:', info)
   
   return false

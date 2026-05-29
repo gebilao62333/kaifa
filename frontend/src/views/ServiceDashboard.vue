@@ -743,4 +743,16 @@ onMounted(() => {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+@media (min-width: 768px) {
+  .dashboard-container {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+}
+@media (min-width: 1024px) {
+  .dashboard-container {
+    max-width: 720px;
+  }
+}
 </style>

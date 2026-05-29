@@ -266,7 +266,8 @@ const viewPhoto = (url, index) => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: #f5f5f5;
-  padding-top: 82px;
+  padding-top: 70px;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -281,11 +282,10 @@ const viewPhoto = (url, index) => {
   background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 100%;
-  max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .back-btn, .placeholder {
@@ -612,5 +612,27 @@ const viewPhoto = (url, index) => {
   border-radius: 8px;
   object-fit: cover;
   cursor: pointer;
+}
+
+@media (min-width: 768px) {
+  .user-profile-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .user-profile-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
 </style>

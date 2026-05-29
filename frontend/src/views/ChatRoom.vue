@@ -1044,24 +1044,37 @@ const setupSocketListeners = () => {
  });
 };
 onMounted(async () => {
- loadVipItems();
- const targetId = route.params.id;
- if (targetId && targetId !== 'kefu') {
- userInfo.value.userId = parseInt(targetId);
- }
- 
- if (!localStorage.getItem('token')) {
- localStorage.setItem('token', 'mock-token-100001');
- }
- 
- const userRes = await authService.getUserInfo();
- if (userRes.code === 200 && userRes.data) {
- userStore.setUserInfo(userRes.data);
- }
- 
- await loadMessages();
- scrollToBottom();
- setupSocketListeners();
+  loadVipItems();
+  const targetId = route.params.id;
+  if (targetId && targetId !== 'kefu') {
+    userInfo.value.userId = parseInt(targetId);
+  }
+  // 确保 userId 有效，避免 NaN 导致后续请求报错
+  if (!userInfo.value.userId || isNaN(userInfo.value.userId)) {
+    userInfo.value.userId = 2;
+  }
+  
+  if (!localStorage.getItem('token')) {
+    localStorage.setItem('token', 'mock-token-100001');
+  }
+  
+  try {
+    const userRes = await authService.getUserInfo();
+    if (userRes && userRes.code === 200 && userRes.data) {
+      userStore.setUserInfo(userRes.data);
+    }
+  } catch (e) {
+    console.warn('[ChatRoom] 获取用户信息失败，使用默认数据:', e.message);
+  }
+  
+  try {
+    await loadMessages();
+  } catch (e) {
+    console.warn('[ChatRoom] 加载消息失败，使用默认数据:', e.message);
+    // loadMessages 内部已有兜底数据
+  }
+  scrollToBottom();
+  setupSocketListeners();
 });
 onUnmounted(() => {
  if (recordTimer) {
@@ -1921,5 +1934,25 @@ onUnmounted(() => {
 
 .forward-status.offline {
   color: #999;
+}
+
+@media (min-width: 768px) {
+  .chat-room {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .chat-room {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+  }
 }
 </style>

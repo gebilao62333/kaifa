@@ -292,11 +292,10 @@ onMounted(() => {
   color: white;
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 100%;
-  max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .back-btn {
@@ -356,7 +355,7 @@ onMounted(() => {
   font-weight: bold;
   color: #333;
   padding: 16px 12px 12px;
-  max-width: 650px;
+  max-width: 100%;
   margin: 0 auto;
 }
 
@@ -365,7 +364,7 @@ onMounted(() => {
   grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
   padding: 20px 12px;
   background: white;
-  max-width: 650px;
+  max-width: 100%;
   margin: 0 auto;
   border-radius: 10px;
   gap: 16px 0;
@@ -417,7 +416,7 @@ onMounted(() => {
 
 .packages {
   margin-bottom: 8px;
-  max-width: 650px;
+  max-width: 100%;
   margin-left: auto;
   margin-right: auto;
 }
@@ -579,5 +578,27 @@ onMounted(() => {
 
 .pkg-buy-btn:not(.active):hover {
   background: #e0e0e0;
+}
+
+@media (min-width: 768px) {
+  .vip-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .vip-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
 }
 </style>

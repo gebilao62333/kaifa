@@ -446,4 +446,24 @@ const callPhone = () => {
   padding: 12px 16px;
   border-radius: 8px;
 }
+
+@media (min-width: 768px) {
+  .customer-service-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .customer-service-page {
+    max-width: 720px;
+  }
+  .header {
+    max-width: 720px;
+  }
+}
 </style>

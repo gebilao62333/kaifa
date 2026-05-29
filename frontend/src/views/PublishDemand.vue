@@ -767,7 +767,7 @@ onMounted(() => {
 .publish-demand-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background: #f5f7fa;
+  background: #f5f5f5;
   padding-bottom: 200px;
   padding-bottom: calc(200px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(200px + env(safe-area-inset-bottom, 0px));

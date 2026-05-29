@@ -306,6 +306,8 @@ const formatTime = (timestamp) => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background: #f5f5f5;
+  padding-top: 70px;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -314,15 +316,14 @@ const formatTime = (timestamp) => {
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  padding-top: calc(12px + constant(safe-area-inset-top, 0px));
-  padding-top: calc(12px + env(safe-area-inset-top, 0px));
   background: #fff;
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 100;
-  max-width: 650px;
-  margin: 0 auto;
+  left: 0;
   width: 100%;
+  z-index: 100;
+  height: 70px;
+  box-sizing: border-box;
 }
 
 .search-input-wrap {
@@ -644,5 +645,26 @@ const formatTime = (timestamp) => {
 .game-count {
   font-size: 12px;
   color: #999;
+}
+
+@media (min-width: 768px) {
+  .search-page {
+    max-width: 650px;
+    margin: 0 auto;
+  }
+  .search-header {
+    max-width: 650px;
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+  }
+}
+@media (min-width: 1024px) {
+  .search-page {
+    max-width: 720px;
+  }
+  .search-header {
+    max-width: 720px;
+  }
 }
 </style>

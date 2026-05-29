@@ -314,29 +314,28 @@ defineExpose({
 </script>
 
 <style scoped>
+/* --- 页面容器 --- */
 .home-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: #f5f5f5;
   padding-top: 70px;
-  padding-bottom: 80px;
-  padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
 
+/* --- 内容区 --- */
 .content-container {
+  width: 100%;
+  max-width: 100%;
   background: #fff;
-  margin: 12px auto;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  width: 650px;
-  max-width: 650px;
-  margin-left: -15px;
 }
 
+/* --- 导航栏 --- */
 .nav-bar {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 0 20px;
@@ -346,13 +345,10 @@ defineExpose({
   height: 70px;
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 100%;
-  max-width: 650px;
   z-index: 100;
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
+  box-sizing: border-box;
 }
 
 .search-box {
@@ -364,6 +360,7 @@ defineExpose({
   color: rgba(255, 255, 255, 0.8);
   height: 40px;
   flex: 1;
+  cursor: pointer;
 }
 
 .search-icon {
@@ -377,11 +374,9 @@ defineExpose({
 
 .friend-btn {
   flex: none;
-  width: auto;
   min-width: 60px;
   height: 36px;
   padding: 0 14px;
-  margin: 0;
   background-color: rgba(255, 255, 255, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 18px;
@@ -398,48 +393,25 @@ defineExpose({
   transform: scale(0.95);
 }
 
-/* CP浏览器 & 移动端适配 */
+/* --- PC 端适配 --- */
 @media (min-width: 768px) {
   .home-page {
-    padding-top: 60px;
-    padding-bottom: 20px;
-    padding-left: 16px;
-    padding-right: 16px;
-    padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
     max-width: 650px;
     margin: 0 auto;
   }
-  
-  .content-container {
-    margin: 0;
-    margin-top: 12px;
-    width: 650px;
-    max-width: 650px;
-    margin-left: -15px;
-  }
-  
+
   .nav-bar {
+    left: 50%;
+    transform: translateX(-50%);
     max-width: 650px;
-    padding: 12px 24px;
-    height: 70px;
   }
-  
+
+  .content-container {
+    max-width: 100%;
+  }
+
   .search-box {
-    flex: 1;
     max-width: 420px;
-    padding: 8px 18px;
-    height: 36px;
-  }
-  
-  .search-text {
-    font-size: 13px;
-  }
-  
-  .friend-btn {
-    margin-left: 16px;
-    margin-right: 0;
-    padding: 8px 16px;
-    height: 36px;
   }
 }
 
@@ -447,19 +419,9 @@ defineExpose({
   .home-page {
     max-width: 720px;
   }
-  
+
   .nav-bar {
     max-width: 720px;
-  }
-  
-  .content-container {
-    width: 720px;
-    max-width: 720px;
-    margin-left: calc(50% - 360px);
-  }
-  
-  .search-box {
-    max-width: 480px;
   }
 }
 </style>
