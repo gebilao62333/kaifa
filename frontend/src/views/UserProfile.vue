@@ -50,6 +50,7 @@
           {{ isFollowed ? '已关注' : '+ 关注' }}
         </button>
         <button class="chat-btn" @click="goChat">💬 私信</button>
+        <button class="order-btn" @click="goOrder">📝 下单</button>
       </div>
 
       <div class="section">
@@ -114,15 +115,20 @@
         </div>
       </div>
     </div>
+
+    <ReserveModal v-model:visible="showReserveModal" :companion="user" @submit="handleReserveSubmit" />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import ReserveModal from '../components/ReserveModal.vue'
 
 const router = useRouter()
 const route = useRoute()
+
+const showReserveModal = ref(false)
 
 const selectedBadge = ref(null)
 const avatarFrameStyle = ref({})
@@ -237,7 +243,13 @@ const mockUsers = {
 
 const user = computed(() => {
   const userId = route.params.id || '10001'
-  return mockUsers[userId] || mockUsers['10001']
+  const userData = mockUsers[userId] || mockUsers['10001']
+  return {
+    ...userData,
+    game: userData.games[0]?.name || '王者荣耀',
+    price: 90,
+    offlineLocations: userData.offlineService ? ['陪玩师指定地点', '用户指定地点'] : []
+  }
 })
 
 const goBack = () => {
@@ -250,6 +262,17 @@ const toggleFollow = () => {
 
 const goChat = () => {
   router.push({ name: 'ChatRoom', params: { id: user.value.id } })
+}
+
+const goOrder = () => {
+  showReserveModal.value = true
+}
+
+const handleReserveSubmit = (data, done) => {
+  console.log('预约数据:', data)
+  alert('预约成功！我们会尽快联系您。')
+  done()
+  showReserveModal.value = false
 }
 
 onMounted(() => {
@@ -265,7 +288,7 @@ const viewPhoto = (url, index) => {
 .user-profile-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-top: 70px;
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
@@ -278,8 +301,8 @@ const viewPhoto = (url, index) => {
   justify-content: space-between;
   padding: 0 20px;
   height: 70px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
+  background: -webkit-linear-gradient(315deg, #FF6B81 0%, #E64C65 100%);
   position: fixed;
   top: 0;
   left: 0;
@@ -409,7 +432,7 @@ const viewPhoto = (url, index) => {
 
 .stats-row {
   display: flex;
-  background: white;
+  background: var(--bg-primary);
   padding: 20px;
   padding-top: 50px;
   gap: 10px;
@@ -423,17 +446,17 @@ const viewPhoto = (url, index) => {
 .stat-item .num {
   font-size: 22px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .stat-item .label {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .divider {
   width: 1px;
-  background: #f0f0f0;
+  background: var(--border-light);
 }
 
 .content {
@@ -458,23 +481,28 @@ const viewPhoto = (url, index) => {
 }
 
 .follow-btn {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
 }
 
 .follow-btn.followed {
-  background: #f5f5f5;
-  color: #999;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
 }
 
 .chat-btn {
-  background: white;
-  color: #333;
-  border: 1px solid #e5e5e5 !important;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color) !important;
+}
+
+.order-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
 }
 
 .section {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 12px;
@@ -483,7 +511,7 @@ const viewPhoto = (url, index) => {
 .section-title {
   font-size: 15px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
@@ -501,12 +529,12 @@ const viewPhoto = (url, index) => {
 
 .info-item .key {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .info-item .value {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .service-status {
@@ -520,15 +548,15 @@ const viewPhoto = (url, index) => {
   flex-direction: column;
   align-items: center;
   padding: 16px;
-  background: #f8f8f8;
+  background: var(--bg-secondary);
   border-radius: 12px;
   border: 2px solid transparent;
   transition: all 0.2s;
 }
 
 .service-item.active {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-  border-color: linear-gradient(135deg, #667eea, #764ba2);
+  background: rgba(255, 107, 129, 0.1);
+  border-color: var(--primary-color);
 }
 
 .service-icon {
@@ -538,7 +566,7 @@ const viewPhoto = (url, index) => {
 
 .service-name {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 4px;
 }
 
@@ -546,17 +574,17 @@ const viewPhoto = (url, index) => {
   font-size: 12px;
   padding: 2px 10px;
   border-radius: 10px;
-  background: #e5e5e5;
-  color: #999;
+  background: var(--border-light);
+  color: var(--text-muted);
 }
 
 .service-item.active .service-badge {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
 }
 
 .service-item.active .service-name {
-  color: #333;
+  color: var(--text-primary);
 }
 
 .tags-list {
@@ -567,7 +595,7 @@ const viewPhoto = (url, index) => {
 
 .tags-list .tag {
   padding: 6px 14px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
   font-size: 13px;
   border-radius: 16px;
@@ -582,7 +610,7 @@ const viewPhoto = (url, index) => {
 .game-card {
   flex: 1;
   min-width: 100px;
-  background: linear-gradient(135deg, #f093fb, #f5576c);
+  background: var(--gradient-primary);
   padding: 12px;
   border-radius: 12px;
   text-align: center;

@@ -229,7 +229,7 @@
             <div class="custom-field">
               <label class="field-label">服务金额</label>
               <div class="input-wrapper price-input-wrapper">
-                <span class="input-prefix">¥</span>
+                <span class="input-prefix">金币</span>
                 <input
                   type="number"
                   class="custom-input"
@@ -299,7 +299,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['close', 'submit']);
+const emit = defineEmits(['close', 'update:visible', 'submit']);
 
 const onlineGames = [
   { name: '王者荣耀', icon: '🎮' },
@@ -714,6 +714,7 @@ const canSubmit = computed(() => {
 
 const close = () => {
   emit('close');
+  emit('update:visible', false);
 };
 
 const handleServiceTypeClick = (type) => {
@@ -763,6 +764,7 @@ const submit = () => {
 
   emit('submit', reserveData, () => {
     submitting.value = false;
+    emit('update:visible', false);
   });
 };
 </script>
