@@ -9,7 +9,7 @@ class SocketService {
     this.listeners = new Map()
   }
 
-  connect(url = socketUrl || 'http://localhost:3000') {
+  connect(url = socketUrl || 'http://localhost:3002') {
     if (this.socket?.connected) {
       console.log('[Socket] 已经连接')
       return this.socket

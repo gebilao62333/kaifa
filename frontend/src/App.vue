@@ -63,7 +63,7 @@ const initSocket = () => {
     return
   }
 
-  const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
+  const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3002'
   console.log('[App] 初始化Socket连接:', socketUrl)
   socketService.connect(socketUrl)
 

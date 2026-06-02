@@ -46,7 +46,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
-import { host } from '../common/config';
+import { host } from '../../common/config';
 
 const form = reactive({
   username: '',
