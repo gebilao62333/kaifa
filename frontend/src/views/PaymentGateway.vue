@@ -112,12 +112,12 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useLoginManager } from '../composables/useLoginManager'
+import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const route = useRoute()
-const { requireLogin } = useLoginManager()
+const userStore = useUserStore()
 
 const type = ref(route.query.type || 'recharge')
 const methodId = ref(route.query.method || 'alipay')
@@ -252,8 +252,9 @@ const executePay = () => {
 }
 
 const startPay = async () => {
-  const loginResult = await requireLogin()
-  if (!loginResult.loggedIn) {
+  if (!userStore.isLogin) {
+    toast.warning('请先登录')
+    router.push('/login')
     return
   }
 
@@ -316,14 +317,13 @@ const finish = () => {
   height: 70px;
   position: fixed;
   top: 0;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 0;
   width: 100%;
-  max-width: 650px;
   background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   background: -webkit-linear-gradient(315deg, #FF6B81 0%, #E64C65 100%);
   color: white;
   z-index: 100;
+  box-sizing: border-box;
   box-shadow: 0 2px 12px rgba(255, 107, 129, 0.25);
   -webkit-transform: translateZ(0);
   transform: translateZ(0);

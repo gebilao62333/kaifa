@@ -62,7 +62,7 @@ export const useUserStore = defineStore('user', {
         fansCount: userInfo.fansCount || userInfo.fans_num || 0,
         followCount: userInfo.followCount || userInfo.follow_num || 0,
         likeCount: userInfo.likeCount || userInfo.like_num || 0,
-        gender: userInfo.gender || userInfo.sex === 1 ? 'male' : userInfo.sex === 2 ? 'female' : 'unknown',
+        gender: userInfo.gender || (userInfo.sex === 1 ? 'male' : userInfo.sex === 2 ? 'female' : 'unknown'),
         region: userInfo.region || userInfo.city || '',
         signature: userInfo.signature || userInfo.dec || '',
         phone: userInfo.phone || userInfo.mobile || ''

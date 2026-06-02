@@ -129,7 +129,7 @@
     
     <div class="bottom-bar">
       <div class="voice-btn" @click="toggleVoice">
-        {{ isVoice ? '⌨️' : '🎤' }}
+        {{ isVoice ? '⌨️ 键盘' : '🎙️ 语音' }}
       </div>
       <div class="input-wrapper">
         <input 
@@ -295,17 +295,16 @@
 <script setup>import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '../store/user-info';
-import { useLoginManager } from '../composables/useLoginManager';
 import chatService from '../services/chatService';
 import socketService from '../services/socketService';
 import authService from '../services/authService';
 import GiftList from '../components/gift-list/gift-list.vue';
 import RedPacketPanel from '../components/RedPacketPanel.vue';
+import { formatTimeHMS } from '../common/common';
+import { toast } from '../composables/useToast';
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
-const { requireLogin } = useLoginManager();
-
 const selectedBadge = ref(null);
 const avatarFrameStyle = ref({});
 
@@ -446,12 +445,7 @@ const scheduleAutoDestroy = (msgId) => {
     }
   }, delaySeconds * 1000);
 };
-const formatTime = (timestamp) => {
- const date = new Date(timestamp);
- const h = date.getHours().toString().padStart(2, '0');
- const m = date.getMinutes().toString().padStart(2, '0');
- return `${h}:${m}`;
-};
+const formatTime = formatTimeHMS;
 const shouldShowTime = (index) => {
  if (index === 0)
  return true;
@@ -524,8 +518,8 @@ const sendText = async () => {
  if (!text.value.trim())
  return;
  
- const loginResult = await requireLogin();
- if (!loginResult.loggedIn) {
+ if (!userStore.isLogin) {
+ toast.warning('请先登录');
  return;
  }
  
@@ -1054,10 +1048,6 @@ onMounted(async () => {
     userInfo.value.userId = 2;
   }
   
-  if (!localStorage.getItem('token')) {
-    localStorage.setItem('token', 'mock-token-100001');
-  }
-  
   try {
     const userRes = await authService.getUserInfo();
     if (userRes && userRes.code === 200 && userRes.data) {
@@ -1103,7 +1093,8 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 60px 20px 16px;
+  height: 80px;
+  padding: 20px 20px;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-light);
   position: sticky;
@@ -1385,9 +1376,13 @@ onUnmounted(() => {
   background: white;
   border-top: 1px solid #eee;
   gap: 10px;
-  position: sticky;
+  position: fixed;
   bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 20;
+  transform: translateY(0);
+  height: 58px;
 }
 
 .voice-btn, .emoji-btn, .add-btn {

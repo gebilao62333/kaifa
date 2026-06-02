@@ -1,4 +1,8 @@
 require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
+
+const EventEmitter = require('events');
+EventEmitter.defaultMaxListeners = 50;
+
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');

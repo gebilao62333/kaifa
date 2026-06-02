@@ -6,10 +6,6 @@
     </div>
     
     <div class="vip-card">
-      <div class="card-background">
-        <div class="vip-level">VIP {{ userVipLevel }}</div>
-        <div class="expire-time">{{ expireTimeText }}</div>
-      </div>
     </div>
 
     <div class="packages">
@@ -354,20 +350,39 @@ onMounted(() => {
   font-size: 16px;
   font-weight: bold;
   color: var(--text-primary);
-  padding: 16px 12px 12px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  padding-left: 12px;
+  padding-right: 12px;
   max-width: 100%;
   margin: 0 auto;
+  margin-bottom: 14px;
+  height: 40px;
+  margin-top: -24px;
+}
+
+.privileges {
+  padding-top: 15px;
+  margin-top: 5px;
+}
+
+.privileges .section-title {
+  margin-top: -14px !important;
 }
 
 .privilege-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-  padding: 20px 12px;
+  padding-top: 15px;
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-bottom: 20px;
   background: var(--bg-primary);
   max-width: 100%;
   margin: 0 auto;
   border-radius: 10px;
   gap: 16px 0;
+  margin-top: -11px;
 }
 
 .privilege-item {

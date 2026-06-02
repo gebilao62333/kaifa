@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-  port: process.env.PORT || 3000,
+  port: process.env.PORT || 3001,
   nodeEnv: process.env.NODE_ENV || 'development',
   useMockDb: process.env.USE_MOCK_DB === 'true',
   
@@ -12,6 +12,10 @@ module.exports = {
   },
   
   db: {
+    type: process.env.DB_TYPE || 'mysql',
+    sqlite: {
+      path: process.env.DB_PATH || path.join(__dirname, '../data/database.sqlite')
+    },
     mysql: {
       host: process.env.DB_HOST || 'localhost',
       port: process.env.DB_PORT || 3306,

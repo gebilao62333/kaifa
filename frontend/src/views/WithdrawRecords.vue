@@ -50,6 +50,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { formatBalance } from '../common/common'
 
 const router = useRouter()
 
@@ -63,9 +64,7 @@ const records = ref([
   { icon: '💳', title: '提现到微信', desc: '提现', account: '多客用户', time: '2026-04-15 09:00', amount: 70.00, status: 'pending', bgColor: 'linear-gradient(135deg, #fa709a, #fee140)' }
 ])
 
-const formatAmount = (val) => {
-  return (val || 0).toFixed(2)
-}
+const formatAmount = (val) => formatBalance(val)
 
 const goBack = () => {
   router.back()

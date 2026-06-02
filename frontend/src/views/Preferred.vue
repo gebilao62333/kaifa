@@ -79,7 +79,10 @@
           </div>
           <div class="notice-header-row" v-if="!loadingNotice && noticeList.length > 0">
             <span class="notice-count">共 {{ noticeList.length }} 条通知</span>
-            <span class="mark-all-read" @click="markAllRead">全部已读</span>
+            <div class="notice-actions">
+              <span class="mark-all-read" @click="markAllRead">全部已读</span>
+              <span class="clear-all" @click="clearAllNotices">清空全部</span>
+            </div>
           </div>
           <div 
             class="notice-item" 
@@ -95,7 +98,10 @@
               <span class="notice-content">{{ item.content }}</span>
               <span class="notice-time">{{ formatTime(item.createTime) }}</span>
             </div>
-            <div class="notice-unread-badge" v-if="!item.isRead">1</div>
+            <div class="notice-actions-wrap">
+              <div class="notice-unread-badge" v-if="!item.isRead">1</div>
+              <span class="delete-btn" @click="deleteNotice(item, index, $event)">删除</span>
+            </div>
           </div>
 
           <div class="empty-state" v-if="!loadingNotice && noticeList.length === 0">
@@ -239,6 +245,45 @@ const readNotice = (item) => {
   if (item.isRead) return
   item.isRead = true
   noticeUnread.value = noticeList.value.filter(item => !item.isRead).length
+  handleNoticeClick(item)
+}
+
+const handleNoticeClick = (item) => {
+  switch (item.type) {
+    case 'order':
+      router.push(`/order-detail/${item.orderId || 0}`)
+      break
+    case 'gift':
+      router.push('/gift-record')
+      break
+    case 'reserve':
+      router.push(`/reserve-detail/${item.reserveId || 0}`)
+      break
+    case 'follow':
+      router.push(`/user-profile/${item.fromId || 0}`)
+      break
+    case 'like':
+    case 'comment':
+      router.push('/my-dynamic')
+      break
+    case 'system':
+      break
+    default:
+      break
+  }
+}
+
+const deleteNotice = (item, index, event) => {
+  event.stopPropagation()
+  noticeList.value.splice(index, 1)
+  if (!item.isRead) {
+    noticeUnread.value = Math.max(0, noticeUnread.value - 1)
+  }
+}
+
+const clearAllNotices = () => {
+  noticeList.value = []
+  noticeUnread.value = 0
 }
 
 const markAllRead = () => {
@@ -261,6 +306,11 @@ onMounted(() => {
   updateKefuTime()
   loadChatList()
   loadNoticeList()
+  
+  noticeUnsubscribe = notificationService.subscribe(({ list, unreadCount }) => {
+    noticeList.value = list
+    noticeUnread.value = unreadCount
+  })
 })
 
 onUnmounted(() => {

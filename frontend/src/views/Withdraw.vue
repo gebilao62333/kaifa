@@ -175,12 +175,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useLoginManager } from '../composables/useLoginManager'
+import { useUserStore } from '../store/user-info'
+import { toast } from '../composables/useToast'
 import { getWithdrawMethods } from '../common/payMethods'
 import walletService from '../services/walletService'
+import { formatBalance } from '../common/common'
 
 const router = useRouter()
-const { requireLogin } = useLoginManager()
+const userStore = useUserStore()
 
 const loadBalance = () => {
   try {
@@ -261,9 +263,7 @@ const currentPayAccount = computed(() => {
   return ''
 })
 
-const formatAmount = (num) => {
-  return Number(num || 0).toFixed(2)
-}
+const formatAmount = (num) => formatBalance(num)
 
 const feeRate = 5
 
@@ -331,10 +331,7 @@ const doWithdraw = async () => {
     return
   }
 
-  const loginResult = await requireLogin()
-  if (!loginResult.loggedIn) {
-    return
-  }
+  if (!userStore.isLogin) { toast.warning('请先登录'); router.push('/login'); return }
 
   submitting.value = true
 

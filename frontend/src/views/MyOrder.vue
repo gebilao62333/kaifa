@@ -294,12 +294,14 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useLoginManager } from '../composables/useLoginManager'
+import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
+import { generateMockOrders } from '../common/mockData'
+import { formatTimeMs, formatTimeHMS } from '../common/common'
 
 const router = useRouter()
 const route = useRoute()
-const { requireLogin } = useLoginManager()
+const userStore = useUserStore()
 const activeTab = ref('all')
 
 const goBack = () => {
@@ -341,76 +343,25 @@ onMounted(() => {
   }
 })
 
-// 默认订单数据
-const defaultOrders = [
-  {
-    id: 1,
-    game: '王者荣耀',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=order1',
-    companionName: '小雪',
-    title: '钻石到星耀段位陪练',
-    price: 60,
-    duration: 2,
-    status: 'pending',
-    createTime: Date.now() - 1800000,
-    serviceType: '段位陪练',
-    orderSource: '大厅下单'
-  },
-  {
-    id: 2,
-    game: '和平精英',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=order2',
-    companionName: '阿杰',
-    title: '娱乐局打打吃鸡',
-    price: 75,
-    duration: 3,
-    status: 'waiting',
-    createTime: Date.now() - 3600000,
-    serviceType: '娱乐陪玩',
-    orderSource: '组队邀请'
-  },
-  {
-    id: 5,
-    game: '永劫无间',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=order5',
-    companionName: '战神',
-    title: '上分冲榜',
-    price: 88,
-    duration: 2,
-    status: 'ongoing',
-    createTime: Date.now() - 7200000,
-    serviceType: '段位陪练',
-    orderSource: '大厅下单'
-  },
-  {
-    id: 3,
-    game: '原神',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=order3',
-    companionName: '小美',
-    title: '刷圣遗物和材料',
-    price: 90,
-    duration: 3,
-    status: 'finished',
-    rated: false,
-    createTime: Date.now() - 86400000,
-    serviceType: '副本代练',
-    orderSource: '指定下单'
-  },
-  {
-    id: 4,
-    game: '英雄联盟',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=order4',
-    companionName: '大飞',
-    title: '白银到黄金排位',
-    price: 120,
-    duration: 4,
-    status: 'finished',
-    rated: true,
-    createTime: Date.now() - 172800000,
-    serviceType: '段位陪练',
-    orderSource: '大厅下单'
-  }
-]
+// 默认订单数据（生成50条模拟订单）
+const defaultOrders = generateMockOrders(50).map((order, idx) => ({
+  id: idx + 1,
+  game: order.gameName,
+  avatar: order.companionAvatar,
+  companionName: order.companionName,
+  companionUserId: order.companionId,
+  title: `${order.type}服务`,
+  price: order.price,
+  duration: order.duration,
+  status: order.status === '待接单' ? 'pending' : 
+          order.status === '已接单' ? 'waiting' : 
+          order.status === '进行中' ? 'ongoing' : 
+          order.status === '已完成' ? 'finished' : 'cancelled',
+  rated: order.status === '已完成' && Math.random() > 0.5,
+  createTime: order.createTime,
+  serviceType: order.type,
+  orderSource: ['大厅下单', '组队邀请', '指定下单'][Math.floor(Math.random() * 3)]
+}))
 
 // 从 localStorage 加载订单数据
 const loadOrders = () => {
@@ -467,24 +418,8 @@ const formatOrderNo = (id) => {
   return `DD${String(id).padStart(8, '0')}`
 }
 
-const formatTime = (timestamp) => {
-  const date = new Date(timestamp)
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hour = String(date.getHours()).padStart(2, '0')
-  const minute = String(date.getMinutes()).padStart(2, '0')
-  return `${month}-${day} ${hour}:${minute}`
-}
-
-const formatDateTime = (timestamp) => {
-  const date = new Date(timestamp)
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  const hour = String(date.getHours()).padStart(2, '0')
-  const minute = String(date.getMinutes()).padStart(2, '0')
-  return `${year}-${month}-${day} ${hour}:${minute}`
-}
+const formatTime = formatTimeMs
+const formatDateTime = (timestamp) => formatTimeMs(timestamp, 'YYYY-MM-DD HH:mm')
 
 const getFilteredOrders = () => {
   if (activeTab.value === 'all') return orderList.value
@@ -546,9 +481,17 @@ const endService = (item) => {
 }
 
 const contactCompanion = async (item) => {
-  const loginResult = await requireLogin()
-  if (!loginResult.loggedIn) return
-  router.push(`/chat-room/${item.id}`)
+  if (!userStore.isLogin) {
+    toast.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  const targetId = item.companionUserId
+  if (!targetId) {
+    toast.warning('无法获取陪玩师信息')
+    return
+  }
+  router.push(`/chat-room/${targetId}`)
 }
 
 const rateOrder = (item) => {

@@ -7,8 +7,8 @@ const circleService = {
   },
 
   async getPosts(params = {}) {
-    const { tag, page = 1, pageSize = 20, sort = 'default' } = params
-    const data = { page, pageSize }
+    const { tag, page = 1, pageSize = 20, sort = 'default', sortBy = 'latest' } = params
+    const data = { page, pageSize, sortBy }
     if (tag) data.tag = tag
     if (sort) data.sort = sort
     return request('/api/circle/posts', 'GET', data)

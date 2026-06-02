@@ -96,7 +96,7 @@
       </div>
 
       <div class="logout-section">
-        <button class="logout-btn" @click="handleLogout">退出登录</button>
+        <button class="logout-btn" @click="showLogoutModal = true">退出登录</button>
       </div>
     </div>
 
@@ -283,6 +283,19 @@
         <div class="call-modal-footer">
           <button class="call-btn call-btn-cancel" @click="showCallPrice = false">取消</button>
           <button class="call-btn call-btn-confirm" @click="saveCallPrice">保存设置</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal" v-if="showLogoutModal" @click.self="showLogoutModal = false">
+      <div class="modal-content">
+        <div class="modal-title">退出登录</div>
+        <div class="modal-body">
+          确定要退出登录吗？
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn cancel" @click="showLogoutModal = false">取消</button>
+          <button class="modal-btn confirm" @click="handleLogout">确定</button>
         </div>
       </div>
     </div>
@@ -525,13 +538,14 @@ watch(showCallPrice, (val) => {
   }
 })
 
+const showLogoutModal = ref(false)
+
 const handleLogout = () => {
-  if (confirm('确定要退出登录吗？')) {
-    userStore.logout()
-    localStorage.removeItem('token')
-    localStorage.removeItem('pinia-app-state')
-    router.push('/login')
-  }
+  showLogoutModal.value = false
+  userStore.logout()
+  localStorage.removeItem('token')
+  localStorage.removeItem('pinia-app-state')
+  router.push('/login')
 }
 </script>
 

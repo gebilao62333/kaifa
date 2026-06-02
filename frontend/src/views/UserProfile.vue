@@ -99,11 +99,11 @@
       </div>
 
       <div class="section">
-        <div class="section-title">擅长游戏</div>
-        <div class="game-list">
-          <div class="game-card" v-for="(game, i) in user.games" :key="i">
-            <div class="game-name">{{ game.name }}</div>
-            <div class="game-level">{{ game.level }}</div>
+        <div class="section-title">开通的服务</div>
+        <div class="service-list">
+          <div class="service-card" v-for="(game, i) in user.games" :key="i">
+            <div class="service-name">{{ game.name }}</div>
+            <div class="service-level">{{ game.level }}</div>
           </div>
         </div>
       </div>
@@ -124,14 +124,19 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import ReserveModal from '../components/ReserveModal.vue'
+import gamesService from '../services/gamesService'
 
 const router = useRouter()
 const route = useRoute()
 
 const showReserveModal = ref(false)
+const loading = ref(false)
+const error = ref(null)
 
 const selectedBadge = ref(null)
 const avatarFrameStyle = ref({})
+
+const userData = ref(null)
 
 const loadVipItems = () => {
   try {
@@ -149,106 +154,75 @@ const loadVipItems = () => {
 
 const isFollowed = ref(false)
 
-const mockUsers = {
-  '10001': {
-    id: '10001',
-    avatar: 'https://picsum.photos/200/200',
-    bgImage: 'https://picsum.photos/800/400',
-    name: '游戏大神',
-    level: 28,
-    vip: true,
-    signature: '专注王者荣耀，带你上王者',
-    follows: 128,
-    fans: 2560,
-    likes: 12345,
-    gender: 'male',
-    age: 24,
-    height: 178,
-    region: '北京市朝阳区',
-    onlineService: true,
-    offlineService: false,
-    tags: ['游戏达人', '技术流', '声音好听', '段位高'],
-    games: [
-      { name: '王者荣耀', level: '荣耀王者' },
-      { name: '和平精英', level: '无敌战神' },
-      { name: '英雄联盟', level: '大师' }
-    ],
-    photos: [
-      'https://picsum.photos/200/200?random=1',
-      'https://picsum.photos/200/200?random=2',
-      'https://picsum.photos/200/200?random=3',
-      'https://picsum.photos/200/200?random=4',
-      'https://picsum.photos/200/200?random=5',
-      'https://picsum.photos/200/200?random=6'
-    ]
-  },
-  '10002': {
-    id: '10002',
-    avatar: 'https://picsum.photos/200/200?random=10',
-    bgImage: 'https://picsum.photos/800/400?random=20',
-    name: '小雪',
-    level: 28,
-    vip: true,
-    signature: '热爱生活，热爱游戏~',
-    follows: 89,
-    fans: 1890,
-    likes: 8765,
-    gender: 'female',
-    age: 22,
-    height: 165,
-    region: '上海市浦东新区',
-    onlineService: true,
-    offlineService: true,
-    tags: ['萌妹子', '声音甜美', '技术流', '活泼可爱'],
-    games: [
-      { name: '王者荣耀', level: '王者' },
-      { name: '和平精英', level: '王牌' }
-    ],
-    photos: [
-      'https://picsum.photos/200/200?random=11',
-      'https://picsum.photos/200/200?random=12',
-      'https://picsum.photos/200/200?random=13'
-    ]
-  },
-  '10003': {
-    id: '10003',
-    avatar: 'https://picsum.photos/200/200?random=20',
-    bgImage: 'https://picsum.photos/800/400?random=30',
-    name: '阿杰',
-    level: 35,
-    vip: true,
-    signature: '新赛季更新了，感觉打野位又加强了！',
-    follows: 256,
-    fans: 3420,
-    likes: 15678,
-    gender: 'male',
-    age: 26,
-    height: 182,
-    region: '广州市天河区',
-    onlineService: true,
-    offlineService: false,
-    tags: ['职业选手', '意识流', '教学达人'],
-    games: [
-      { name: '英雄联盟', level: '王者' },
-      { name: '王者荣耀', level: '荣耀王者' }
-    ],
-    photos: [
-      'https://picsum.photos/200/200?random=21',
-      'https://picsum.photos/200/200?random=22',
-      'https://picsum.photos/200/200?random=23',
-      'https://picsum.photos/200/200?random=24'
-    ]
+const loadUserProfile = async (userId) => {
+  loading.value = true
+  error.value = null
+  try {
+    const result = await gamesService.getCompanionDetail(userId)
+    if (result.code === 200 && result.data) {
+      const data = result.data
+      // 转换数据结构以适配页面
+      userData.value = {
+        id: data.userId,
+        avatar: data.avatar,
+        bgImage: 'https://picsum.photos/800/400?random=' + userId,
+        name: data.nickName,
+        level: data.level,
+        vip: data.vip,
+        signature: '陪玩师签名',
+        follows: Math.floor(Math.random() * 300),
+        fans: data.fansCount || 0,
+        likes: Math.floor(Math.random() * 1000),
+        gender: '未知',
+        age: Math.floor(Math.random() * 10) + 18,
+        height: Math.floor(Math.random() * 30) + 160,
+        region: data.location || '未知地区',
+        onlineService: data.onlineService,
+        offlineService: data.offlineService,
+        tags: data.tags || [],
+        games: data.gameIds ? data.gameIds.map(id => ({ 
+          name: '游戏' + id, 
+          level: ['王者', '大师', '钻石', '黄金', '白银'][Math.floor(Math.random() * 5)]
+        })) : [],
+        photos: Array(6).fill(0).map((_, i) => `https://picsum.photos/200/200?random=${userId * 10 + i}`),
+        price: data.price,
+        game: null
+      }
+    }
+  } catch (err) {
+    console.error('加载用户资料失败:', err)
+    error.value = '加载失败'
+  } finally {
+    loading.value = false
   }
 }
 
 const user = computed(() => {
-  const userId = route.params.id || '10001'
-  const userData = mockUsers[userId] || mockUsers['10001']
+  if (userData.value) return userData.value
+  
+  // 如果真实数据加载失败，使用简单的mock数据作为后备
+  const userId = parseInt(route.params.id) || 10001
   return {
-    ...userData,
-    game: userData.games[0]?.name || '王者荣耀',
-    price: 90,
-    offlineLocations: userData.offlineService ? ['陪玩师指定地点', '用户指定地点'] : []
+    id: userId,
+    avatar: 'https://picsum.photos/200/200?random=' + userId,
+    bgImage: 'https://picsum.photos/800/400?random=' + userId,
+    name: '用户' + userId,
+    level: Math.floor(Math.random() * 50) + 1,
+    vip: Math.random() > 0.5,
+    signature: '陪玩师签名',
+    follows: Math.floor(Math.random() * 300),
+    fans: Math.floor(Math.random() * 5000),
+    likes: Math.floor(Math.random() * 10000),
+    gender: '未知',
+    age: Math.floor(Math.random() * 10) + 18,
+    height: Math.floor(Math.random() * 30) + 160,
+    region: '未知地区',
+    onlineService: true,
+    offlineService: false,
+    tags: ['陪玩师'],
+    games: [{ name: '王者荣耀', level: '王者' }],
+    photos: Array(6).fill(0).map((_, i) => `https://picsum.photos/200/200?random=${userId * 10 + i}`),
+    price: 50
   }
 })
 
@@ -275,8 +249,12 @@ const handleReserveSubmit = (data, done) => {
   showReserveModal.value = false
 }
 
-onMounted(() => {
+onMounted(async () => {
   loadVipItems()
+  const userId = route.params.id
+  if (userId) {
+    await loadUserProfile(userId)
+  }
 })
 
 const viewPhoto = (url, index) => {
@@ -601,13 +579,13 @@ const viewPhoto = (url, index) => {
   border-radius: 16px;
 }
 
-.game-list {
+.service-list {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
 
-.game-card {
+.service-card {
   flex: 1;
   min-width: 100px;
   background: var(--gradient-primary);
@@ -616,14 +594,14 @@ const viewPhoto = (url, index) => {
   text-align: center;
 }
 
-.game-name {
+.service-name {
   font-size: 14px;
   color: white;
   font-weight: 500;
   margin-bottom: 4px;
 }
 
-.game-level {
+.service-level {
   font-size: 11px;
   color: rgba(255,255,255,0.9);
 }

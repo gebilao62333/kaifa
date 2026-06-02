@@ -68,11 +68,14 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useLoginManager } from '../composables/useLoginManager'
+import { useUserStore } from '../store/user-info'
 import { getRechargeMethods } from '../common/payMethods'
+import { toast } from '../composables/useToast'
+import { formatBalance } from '../common/common'
+import payService from '../services/payService'
 
 const router = useRouter()
-const { requireLogin } = useLoginManager()
+const userStore = useUserStore()
 
 const loadBalance = () => {
   try {
@@ -113,9 +116,7 @@ const options = ref([
   { id: 6, coins: '3280', price: '3280', tag: '', bonus: '500' },
 ])
 
-const formatAmount = (num) => {
-  return num.toFixed(2)
-}
+const formatAmount = (num) => formatBalance(num)
 
 const payMethodsList = computed(() => {
   return getRechargeMethods().filter(m => m.id !== 'balance').map(m => {
@@ -143,65 +144,54 @@ const goBack = () => {
 const doRecharge = async () => {
   if (submitting.value) return
 
-  const loginResult = await requireLogin()
-  if (!loginResult.loggedIn) {
+  if (!userStore.isLogin) {
+    toast.warning('请先登录')
+    router.push('/login')
     return
   }
 
   if (payMethod.value === 'card') {
     if (!cardCode.value.trim()) {
-      alert('请输入密卡')
+      toast.warning('请输入密卡')
       return
     }
 
     submitting.value = true
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      const validCards = [
-        { code: 'VIP123456', coins: 100 },
-        { code: 'GIFT654321', coins: 200 },
-        { code: 'TEST999999', coins: 500 },
-        { code: 'FREE100000', coins: 100 }
-      ]
-
-      const card = validCards.find(c => c.code === cardCode.value.trim().toUpperCase())
-
-      if (card) {
-        balance.value = Number(balance.value) + card.coins
+      const result = await payService.validateCard(cardCode.value.trim())
+      if (result && result.code === 200 && result.data) {
+        const card = result.data
+        balance.value = Number(balance.value) + Number(card.coins || 0)
         saveBalance()
-        alert(`充值成功！获得 ${card.coins} 金币`)
+        toast.success(`充值成功！获得 ${card.coins || 0} 金币`)
         cardCode.value = ''
       } else {
-        alert('密卡无效，充值失败')
+        toast.error('密卡无效，充值失败')
       }
     } catch (error) {
-      console.error('密卡充值错误:', error)
-      alert('网络错误，请重试')
+      toast.error('网络错误，请重试')
     } finally {
       submitting.value = false
     }
   } else if (payMethod.value === 'balance') {
     const selected = options.value.find(o => o.id === selectedId.value)
-    const costCoins = parseInt(selected.amount)
+    const costCoins = parseInt(selected.price)
 
     if (balance.value < costCoins) {
-      alert('余额不足')
+      toast.warning('余额不足，请先充值')
       return
     }
 
     submitting.value = true
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      balance.value = Number(balance.value) - costCoins + (parseInt(selected.bonus) || 0)
+      const receivedCoins = Number(selected.coins) + (parseInt(selected.bonus) || 0)
+      balance.value = Number(balance.value) - costCoins + receivedCoins
       saveBalance()
-      alert(`充值成功！花费 ${costCoins} 币，获得 ${selected.amount} 币`)
+      toast.success(`充值成功！获得 ${receivedCoins} 金币`)
     } catch (error) {
-      console.error('余额支付错误:', error)
-      alert('网络错误，请重试')
+      toast.error('网络错误，请重试')
     } finally {
       submitting.value = false
     }

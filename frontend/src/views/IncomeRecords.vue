@@ -42,6 +42,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { formatBalance } from '../common/common'
 
 const router = useRouter()
 
@@ -54,9 +55,7 @@ const records = ref([
   { icon: '🎯', title: '活动奖励', desc: '每日接单任务奖励', time: '08:00', amount: 2.00, bgColor: 'linear-gradient(135deg, #43e97b, #38f9d7)' }
 ])
 
-const formatAmount = (val) => {
-  return (val || 0).toFixed(2)
-}
+const formatAmount = (val) => formatBalance(val)
 
 const goBack = () => {
   router.back()

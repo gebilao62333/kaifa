@@ -30,12 +30,13 @@ const createPost = async (req, res) => {
 
 const getPosts = async (req, res) => {
   try {
-    const { tagId, page = 1, pageSize = 20 } = req.query;
+    const { tagId, page = 1, pageSize = 20, sortBy = 'latest' } = req.query;
     const result = await circleService.getPosts(
       req.userId,
       tagId ? parseInt(tagId) : null,
       parseInt(page),
-      parseInt(pageSize)
+      parseInt(pageSize),
+      sortBy
     );
     response.success(res, result);
   } catch (error) {

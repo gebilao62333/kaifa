@@ -25,7 +25,7 @@ const createPost = async (userId, content, images, videos, tagIds, location, vis
   };
 };
 
-const getPosts = async (userId, tagId, page, pageSize) => {
+const getPosts = async (userId, tagId, page, pageSize, sortBy = 'latest') => {
   const { offset, limit } = parseQuery({ page, pageSize });
   
   const where = {
@@ -37,11 +37,21 @@ const getPosts = async (userId, tagId, page, pageSize) => {
     where.tag_id = tagId;
   }
   
+  let order = [['create_time', 'DESC']];
+  
+  if (sortBy === 'hot') {
+    const threeDaysAgo = Math.floor(Date.now() / 1000) - 3 * 24 * 60 * 60;
+    where.create_time = { [Op.gt]: threeDaysAgo };
+    order = [[Post.literal('thumb_num + comment_num'), 'DESC'], ['create_time', 'DESC']];
+  } else if (sortBy === 'newbie') {
+    order = [['create_time', 'DESC']];
+  }
+  
   const { count, rows } = await Post.findAndCountAll({
     where,
     offset,
     limit,
-    order: [['create_time', 'DESC']]
+    order
   });
   
   const posts = await Promise.all(rows.map(async (post) => {
@@ -297,16 +307,27 @@ const getComments = async (postId, page, pageSize) => {
 };
 
 const getTags = async () => {
-  const tags = await CircleTag.findAll({
-    where: { status: 1 },
-    order: [['sortOrder', 'ASC'], ['id', 'ASC']]
-  });
-  return tags.map(tag => ({
-    id: tag.id,
-    name: tag.name,
-    icon: tag.icon,
-    sortOrder: tag.sortOrder
-  }));
+  try {
+    const tags = await CircleTag.findAll({
+      where: { status: 1 },
+      order: [['sortOrder', 'ASC'], ['id', 'ASC']]
+    });
+    return tags.map(tag => ({
+      id: tag.id,
+      name: tag.name,
+      icon: tag.icon,
+      sortOrder: tag.sortOrder
+    }));
+  } catch (error) {
+    console.warn('获取标签失败，使用降级数据:', error.message);
+    return [
+      { id: 1, name: '游戏', icon: '🎮', sortOrder: 1 },
+      { id: 2, name: '情感', icon: '💝', sortOrder: 2 },
+      { id: 3, name: '技术', icon: '💻', sortOrder: 3 },
+      { id: 4, name: '生活', icon: '🌄', sortOrder: 4 },
+      { id: 5, name: '娱乐', icon: '🎉', sortOrder: 5 }
+    ];
+  }
 };
 
 module.exports = {

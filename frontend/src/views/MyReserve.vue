@@ -234,11 +234,11 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useLoginManager } from '../composables/useLoginManager'
+import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
-const { requireLogin } = useLoginManager()
+const userStore = useUserStore()
 
 const currentTab = ref('pending')
 const showDetail = ref(false)
@@ -247,15 +247,15 @@ const showCancelModal = ref(false)
 const cancelTarget = ref(null)
 
 const defaultOrders = [
-  { id: 'RS20240520001', type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'pending', statusText: '待确认', avatar: 'https://picsum.photos/100/100?random=101', name: '小明同学', isVip: true, gameName: '王者荣耀', gameIcon: '🎮', date: '2024-05-22', time: '14:00-16:00', duration: '2小时', durationHours: 2, location: '王者荣耀', price: 88, createTime: Date.now() - 7200000, countdown: 1800 },
-  { id: 'RS20240520002', type: 'offline', typeText: '线下陪玩', typeIcon: '🏠', status: 'confirmed', statusText: '已确认', avatar: 'https://picsum.photos/100/100?random=102', name: '游戏达人', isVip: false, gameName: '和平精英', gameIcon: '🔫', date: '2024-05-25', time: '18:00-20:00', duration: '2小时', durationHours: 2, location: '北京市朝阳区 XX 网咖', price: 288, createTime: Date.now() - 86400000, countdown: null },
-  { id: 'RS20240520003', type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'ongoing', statusText: '进行中', avatar: 'https://picsum.photos/100/100?random=103', name: '绝地枪神', isVip: false, gameName: 'CS2', gameIcon: '🎯', date: '2024-05-21', time: '16:00-18:00', duration: '2小时', durationHours: 2, location: 'CS2', price: 96, createTime: Date.now() - 86400000, countdown: null },
-  { id: 'RS20240520004', type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'pending', statusText: '待确认', avatar: 'https://picsum.photos/100/100?random=104', name: '王者大神', isVip: false, gameName: '英雄联盟', gameIcon: '⚔️', date: '2024-05-23', time: '19:00-21:00', duration: '2小时', durationHours: 2, location: '英雄联盟', price: 99, createTime: Date.now() - 3600000, countdown: 3600 },
-  { id: 'RS20240520005', type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'finished', statusText: '已完成', avatar: 'https://picsum.photos/100/100?random=105', name: '吃鸡狂魔', isVip: true, gameName: '永劫无间', gameIcon: '🗡️', date: '2024-05-20', time: '15:00-17:00', duration: '2小时', durationHours: 2, location: '永劫无间', price: 120, createTime: Date.now() - 172800000, countdown: null },
-  { id: 'RS20240520006', type: 'offline', typeText: '线下陪玩', typeIcon: '🏠', status: 'cancelled', statusText: '已取消', avatar: 'https://picsum.photos/100/100?random=106', name: '剧本杀达人', isVip: false, gameName: '剧本杀', gameIcon: '🎭', date: '2024-05-22', time: '14:00-17:00', duration: '3小时', durationHours: 3, location: '上海市静安区 XX 剧本杀店', price: 256, createTime: Date.now() - 259200000, countdown: null },
-  { id: 'RS20240520007', type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'finished', statusText: '已完成', avatar: 'https://picsum.photos/100/100?random=107', name: '声优陪玩', isVip: true, gameName: '原神', gameIcon: '✨', date: '2024-05-19', time: '20:00-22:30', duration: '2.5小时', durationHours: 2.5, location: '原神', price: 110, createTime: Date.now() - 259200000, countdown: null },
-  { id: 'RS20240520008', type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'waiting', statusText: '待服务', avatar: 'https://picsum.photos/100/100?random=108', name: '云顶高手', isVip: true, gameName: '云顶之弈', gameIcon: '♟️', date: '2024-05-24', time: '21:00-23:00', duration: '2小时', durationHours: 2, location: '云顶之弈', price: 78, createTime: Date.now() - 5400000, countdown: null },
-  { id: 'RS20240520009', type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'pending', statusText: '待确认', avatar: 'https://picsum.photos/100/100?random=109', name: '带飞大神', isVip: true, gameName: '王者荣耀', gameIcon: '🎮', date: '2024-05-27', time: '20:00-22:30', duration: '2.5小时', durationHours: 2.5, location: '王者荣耀', price: 110, createTime: Date.now() - 1800000, countdown: 5400 }
+  { id: 'RS20240520001', companionUserId: 101, type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'pending', statusText: '待确认', avatar: 'https://picsum.photos/100/100?random=101', name: '小明同学', isVip: true, gameName: '王者荣耀', gameIcon: '🎮', date: '2024-05-22', time: '14:00-16:00', duration: '2小时', durationHours: 2, location: '王者荣耀', price: 88, createTime: Date.now() - 7200000, countdown: 1800 },
+  { id: 'RS20240520002', companionUserId: 102, type: 'offline', typeText: '线下陪玩', typeIcon: '🏠', status: 'confirmed', statusText: '已确认', avatar: 'https://picsum.photos/100/100?random=102', name: '游戏达人', isVip: false, gameName: '和平精英', gameIcon: '🔫', date: '2024-05-25', time: '18:00-20:00', duration: '2小时', durationHours: 2, location: '北京市朝阳区 XX 网咖', price: 288, createTime: Date.now() - 86400000, countdown: null },
+  { id: 'RS20240520003', companionUserId: 103, type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'ongoing', statusText: '进行中', avatar: 'https://picsum.photos/100/100?random=103', name: '绝地枪神', isVip: false, gameName: 'CS2', gameIcon: '🎯', date: '2024-05-21', time: '16:00-18:00', duration: '2小时', durationHours: 2, location: 'CS2', price: 96, createTime: Date.now() - 86400000, countdown: null },
+  { id: 'RS20240520004', companionUserId: 104, type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'pending', statusText: '待确认', avatar: 'https://picsum.photos/100/100?random=104', name: '王者大神', isVip: false, gameName: '英雄联盟', gameIcon: '⚔️', date: '2024-05-23', time: '19:00-21:00', duration: '2小时', durationHours: 2, location: '英雄联盟', price: 99, createTime: Date.now() - 3600000, countdown: 3600 },
+  { id: 'RS20240520005', companionUserId: 105, type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'finished', statusText: '已完成', avatar: 'https://picsum.photos/100/100?random=105', name: '吃鸡狂魔', isVip: true, gameName: '永劫无间', gameIcon: '🗡️', date: '2024-05-20', time: '15:00-17:00', duration: '2小时', durationHours: 2, location: '永劫无间', price: 120, createTime: Date.now() - 172800000, countdown: null },
+  { id: 'RS20240520006', companionUserId: 106, type: 'offline', typeText: '线下陪玩', typeIcon: '🏠', status: 'cancelled', statusText: '已取消', avatar: 'https://picsum.photos/100/100?random=106', name: '剧本杀达人', isVip: false, gameName: '剧本杀', gameIcon: '🎭', date: '2024-05-22', time: '14:00-17:00', duration: '3小时', durationHours: 3, location: '上海市静安区 XX 剧本杀店', price: 256, createTime: Date.now() - 259200000, countdown: null },
+  { id: 'RS20240520007', companionUserId: 107, type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'finished', statusText: '已完成', avatar: 'https://picsum.photos/100/100?random=107', name: '声优陪玩', isVip: true, gameName: '原神', gameIcon: '✨', date: '2024-05-19', time: '20:00-22:30', duration: '2.5小时', durationHours: 2.5, location: '原神', price: 110, createTime: Date.now() - 259200000, countdown: null },
+  { id: 'RS20240520008', companionUserId: 108, type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'waiting', statusText: '待服务', avatar: 'https://picsum.photos/100/100?random=108', name: '云顶高手', isVip: true, gameName: '云顶之弈', gameIcon: '♟️', date: '2024-05-24', time: '21:00-23:00', duration: '2小时', durationHours: 2, location: '云顶之弈', price: 78, createTime: Date.now() - 5400000, countdown: null },
+  { id: 'RS20240520009', companionUserId: 109, type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'pending', statusText: '待确认', avatar: 'https://picsum.photos/100/100?random=109', name: '带飞大神', isVip: true, gameName: '王者荣耀', gameIcon: '🎮', date: '2024-05-27', time: '20:00-22:30', duration: '2.5小时', durationHours: 2.5, location: '王者荣耀', price: 110, createTime: Date.now() - 1800000, countdown: 5400 }
 ]
 
 const loadOrders = () => {
@@ -348,8 +348,10 @@ const confirmCancel = () => {
 }
 
 const confirmOrder = async (order) => {
-  const loginResult = await requireLogin()
-  if (!loginResult.loggedIn) return
+  if (!userStore.isLogin) {
+    toast.warning('请先登录')
+    return
+  }
   const idx = findIndex(order)
   if (idx > -1) {
     orders.value[idx].status = 'waiting'
@@ -381,9 +383,17 @@ const finishService = (order) => {
 }
 
 const contactUser = async (order) => {
-  const loginResult = await requireLogin()
-  if (!loginResult.loggedIn) return
-  router.push(`/chat-room/${order.id}`)
+  if (!userStore.isLogin) {
+    toast.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  const targetId = order.companionUserId
+  if (!targetId) {
+    toast.warning('无法获取陪玩师信息')
+    return
+  }
+  router.push(`/chat-room/${targetId}`)
 }
 
 const viewOrderDetail = (order) => {

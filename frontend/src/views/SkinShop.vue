@@ -3,9 +3,10 @@
     <div class="header">
       <span class="back-btn" @click="goBack">←</span>
       <span class="title">装扮商城</span>
-      <span class="balance-display">
-        <span class="balance-icon">💰</span>
-        <span class="balance-value">{{ userBalance }}</span>
+      <span class="balance-display" @click="goRecharge">
+        <span class="balance-value">{{ formattedBalance }}</span>
+        <span class="balance-unit">金币</span>
+        <span class="recharge-hint">充值</span>
       </span>
     </div>
 
@@ -26,7 +27,7 @@
           <div class="skin-tag" v-if="item.using">使用中</div>
           <div class="skin-tag owned-tag" v-else-if="item.owned">已拥有</div>
           <div class="skin-price" v-else-if="!item.vipOnly">
-            <span class="price-icon">💰</span>
+            <span class="price-icon">金币</span>
             <span>{{ item.price }}</span>
           </div>
           <div class="skin-price vip-price" v-else>
@@ -45,7 +46,7 @@
           <div class="skin-tag" v-if="item.using">使用中</div>
           <div class="skin-tag owned-tag" v-else-if="item.owned">已拥有</div>
           <div class="skin-price" v-else-if="!item.vipOnly">
-            <span class="price-icon">💰</span>
+            <span class="price-icon">金币</span>
             <span>{{ item.price }}</span>
           </div>
           <div class="skin-price vip-price" v-else>
@@ -63,7 +64,7 @@
           <div class="skin-tag" v-if="item.using">使用中</div>
           <div class="skin-tag owned-tag" v-else-if="item.owned">已拥有</div>
           <div class="skin-price" v-else-if="!item.vipOnly">
-            <span class="price-icon">💰</span>
+            <span class="price-icon">金币</span>
             <span>{{ item.price }}</span>
           </div>
           <div class="skin-price vip-price" v-else>
@@ -82,7 +83,7 @@
           <div class="skin-tag" v-if="item.using">使用中</div>
           <div class="skin-tag owned-tag" v-else-if="item.owned">已拥有</div>
           <div class="skin-price" v-else-if="!item.vipOnly">
-            <span class="price-icon">💰</span>
+            <span class="price-icon">金币</span>
             <span>{{ item.price }}</span>
           </div>
           <div class="skin-price vip-price" v-else>
@@ -97,14 +98,44 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { host } from '../common/config'
 
 const router = useRouter()
 
-const userBalance = ref(12800)
+const userBalance = ref(0)
 const demoAvatar = ref('https://picsum.photos/200/200')
 const activeTab = ref('frame')
+
+const fetchBalance = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    const res = await fetch(`${host}/api/pay/wallet/balance`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    const result = await res.json()
+    if (result.code === 200 && result.data) {
+      userBalance.value = result.data.balance || 0
+    }
+  } catch (err) {
+    console.debug('后端服务未启动，使用缓存值')
+  }
+}
+
+const formattedBalance = computed(() => {
+  const num = userBalance.value
+  if (num >= 10000) {
+    return (num / 10000).toFixed(1) + '万'
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K'
+  }
+  return num.toLocaleString()
+})
+
+const goRecharge = () => {
+  router.push('/recharge')
+}
 
 const toast = reactive({ show: false, message: '' })
 
@@ -232,11 +263,14 @@ const goBack = () => {
   router.back()
 }
 
-loadData()
-syncData(frameList.value, 'frame')
-syncData(badgeList.value, 'badge')
-syncData(bubbleList.value, 'bubble')
-syncData(themeList.value, 'theme')
+onMounted(async () => {
+  await fetchBalance()
+  loadData()
+  syncData(frameList.value, 'frame')
+  syncData(badgeList.value, 'badge')
+  syncData(bubbleList.value, 'bubble')
+  syncData(themeList.value, 'theme')
+})
 </script>
 
 <style scoped>
@@ -284,20 +318,58 @@ syncData(themeList.value, 'theme')
 .balance-display {
   display: flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 6px 14px;
-  border-radius: 10px;
+  gap: 4px;
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.3), rgba(255, 140, 0, 0.2));
+  padding: 8px 16px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2);
+  border: 1px solid rgba(255, 215, 0, 0.3);
 }
 
-.balance-icon {
-  font-size: 16px;
+.balance-display:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 16px rgba(255, 215, 0, 0.4);
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.4), rgba(255, 140, 0, 0.3));
+}
+
+.balance-display:active {
+  transform: scale(0.98);
 }
 
 .balance-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffd700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.balance-unit {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  margin-left: 2px;
+}
+
+.recharge-hint {
+  font-size: 12px;
+  color: #fff;
+  background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 6px;
+  font-weight: 500;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .tabs {
@@ -424,7 +496,10 @@ syncData(themeList.value, 'theme')
 }
 
 .price-icon {
-  font-size: 14px;
+  font-size: 12px;
+  color: #ffd700;
+  font-weight: 500;
+  margin-right: 2px;
 }
 
 .skin-price.vip-price {

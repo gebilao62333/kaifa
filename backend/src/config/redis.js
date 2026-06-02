@@ -4,6 +4,63 @@ const config = require('./index');
 let redisClient = null;
 let isCluster = false;
 
+const createMockRedis = () => {
+  console.log('📦 使用 Mock Redis 模式');
+  const mockStorage = {};
+  return {
+    get: async (key) => mockStorage[key] || null,
+    set: async (key, value, options) => {
+      mockStorage[key] = value;
+      if (options?.EX) {
+        setTimeout(() => delete mockStorage[key], options.EX * 1000);
+      }
+      return 'OK';
+    },
+    del: async (key) => {
+      const existed = mockStorage[key] !== undefined;
+      delete mockStorage[key];
+      return existed ? 1 : 0;
+    },
+    exists: async (key) => mockStorage[key] !== undefined ? 1 : 0,
+    expire: async (key, seconds) => {
+      if (mockStorage[key] !== undefined) {
+        setTimeout(() => delete mockStorage[key], seconds * 1000);
+        return 1;
+      }
+      return 0;
+    },
+    disconnect: async () => {},
+    hget: async (key, field) => {
+      const hash = mockStorage[key];
+      return hash && hash[field] ? hash[field] : null;
+    },
+    hset: async (key, field, value) => {
+      if (!mockStorage[key]) mockStorage[key] = {};
+      mockStorage[key][field] = value;
+      return 1;
+    },
+    hgetall: async (key) => mockStorage[key] || {},
+    incr: async (key) => {
+      mockStorage[key] = (mockStorage[key] || 0) + 1;
+      return mockStorage[key];
+    },
+    decr: async (key) => {
+      mockStorage[key] = (mockStorage[key] || 0) - 1;
+      return mockStorage[key];
+    },
+    ttl: async (key) => mockStorage[key] !== undefined ? -1 : -2,
+    keys: async (pattern) => {
+      const regex = new RegExp(pattern.replace('*', '.*'));
+      return Object.keys(mockStorage).filter(k => regex.test(k));
+    },
+    flushAll: async () => {
+      Object.keys(mockStorage).forEach(k => delete mockStorage[k]);
+    },
+    ping: async () => 'PONG',
+    on: () => {}
+  };
+};
+
 const retryConnection = async (fn, retries = 3, delay = 2000) => {
   for (let i = 0; i < retries; i++) {
     try {
@@ -19,59 +76,8 @@ const retryConnection = async (fn, retries = 3, delay = 2000) => {
 };
 
 const connectRedis = async () => {
-  if (config.useMockDb) {
-    console.log('📦 Mock Redis 模式');
-    const mockStorage = {};
-    redisClient = {
-      get: async (key) => mockStorage[key] || null,
-      set: async (key, value, options) => {
-        mockStorage[key] = value;
-        if (options?.EX) {
-          setTimeout(() => delete mockStorage[key], options.EX * 1000);
-        }
-        return 'OK';
-      },
-      del: async (key) => {
-        const existed = mockStorage[key] !== undefined;
-        delete mockStorage[key];
-        return existed ? 1 : 0;
-      },
-      exists: async (key) => mockStorage[key] !== undefined ? 1 : 0,
-      expire: async (key, seconds) => {
-        if (mockStorage[key] !== undefined) {
-          setTimeout(() => delete mockStorage[key], seconds * 1000);
-          return 1;
-        }
-        return 0;
-      },
-      disconnect: async () => {},
-      hget: async (key, field) => {
-        const hash = mockStorage[key];
-        return hash && hash[field] ? hash[field] : null;
-      },
-      hset: async (key, field, value) => {
-        if (!mockStorage[key]) mockStorage[key] = {};
-        mockStorage[key][field] = value;
-        return 1;
-      },
-      hgetall: async (key) => mockStorage[key] || {},
-      incr: async (key) => {
-        mockStorage[key] = (mockStorage[key] || 0) + 1;
-        return mockStorage[key];
-      },
-      decr: async (key) => {
-        mockStorage[key] = (mockStorage[key] || 0) - 1;
-        return mockStorage[key];
-      },
-      ttl: async (key) => mockStorage[key] !== undefined ? -1 : -2,
-      keys: async (pattern) => {
-        const regex = new RegExp(pattern.replace('*', '.*'));
-        return Object.keys(mockStorage).filter(k => regex.test(k));
-      },
-      flushAll: async () => {
-        Object.keys(mockStorage).forEach(k => delete mockStorage[k]);
-      }
-    };
+  if (config.useMockDb || config.db.type === 'sqlite') {
+    redisClient = createMockRedis();
     return redisClient;
   }
   
@@ -117,7 +123,9 @@ const connectRedis = async () => {
     return redisClient;
   } catch (error) {
     console.error('Redis connection error:', error);
-    return null;
+    console.log('📦 降级到 Mock Redis 模式');
+    redisClient = createMockRedis();
+    return redisClient;
   }
 };
 

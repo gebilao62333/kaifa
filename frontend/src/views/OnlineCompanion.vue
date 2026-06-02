@@ -94,6 +94,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { generateMockOnlineCompanions } from '../common/mockData'
 
 const router = useRouter()
 
@@ -142,116 +143,7 @@ const goToUserProfile = (userId) => {
 const loadCompanions = () => {
   loading.value = true
   setTimeout(() => {
-    companions.value = [
-      {
-        userId: 1001,
-        nickName: '王者大神小明',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=online1',
-        location: '北京',
-        level: 28,
-        fansCount: 5200,
-        price: 88,
-        tags: ['技术流', '幽默', '上分快'],
-        totalOrders: 1256,
-        rating: 4.9,
-        ratingCount: 328,
-        online: true,
-        serviceType: 'online',
-        vip: true,
-        vipLevel: 3,
-        games: ['王者荣耀', '英雄联盟']
-      },
-      {
-        userId: 1002,
-        nickName: '萌妹陪玩小雪',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=online2',
-        location: '上海',
-        level: 16,
-        fansCount: 3800,
-        price: 66,
-        tags: ['声音甜', '可爱', '娱乐'],
-        totalOrders: 892,
-        rating: 4.8,
-        ratingCount: 256,
-        online: true,
-        serviceType: 'both',
-        vip: true,
-        vipLevel: 2,
-        games: ['和平精英', '原神']
-      },
-      {
-        userId: 1003,
-        nickName: '战神阿杰',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=online3',
-        location: '广州',
-        level: 35,
-        fansCount: 8600,
-        price: 128,
-        tags: ['职业选手', '带飞', '高效'],
-        totalOrders: 3421,
-        rating: 4.95,
-        ratingCount: 892,
-        online: true,
-        serviceType: 'online',
-        vip: true,
-        vipLevel: 5,
-        games: ['CS2', '永劫无间', '王者荣耀']
-      },
-      {
-        userId: 1004,
-        nickName: '电竞少女柚子',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=online4',
-        location: '成都',
-        level: 22,
-        fansCount: 4500,
-        price: 78,
-        tags: ['全能', '颜值高', '互动好'],
-        totalOrders: 1856,
-        rating: 4.85,
-        ratingCount: 445,
-        online: true,
-        serviceType: 'both',
-        vip: true,
-        vipLevel: 3,
-        games: ['王者荣耀', '原神', '和平精英']
-      },
-      {
-        userId: 1005,
-        nickName: '打野小王子',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=online5',
-        location: '深圳',
-        level: 30,
-        fansCount: 6200,
-        price: 99,
-        tags: ['野王', '节奏大师', '意识流'],
-        totalOrders: 2134,
-        rating: 4.9,
-        ratingCount: 567,
-        online: false,
-        serviceType: 'online',
-        vip: true,
-        vipLevel: 4,
-        games: ['英雄联盟', '王者荣耀']
-      },
-      {
-        userId: 1006,
-        nickName: '吃鸡小甜心',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=online6',
-        location: '杭州',
-        level: 18,
-        fansCount: 2800,
-        price: 58,
-        tags: ['温柔', '聊天', '陪伴'],
-        totalOrders: 678,
-        rating: 4.7,
-        ratingCount: 189,
-        online: true,
-        serviceType: 'online',
-        vip: false,
-        vipLevel: 0,
-        games: ['和平精英', '原神']
-      }
-    ]
+    companions.value = generateMockOnlineCompanions(50)
     loading.value = false
   }, 500)
 }

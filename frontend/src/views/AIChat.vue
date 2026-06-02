@@ -74,12 +74,13 @@
 <script setup>
 import { ref, onMounted, nextTick, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { useLoginManager } from '../composables/useLoginManager'
+import { useUserStore } from '../store/user-info'
+import { toast } from '../composables/useToast'
 import { virtualUserService } from '../services/virtualUserService'
 
 const router = useRouter()
 const route = useRoute()
-const { requireLogin } = useLoginManager()
+const userStore = useUserStore()
 
 const chatUser = ref({
   id: route.params.id,
@@ -149,10 +150,7 @@ const sendMessage = async () => {
   const text = inputText.value.trim()
   if (!text || sending.value) return
 
-  const loginResult = await requireLogin()
-  if (!loginResult.loggedIn) {
-    return
-  }
+  if (!userStore.isLogin) { toast.warning('请先登录'); router.push('/login'); return }
 
   inputText.value = ''
   messages.value.push({

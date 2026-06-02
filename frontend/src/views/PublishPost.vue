@@ -184,13 +184,14 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useLoginManager } from '../composables/useLoginManager'
+import { useUserStore } from '../store/user-info'
 import { useToast } from '../composables/useToast'
 import circleService from '../services/circleService'
 import uploadService from '../services/uploadService'
+import { popularLocations } from '../common/regionData'
 
 const router = useRouter()
-const { requireLogin } = useLoginManager()
+const userStore = useUserStore()
 const { showToast } = useToast()
 
 const content = ref('')
@@ -212,24 +213,12 @@ const availableTopics = ref([
   '美妆', '穿搭', '萌宠', '科技', '电竞', '社交', '情感', '职场'
 ])
 
-const popularLocations = ref([
-  '北京市·朝阳区', '北京市·海淀区', '北京市·东城区', '北京市·西城区',
-  '上海市·浦东新区', '上海市·黄浦区', '上海市·静安区', '上海市·徐汇区',
-  '广州市·天河区', '广州市·越秀区', '广州市·海珠区',
-  '深圳市·南山区', '深圳市·福田区', '深圳市·龙岗区',
-  '杭州市·西湖区', '杭州市·滨江区', '杭州市·余杭区',
-  '成都市·锦江区', '成都市·武侯区', '成都市·高新区',
-  '重庆市·渝北区', '重庆市·江北区', '重庆市·渝中区',
-  '武汉市·洪山区', '武汉市·武昌区', '武汉市·江汉区',
-  '西安市·雁塔区', '西安市·碑林区', '西安市·新城区',
-  '南京市·鼓楼区', '南京市·玄武区', '南京市·秦淮区',
-  '长沙市·岳麓区', '长沙市·芙蓉区', '长沙市·天心区'
-])
+const popularLocationsData = ref(popularLocations)
 
 const filteredLocations = computed(() => {
-  if (!locationSearch.value) return popularLocations.value
+  if (!locationSearch.value) return popularLocationsData.value
   const search = locationSearch.value.toLowerCase()
-  return popularLocations.value.filter(loc => loc.toLowerCase().includes(search))
+  return popularLocationsData.value.filter(loc => loc.toLowerCase().includes(search))
 })
 
 const goBack = () => {
@@ -365,11 +354,8 @@ const publish = async () => {
     return
   }
 
-  const loginResult = await requireLogin()
-  if (!loginResult.loggedIn) {
-    return
-  }
-  
+  if (!userStore.isLogin) { showToast('请先登录', 'warning'); router.push('/login'); return }
+
   if (visibility.value === 'password' && !viewPassword.value.trim()) {
     showToast('请输入查看密码', 'warning')
     return

@@ -37,9 +37,8 @@
         <div class="service-and-level">
           <div class="companion-service">
             <span class="service-label">服务：</span>
-            <span class="service-tag" v-if="item.serviceType === 'both'">线上/线下</span>
-            <span class="service-tag" v-else-if="item.serviceType === 'online'">线上陪玩</span>
-            <span class="service-tag" v-else-if="item.serviceType === 'offline'">线下陪玩</span>
+            <span class="service-tag" v-if="item.onlineService">线上服务</span>
+            <span class="service-tag" v-if="item.offlineService">线下服务</span>
           </div>
           <div class="companion-level" v-if="item.level">Lv.{{ item.level }}</div>
         </div>

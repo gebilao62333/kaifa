@@ -42,7 +42,8 @@ export const toast = {
 export function useToast() {
   return {
     state: readonly(state),
-    toast
+    toast,
+    showToast: toast.show.bind(toast)
   }
 }
 

@@ -194,7 +194,7 @@ const loadPostData = async () => {
     }
 
     // 尝试从API获取完整数据
-    const postId = route.params.id || postData.value.postId
+    const postId = Number(route.params.id) || postData.value.postId
     if (postId) {
       const res = await circleService.getPostDetail(postId)
       if (res && res.code === 200 && res.data) {

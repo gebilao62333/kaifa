@@ -139,10 +139,11 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useLoginManager } from '../composables/useLoginManager'
+import { useUserStore } from '../store/user-info'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
-const { requireLogin } = useLoginManager()
+const userStore = useUserStore()
 
 const activeTab = ref('all')
 const loading = ref(false)
@@ -305,12 +306,8 @@ const goUserProfile = (item) => {
 }
 
 const applyOrder = async (item) => {
-  const loginResult = await requireLogin()
-  if (!loginResult.loggedIn) {
-    return
-  }
-  
-  console.log('接单:', item.id)
+  if (!userStore.isLogin) { toast.warning('请先登录'); router.push('/login'); return }
+
   item.status = 'closed'
   item.applyCount++
   closeOrderDetail()

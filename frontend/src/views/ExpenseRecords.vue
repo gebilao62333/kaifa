@@ -53,9 +53,7 @@ const records = ref([
   { icon: '🔒', title: '解锁勋章', desc: '开通月度勋章', time: '09:00', amount: 3.00, bgColor: 'linear-gradient(135deg, #ffecd2, #fcb69f)' }
 ])
 
-const formatAmount = (val) => {
-  return (val || 0).toFixed(2)
-}
+const formatAmount = (val) => formatBalance(val)
 
 const goBack = () => {
   router.back()

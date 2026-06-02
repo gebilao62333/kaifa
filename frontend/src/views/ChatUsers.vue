@@ -63,6 +63,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import homeService from '../services/homeService'
 import { toast } from '../composables/useToast'
+import { generateMockChatUsers } from '../common/mockData'
 
 const router = useRouter()
 const activeTab = ref('online')
@@ -136,28 +137,19 @@ const loadUsers = async () => {
 }
 
 const useMockData = () => {
-    allUsers.value = [
-      {
-        userId: 1, nickName: '小雪', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=girl1',
-        gender: 'female', level: 28, online: true, isVip: true, isNewbie: false, activityScore: 95,
-        tags: ['温柔', '甜音', '技术好'], region: '北京'
-      },
-      {
-        userId: 2, nickName: '阿杰', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=boy1',
-        gender: 'male', level: 35, online: true, isVip: false, isNewbie: false, activityScore: 88,
-        tags: ['打野', '带飞', '幽默'], region: '上海'
-      },
-      {
-        userId: 3, nickName: '小美', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=girl2',
-        gender: 'female', level: 22, online: false, isVip: true, isNewbie: true, activityScore: 45,
-        tags: ['娱乐', '聊天', '唱歌'], region: '广州'
-      },
-      {
-        userId: 4, nickName: '大飞', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=boy2',
-        gender: 'male', level: 42, online: true, isVip: true, isNewbie: false, activityScore: 100,
-        tags: ['技术陪', '上分', '教学'], region: '深圳'
-      }
-    ]
+  allUsers.value = generateMockChatUsers(50).map(user => ({
+    userId: user.userId,
+    nickName: user.nickName,
+    avatar: user.avatar,
+    gender: user.gender,
+    level: user.level,
+    online: user.online,
+    isVip: user.isVip,
+    isNewbie: user.isNewbie,
+    activityScore: user.activityScore,
+    tags: user.tags,
+    region: user.region
+  }))
 }
 
 const switchTab = (tabKey) => {
@@ -232,12 +224,13 @@ onMounted(() => {
 .category-tabs {
   display: flex;
   background: var(--bg-primary);
-  padding: 62px 12px 0;
+  padding: 10px 12px 73px;
   overflow-x: auto;
   gap: 8px;
   height: 70px;
   width: 100%;
   box-sizing: border-box;
+  margin-top: 60px;
 }
 
 .tab-item {
@@ -248,12 +241,7 @@ onMounted(() => {
   gap: 4px;
   padding: 8px 16px 12px;
   cursor: pointer;
-  border-bottom: 3px solid transparent;
   transition: all 0.2s;
-}
-
-.tab-item.active {
-  border-bottom-color: var(--primary-color);
 }
 
 .tab-item.active .tab-label {

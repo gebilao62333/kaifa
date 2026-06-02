@@ -242,9 +242,19 @@ const loadRecommendCompanions = async (reset = false) => {
     })
 
     if (result.code === 200 && result.data) {
-      const list = result.data.list || result.data
+      let list = result.data.list || result.data
+      // 转换数据结构，确保有正确的服务字段
+      list = list.map(item => ({
+        ...item,
+        onlineService: item.onlineService !== undefined ? item.onlineService : (item.serviceType === 'online' || item.serviceType === 'both'),
+        offlineService: item.offlineService !== undefined ? item.offlineService : (item.serviceType === 'offline' || item.serviceType === 'both')
+      }))
       if (list.length > 0) {
-        const adminUsers = reset ? getAdminRecommendUsers() : []
+        const adminUsers = reset ? getAdminRecommendUsers().map(u => ({
+          ...u,
+          onlineService: u.onlineService !== undefined ? u.onlineService : (u.serviceType === 'online' || u.serviceType === 'both'),
+          offlineService: u.offlineService !== undefined ? u.offlineService : (u.serviceType === 'offline' || u.serviceType === 'both')
+        })) : []
         recommendList.value = [...adminUsers, ...recommendList.value, ...list]
         currentPage.value++
         hasMore.value = list.length >= 10
@@ -255,8 +265,16 @@ const loadRecommendCompanions = async (reset = false) => {
   } catch (error) {
     console.error('加载推荐失败:', error)
     console.log('使用mock数据展示推荐陪玩师')
-    const adminUsers = reset ? getAdminRecommendUsers() : []
-    const mockData = getMockCompanions()
+    const adminUsers = reset ? getAdminRecommendUsers().map(u => ({
+      ...u,
+      onlineService: u.onlineService !== undefined ? u.onlineService : (u.serviceType === 'online' || u.serviceType === 'both'),
+      offlineService: u.offlineService !== undefined ? u.offlineService : (u.serviceType === 'offline' || u.serviceType === 'both')
+    })) : []
+    const mockData = getMockCompanions().map(u => ({
+      ...u,
+      onlineService: u.onlineService !== undefined ? u.onlineService : (u.serviceType === 'online' || u.serviceType === 'both'),
+      offlineService: u.offlineService !== undefined ? u.offlineService : (u.serviceType === 'offline' || u.serviceType === 'both')
+    }))
     recommendList.value = [...adminUsers, ...recommendList.value, ...mockData]
     hasMore.value = false
   } finally {
@@ -296,13 +314,21 @@ onMounted(async () => {
   } catch (error) {
     console.error('加载首页数据失败:', error)
     
-    const adminUsers = getAdminRecommendUsers()
+    const adminUsers = getAdminRecommendUsers().map(u => ({
+      ...u,
+      onlineService: u.onlineService !== undefined ? u.onlineService : (u.serviceType === 'online' || u.serviceType === 'both'),
+      offlineService: u.offlineService !== undefined ? u.offlineService : (u.serviceType === 'offline' || u.serviceType === 'both')
+    }))
     const fallbackUsers = adminUsers.length ? adminUsers : [
-      { userId: 1, nickName: '小雪', avatar: 'https://picsum.photos/200/200', level: 28, tags: ['温柔', '甜音', '技术好'], price: 58, online: true, location: '北京', serviceType: 'both', vip: true, vipLevel: 2 },
-      { userId: 2, nickName: '阿杰', avatar: 'https://picsum.photos/200/200', level: 35, tags: ['打野', '带飞', '幽默'], price: 65, online: true, location: '上海', serviceType: 'online', vip: true, vipLevel: 3 },
-      { userId: 3, nickName: '小美', avatar: 'https://picsum.photos/200/200', level: 22, tags: ['娱乐', '聊天', '唱歌'], price: 45, online: false, location: '广州', serviceType: 'offline', vip: false },
-      { userId: 4, nickName: '大飞', avatar: 'https://picsum.photos/200/200', level: 42, tags: ['技术陪', '上分', '教学'], price: 78, online: true, location: '深圳', serviceType: 'both', vip: true, vipLevel: 4 }
-    ]
+      { userId: 1, nickName: '小雪', avatar: 'https://picsum.photos/200/200', level: 28, tags: ['温柔', '甜音', '技术好'], price: 58, online: true, location: '北京', onlineService: true, offlineService: true, vip: true, vipLevel: 2 },
+      { userId: 2, nickName: '阿杰', avatar: 'https://picsum.photos/200/200', level: 35, tags: ['打野', '带飞', '幽默'], price: 65, online: true, location: '上海', onlineService: true, offlineService: false, vip: true, vipLevel: 3 },
+      { userId: 3, nickName: '小美', avatar: 'https://picsum.photos/200/200', level: 22, tags: ['娱乐', '聊天', '唱歌'], price: 45, online: false, location: '广州', onlineService: false, offlineService: true, vip: false },
+      { userId: 4, nickName: '大飞', avatar: 'https://picsum.photos/200/200', level: 42, tags: ['技术陪', '上分', '教学'], price: 78, online: true, location: '深圳', onlineService: true, offlineService: true, vip: true, vipLevel: 4 }
+    ].map(u => ({
+      ...u,
+      onlineService: u.onlineService !== undefined ? u.onlineService : (u.serviceType === 'online' || u.serviceType === 'both'),
+      offlineService: u.offlineService !== undefined ? u.offlineService : (u.serviceType === 'offline' || u.serviceType === 'both')
+    }))
     recommendList.value = fallbackUsers
     loadingCompanions.value = false
   }

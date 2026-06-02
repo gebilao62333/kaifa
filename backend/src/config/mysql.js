@@ -1,5 +1,6 @@
 const { Sequelize } = require('sequelize');
 const config = require('./index');
+const path = require('path');
 
 let sequelize;
 
@@ -29,6 +30,24 @@ if (config.useMockDb) {
       return Promise.resolve();
     },
     define: () => ({ sync: async () => {} })
+  };
+} else if (config.db.type === 'sqlite') {
+  console.log('📦 使用 SQLite 数据库模式');
+  const dbPath = path.resolve(__dirname, '../..', config.db.sqlite.path);
+  
+  sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: dbPath,
+    logging: config.nodeEnv === 'development' ? (msg) => console.log(`[SQL] ${msg}`) : false,
+    define: {
+      timestamps: false,
+      underscored: true,
+      freezeTableName: true
+    }
+  });
+
+  sequelize.authenticateWithRetry = async () => {
+    return retryConnection(() => sequelize.authenticate());
   };
 } else {
   sequelize = new Sequelize(

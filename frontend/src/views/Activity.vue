@@ -16,12 +16,6 @@
             </div>
             <div 
               class="tag-item" 
-              :class="{ active: activeTag === -1 }" 
-              @click="onTagClick(-1)">
-              <span>最新</span>
-            </div>
-            <div 
-              class="tag-item" 
               :class="{ active: activeTag === tag.id }" 
               v-for="tag in tagList" 
               :key="tag.id"
@@ -32,77 +26,130 @@
         </div>
 
         <div class="feed-list">
-          <div class="feed-card" v-for="(item, index) in feedList" :key="index">
-            <div class="feed-user" @click="goUserProfile(item)">
-              <img class="user-avatar" :src="item.avatar" alt="" />
-              <div class="user-info">
-                <div class="user-name-row">
-                  <span class="user-name">{{ item.nickName }}</span>
-                  <span class="user-level" v-if="item.level">Lv.{{ item.level }}</span>
-                  <span class="vip-tag" v-if="item.vip">VIP</span>
-                  <span class="recommend-badge" v-if="item.isSystemRecommend">推荐</span>
-                </div>
-                <span class="feed-time">{{ formatTime(item.createTime) }}</span>
+          <div 
+            class="feed-item" 
+            v-for="item in feedList" 
+            :key="item.postId"
+            @click="goDetail(item)">
+            <div class="feed-header">
+              <div class="avatar-wrapper" @click.stop="goUserProfile(item)">
+                <img :src="item.avatar" class="avatar" />
+                <span v-if="item.vip" class="vip-badge">VIP</span>
               </div>
-              <div class="follow-btn reserve-btn" @click.stop="openReserveModal(item)">
-                <span>预约</span>
+              <div class="user-info" @click.stop="goUserProfile(item)">
+                <div class="user-name">{{ item.nickName }}</div>
+                <div class="user-level">Lv.{{ item.level }}</div>
               </div>
+              <button class="reserve-btn" @click.stop="goOrder(item)">预约</button>
             </div>
-
-            <div class="feed-content" @click="goDetail(item)">
-              <p class="content-text">{{ item.content }}</p>
-            </div>
-
-            <div class="feed-images" v-if="item.images && item.images.length" @click="previewImages(item.images)">
+            
+            <div class="feed-content" @click.stop>{{ item.content }}</div>
+            
+            <div class="feed-images" v-if="item.images && item.images.length > 0">
               <img 
-                class="feed-image" 
-                v-for="(img, idx) in item.images.slice(0, 21)" 
-                :key="idx"
+                v-for="(img, idx) in item.images" 
+                :key="idx" 
                 :src="img" 
-                alt="" />
+                class="feed-image"
+                :class="{ 'single': item.images.length === 1 }"
+                @click.stop="previewImage(item.images, idx)" />
             </div>
 
-          <div class="feed-tags" v-if="item.tagName">
-            <span class="feed-tag">#{{ item.tagName }}</span>
+            <div class="feed-tags" v-if="item.tagName">
+              <span class="tag">{{ item.tagName }}</span>
+            </div>
+
+            <div class="feed-actions">
+              <div class="action-item" @click.stop="toggleLike(item)">
+                <span class="action-icon">{{ item.isLike ? '❤️' : '🤍' }}</span>
+                <span class="action-count">{{ item.likes }}</span>
+              </div>
+              <div class="action-item" @click.stop="toggleComments(item)">
+                <span class="action-icon">💬</span>
+                <span class="action-count">{{ item.comments }}</span>
+              </div>
+              <div class="action-item" @click.stop="toggleFollow(item)">
+                <span class="action-icon">{{ item.isFollow ? '❤️' : '🤍' }}</span>
+                <span class="action-count">{{ item.isFollow ? '已关注' : '关注' }}</span>
+              </div>
+            </div>
+
+            <div class="comments-section" v-if="expandedPostId === item.postId" @click.stop>
+              <div class="comments-list" v-if="commentsMap[item.postId]">
+                <div 
+                  class="comment-item" 
+                  v-for="comment in commentsMap[item.postId]" 
+                  :key="comment.id">
+                  <img :src="comment.avatar" class="comment-avatar" />
+                  <div class="comment-content">
+                    <div class="comment-header">
+                      <span class="comment-name">{{ comment.nickName }}</span>
+                      <span class="comment-time">{{ formatTime(comment.createTime) }}</span>
+                    </div>
+                    <div class="comment-text">{{ comment.content }}</div>
+                  </div>
+                </div>
+                <div class="no-comments" v-if="commentsMap[item.postId].length === 0">
+                  <span>暂无评论</span>
+                </div>
+              </div>
+              <div class="comments-loading" v-else>
+                <span>加载中...</span>
+              </div>
+              <div class="comment-input-wrapper">
+                <input 
+                  class="comment-input" 
+                  v-model="commentText"
+                  placeholder="说点什么..."
+                  @keyup.enter="submitComment(item.postId)" />
+                <button class="comment-submit" @click="submitComment(item.postId)">发送</button>
+              </div>
+            </div>
+
+            <div class="feed-footer">
+              <span class="time">{{ formatTime(item.createTime) }}</span>
+            </div>
           </div>
 
-          <div class="feed-actions">
-            <div class="action-item" @click="likePost(item)">
-              <span class="action-icon" :class="{ liked: item.isLike }">❤️</span>
-              <span class="action-text">{{ item.likes || 0 }}</span>
-            </div>
-            <div class="action-item" @click="goDetail(item)">
-              <span class="action-icon">💬</span>
-              <span class="action-text">{{ item.comments || 0 }}</span>
-            </div>
-            <div class="action-item follow-action" :class="{ followed: item.isFollow }" @click.stop="toggleFollow(item)">
-              <span class="action-icon" v-if="!item.isFollow">+</span>
-              <span class="action-text">{{ item.isFollow ? '已关注' : '关注' }}</span>
-            </div>
+          <div class="loading-more" v-if="loading">
+            <span>加载中...</span>
+          </div>
+          <div class="no-more" v-else-if="!hasMore && feedList.length > 0">
+            <span>已加载全部</span>
+          </div>
+          <div class="empty-state" v-else-if="!loading && feedList.length === 0 && initialLoadComplete">
+            <div class="empty-icon">📭</div>
+            <div class="empty-text">暂无动态</div>
           </div>
         </div>
-
-        <div class="loading-more" v-if="loading">
-          <span>加载中...</span>
-        </div>
-        <div class="no-more" v-if="!hasMore && feedList.length">
-          <span>没有更多了</span>
-        </div>
-      </div>
       </div>
 
-      <div class="publish-btn" @click="goEdit">
+      <div class="fab-button" @click="goEdit">
         <span>+</span>
       </div>
 
-      <div class="bottom-placeholder"></div>
-
       <ReserveModal 
-        :visible="showReserveModal" 
-        :companion="currentCompanion"
-        @close="closeReserveModal"
-        @submit="handleReserveSubmit"
-      />
+        v-if="showReserveModal" 
+        :visible="showReserveModal"
+        :companion="currentCompanion" 
+        @close="showReserveModal = false"
+        @update:visible="showReserveModal = $event" />
+
+      <div class="image-preview-overlay" v-if="previewList.length" @click.self="closePreview"
+        @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
+        <span class="image-preview-close" @click.stop="closePreview">✕</span>
+        <span class="image-preview-arrow left" v-if="previewList.length > 1" @click.stop="prevImage">‹</span>
+        <span class="image-preview-arrow right" v-if="previewList.length > 1" @click.stop="nextImage">›</span>
+        <img class="image-preview-img" :src="previewList[previewIndex]" alt="" />
+        <div class="image-preview-dots" v-if="previewList.length > 1">
+          <span 
+            v-for="(_, i) in previewList" 
+            :key="i" 
+            class="dot" 
+            :class="{ active: i === previewIndex }"
+            @click.stop="previewIndex = i" />
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -113,9 +160,12 @@ import { useRouter } from 'vue-router'
 import ReserveModal from '@/components/ReserveModal.vue'
 import circleService from '../services/circleService'
 import { useToast } from '../composables/useToast'
+import { useUserStore } from '../store/user-info'
+import { generateMockPosts } from '../common/mockData'
 
 const router = useRouter()
 const { showToast } = useToast()
+const userStore = useUserStore()
 
 const activeTag = ref(0)
 const tagList = ref([])
@@ -124,6 +174,14 @@ const page = ref(1)
 const loading = ref(false)
 const hasMore = ref(true)
 const initialLoadComplete = ref(false)
+
+const expandedPostId = ref(null)
+const commentsMap = ref({})
+const commentText = ref('')
+const previewList = ref([])
+const previewIndex = ref(0)
+const touchStartX = ref(0)
+const touchEndX = ref(0)
 
 // 预约弹窗
 const showReserveModal = ref(false)
@@ -154,16 +212,25 @@ const loadTags = async () => {
   try {
     const res = await circleService.getTags()
     if (res && res.code === 200 && res.data) {
-      tagList.value = res.data
+      tagList.value = [
+        { id: -1, name: '最新', sortBy: 'latest' },
+        ...res.data.slice(0, 2).map((tag, index) => {
+          if (index === 0) {
+            return { ...tag, name: '最热', sortBy: 'hot' }
+          } else if (index === 1) {
+            return { ...tag, name: '新手报到', sortBy: 'newbie' }
+          }
+          return tag
+        })
+      ]
     }
   } catch (e) {
     console.error('加载标签失败:', e)
     // Mock 降级
     tagList.value = [
-      { id: 1, name: '游戏' },
-      { id: 2, name: '情感' },
-      { id: 3, name: '技术' },
-      { id: 4, name: '生活' }
+      { id: -1, name: '最新', sortBy: 'latest' },
+      { id: 1, name: '最热', sortBy: 'hot' },
+      { id: 2, name: '新手报到', sortBy: 'newbie' }
     ]
   }
 }
@@ -184,12 +251,12 @@ const loadFeedList = async (reset = false) => {
       pageSize: 10
     }
     
-    // 处理标签筛选
-    if (activeTag.value > 0) {
-      const tag = tagList.value.find(t => t.id === activeTag.value)
-      if (tag) params.tag = tag.name
-    } else if (activeTag.value === -1) {
-      params.sort = 'latest'
+    // 处理标签筛选和排序
+    const tag = tagList.value.find(t => t.id === activeTag.value)
+    if (tag) {
+      params.sortBy = tag.sortBy || 'latest'
+    } else {
+      params.sortBy = 'latest'
     }
     
     const res = await circleService.getPosts(params)
@@ -222,98 +289,15 @@ const loadFeedList = async (reset = false) => {
 const loadMockFeeds = async (reset = false) => {
   await new Promise(resolve => setTimeout(resolve, 300))
   
-  const mockData = [
-    {
-      postId: 1,
-      userId: 1,
-      nickName: '小雪',
-      avatar: 'https://picsum.photos/100/100?random=1',
-      level: 28,
-      vip: true,
-      gameName: '王者荣耀',
-      content: '今天玩王者太开心了，连胜五把！有没有大神带我上分呀～🎮✨',
-      images: [
-        'https://picsum.photos/300/300?random=101',
-        'https://picsum.photos/300/300?random=102'
-      ],
-      tagName: '游戏',
-      likes: 128,
-      comments: 32,
-      isLike: false,
-      isFollow: false,
-      createTime: Date.now() - 3600000,
-      onlineService: true,
-      offlineService: true,
-      offlineLocation: '上海市浦东新区XX电竞馆'
-    },
-    {
-      postId: 2,
-      userId: 2,
-      nickName: '阿杰',
-      avatar: 'https://picsum.photos/100/100?random=2',
-      level: 35,
-      vip: false,
-      gameName: '英雄联盟',
-      content: '新赛季更新了，感觉打野位又加强了！有没有一起开黑的小伙伴？',
-      images: [],
-      tagName: '游戏',
-      likes: 89,
-      comments: 45,
-      isLike: true,
-      isFollow: true,
-      createTime: Date.now() - 7200000,
-      onlineService: true,
-      offlineService: false
-    },
-    {
-      postId: 3,
-      userId: 3,
-      nickName: '小美',
-      avatar: 'https://picsum.photos/100/100?random=3',
-      level: 22,
-      vip: true,
-      gameName: '和平精英',
-      content: '今天心情不好，有人陪我聊聊天吗？🥺',
-      images: [
-        'https://picsum.photos/300/300?random=103'
-      ],
-      tagName: '情感',
-      likes: 256,
-      comments: 78,
-      isLike: false,
-      isFollow: false,
-      createTime: Date.now() - 86400000,
-      onlineService: true,
-      offlineService: true,
-      offlineLocation: '广州市天河区XX网咖'
-    },
-    {
-      postId: 4,
-      userId: 4,
-      nickName: '大飞',
-      avatar: 'https://picsum.photos/100/100?random=4',
-      level: 42,
-      vip: true,
-      gameName: '王者荣耀',
-      content: '技术教学：如何在团战中打出最高伤害？学会这些技巧轻松上王者！',
-      images: [
-        'https://picsum.photos/300/300?random=104',
-        'https://picsum.photos/300/300?random=105',
-        'https://picsum.photos/300/300?random=106'
-      ],
-      tagName: '技术',
-      likes: 512,
-      comments: 124,
-      isLike: false,
-      isFollow: true,
-      createTime: Date.now() - 172800000,
-      onlineService: true,
-      offlineService: false
-    }
-  ]
+  let mockData = generateMockPosts(10)
   
   if (activeTag.value === -1) {
     mockData.sort((a, b) => b.createTime - a.createTime)
+  } else if (activeTag.value > 0) {
+    const selectedTag = tagList.value.find(t => t.id === activeTag.value)
+    if (selectedTag) {
+      mockData = mockData.filter(p => p.tagName === selectedTag.name)
+    }
   }
   
   if (reset) {
@@ -321,7 +305,7 @@ const loadMockFeeds = async (reset = false) => {
   } else {
     feedList.value = [...feedList.value, ...mockData]
   }
-  hasMore.value = false
+  hasMore.value = feedList.value.length < 50
   page.value++
 }
 
@@ -346,75 +330,180 @@ const goEdit = () => {
   router.push('/publish-post')
 }
 
-const toggleFollow = async (item) => {
-  try {
-    // 这里应该调用用户关注 API
-    // await userService.toggleFollow(item.userId)
-    item.isFollow = !item.isFollow
-    showToast(item.isFollow ? '关注成功' : '已取消关注', 'success')
-  } catch (error) {
-    showToast('操作失败，请重试', 'error')
-  }
-}
-
-const openReserveModal = (item) => {
+const goOrder = (item) => {
   currentCompanion.value = {
     id: item.userId,
     name: item.nickName,
     avatar: item.avatar,
-    game: item.gameName || '王者荣耀',
-    onlineService: item.onlineService !== false,
-    offlineService: item.offlineService === true,
-    offlineLocation: item.offlineLocation || '北京市朝阳区XX网咖'
+    game: item.gameName || ''
   }
   showReserveModal.value = true
 }
 
-const closeReserveModal = () => {
-  showReserveModal.value = false
+const toggleLike = (item) => {
+  item.isLike = !item.isLike
+  item.likes += item.isLike ? 1 : -1
 }
 
-const handleReserveSubmit = async (reserveData) => {
-  try {
-    // 这里应该调用预约 API
-    // await reserveService.create(reserveData)
-    showReserveModal.value = false
-    showToast('预约成功！', 'success')
-  } catch (error) {
-    showToast('预约失败，请重试', 'error')
-  }
+const toggleFollow = (item) => {
+  item.isFollow = !item.isFollow
+  showToast(item.isFollow ? '关注成功' : '取消关注')
 }
 
-const likePost = async (item) => {
-  try {
-    if (item.isLike) {
-      await circleService.unlikePost(item.postId)
-      item.likes = (item.likes || 0) - 1
-    } else {
-      await circleService.likePost(item.postId)
-      item.likes = (item.likes || 0) + 1
+const toggleComments = async (item) => {
+  if (expandedPostId.value === item.postId) {
+    expandedPostId.value = null
+  } else {
+    expandedPostId.value = item.postId
+    if (!commentsMap.value[item.postId]) {
+      await loadComments(item.postId)
     }
-    item.isLike = !item.isLike
-  } catch (error) {
-    console.error('点赞失败:', error)
-    // 回滚状态
-    item.isLike = !item.isLike
-    showToast('操作失败，请重试', 'error')
   }
 }
 
-const previewImages = (images) => {
-  console.log('预览图片:', images)
-  // 可以实现图片预览功能
-}
-
-const sharePost = async (item) => {
+const loadComments = async (postId) => {
   try {
-    await circleService.sharePost(item.postId)
-    showToast('分享成功', 'success')
+    const res = await circleService.getComments(postId)
+    if (res && res.code === 200 && res.data) {
+      commentsMap.value[postId] = res.data.list || res.data
+    } else {
+      commentsMap.value[postId] = generateMockComments()
+    }
   } catch (error) {
-    console.error('分享失败:', error)
+    console.error('加载评论失败:', error)
+    commentsMap.value[postId] = generateMockComments()
+    showToast('服务器繁忙，显示模拟数据', 'warning')
   }
+}
+
+const generateMockComments = () => {
+  const mockComments = [
+    {
+      id: 1,
+      nickName: '玩家小明',
+      avatar: 'https://neeko-copilot.bytedance.net/api/text_to_image?prompt=cute%20anime%20avatar%20boy&image_size=square',
+      content: '这个游戏真的很好玩！',
+      createTime: Date.now() - 300000
+    },
+    {
+      id: 2,
+      nickName: '游戏达人',
+      avatar: 'https://neeko-copilot.bytedance.net/api/text_to_image?prompt=cute%20anime%20avatar%20girl&image_size=square',
+      content: '同意楼上的观点',
+      createTime: Date.now() - 600000
+    },
+    {
+      id: 3,
+      nickName: '新手玩家',
+      avatar: 'https://neeko-copilot.bytedance.net/api/text_to_image?prompt=cute%20cartoon%20avatar&image_size=square',
+      content: '请问怎么升级比较快？',
+      createTime: Date.now() - 900000
+    }
+  ]
+  return mockComments
+}
+
+const submitComment = async (postId) => {
+  const text = commentText.value.trim()
+  if (!text) {
+    showToast('请输入评论内容', 'warning')
+    return
+  }
+  if (text.length > 200) {
+    showToast('评论内容不能超过200字', 'warning')
+    return
+  }
+
+  try {
+    const res = await circleService.commentPost(postId, text)
+    if (res && res.code === 200) {
+      const newComment = {
+        id: Date.now(),
+        nickName: userStore.nickName || '我',
+        avatar: userStore.avatar || 'https://picsum.photos/200/200',
+        content: text,
+        createTime: Date.now()
+      }
+      if (!commentsMap.value[postId]) {
+        commentsMap.value[postId] = []
+      }
+      commentsMap.value[postId].unshift(newComment)
+      const post = feedList.value.find(p => p.postId === postId)
+      if (post) {
+        post.comments = (post.comments || 0) + 1
+      }
+      commentText.value = ''
+      showToast('评论成功', 'success')
+    } else {
+      submitMockComment(postId, text)
+    }
+  } catch (error) {
+    console.error('评论失败:', error)
+    submitMockComment(postId, text)
+  }
+}
+
+const submitMockComment = (postId, text) => {
+  const newComment = {
+    id: Date.now(),
+    nickName: userStore.nickName || '我',
+    avatar: userStore.avatar || 'https://picsum.photos/200/200',
+    content: text,
+    createTime: Date.now()
+  }
+  if (!commentsMap.value[postId]) {
+    commentsMap.value[postId] = []
+  }
+  commentsMap.value[postId].unshift(newComment)
+  const post = feedList.value.find(p => p.postId === postId)
+  if (post) {
+    post.comments = (post.comments || 0) + 1
+  }
+  commentText.value = ''
+  showToast('评论成功', 'success')
+}
+
+const previewImage = (images, index) => {
+  previewList.value = images
+  previewIndex.value = index
+}
+
+const closePreview = () => {
+  previewList.value = []
+  previewIndex.value = 0
+}
+
+const prevImage = () => {
+  if (previewIndex.value > 0) {
+    previewIndex.value--
+  }
+}
+
+const nextImage = () => {
+  if (previewIndex.value < previewList.value.length - 1) {
+    previewIndex.value++
+  }
+}
+
+const onTouchStart = (e) => {
+  touchStartX.value = e.touches[0].clientX
+}
+
+const onTouchMove = (e) => {
+  touchEndX.value = e.touches[0].clientX
+}
+
+const onTouchEnd = () => {
+  const diff = touchStartX.value - touchEndX.value
+  if (Math.abs(diff) > 50) {
+    if (diff > 0) {
+      nextImage()
+    } else {
+      prevImage()
+    }
+  }
+  touchStartX.value = 0
+  touchEndX.value = 0
 }
 
 const loadMore = () => {
@@ -448,59 +537,41 @@ onMounted(() => {
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
-/* --- 内容容器 --- */
-.content-container {
-  background: var(--bg-primary);
-  border-radius: 10px;
-  overflow: hidden;
-  box-shadow: var(--shadow-light);
-  width: 100%;
-  max-width: 100%;
-  padding: 0;
-}
-
 /* --- 头部 --- */
 .header {
-  background: var(--gradient-primary);
-  padding: 0 20px;
-  text-align: center;
-  height: 70px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
+  right: 0;
   z-index: 100;
-  box-sizing: border-box;
+  background: var(--bg-primary);
+  padding: 20px 24px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
 }
 
-.header .title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #fff;
-  margin: 0;
+.title {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
 }
 
-/* --- 标签区 --- */
+/* --- 内容容器 --- */
+.content-container {
+  padding: 0 16px;
+}
+
+/* --- 标签区域 --- */
 .tags-section {
-  background-color: var(--bg-primary);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  border-bottom: 1px solid var(--border-light);
-  height: 50px;
-  display: flex;
-  align-items: center;
+  padding: 16px 0;
 }
 
 .tags-scroll {
   display: flex;
+  gap: 12px;
   overflow-x: auto;
-  padding: 0 20px;
-  gap: 16px;
-  width: 100%;
+  padding-bottom: 8px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tags-scroll::-webkit-scrollbar {
@@ -509,143 +580,114 @@ onMounted(() => {
 
 .tag-item {
   flex-shrink: 0;
-  padding: 10px 20px;
+  padding: 8px 16px;
+  background: var(--bg-primary);
+  border-radius: 20px;
   font-size: 14px;
   color: var(--text-secondary);
-  cursor: pointer;
-  border-radius: 20px;
-  transition: all 0.25s ease;
-  background-color: var(--bg-secondary);
+  transition: all 0.3s;
+  white-space: nowrap;
 }
 
 .tag-item.active {
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
   color: #fff;
-  font-weight: 600;
-  background: var(--gradient-primary);
-  box-shadow: 0 4px 12px rgba(255, 107, 129, 0.35);
 }
 
-/* --- Feed 列表 --- */
+/* --- 动态列表 --- */
 .feed-list {
-  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.feed-card {
-  background-color: var(--bg-primary);
-  border-radius: 12px;
+.feed-item {
+  background: var(--bg-primary);
+  border-radius: 16px;
   padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: var(--shadow-light);
-  transition: all 0.3s ease;
 }
 
-.feed-card:hover {
-  box-shadow: var(--shadow-medium);
-  transform: translateY(-2px);
-}
-
-.feed-user {
+/* --- 动态头部 --- */
+.feed-header {
   display: flex;
   align-items: center;
+  gap: 12px;
   margin-bottom: 12px;
+  position: relative;
 }
 
-.user-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  margin-right: 12px;
-  object-fit: cover;
+.reserve-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 12px;
+  color: #fff;
+  background: linear-gradient(135deg, #FF6B81, #E64C65);
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: none;
   cursor: pointer;
-  border: 2px solid var(--border-light);
-  flex-shrink: 0;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.avatar-wrapper {
+  position: relative;
+}
+
+.avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.vip-badge {
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
 }
 
 .user-info {
   flex: 1;
-  min-width: 0;
-}
-
-.user-name-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-  flex-wrap: wrap;
 }
 
 .user-name {
   font-size: 15px;
-  color: var(--text-primary);
   font-weight: 600;
-  cursor: pointer;
+  color: var(--text-primary);
 }
 
 .user-level {
-  background: var(--gradient-primary);
-  color: #fff;
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-weight: 500;
-}
-
-.vip-tag {
-  background: var(--gradient-accent);
-  color: #fff;
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-weight: 500;
-}
-
-.recommend-badge {
-  background: var(--gradient-primary);
-  color: #fff;
-  font-size: 10px;
-  padding: 1px 6px;
-  border-radius: 8px;
-  font-weight: 600;
-}
-
-.feed-time {
   font-size: 12px;
-  color: var(--text-muted);
+  color: var(--text-tertiary);
+  margin-top: 2px;
 }
 
-.follow-btn {
-  background-color: var(--primary-color);
-  color: #fff;
-  font-size: 13px;
-  padding: 7px 16px;
-  border-radius: 20px;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  font-weight: 500;
-  white-space: nowrap;
+.game-tag {
+  font-size: 12px;
+  color: var(--primary-color);
+  background: rgba(var(--primary-color-rgb), 0.1);
+  padding: 4px 10px;
+  border-radius: 12px;
 }
 
-.follow-btn:hover {
-  background-color: var(--primary-dark);
-  transform: scale(1.05);
-}
-
-.reserve-btn {
-  background: var(--gradient-primary);
-}
-
+/* --- 动态内容 --- */
 .feed-content {
+  font-size: 15px;
+  color: var(--text-primary);
+  line-height: 1.6;
   margin-bottom: 12px;
 }
 
-.content-text {
-  font-size: 15px;
-  color: var(--text-secondary);
-  line-height: 1.65;
-  margin: 0;
-  word-break: break-word;
-}
-
+/* --- 图片区域 --- */
 .feed-images {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -656,147 +698,341 @@ onMounted(() => {
 .feed-image {
   width: 100%;
   aspect-ratio: 1;
-  border-radius: 8px;
   object-fit: cover;
-  cursor: pointer;
-  transition: all 0.25s ease;
+  border-radius: 12px;
 }
 
-.feed-image:hover {
-  transform: scale(1.03);
+.feed-image.single {
+  grid-column: span 3;
+  aspect-ratio: 16/9;
 }
 
+/* --- 标签 --- */
 .feed-tags {
-  margin-bottom: 8px;
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
 }
 
-.feed-tag {
+.feed-tags .tag {
+  font-size: 12px;
   color: var(--primary-color);
-  font-size: 14px;
-  font-weight: 500;
+  background: rgba(var(--primary-color-rgb), 0.1);
+  padding: 4px 10px;
+  border-radius: 8px;
 }
 
+/* --- 操作栏 --- */
 .feed-actions {
   display: flex;
-  justify-content: space-around;
-  padding-top: 10px;
-  border-top: 1px solid var(--border-light);
+  gap: 24px;
+  padding: 12px 0;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .action-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.25s ease;
-  padding: 8px 16px;
-  border-radius: 20px;
-}
-
-.action-item:hover {
-  background-color: var(--bg-secondary);
-  color: var(--primary-color);
 }
 
 .action-icon {
   font-size: 18px;
 }
 
-.action-icon.liked {
-  animation: scale 0.3s ease;
-}
-
-@keyframes scale {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.3); }
-}
-
-.action-text {
+.action-count {
   font-size: 13px;
-  font-weight: 500;
+  color: var(--text-secondary);
 }
 
-.follow-action {
-  color: var(--primary-color);
-  font-weight: 500;
+/* --- 评论区域 --- */
+.comments-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
 }
 
-.follow-action.followed {
-  color: var(--text-muted);
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.loading-more,
-.no-more {
+.comment-item {
+  display: flex;
+  gap: 10px;
+}
+
+.comment-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.comment-content {
+  flex: 1;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.comment-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.comment-time {
+  font-size: 11px;
+  color: var(--text-tertiary);
+}
+
+.comment-text {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.no-comments {
   text-align: center;
-  padding: 24px;
-  color: var(--text-muted);
+  padding: 16px;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.comments-loading {
+  text-align: center;
+  padding: 16px;
+  color: var(--text-tertiary);
+  font-size: 13px;
+}
+
+.comment-input-wrapper {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.comment-input {
+  flex: 1;
+  border: none;
+  border-radius: 20px;
+  background: var(--bg-secondary);
+  padding: 8px 16px;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+}
+
+.comment-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.comment-submit {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #FF6B81, #E64C65);
+  color: #fff;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.comment-submit:active {
+  transform: scale(0.95);
+}
+
+/* --- 图片预览 --- */
+.image-preview-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  user-select: none;
+}
+
+.image-preview-close {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #fff;
+  cursor: pointer;
+  z-index: 1001;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+}
+
+.image-preview-arrow {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  color: #fff;
+  cursor: pointer;
+  z-index: 1001;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.image-preview-arrow:active {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.image-preview-arrow.left {
+  left: 16px;
+  padding-bottom: 10px;
+}
+
+.image-preview-arrow.right {
+  right: 16px;
+  padding-bottom: 10px;
+}
+
+.image-preview-img {
+  max-width: 90%;
+  max-height: 85%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.image-preview-dots {
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 1001;
+}
+
+.image-preview-dots .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.image-preview-dots .dot.active {
+  width: 24px;
+  border-radius: 4px;
+  background: #fff;
+}
+
+/* --- 底部信息 --- */
+.feed-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+}
+
+.time {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.services {
+  display: flex;
+  gap: 8px;
+}
+
+.service-tag {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 8px;
+}
+
+.service-tag.online {
+  background: rgba(67, 233, 123, 0.1);
+  color: #43e97b;
+}
+
+.service-tag.offline {
+  background: rgba(255, 107, 129, 0.1);
+  color: #ff6b81;
+}
+
+/* --- 加载状态 --- */
+.loading-more,
+.no-more,
+.empty-state {
+  text-align: center;
+  padding: 20px;
+  color: var(--text-tertiary);
   font-size: 14px;
 }
 
+.empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.empty-text {
+  font-size: 15px;
+}
+
 /* --- 发布按钮 --- */
-.publish-btn {
+.fab-button {
   position: fixed;
-  right: 20px;
-  bottom: 120px;
+  right: 24px;
+  bottom: calc(100px + env(safe-area-inset-bottom, 0px));
   width: 56px;
   height: 56px;
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4px 20px rgba(var(--primary-color-rgb), 0.3);
   color: #fff;
-  cursor: pointer;
-  z-index: 20;
-  transition: all 0.3s ease;
-  box-shadow: 0 8px 24px rgba(255, 107, 129, 0.4);
-}
-
-.publish-btn span {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 300;
-  line-height: 1;
+  cursor: pointer;
+  z-index: 100;
 }
 
-.publish-btn:hover {
-  transform: scale(1.1);
-  box-shadow: 0 12px 32px rgba(255, 107, 129, 0.5);
-}
-
-.publish-btn:active {
-  transform: scale(0.95);
-}
-
-/* --- PC 端适配 --- */
-@media (min-width: 768px) {
-  .activity-page {
-    max-width: 650px;
-    margin: 0 auto;
-  }
-
-  .header {
-    left: 50%;
-    transform: translateX(-50%);
-    max-width: 650px;
-  }
-
-  .publish-btn {
-    right: calc(50% - 325px + 20px);
-  }
-}
-
-@media (min-width: 1024px) {
-  .activity-page {
-    max-width: 720px;
-  }
-
-  .header {
-    max-width: 720px;
-  }
-
-  .publish-btn {
-    right: calc(50% - 360px + 20px);
-  }
+.fab-button span {
+  width: 30px;
+  height: 30px;
+  padding-bottom: 44px;
+  margin-top: 14px;
+  margin-right: 0px;
+  margin-bottom: 13px;
+  padding-left: 6px;
 }
 </style>

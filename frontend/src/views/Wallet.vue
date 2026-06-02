@@ -98,13 +98,10 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
+import { host } from '../common/config'
 
 const router = useRouter()
 const userStore = useUserStore()
-
-const getHost = () => {
-  return window.globalData?.host || ''
-}
 
 const userInfo = ref({
   balance: 0,
@@ -119,7 +116,7 @@ const userInfo = ref({
 const fetchBalance = async () => {
   try {
     const token = userStore.token || localStorage.getItem('token')
-    const res = await fetch(`${getHost()}/api/pay/wallet/balance`, {
+    const res = await fetch(`${host}/api/pay/wallet/balance`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     const result = await res.json()

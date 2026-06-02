@@ -32,6 +32,14 @@ const CompanionProfile = sequelize.define('xn_companion_profile', {
     type: DataTypes.TINYINT(1),
     defaultValue: 0
   },
+  online_service: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0
+  },
+  offline_service: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0
+  },
   status: {
     type: DataTypes.TINYINT(1),
     defaultValue: 0

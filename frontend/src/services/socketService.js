@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client'
 import { ref } from 'vue'
-import { api } from '../common/config'
+import { socketUrl } from '../common/config'
 
 class SocketService {
   constructor() {
@@ -9,7 +9,7 @@ class SocketService {
     this.listeners = new Map()
   }
 
-  connect(url = api.socketUrl || 'http://localhost:3000') {
+  connect(url = socketUrl || 'http://localhost:3000') {
     if (this.socket?.connected) {
       console.log('[Socket] 已经连接')
       return this.socket
@@ -115,6 +115,14 @@ class SocketService {
       this.socket.emit(event, data)
     } else {
       console.warn('[Socket] 未连接，无法发送:', event)
+    }
+  }
+
+  sendTyping(targetUserId) {
+    if (this.socket?.connected) {
+      this.socket.emit('typing', { toId: targetUserId })
+    } else {
+      console.warn('[Socket] 未连接，无法发送打字状态')
     }
   }
 

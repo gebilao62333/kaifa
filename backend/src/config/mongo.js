@@ -16,7 +16,7 @@ const retryConnection = async (fn, retries = 3, delay = 2000) => {
 };
 
 const connectMongo = async () => {
-  if (config.useMockDb) {
+  if (config.useMockDb || config.db.type === 'sqlite') {
     console.log('📦 Mock MongoDB 模式');
     return;
   }

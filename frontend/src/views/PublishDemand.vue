@@ -299,12 +299,12 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useLoginManager } from '../composables/useLoginManager'
+import { useUserStore } from '../store/user-info'
 import { demandService } from '@/services/demandService'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
-const { requireLogin } = useLoginManager()
+const userStore = useUserStore()
 
 const onlineGames = [
   { name: '王者荣耀', icon: '🎮' },
@@ -744,16 +744,7 @@ const submitDemand = async () => {
   submitStatus.value = 'logging'
   submitMessage.value = ''
 
-  try {
-    const loginResult = await requireLogin()
-    if (!loginResult.loggedIn) {
-      submitStatus.value = 'idle'
-      return
-    }
-  } catch {
-    submitStatus.value = 'idle'
-    return
-  }
+  if (!userStore.isLogin) { toast.warning('请先登录'); submitStatus.value = 'idle'; return }
 
   submitting.value = true
   submitStatus.value = 'submitting'

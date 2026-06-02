@@ -88,10 +88,11 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useLoginManager } from '../composables/useLoginManager'
+import { useUserStore } from '../store/user-info'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
-const { requireLogin } = useLoginManager()
+const userStore = useUserStore()
 
 const isVerified = ref(false)
 const realName = ref('')
@@ -134,10 +135,7 @@ const handleFileChange = (e) => {
 }
 
 const submitForm = async () => {
-  const loginResult = await requireLogin()
-  if (!loginResult.loggedIn) {
-    return
-  }
+  if (!userStore.isLogin) { toast.warning('请先登录'); router.push('/login'); return }
 
   if (!realName.value.trim()) {
     alert('请输入真实姓名')

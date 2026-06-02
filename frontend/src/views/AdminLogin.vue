@@ -46,6 +46,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+import { host } from '../common/config';
 
 const form = reactive({
   username: '',
@@ -56,9 +57,7 @@ const loading = ref(false);
 const error = ref('');
 const showInitBtn = ref(false);
 
-const getHost = () => {
-  return window.globalData?.host || 'http://localhost:3000';
-};
+const getHost = () => host || 'http://localhost:3000';
 
 const handleLogin = async () => {
   if (!form.username || !form.password) {

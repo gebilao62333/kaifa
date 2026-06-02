@@ -94,6 +94,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { generateMockOfflineCompanions } from '../common/mockData'
 
 const router = useRouter()
 
@@ -153,128 +154,7 @@ const goToUserProfile = (userId) => {
 const loadCompanions = () => {
   loading.value = true
   setTimeout(() => {
-    companions.value = [
-      {
-        userId: 1001,
-        nickName: '可爱小雪',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=offline1',
-        location: '北京',
-        level: 12,
-        fansCount: 3200,
-        price: 120,
-        tags: ['活泼开朗', '会拍照', '穿搭达人'],
-        voiceIntro: '',
-        voiceDuration: 0,
-        totalOrders: 156,
-        rating: 4.9,
-        ratingCount: 89,
-        online: true,
-        serviceType: 'offline',
-        vip: true,
-        vipLevel: 3,
-        offlineServices: ['逛街购物', '看电影', '美食探店']
-      },
-      {
-        userId: 1002,
-        nickName: '运动达人阿杰',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=offline2',
-        location: '上海',
-        level: 15,
-        fansCount: 4500,
-        price: 150,
-        tags: ['健身教练', '篮球健将', '阳光开朗'],
-        voiceIntro: '',
-        voiceDuration: 0,
-        totalOrders: 234,
-        rating: 4.8,
-        ratingCount: 156,
-        online: true,
-        serviceType: 'both',
-        vip: true,
-        vipLevel: 2,
-        offlineServices: ['运动健身', '篮球', '跑步陪练']
-      },
-      {
-        userId: 1003,
-        nickName: '密室爱好者小美',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=offline3',
-        location: '广州',
-        level: 10,
-        fansCount: 2100,
-        price: 100,
-        tags: ['逻辑思维强', '幽默搞笑', '团队协作'],
-        voiceIntro: '',
-        voiceDuration: 0,
-        totalOrders: 98,
-        rating: 4.9,
-        ratingCount: 67,
-        online: false,
-        serviceType: 'offline',
-        vip: false,
-        vipLevel: 0,
-        offlineServices: ['密室逃脱', '看电影']
-      },
-      {
-        userId: 1004,
-        nickName: '羽毛球选手小林',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=offline4',
-        location: '深圳',
-        level: 14,
-        fansCount: 3800,
-        price: 130,
-        tags: ['专业羽毛球', '耐心指导', '运动达人'],
-        voiceIntro: '',
-        voiceDuration: 0,
-        totalOrders: 189,
-        rating: 4.85,
-        ratingCount: 123,
-        online: true,
-        serviceType: 'offline',
-        vip: true,
-        vipLevel: 1,
-        offlineServices: ['羽毛球', '运动健身', '跑步陪练']
-      },
-      {
-        userId: 1005,
-        nickName: '美食博主小琪',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=offline5',
-        location: '杭州',
-        level: 11,
-        fansCount: 5200,
-        price: 140,
-        tags: ['美食达人', '会拍照', '开朗健谈'],
-        voiceIntro: '',
-        voiceDuration: 0,
-        totalOrders: 312,
-        rating: 4.95,
-        ratingCount: 201,
-        online: true,
-        serviceType: 'both',
-        vip: true,
-        vipLevel: 3,
-        offlineServices: ['美食探店', '逛街购物']
-      },
-      {
-        userId: 1006,
-        nickName: '观影达人阿明',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=offline6',
-        location: '成都',
-        level: 9,
-        fansCount: 1800,
-        price: 90,
-        tags: ['电影爱好者', '影评达人', '温和有礼'],
-        voiceIntro: '',
-        voiceDuration: 0,
-        totalOrders: 76,
-        rating: 4.7,
-        ratingCount: 45,
-        online: false,
-        serviceType: 'offline',
-        vip: false,
-        vipLevel: 0,
-        offlineServices: ['看电影', '美食探店']
-      }
-    ]
+    companions.value = generateMockOfflineCompanions(50)
     loading.value = false
   }, 500)
 }

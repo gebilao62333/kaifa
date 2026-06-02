@@ -1,6 +1,7 @@
 const { Game, VirtualUser, GameOrder, User, CompanionProfile } = require('../models');
 const { getTimestamp, generateOrderNo, parseQuery } = require('../utils/helper');
 const { Op } = require('sequelize');
+const sequelize = require('../config/mysql');
 
 const getCategories = async () => {
   const games = await Game.findAll({
@@ -49,7 +50,7 @@ const getCompanions = async (gameId, page, pageSize) => {
       userId: user ? user.id : profile.user_id,
       nickName: user ? user.nickname : '',
       avatar: user ? user.avatar : '',
-      location: user ? user.region : '',
+      location: user ? user.city : '',
       level: user ? (user.lv || 1) : 1,
       fansCount: 0,
       gameId: gameIds[0] || null,
@@ -62,7 +63,8 @@ const getCompanions = async (gameId, page, pageSize) => {
       rating: 5.0,
       ratingCount: 0,
       online: profile.online_status === 1,
-      serviceType: 'both',
+      onlineService: profile.online_service === 1,
+      offlineService: profile.offline_service === 1,
       vip: false,
       vipLevel: 0
     };
@@ -74,8 +76,10 @@ const getCompanions = async (gameId, page, pageSize) => {
   };
 };
 
-const getCompanionDetail = async (id) => {
-  const profile = await CompanionProfile.findByPk(id);
+const getCompanionDetail = async (userId) => {
+  const profile = await CompanionProfile.findOne({
+    where: { user_id: userId }
+  });
   if (!profile) {
     throw new Error('陪玩师不存在');
   }
@@ -95,7 +99,7 @@ const getCompanionDetail = async (id) => {
     userId: user ? user.id : profile.user_id,
     nickName: user ? user.nickname : '',
     avatar: user ? user.avatar : '',
-    location: user ? user.region : '',
+    location: user ? user.city : '',
     level: user ? (user.lv || 1) : 1,
     fansCount: 0,
     price: Number(profile.price_per_hour) || 0,
@@ -107,7 +111,8 @@ const getCompanionDetail = async (id) => {
     rating: 5.0,
     ratingCount: 0,
     online: profile.online_status === 1,
-    serviceType: 'both',
+    onlineService: profile.online_service === 1,
+    offlineService: profile.offline_service === 1,
     vip: false,
     vipLevel: 0
   };
@@ -122,29 +127,53 @@ const createOrder = async (userId, targetUserId, gameId, num = 1) => {
   
   const game = await Game.findByPk(gameId);
   const targetUser = await User.findByPk(targetProfile.user_id);
+  const user = await User.findByPk(userId);
+  
+  if (!user) {
+    throw new Error('用户不存在');
+  }
   
   const orderNo = generateOrderNo();
   const totalPrice = Number(targetProfile.price_per_hour) * num;
   
-  const order = await GameOrder.create({
-    order_no: orderNo,
-    user_id: userId,
-    game_id: gameId,
-    game_name: game?.name || '',
-    target_user_id: targetProfile.user_id,
-    price: targetProfile.price_per_hour,
-    num,
-    total_price: totalPrice,
-    status: 0,
-    add_time: getTimestamp(),
-    create_time: getTimestamp()
-  });
+  if (Number(user.money) < totalPrice) {
+    throw new Error('余额不足');
+  }
   
-  return {
-    orderId: order.id,
-    orderNo: order.order_no,
-    totalPrice: Number(order.total_price)
-  };
+  const transaction = await sequelize.transaction();
+  
+  try {
+    await User.decrement('money', {
+      by: totalPrice,
+      where: { id: userId },
+      transaction
+    });
+    
+    const order = await GameOrder.create({
+      order_no: orderNo,
+      user_id: userId,
+      game_id: gameId,
+      game_name: game?.name || '',
+      target_user_id: targetProfile.user_id,
+      price: targetProfile.price_per_hour,
+      num,
+      total_price: totalPrice,
+      status: 0,
+      add_time: getTimestamp(),
+      create_time: getTimestamp()
+    }, { transaction });
+    
+    await transaction.commit();
+    
+    return {
+      orderId: order.id,
+      orderNo: order.order_no,
+      totalPrice: Number(order.total_price)
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
 };
 
 const grabOrder = async (companionId, orderId) => {
@@ -204,12 +233,41 @@ const completeOrder = async (userId, orderId) => {
     throw new Error('订单状态不正确');
   }
   
-  await order.update({
-    status: 3,
-    end_time: getTimestamp()
-  });
+  const transaction = await sequelize.transaction();
   
-  return true;
+  try {
+    const commission = Number(order.total_price) * 0.7;
+    
+    await User.increment('money', {
+      by: commission,
+      where: { id: order.target_user_id },
+      transaction
+    });
+    
+    await User.increment('gift_money', {
+      by: commission,
+      where: { id: order.target_user_id },
+      transaction
+    });
+    
+    await User.increment('gift_money_zong', {
+      by: commission,
+      where: { id: order.target_user_id },
+      transaction
+    });
+    
+    await order.update({
+      status: 3,
+      end_time: getTimestamp()
+    }, { transaction });
+    
+    await transaction.commit();
+    
+    return true;
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
 };
 
 const cancelOrder = async (userId, orderId, role) => {
@@ -231,12 +289,29 @@ const cancelOrder = async (userId, orderId, role) => {
     throw new Error('订单无法取消');
   }
   
-  await order.update({
-    status: 4,
-    end_time: getTimestamp()
-  });
+  const transaction = await sequelize.transaction();
   
-  return true;
+  try {
+    if (order.status === 1) {
+      await User.increment('money', {
+        by: Number(order.total_price),
+        where: { id: order.user_id },
+        transaction
+      });
+    }
+    
+    await order.update({
+      status: 4,
+      end_time: getTimestamp()
+    }, { transaction });
+    
+    await transaction.commit();
+    
+    return true;
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
 };
 
 const getOrders = async (userId, role, status, page, pageSize) => {
