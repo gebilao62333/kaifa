@@ -318,7 +318,7 @@ defineExpose({
 .home-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-top: 70px;
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
@@ -329,15 +329,15 @@ defineExpose({
 .content-container {
   width: 100%;
   max-width: 100%;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-light);
 }
 
 /* --- 导航栏 --- */
 .nav-bar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   padding: 0 20px;
   display: flex;
   align-items: center;
@@ -357,10 +357,15 @@ defineExpose({
   background-color: rgba(255, 255, 255, 0.2);
   border-radius: 50px;
   padding: 12px 20px;
-  color: rgba(255, 255, 255, 0.8);
+  color: rgba(255, 255, 255, 0.9);
   height: 40px;
   flex: 1;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.search-box:hover {
+  background-color: rgba(255, 255, 255, 0.25);
 }
 
 .search-icon {
@@ -386,6 +391,10 @@ defineExpose({
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
+}
+
+.friend-btn:hover {
+  background-color: rgba(255, 255, 255, 0.35);
 }
 
 .friend-btn:active {

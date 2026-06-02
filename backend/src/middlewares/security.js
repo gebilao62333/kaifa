@@ -1,15 +1,5 @@
 const crypto = require('crypto');
-
-const xssPatterns = [
-  /<script\b[^>]*>([\s\S]*?)<\/script>/gi,
-  /javascript:/gi,
-  /on\w+\s*=/gi,
-  /<iframe\b[^>]*>([\s\S]*?)<\/iframe>/gi,
-  /<img\b[^>]*src\s*=\s*["']javascript:/gi,
-  /<svg\b[^>]*>/gi,
-  /eval\s*\(/gi,
-  /expression\s*\(/gi
-];
+const { getRedisClient } = require('../config/redis');
 
 const sanitizeInput = (input) => {
   if (typeof input !== 'string') {
@@ -18,16 +8,11 @@ const sanitizeInput = (input) => {
   
   let sanitized = input;
   
-  xssPatterns.forEach((pattern) => {
-    sanitized = sanitized.replace(pattern, '');
-  });
-  
   sanitized = sanitized
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;');
+    .replace(/'/g, '&#x27;');
   
   return sanitized;
 };
@@ -60,78 +45,82 @@ const xssProtection = (req, res, next) => {
   next();
 };
 
-const csrfTokens = new Map();
-const CSRF_TOKEN_EXPIRE = 3600000;
+const CSRF_TOKEN_EXPIRE = 3600;
+const CSRF_REDIS_PREFIX = 'csrf:';
 
 const generateCsrfToken = () => {
   return crypto.randomBytes(32).toString('hex');
 };
 
-const csrfProtection = (req, res, next) => {
-  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
-    let token = req.cookies?.['XSRF-TOKEN'];
+const csrfProtection = async (req, res, next) => {
+  try {
+    const redis = getRedisClient();
     
-    if (!token || !csrfTokens.has(token)) {
-      token = generateCsrfToken();
-      csrfTokens.set(token, Date.now());
+    if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
+      let token = req.cookies?.['XSRF-TOKEN'];
       
-      res.cookie('XSRF-TOKEN', token, {
-        httpOnly: false,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
-        maxAge: CSRF_TOKEN_EXPIRE
+      if (!token) {
+        token = generateCsrfToken();
+        await redis.set(`${CSRF_REDIS_PREFIX}${token}`, Date.now().toString(), { EX: CSRF_TOKEN_EXPIRE });
+        
+        res.cookie('XSRF-TOKEN', token, {
+          httpOnly: false,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: CSRF_TOKEN_EXPIRE * 1000
+        });
+      }
+      
+      res.locals.csrfToken = token;
+      return next();
+    }
+    
+    const tokenFromHeader = req.headers['x-xsrf-token'];
+    const tokenFromBody = req.body?._csrf;
+    const tokenFromQuery = req.query?._csrf;
+    
+    const token = tokenFromHeader || tokenFromBody || tokenFromQuery;
+    
+    if (!token) {
+      return res.status(403).json({
+        code: 403,
+        message: 'CSRF token无效或缺失'
       });
     }
     
-    res.locals.csrfToken = token;
-    return next();
-  }
-  
-  const tokenFromHeader = req.headers['x-xsrf-token'];
-  const tokenFromBody = req.body?._csrf;
-  const tokenFromQuery = req.query?._csrf;
-  
-  const token = tokenFromHeader || tokenFromBody || tokenFromQuery;
-  
-  if (!token || !csrfTokens.has(token)) {
-    return res.status(403).json({
-      code: 403,
-      message: 'CSRF token无效或缺失'
-    });
-  }
-  
-  const tokenTime = csrfTokens.get(token);
-  if (Date.now() - tokenTime > CSRF_TOKEN_EXPIRE) {
-    csrfTokens.delete(token);
-    return res.status(403).json({
-      code: 403,
-      message: 'CSRF token已过期'
-    });
-  }
-  
-  csrfTokens.delete(token);
-  const newToken = generateCsrfToken();
-  csrfTokens.set(newToken, Date.now());
-  res.cookie('XSRF-TOKEN', newToken, {
-    httpOnly: false,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    maxAge: CSRF_TOKEN_EXPIRE
-  });
-  
-  next();
-};
-
-const cleanupExpiredTokens = () => {
-  const now = Date.now();
-  for (const [token, time] of csrfTokens.entries()) {
-    if (now - time > CSRF_TOKEN_EXPIRE) {
-      csrfTokens.delete(token);
+    const stored = await redis.get(`${CSRF_REDIS_PREFIX}${token}`);
+    if (!stored) {
+      return res.status(403).json({
+        code: 403,
+        message: 'CSRF token无效或已过期'
+      });
     }
+    
+    await redis.del(`${CSRF_REDIS_PREFIX}${token}`);
+    
+    const newToken = generateCsrfToken();
+    await redis.set(`${CSRF_REDIS_PREFIX}${newToken}`, Date.now().toString(), { EX: CSRF_TOKEN_EXPIRE });
+    res.cookie('XSRF-TOKEN', newToken, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: CSRF_TOKEN_EXPIRE * 1000
+    });
+    
+    next();
+  } catch (error) {
+    if (error.message === 'Redis client not initialized') {
+      return res.status(500).json({
+        code: 500,
+        message: '服务器内部错误'
+      });
+    }
+    return res.status(500).json({
+      code: 500,
+      message: '服务器内部错误'
+    });
   }
 };
-
-setInterval(cleanupExpiredTokens, 3600000);
 
 module.exports = {
   xssProtection,

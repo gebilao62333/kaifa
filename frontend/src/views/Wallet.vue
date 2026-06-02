@@ -18,7 +18,6 @@
               <span class="balance-num">{{ formatBalance(userInfo.balance) }}</span>
               <span class="balance-unit">金币</span>
             </div>
-            <span class="balance-hint">≈ ¥{{ formatBalance(userInfo.balance / 10) }}</span>
           </div>
         </div>
       </div>
@@ -169,7 +168,7 @@ const goWithdrawRecords = () => {
 .wallet-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-top: 70px;
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
@@ -188,8 +187,8 @@ const goWithdrawRecords = () => {
   justify-content: center;
   padding: 0 20px;
   height: 70px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
+  background: -webkit-linear-gradient(315deg, #FF6B81 0%, #E64C65 100%);
   position: fixed;
   top: 0;
   left: 0;
@@ -216,20 +215,20 @@ const goWithdrawRecords = () => {
 }
 
 .content-container {
-  padding: 20px 16px;
+  padding: 15px 16px 20px 16px;
   max-width: 100%;
   width: 100%;
-  margin: 90px auto 0;
+  margin: 20px auto 0;
 }
 
 .balance-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-radius: 12px;
   padding: 24px;
   margin: 0 0 16px 0;
   width: 100%;
   max-width: 100%;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+  box-shadow: var(--shadow-heavy);
   height: auto;
   min-height: 140px;
   box-sizing: border-box;
@@ -289,16 +288,16 @@ const goWithdrawRecords = () => {
   justify-content: center;
   gap: 10px;
   padding: 16px;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 10px;
   cursor: pointer;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-light);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .action-btn:active {
   transform: scale(0.98);
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-medium);
 }
 
 .action-icon {
@@ -308,7 +307,7 @@ const goWithdrawRecords = () => {
 .action-text {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .stats-section {
@@ -321,7 +320,7 @@ const goWithdrawRecords = () => {
 .section-title {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
@@ -358,10 +357,10 @@ const goWithdrawRecords = () => {
   flex-direction: column;
   gap: 8px;
   padding: 16px;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 10px;
   cursor: pointer;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-light);
   transition: transform 0.2s;
 }
 
@@ -370,11 +369,11 @@ const goWithdrawRecords = () => {
 }
 
 .stat-card.income {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02));
+  background: linear-gradient(135deg, rgba(0, 184, 129, 0.08), rgba(0, 184, 129, 0.02));
 }
 
 .stat-card.expense {
-  background: linear-gradient(135deg, rgba(239, 68, 68, 0.08), rgba(239, 68, 68, 0.02));
+  background: linear-gradient(135deg, rgba(214, 48, 49, 0.08), rgba(214, 48, 49, 0.02));
 }
 
 .stat-header {
@@ -390,21 +389,21 @@ const goWithdrawRecords = () => {
 
 .stat-label {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .stat-value {
   font-size: 18px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .stat-value.income {
-  color: #10b981;
+  color: var(--success-color);
 }
 
 .stat-value.expense {
-  color: #ef4444;
+  color: var(--error-color);
 }
 
 .balance-header {
@@ -441,20 +440,20 @@ const goWithdrawRecords = () => {
 }
 
 .menu-group {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   overflow: hidden;
   margin: 0;
   width: 100%;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-light);
 }
 
 .menu-title {
   padding: 14px 16px;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: bold;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
   margin: 0;
   width: auto;
 }
@@ -463,7 +462,7 @@ const goWithdrawRecords = () => {
   display: flex;
   align-items: center;
   padding: 14px 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
   cursor: pointer;
   transition: background-color 0.2s;
   min-height: 48px;
@@ -475,7 +474,7 @@ const goWithdrawRecords = () => {
 }
 
 .menu-item:hover {
-  background-color: #fafafa;
+  background-color: var(--bg-secondary);
 }
 
 .menu-icon {
@@ -488,12 +487,12 @@ const goWithdrawRecords = () => {
 .menu-text {
   flex: 1;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .menu-arrow {
   font-size: 18px;
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 /* 响应式设计 - 平板端 */
@@ -504,8 +503,8 @@ const goWithdrawRecords = () => {
   }
 
   .content-container {
-    margin: 90px auto 0;
-    padding: 24px;
+    margin: 20px auto 0;
+    padding: 15px 24px 24px 24px;
     max-width: 650px;
   }
 
@@ -565,7 +564,7 @@ const goWithdrawRecords = () => {
   .stat-card:active,
   .menu-item:active {
     transform: scale(0.98);
-    background-color: #f5f5f5;
+    background-color: var(--bg-secondary);
   }
 }
 

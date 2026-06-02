@@ -1,0 +1,14 @@
+[
+  {
+    "userId": 1,
+    "token": "test-token-1"
+  },
+  {
+    "userId": 2,
+    "token": "test-token-2"
+  },
+  {
+    "userId": 3,
+    "token": "test-token-3"
+  }
+]

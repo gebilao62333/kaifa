@@ -334,7 +334,7 @@ onMounted(() => {
 .album-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-top: 82px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
@@ -346,8 +346,7 @@ onMounted(() => {
   justify-content: space-between;
   padding: 0 20px;
   height: 70px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   position: fixed;
   top: 0;
   left: 50%;
@@ -379,13 +378,14 @@ onMounted(() => {
 }
 
 .album-info {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   padding: 24px;
   margin-bottom: 16px;
   display: flex;
   align-items: center;
   gap: 24px;
+  box-shadow: var(--shadow-light);
 }
 
 .album-stats {
@@ -401,13 +401,13 @@ onMounted(() => {
 .stat-num {
   font-size: 24px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .loading-state {
@@ -418,8 +418,8 @@ onMounted(() => {
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #e0e0e0;
-  border-top-color: #667eea;
+  border: 3px solid var(--border-light);
+  border-top-color: var(--primary-color);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 16px;
@@ -506,7 +506,7 @@ onMounted(() => {
 .load-more {
   text-align: center;
   padding: 16px;
-  color: #667eea;
+  color: #FF6B81;
   font-size: 14px;
   cursor: pointer;
 }
@@ -643,13 +643,13 @@ onMounted(() => {
 }
 
 .upload-area:hover {
-  border-color: #667eea;
-  background: rgba(102,126,234,0.08);
+  border-color: #FF6B81;
+  background: rgba(255,107,129,0.08);
 }
 
 .upload-area.dragover {
-  border-color: #667eea;
-  background: rgba(102,126,234,0.12);
+  border-color: #FF6B81;
+  background: rgba(255,107,129,0.12);
   transform: scale(1.02);
 }
 
@@ -688,9 +688,9 @@ onMounted(() => {
 
 .description-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #FF6B81;
   background: #fff;
-  box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+  box-shadow: 0 0 0 3px rgba(255,107,129,0.1);
 }
 
 .preview-list {
@@ -781,16 +781,16 @@ onMounted(() => {
 }
 
 .privacy-option input[type="radio"]:checked + span {
-  color: #667eea;
+  color: #FF6B81;
   font-weight: 500;
 }
 
 .privacy-option input[type="radio"]:checked {
-  background: #667eea;
+  background: #FF6B81;
 }
 
 .privacy-option:has(input[type="radio"]:checked) {
-  background: rgba(102, 126, 234, 0.1);
+  background: rgba(255, 107, 129, 0.1);
 }
 
 .privacy-password,
@@ -811,7 +811,7 @@ onMounted(() => {
 .password-input:focus,
 .price-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: #FF6B81;
 }
 
 .modal-footer {
@@ -846,15 +846,15 @@ onMounted(() => {
 
 .modal-btn.confirm {
   color: #fff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(102,126,234,0.35);
+  box-shadow: 0 4px 12px rgba(255,107,129,0.35);
 }
 
 .modal-btn.confirm:hover:not(:disabled) {
   opacity: 0.95;
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(102,126,234,0.4);
+  box-shadow: 0 6px 16px rgba(255,107,129,0.4);
 }
 
 .modal-btn.confirm:active:not(:disabled) {

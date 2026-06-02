@@ -96,7 +96,7 @@
             <div class="stat-card">
               <div class="stat-icon">💰</div>
               <div class="stat-info">
-                <div class="stat-value">¥89,012</div>
+                <div class="stat-value">89,012 金币</div>
                 <div class="stat-label">今日收入</div>
               </div>
             </div>
@@ -165,7 +165,7 @@
                 <td>{{ user.sex === 1 ? '男' : user.sex === 2 ? '女' : '未知' }}</td>
                 <td>Lv.{{ user.lv || 1 }}</td>
                 <td>{{ user.vip ? 'VIP'+user.vipLv : '-' }}</td>
-                <td>¥{{ user.money || 0 }}</td>
+                <td>{{ user.money || 0 }} 金币</td>
                 <td>{{ user.city || '-' }}</td>
                 <td>
                   <span :class="['status-badge', user.status === 0 ? 'active' : 'disabled']">
@@ -363,7 +363,7 @@
                 <td><span :class="['service-type-tag', 'service-type-' + (order.type || 0)]">{{ order.typeText || '线上服务' }}</span></td>
                 <td>{{ order.buyerName || '用户' + order.userId }}</td>
                 <td>{{ order.sellerName || '用户' + order.targetId }}</td>
-                <td>🪙{{ order.totalPrice }}</td>
+                <td>{{ order.totalPrice }} 金币</td>
                 <td>
                   <span :class="['order-status-badge', orderStatusClass(order.status)]">{{ orderStatusText(order.status) }}</span>
                 </td>
@@ -405,7 +405,7 @@
               <tr v-for="withdraw in withdrawList" :key="withdraw.id">
                 <td>{{ withdraw.id }}</td>
                 <td>{{ withdraw.userId }}</td>
-                <td>¥{{ withdraw.amount }}</td>
+                <td>{{ withdraw.amount }} 金币</td>
                 <td>{{ withdraw.method }}</td>
                 <td>
                   <span :class="['status-badge', withdraw.status === 0 ? 'pending' : withdraw.status === 1 ? 'approved' : 'rejected']">
@@ -533,7 +533,7 @@
                   <span v-else>🎁</span>
                 </td>
                 <td>{{ gift.title }}</td>
-                <td>¥{{ gift.money }}</td>
+                <td>{{ gift.money }} 金币</td>
                 <td>{{ gift.type === 1 ? '特殊' : '普通' }}</td>
                 <td>{{ gift.is_vip === 1 ? '是' : '否' }}</td>
                 <td>{{ gift.sort }}</td>
@@ -587,7 +587,7 @@
                 <td>{{ log.toNickname || '用户' + log.toUserId }}</td>
                 <td>{{ log.giftName }}</td>
                 <td>{{ log.count }}</td>
-                <td>¥{{ log.amount }}</td>
+                <td>{{ log.amount }} 金币</td>
                 <td>{{ formatTime(log.createTime) }}</td>
                 <td>
                   <button @click="viewGiftLog(log)" class="action-btn">查看</button>
@@ -790,8 +790,8 @@
               <tr v-for="pkg in vipPackageList" :key="pkg.id">
                 <td>{{ pkg.id }}</td>
                 <td>{{ pkg.name }}</td>
-                <td>¥{{ pkg.price }}</td>
-                <td>{{ pkg.originalPrice ? '¥' + pkg.originalPrice : '-' }}</td>
+                <td>{{ pkg.price }} 金币</td>
+                <td>{{ pkg.originalPrice ? pkg.originalPrice + ' 金币' : '-' }}</td>
                 <td>{{ pkg.duration }}</td>
                 <td>LV{{ pkg.level }}</td>
                 <td>{{ pkg.hot === 1 ? '是' : '否' }}</td>
@@ -849,7 +849,7 @@
                 <td>{{ record.id }}</td>
                 <td>{{ record.orderNo }}</td>
                 <td>{{ record.userId }}</td>
-                <td>¥{{ record.amount }}</td>
+                <td>{{ record.amount }} 金币</td>
                 <td>{{ record.paymentMethod === 'wechat' ? '微信' : record.paymentMethod === 'alipay' ? '支付宝' : '银行卡' }}</td>
                 <td>
                   <span :class="['status-badge', 
@@ -1767,7 +1767,7 @@
             <tr><td class="detail-label">性别</td><td>{{ currentUserDetail.sex === 1 ? '男' : currentUserDetail.sex === 2 ? '女' : '未知' }}</td></tr>
             <tr><td class="detail-label">等级</td><td>Lv.{{ currentUserDetail.lv || 1 }}</td></tr>
             <tr><td class="detail-label">VIP</td><td>{{ currentUserDetail.vip ? 'VIP'+currentUserDetail.vipLv : '否' }}</td></tr>
-            <tr><td class="detail-label">金币</td><td>¥{{ currentUserDetail.money || 0 }}</td></tr>
+            <tr><td class="detail-label">金币</td><td>{{ currentUserDetail.money || 0 }} 金币</td></tr>
             <tr><td class="detail-label">粉丝数</td><td>{{ currentUserDetail.fansNum || 0 }}</td></tr>
             <tr><td class="detail-label">城市</td><td>{{ currentUserDetail.city || '-' }}</td></tr>
             <tr><td class="detail-label">个人简介</td><td>{{ currentUserDetail.dec || '-' }}</td></tr>
@@ -1793,7 +1793,7 @@
                     {{ companionStatusText(currentUserDetail.companionService.status) }}
                   </span>
                   <span v-if="currentUserDetail.companionService.status === 2" class="service-detail">
-                    ¥{{ currentUserDetail.companionService.price }}/局 · ⭐{{ currentUserDetail.companionService.star }}
+                    {{ currentUserDetail.companionService.price }} 金币/局 · ⭐{{ currentUserDetail.companionService.star }}
                   </span>
                 </template>
                 <span v-else class="service-badge disabled">未申请</span>
@@ -1951,9 +1951,9 @@
           <tr><td class="detail-label">服务类型</td><td><span :class="['service-type-tag', 'service-type-' + (currentOrderDetail.type || 0)]">{{ currentOrderDetail.typeText || '线上服务' }}</span></td></tr>
           <tr><td class="detail-label">买家</td><td>{{ currentOrderDetail.buyerName || '用户' + currentOrderDetail.userId }}</td></tr>
           <tr><td class="detail-label">陪玩师</td><td>{{ currentOrderDetail.sellerName || '用户' + currentOrderDetail.targetId }}</td></tr>
-          <tr><td class="detail-label">单价</td><td>¥{{ currentOrderDetail.price }}</td></tr>
+          <tr><td class="detail-label">单价</td><td>{{ currentOrderDetail.price }} 金币</td></tr>
           <tr><td class="detail-label">数量</td><td>{{ currentOrderDetail.num }} 局</td></tr>
-          <tr><td class="detail-label">总金额</td><td>¥{{ currentOrderDetail.totalPrice }}</td></tr>
+          <tr><td class="detail-label">总金额</td><td>{{ currentOrderDetail.totalPrice }} 金币</td></tr>
           <tr><td class="detail-label">状态</td><td><span :class="['order-status-badge', orderStatusClass(currentOrderDetail.status)]">{{ orderStatusText(currentOrderDetail.status) }}</span></td></tr>
           <tr><td class="detail-label">游戏区服</td><td>{{ currentOrderDetail.gamesServerName || '-' }}</td></tr>
           <tr><td class="detail-label">游戏角色</td><td>{{ currentOrderDetail.gameRoleName || '-' }}</td></tr>
@@ -3149,7 +3149,7 @@ const loadGiftLogs = async () => {
 }
 
 const viewGiftLog = (log) => {
-  alert(`礼物记录详情：\nID: ${log.id}\n赠送用户: ${log.fromNickname || '用户' + log.fromUserId}\n接收用户: ${log.toNickname || '用户' + log.toUserId}\n礼物: ${log.giftName}\n数量: ${log.count}\n总金额: ¥${log.amount}\n时间: ${formatTime(log.createTime)}`)
+  alert(`礼物记录详情：\nID: ${log.id}\n赠送用户: ${log.fromNickname || '用户' + log.fromUserId}\n接收用户: ${log.toNickname || '用户' + log.toUserId}\n礼物: ${log.giftName}\n数量: ${log.count}\n总金额: ${log.amount} 金币\n时间: ${formatTime(log.createTime)}`)
 }
 
 const getRoleName = (role) => {
@@ -3447,7 +3447,7 @@ const loadRecharges = async () => {
 }
 
 const viewRecharge = (recharge) => {
-  alert(`查看充值记录详情：\nID: ${recharge.id}\n订单号: ${recharge.orderNo}\n用户: ${recharge.userId}\n金额: ¥${recharge.amount}\n支付方式: ${recharge.paymentMethod}\n状态: ${recharge.status}`)
+  alert(`查看充值记录详情：\nID: ${recharge.id}\n订单号: ${recharge.orderNo}\n用户: ${recharge.userId}\n金额: ${recharge.amount} 金币\n支付方式: ${recharge.paymentMethod}\n状态: ${recharge.status}`)
 }
 
 const loadGames = async () => {
@@ -4186,7 +4186,7 @@ onMounted(async () => {
   display: flex;
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -4230,7 +4230,7 @@ onMounted(async () => {
 }
 
 .menu-item.active {
-  background: #3498db;
+  background: var(--primary-color);
 }
 
 .menu-icon {
@@ -4249,18 +4249,19 @@ onMounted(async () => {
   justify-content: space-between;
   align-items: center;
   padding: 20px 30px;
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .top-bar h1 {
   margin: 0;
   font-size: 24px;
+  color: var(--text-primary);
 }
 
 .logout-btn {
   padding: 8px 16px;
-  background: #e74c3c;
+  background: var(--danger-color);
   color: white;
   border: none;
   border-radius: 4px;
@@ -4280,13 +4281,13 @@ onMounted(async () => {
 }
 
 .stat-card {
-  background: white;
+  background: var(--bg-primary);
   padding: 20px;
   border-radius: 8px;
   display: flex;
   align-items: center;
   gap: 15px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-light);
 }
 
 .stat-icon {
@@ -4300,12 +4301,12 @@ onMounted(async () => {
 .stat-value {
   font-size: 24px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .stat-label {
   font-size: 14px;
-  color: #666;
+  color: var(--text-muted);
 }
 
 .page-header {
@@ -4318,11 +4319,12 @@ onMounted(async () => {
 .page-header h2 {
   margin: 0;
   font-size: 20px;
+  color: var(--text-primary);
 }
 
 .add-btn {
   padding: 8px 16px;
-  background: #3498db;
+  background: var(--primary-color);
   color: white;
   border: none;
   border-radius: 4px;
@@ -4339,19 +4341,23 @@ onMounted(async () => {
   flex: 1;
   max-width: 400px;
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .search-select {
   padding: 8px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 4px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .search-btn {
   padding: 8px 16px;
-  background: #3498db;
+  background: var(--primary-color);
   color: white;
   border: none;
   border-radius: 4px;
@@ -4360,7 +4366,7 @@ onMounted(async () => {
 
 .data-table {
   width: 100%;
-  background: white;
+  background: var(--bg-primary);
   border-collapse: collapse;
 }
 
@@ -4368,11 +4374,12 @@ onMounted(async () => {
 .data-table td {
   padding: 12px;
   text-align: left;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-primary);
 }
 
 .data-table th {
-  background: #f8f9fa;
+  background: var(--bg-secondary);
   font-weight: 600;
 }
 
@@ -4393,7 +4400,7 @@ onMounted(async () => {
   height: 80px;
   border-radius: 50%;
   object-fit: cover;
-  border: 3px solid #667eea;
+  border: 3px solid var(--primary-color);
 }
 
 .avatar-placeholder-large {
@@ -4406,16 +4413,17 @@ onMounted(async () => {
 }
 
 .detail-table tr {
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .detail-table td {
   padding: 10px 8px;
   font-size: 14px;
+  color: var(--text-primary);
 }
 
 .detail-label {
-  color: #666;
+  color: var(--text-secondary);
   font-weight: 500;
   width: 100px;
   white-space: nowrap;
@@ -4428,11 +4436,11 @@ onMounted(async () => {
 .detail-section-title {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-top: 20px;
   margin-bottom: 10px;
   padding-bottom: 8px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .service-badge {
@@ -4449,24 +4457,24 @@ onMounted(async () => {
 }
 
 .service-badge.approved {
-  background: #e8f5e9;
-  color: #2e7d32;
+  background: var(--success-light);
+  color: var(--success-color);
 }
 
 .service-badge.pending {
-  background: #fff3e0;
-  color: #e65100;
+  background: var(--warning-light);
+  color: var(--warning-color);
 }
 
 .service-badge.disabled {
-  background: #f5f5f5;
-  color: #999;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
 }
 
 .service-detail {
   margin-left: 8px;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .user-avatar-small {
@@ -4494,8 +4502,8 @@ onMounted(async () => {
 }
 
 .status-badge.active {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--success-light);
+  color: var(--success-color);
 }
 
 .status-badge.disabled {

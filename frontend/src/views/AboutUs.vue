@@ -119,7 +119,7 @@ const closeModal = () => {
 .about-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-top: 82px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
@@ -131,8 +131,7 @@ const closeModal = () => {
   justify-content: space-between;
   padding: 0 20px;
   height: 70px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   position: fixed;
   top: 0;
   left: 50%;

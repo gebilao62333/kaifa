@@ -1,4 +1,5 @@
 const albumService = require('../services/albumService');
+const logger = require('../utils/logger');
 const response = require('../utils/response');
 
 const getPhotos = async (req, res) => {
@@ -7,7 +8,7 @@ const getPhotos = async (req, res) => {
     const result = await albumService.getPhotos(req.userId, parseInt(page), parseInt(pageSize));
     response.success(res, result);
   } catch (error) {
-    console.error('获取相册错误:', error);
+    logger.error('获取相册错误:', error);
     response.error(res, error.message);
   }
 };
@@ -22,7 +23,7 @@ const uploadPhoto = async (req, res) => {
     const result = await albumService.uploadPhoto(req.userId, req.file, description, privacy);
     response.success(res, result, '上传成功');
   } catch (error) {
-    console.error('上传照片错误:', error);
+    logger.error('上传照片错误:', error);
     response.badRequest(res, error.message);
   }
 };
@@ -38,7 +39,7 @@ const deletePhoto = async (req, res) => {
     await albumService.deletePhoto(req.userId, parseInt(id));
     response.success(res, {}, '删除成功');
   } catch (error) {
-    console.error('删除照片错误:', error);
+    logger.error('删除照片错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -54,7 +55,7 @@ const likePhoto = async (req, res) => {
     const result = await albumService.likePhoto(req.userId, parseInt(id));
     response.success(res, result);
   } catch (error) {
-    console.error('点赞照片错误:', error);
+    logger.error('点赞照片错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };

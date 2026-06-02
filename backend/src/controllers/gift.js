@@ -1,4 +1,5 @@
 const { giftService } = require('../services');
+const logger = require('../utils/logger');
 const response = require('../utils/response');
 
 const getGiftList = async (req, res) => {
@@ -7,7 +8,7 @@ const getGiftList = async (req, res) => {
     const result = await giftService.getGiftList(type !== undefined ? parseInt(type) : null);
     response.success(res, result);
   } catch (error) {
-    console.error('获取礼物列表错误:', error);
+    logger.error('获取礼物列表错误:', error);
     response.error(res, error.message);
   }
 };
@@ -28,7 +29,7 @@ const sendGift = async (req, res) => {
     );
     response.success(res, result, '赠送成功');
   } catch (error) {
-    console.error('赠送礼物错误:', error);
+    logger.error('赠送礼物错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -38,7 +39,7 @@ const getGiftBag = async (req, res) => {
     const result = await giftService.getGiftBag(req.userId);
     response.success(res, result);
   } catch (error) {
-    console.error('获取背包错误:', error);
+    logger.error('获取背包错误:', error);
     response.error(res, error.message);
   }
 };
@@ -54,7 +55,7 @@ const withdraw = async (req, res) => {
     const result = await giftService.withdraw(req.userId, parseFloat(money), parseInt(type) || 1, bankInfo);
     response.success(res, result, '提现申请已提交');
   } catch (error) {
-    console.error('提现错误:', error);
+    logger.error('提现错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -154,7 +155,7 @@ const getWithdrawList = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取提现列表错误:', error);
+    logger.error('获取提现列表错误:', error);
     response.error(res, error.message);
   }
 };
@@ -170,7 +171,7 @@ const approveWithdraw = async (req, res) => {
     const result = await giftService.approveWithdraw(parseInt(withdrawId), req.userId, transferBatchNo);
     response.success(res, result, '提现审核通过');
   } catch (error) {
-    console.error('审核提现错误:', error);
+    logger.error('审核提现错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -186,7 +187,7 @@ const rejectWithdraw = async (req, res) => {
     const result = await giftService.rejectWithdraw(parseInt(withdrawId), req.userId, reason);
     response.success(res, result, '提现申请已拒绝');
   } catch (error) {
-    console.error('拒绝提现错误:', error);
+    logger.error('拒绝提现错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -208,7 +209,7 @@ const sendRedPacket = async (req, res) => {
     );
     response.success(res, result, '红包已发送');
   } catch (error) {
-    console.error('发送红包错误:', error);
+    logger.error('发送红包错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -224,7 +225,7 @@ const receiveRedPacket = async (req, res) => {
     const result = await giftService.receiveRedPacket(req.userId, packetNo);
     response.success(res, result, '领取成功');
   } catch (error) {
-    console.error('领取红包错误:', error);
+    logger.error('领取红包错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -235,7 +236,7 @@ const getRedPacketHistory = async (req, res) => {
     const result = await giftService.getRedPacketHistory(req.userId, type);
     response.success(res, result);
   } catch (error) {
-    console.error('获取红包记录错误:', error);
+    logger.error('获取红包记录错误:', error);
     response.error(res, error.message);
   }
 };

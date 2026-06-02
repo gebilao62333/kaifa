@@ -99,9 +99,10 @@ defineEmits(['load-more', 'user-click'])
 }
 
 .section-title {
-  font-size: 16px;
-  font-weight: bold;
-  color: #333;
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .section-more {
@@ -126,7 +127,7 @@ defineEmits(['load-more', 'user-click'])
   width: 28px;
   height: 28px;
   border: 3px solid #f0f0f0;
-  border-top-color: #667eea;
+  border-top-color: #FF6B81;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   -webkit-animation: spin 0.8s linear infinite;
@@ -208,7 +209,7 @@ defineEmits(['load-more', 'user-click'])
 .admin-recommend-badge {
   font-size: 9px;
   font-weight: 600;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #FF6B81, #E64C65);
   color: white;
   padding: 1px 6px;
   border-radius: 8px;
@@ -347,7 +348,7 @@ defineEmits(['load-more', 'user-click'])
 
 .companion-service .service-tag {
   color: #fff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   padding: 2px 8px;
   border-radius: 20px;
   font-size: 10px;

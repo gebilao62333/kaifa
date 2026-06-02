@@ -272,7 +272,7 @@ onMounted(() => {
 .vip-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding-top: 70px;
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
@@ -287,8 +287,8 @@ onMounted(() => {
   justify-content: center;
   padding: 0 20px;
   height: 70px;
-  background: linear-gradient(135deg, #ffd700, #ff8c00);
-  background: -webkit-linear-gradient(315deg, #ffd700, #ff8c00);
+  background: var(--gradient-primary);
+  background: -webkit-linear-gradient(315deg, #FF6B81 0%, #E64C65 100%);
   color: white;
   position: fixed;
   top: 0;
@@ -319,17 +319,17 @@ onMounted(() => {
 .vip-card {
   margin: 16px auto 20px;
   max-width: 650px;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-medium);
   position: relative;
   z-index: 1;
 }
 
 .card-background {
-  background: linear-gradient(135deg, #ffd700, #ff8c00);
-  background: -webkit-linear-gradient(315deg, #ffd700, #ff8c00);
+  background: var(--gradient-primary);
+  background: -webkit-linear-gradient(315deg, #FF6B81 0%, #E64C65 100%);
   padding: 24px;
   padding-top: 8px;
   padding-bottom: 8px;
@@ -353,7 +353,7 @@ onMounted(() => {
 .section-title {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   padding: 16px 12px 12px;
   max-width: 100%;
   margin: 0 auto;
@@ -363,7 +363,7 @@ onMounted(() => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
   padding: 20px 12px;
-  background: white;
+  background: var(--bg-primary);
   max-width: 100%;
   margin: 0 auto;
   border-radius: 10px;
@@ -384,7 +384,7 @@ onMounted(() => {
 
 .privilege-item .name {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .vip-level-badge {
@@ -429,7 +429,7 @@ onMounted(() => {
 }
 
 .package-item {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   padding: 20px;
   border: 2px solid transparent;
@@ -440,9 +440,9 @@ onMounted(() => {
 }
 
 .package-item.active {
-  border-color: #ff8c00;
-  background: #fffaf0;
-  box-shadow: 0 4px 20px rgba(255, 140, 0, 0.15);
+  border-color: var(--primary-color);
+  background: var(--bg-secondary);
+  box-shadow: var(--shadow-heavy);
 }
 
 .pkg-top {
@@ -465,13 +465,13 @@ onMounted(() => {
 .pkg-level {
   font-size: 18px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 2px;
 }
 
 .pkg-desc {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
   line-height: 1.4;
 }
 
@@ -490,18 +490,18 @@ onMounted(() => {
 .price-value {
   font-size: 26px;
   font-weight: bold;
-  color: #ff6b6b;
+  color: var(--primary-color);
   line-height: 1;
 }
 
 .price-unit {
   font-size: 12px;
-  color: #ff6b6b;
+  color: var(--primary-color);
 }
 
 .package-item .original {
   font-size: 12px;
-  color: #ccc;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
@@ -517,8 +517,8 @@ onMounted(() => {
   font-weight: 500;
   padding: 7px 0;
   border-radius: 8px;
-  background: #f5f5f5;
-  color: #888;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   cursor: pointer;
   text-align: center;
   transition: all 0.2s;
@@ -527,14 +527,14 @@ onMounted(() => {
 }
 
 .duration-option.active {
-  background: linear-gradient(135deg, #ffd700, #ff8c00);
-  background: -webkit-linear-gradient(315deg, #ffd700, #ff8c00);
+  background: var(--gradient-primary);
+  background: -webkit-linear-gradient(315deg, #FF6B81 0%, #E64C65 100%);
   color: white;
   font-weight: 600;
 }
 
 .package-item.active .duration-option.active {
-  background: linear-gradient(135deg, #ff8c00, #ff6b00);
+  background: var(--gradient-primary);
 }
 
 .pkg-benefits {
@@ -546,16 +546,16 @@ onMounted(() => {
 
 .benefit-line {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   padding: 4px 12px;
-  background: #f9f9f9;
+  background: var(--bg-secondary);
   border-radius: 12px;
   line-height: 1.4;
 }
 
 .package-item.active .benefit-line {
-  background: rgba(255, 140, 0, 0.1);
-  color: #8c5a00;
+  background: rgba(255, 107, 129, 0.1);
+  color: var(--primary-dark);
 }
 
 .pkg-buy-btn {
@@ -567,17 +567,17 @@ onMounted(() => {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
-  background: #f0f0f0;
-  color: #bbb;
+  background: var(--border-light);
+  color: var(--text-muted);
 }
 
 .pkg-buy-btn.active {
-  background: linear-gradient(135deg, #ff8c00, #ff6b00);
+  background: var(--gradient-primary);
   color: white;
 }
 
 .pkg-buy-btn:not(.active):hover {
-  background: #e0e0e0;
+  background: var(--border-color);
 }
 
 @media (min-width: 768px) {

@@ -338,8 +338,8 @@ const handleResetPwd = async () => {
 .login-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
+  background: -webkit-linear-gradient(315deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -351,10 +351,10 @@ const handleResetPwd = async () => {
 .login-container {
   width: 100%;
   max-width: 360px;
-  background-color: #fff;
+  background-color: var(--bg-primary);
   border-radius: 10px;
   padding: 40px 30px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   box-sizing: border-box;
 }
 
@@ -371,13 +371,13 @@ const handleResetPwd = async () => {
 .title {
   font-size: 28px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .subtitle {
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .login-form {
@@ -395,34 +395,36 @@ const handleResetPwd = async () => {
 .form-label {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .form-input {
   width: 100%;
   height: 48px;
   padding: 0 15px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   font-size: 15px;
+  color: var(--text-primary);
   transition: all 0.3s;
   box-sizing: border-box;
+  background: var(--bg-primary);
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(255, 107, 129, 0.1);
 }
 
 .form-input::placeholder {
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 .login-btn {
   width: 100%;
   height: 50px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: #fff;
   border: none;
   border-radius: 12px;
@@ -435,7 +437,7 @@ const handleResetPwd = async () => {
 
 .login-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 5px 20px rgba(255, 107, 129, 0.4);
 }
 
 .login-btn:disabled {
@@ -448,17 +450,19 @@ const handleResetPwd = async () => {
   justify-content: space-between;
   margin-top: 25px;
   padding-top: 20px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-light);
 }
 
 .link {
   font-size: 14px;
-  color: #667eea;
+  color: var(--primary-color);
   cursor: pointer;
+  transition: color 0.2s;
 }
 
 .link:hover {
   text-decoration: underline;
+  color: var(--primary-dark);
 }
 
 .modal-overlay {
@@ -476,11 +480,12 @@ const handleResetPwd = async () => {
 }
 
 .modal-box {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 20px;
   width: 100%;
   max-width: 380px;
   overflow: hidden;
+  box-shadow: var(--shadow-heavy);
 }
 
 .modal-header {
@@ -493,12 +498,12 @@ const handleResetPwd = async () => {
 .modal-title {
   font-size: 18px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .modal-close {
   font-size: 20px;
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
   width: 32px;
   height: 32px;
@@ -510,8 +515,8 @@ const handleResetPwd = async () => {
 }
 
 .modal-close:hover {
-  background: #f5f5f5;
-  color: #333;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .modal-body {
@@ -534,18 +539,18 @@ const handleResetPwd = async () => {
   flex-shrink: 0;
   height: 48px;
   padding: 0 16px;
-  background: #f0f0f0;
-  border: 1px solid #e0e0e0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s;
 }
 
 .code-btn:hover:not(:disabled) {
-  background: #e8e8e8;
+  background: var(--bg-tertiary);
 }
 
 .code-btn:disabled {
@@ -556,7 +561,7 @@ const handleResetPwd = async () => {
 .submit-btn {
   width: 100%;
   height: 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: #fff;
   border: none;
   border-radius: 12px;
@@ -569,7 +574,7 @@ const handleResetPwd = async () => {
 
 .submit-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 15px rgba(255, 107, 129, 0.3);
 }
 
 .modal-enter-active,

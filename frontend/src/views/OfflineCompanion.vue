@@ -77,7 +77,7 @@
             </div>
             <div class="companion-bottom">
               <div class="companion-location">
-                <span class="location-icon">📍</span>
+                <span class="location-icon">地点</span>
                 <span class="location-text">{{ item.location }}</span>
               </div>
               <div class="companion-price">
@@ -102,7 +102,7 @@ const loading = ref(true)
 const companions = ref([])
 
 const offlineActivities = [
-  { id: 201, name: '逛街购物', icon: '🛍️', price: 150, desc: '陪同逛街购物', bgColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+  { id: 201, name: '逛街购物', icon: '🛍️', price: 150, desc: '陪同逛街购物', bgColor: 'linear-gradient(135deg, #FF6B81 0%, #E64C65 100%)' },
   { id: 202, name: '看电影', icon: '🎬', price: 200, desc: '陪同观看电影', bgColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
   { id: 203, name: '美食探店', icon: '🍽️', price: 180, desc: '陪同品尝美食', bgColor: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' },
   { id: 204, name: '密室逃脱', icon: '🔐', price: 160, desc: '组队密室挑战', bgColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }
@@ -298,8 +298,8 @@ onMounted(() => {
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
+  background: -webkit-linear-gradient(315deg, #FF6B81 0%, #E64C65 100%);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -368,7 +368,7 @@ onMounted(() => {
 
 .count-hint {
   font-size: 13px;
-  color: #667eea;
+  color: #FF6B81;
   font-weight: normal;
 }
 
@@ -380,7 +380,7 @@ onMounted(() => {
 }
 
 .offline-card {
-  background: white;
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   border-radius: 12px;
   padding: 16px;
   cursor: pointer;
@@ -423,8 +423,8 @@ onMounted(() => {
 }
 
 .offline-card-active {
-  border-color: #667eea;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border-color: #FF6B81;
+  background: linear-gradient(135deg, rgba(255, 107, 129, 0.05) 0%, rgba(230, 76, 101, 0.05) 100%);
 }
 
 .offline-icon-wrap {
@@ -487,7 +487,7 @@ onMounted(() => {
   right: 8px;
   width: 24px;
   height: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -500,9 +500,9 @@ onMounted(() => {
 .selection-hint {
   text-align: center;
   font-size: 13px;
-  color: #667eea;
+  color: #FF6B81;
   padding: 12px;
-  background: rgba(102, 126, 234, 0.1);
+  background: rgba(255, 107, 129, 0.1);
   border-radius: 12px;
   margin-bottom: 0;
 }
@@ -520,7 +520,7 @@ onMounted(() => {
   width: 36px;
   height: 36px;
   border: 3px solid #f0f0f0;
-  border-top-color: #667eea;
+  border-top-color: #FF6B81;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   -webkit-animation: spin 0.8s linear infinite;
@@ -720,7 +720,7 @@ onMounted(() => {
 .service-tags .service-tag {
   font-size: 10px;
   color: #fff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   padding: 2px 8px;
   border-radius: 20px;
 }

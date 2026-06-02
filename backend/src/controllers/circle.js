@@ -1,4 +1,5 @@
 const { circleService } = require('../services');
+const logger = require('../utils/logger');
 const response = require('../utils/response');
 
 const createPost = async (req, res) => {
@@ -22,7 +23,7 @@ const createPost = async (req, res) => {
     );
     response.created(res, result, '发布成功');
   } catch (error) {
-    console.error('发布帖子错误:', error);
+    logger.error('发布帖子错误:', error);
     response.error(res, error.message);
   }
 };
@@ -38,7 +39,7 @@ const getPosts = async (req, res) => {
     );
     response.success(res, result);
   } catch (error) {
-    console.error('获取帖子列表错误:', error);
+    logger.error('获取帖子列表错误:', error);
     response.error(res, error.message);
   }
 };
@@ -54,7 +55,7 @@ const getPostDetail = async (req, res) => {
     const result = await circleService.getPostDetail(req.userId, parseInt(id));
     response.success(res, result);
   } catch (error) {
-    console.error('获取帖子详情错误:', error);
+    logger.error('获取帖子详情错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -75,7 +76,7 @@ const unlockPost = async (req, res) => {
     );
     response.success(res, {}, '解锁成功');
   } catch (error) {
-    console.error('解锁帖子错误:', error);
+    logger.error('解锁帖子错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -90,7 +91,7 @@ const getMyPosts = async (req, res) => {
     );
     response.success(res, result);
   } catch (error) {
-    console.error('获取我的帖子错误:', error);
+    logger.error('获取我的帖子错误:', error);
     response.error(res, error.message);
   }
 };
@@ -106,7 +107,7 @@ const likePost = async (req, res) => {
     const result = await circleService.likePost(req.userId, parseInt(postId));
     response.success(res, result, result.isLiked ? '点赞成功' : '取消点赞');
   } catch (error) {
-    console.error('点赞帖子错误:', error);
+    logger.error('点赞帖子错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -127,7 +128,7 @@ const commentPost = async (req, res) => {
     );
     response.created(res, result, '评论成功');
   } catch (error) {
-    console.error('评论帖子错误:', error);
+    logger.error('评论帖子错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -147,7 +148,7 @@ const getComments = async (req, res) => {
     );
     response.success(res, result);
   } catch (error) {
-    console.error('获取评论列表错误:', error);
+    logger.error('获取评论列表错误:', error);
     response.error(res, error.message);
   }
 };
@@ -157,7 +158,7 @@ const getTags = async (req, res) => {
     const result = await circleService.getTags();
     response.success(res, result);
   } catch (error) {
-    console.error('获取话题列表错误:', error);
+    logger.error('获取话题列表错误:', error);
     response.error(res, error.message);
   }
 };
@@ -233,7 +234,7 @@ const getAdminPosts = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取管理帖子列表错误:', error);
+    logger.error('获取管理帖子列表错误:', error);
     response.error(res, error.message);
   }
 };

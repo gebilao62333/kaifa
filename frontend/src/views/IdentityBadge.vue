@@ -88,7 +88,7 @@ const badgeGroups = ref([
   {
     name: '等级标识',
     list: [
-      { id: 'lv10', name: '10级达人', label: 'Lv.10', icon: '⭐', style: { background: 'linear-gradient(135deg, #667eea, #764ba2)', color: '#fff' }, locked: false },
+      { id: 'lv10', name: '10级达人', label: 'Lv.10', icon: '⭐', style: { background: 'linear-gradient(135deg, #FF6B81, #E64C65)', color: '#fff' }, locked: false },
       { id: 'lv20', name: '20级达人', label: 'Lv.20', icon: '⭐', style: { background: 'linear-gradient(135deg, #f093fb, #f5576c)', color: '#fff' }, locked: true, condition: '等级达到20级' },
       { id: 'lv30', name: '30级达人', label: 'Lv.30', icon: '🔥', style: { background: 'linear-gradient(135deg, #4facfe, #00f2fe)', color: '#fff' }, locked: true, condition: '等级达到30级' },
       { id: 'lv50', name: '50级大神', label: 'Lv.50', icon: '💎', style: { background: 'linear-gradient(135deg, #fccb90, #d57eeb)', color: '#fff' }, locked: true, condition: '等级达到50级' }
@@ -146,8 +146,8 @@ const selectBadge = (badge) => {
 
 .header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   padding: 0 20px;
   height: 70px;
   position: fixed;
@@ -156,7 +156,7 @@ const selectBadge = (badge) => {
   transform: translateX(-50%);
   width: 100%;
   max-width: 650px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   z-index: 100;
 }
 
@@ -321,8 +321,8 @@ const selectBadge = (badge) => {
 }
 
 .badge-item.active {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.03);
+  border-color: #FF6B81;
+  background: rgba(255, 107, 129, 0.03);
 }
 
 .badge-item.locked {
@@ -357,7 +357,7 @@ const selectBadge = (badge) => {
   right: 8px;
   width: 22px;
   height: 22px;
-  background: #667eea;
+  background: #FF6B81;
   color: white;
   border-radius: 50%;
   display: flex;

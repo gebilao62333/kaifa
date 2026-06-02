@@ -92,7 +92,7 @@ const goTo = (path) => {
 }
 
 .bn-item--active .bn-label {
-  color: #667eea;
+  color: #FF6B81;
   font-weight: 600;
 }
 

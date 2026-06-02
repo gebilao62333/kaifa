@@ -5,6 +5,7 @@ import router from './router'
 import { useUserStore } from './store/user-info'
 import lazyLoadDirective from './directives/lazyLoad'
 import { createPersistedState } from './plugins/persistedState'
+import './styles/colors.css'
 
 const app = createApp(App)
 const pinia = createPinia()

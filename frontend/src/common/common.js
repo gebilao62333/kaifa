@@ -309,7 +309,7 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
 
     const result = JSON.parse(text)
 
-    if (result.code !== 0 && result.code !== 200) {
+    if (result.code !== 0 && result.code !== 200 && result.code !== 201) {
       throw new RequestError(result.message || '请求失败', result.code, response.status)
     }
 

@@ -44,11 +44,11 @@
   --z-toast: 2000;
 
   /* --- 主题色 --- */
-  --color-primary: #667eea;
-  --color-primary-dark: #5a6ed4;
-  --color-secondary: #764ba2;
-  --color-secondary-dark: #663d92;
-  --color-gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --color-primary: #FF6B81;
+  --color-primary-dark: #E64C65;
+  --color-secondary: #FF9AA2;
+  --color-secondary-dark: #FD79A8;
+  --color-gradient-primary: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   --color-gradient-vip: linear-gradient(135deg, #ffd700, #ff8c00);
 
   /* --- 背景色 --- */
@@ -60,7 +60,7 @@
   --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
-  --shadow-header: 0 2px 12px rgba(102, 126, 234, 0.15);
+  --shadow-header: 0 2px 12px rgba(255, 107, 129, 0.15);
 
   /* --- 文字 --- */
   --font-size-xs: 10px;

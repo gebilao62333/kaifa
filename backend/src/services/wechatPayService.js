@@ -15,7 +15,7 @@ const buildSign = (params) => {
   const sortedParams = Object.keys(params).sort().filter(k => params[k] && k !== 'sign');
   const signStr = sortedParams.map(k => `${k}=${params[k]}`).join('&');
   const finalStr = signStr + `&key=${config.apiKey}`;
-  return crypto.createHash('md5').update(finalStr, 'utf8').digest('hex').toUpperCase();
+  return crypto.createHmac('sha256', config.apiKey).update(finalStr, 'utf8').digest('hex').toUpperCase();
 };
 
 const buildXml = (params) => {
@@ -135,7 +135,7 @@ const getJsApiSign = (prepayId) => {
     timeStamp: getTimestamp().toString(),
     nonceStr: crypto.randomBytes(16).toString('hex').toUpperCase(),
     package: `prepay_id=${prepayId}`,
-    signType: 'MD5'
+    signType: 'HMAC-SHA256'
   };
 
   params.paySign = buildSign(params);

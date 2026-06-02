@@ -10,6 +10,8 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:verbose": "jest --verbose",
+    "test:load": "artillery run tests/load-tests/api-load-test.yml",
+    "test:load:report": "artillery run tests/load-tests/api-load-test.yml --output test-results/load-test-report.json && artillery report test-results/load-test-report.json",
     "lint": "eslint src/"
   },
   "keywords": [
@@ -46,6 +48,7 @@
     "xml2js": "^0.6.2"
   },
   "devDependencies": {
+    "artillery": "^2.0.0",
     "chai": "^4.3.10",
     "eslint": "^8.53.0",
     "jest": "^29.7.0",

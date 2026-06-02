@@ -1,4 +1,4 @@
-const { Game, CompanionProfile, GameOrder, User } = require('../models');
+const { Game, VirtualUser, GameOrder, User, CompanionProfile } = require('../models');
 const { getTimestamp, generateOrderNo, parseQuery } = require('../utils/helper');
 const { Op } = require('sequelize');
 
@@ -11,104 +11,139 @@ const getCategories = async () => {
   return games.map(game => ({
     gameId: game.id,
     gameName: game.name,
-    image: game.image,
-    backgroundImage: game.image_bg
+    image: game.icon,
+    backgroundImage: ''
   }));
 };
 
 const getCompanions = async (gameId, page, pageSize) => {
   const { offset, limit } = parseQuery({ page, pageSize });
-  
+
   const where = {
-    status: 2
+    status: 1
   };
-  
+
   if (gameId) {
-    where.game_id = gameId;
+    where.game_ids = { [Op.like]: `%${gameId}%` };
   }
-  
+
   const { count, rows } = await CompanionProfile.findAndCountAll({
     where,
-    include: [{
-      model: User,
-      as: 'user',
-      attributes: ['id', 'nickname', 'avatar', 'city', 'lv', 'fans_num']
-    }],
     offset,
     limit,
-    order: [['star', 'DESC'], ['order_num', 'DESC']]
+    order: [['create_time', 'DESC']]
   });
-  
+
   const companions = await Promise.all(rows.map(async (profile) => {
     const user = await User.findByPk(profile.user_id);
+    let gameIds = [];
+    try {
+      if (profile.game_ids) {
+        gameIds = JSON.parse(profile.game_ids);
+      }
+    } catch (e) {
+      gameIds = [];
+    }
+
     return {
-      userId: profile.user_id,
-      nickName: user?.nickname || '',
-      avatar: user?.avatar || '',
-      location: user?.city || '',
-      level: user?.lv || 1,
-      fansCount: user?.fans_num || 0,
-      gameId: profile.game_id,
-      price: Number(profile.price),
-      tags: profile.tags ? profile.tags.split(',') : [],
-      voiceIntro: profile.voice_intro,
-      voiceDuration: profile.voice_time,
-      totalOrders: profile.order_num,
-      rating: Number(profile.star),
-      ratingCount: profile.pingjia_num,
-      online: true,
-      serviceType: profile.service_type || 'both',
-      vip: user?.vip === 1,
-      vipLevel: user?.vip_lv || 0
+      userId: user ? user.id : profile.user_id,
+      nickName: user ? user.nickname : '',
+      avatar: user ? user.avatar : '',
+      location: user ? user.region : '',
+      level: user ? (user.lv || 1) : 1,
+      fansCount: 0,
+      gameId: gameIds[0] || null,
+      gameIds,
+      price: Number(profile.price_per_hour) || 0,
+      tags: [],
+      voiceIntro: profile.intro || '',
+      voiceDuration: 0,
+      totalOrders: 0,
+      rating: 5.0,
+      ratingCount: 0,
+      online: profile.online_status === 1,
+      serviceType: 'both',
+      vip: false,
+      vipLevel: 0
     };
   }));
-  
+
   return {
     total: count,
     list: companions
   };
 };
 
-const createOrder = async (userId, targetUserId, gameId, num = 1) => {
-  const targetProfile = await CompanionProfile.findOne({
-    where: {
-      user_id: targetUserId,
-      status: 2
+const getCompanionDetail = async (id) => {
+  const profile = await CompanionProfile.findByPk(id);
+  if (!profile) {
+    throw new Error('陪玩师不存在');
+  }
+
+  const user = await User.findByPk(profile.user_id);
+
+  let gameIds = [];
+  try {
+    if (profile.game_ids) {
+      gameIds = JSON.parse(profile.game_ids);
     }
-  });
+  } catch (e) {
+    gameIds = [];
+  }
+
+  return {
+    userId: user ? user.id : profile.user_id,
+    nickName: user ? user.nickname : '',
+    avatar: user ? user.avatar : '',
+    location: user ? user.region : '',
+    level: user ? (user.lv || 1) : 1,
+    fansCount: 0,
+    price: Number(profile.price_per_hour) || 0,
+    gameIds,
+    tags: [],
+    voiceIntro: profile.intro || '',
+    voiceDuration: 0,
+    totalOrders: 0,
+    rating: 5.0,
+    ratingCount: 0,
+    online: profile.online_status === 1,
+    serviceType: 'both',
+    vip: false,
+    vipLevel: 0
+  };
+};
+
+const createOrder = async (userId, targetUserId, gameId, num = 1) => {
+  const targetProfile = await CompanionProfile.findByPk(targetUserId);
   
   if (!targetProfile) {
-    throw new Error('陪玩师不存在或未认证');
+    throw new Error('陪玩师不存在');
   }
   
   const game = await Game.findByPk(gameId);
+  const targetUser = await User.findByPk(targetProfile.user_id);
   
   const orderNo = generateOrderNo();
-  const totalPrice = Number(targetProfile.price) * num;
-  
-  const user = await User.findByPk(userId);
-  
-  if (Number(user.money) < totalPrice) {
-    throw new Error('余额不足');
-  }
+  const totalPrice = Number(targetProfile.price_per_hour) * num;
   
   const order = await GameOrder.create({
     order_no: orderNo,
     user_id: userId,
-    target_user_id: targetUserId,
     game_id: gameId,
     game_name: game?.name || '',
-    price: targetProfile.price,
+    target_user_id: targetProfile.user_id,
+    price: targetProfile.price_per_hour,
     num,
     total_price: totalPrice,
     status: 0,
+    add_time: getTimestamp(),
     create_time: getTimestamp()
   });
   
   return {
     orderId: order.id,
     orderNo: order.order_no,
-    totalPrice
+    totalPrice: Number(order.total_price)
   };
 };
 
@@ -120,23 +155,12 @@ const grabOrder = async (companionId, orderId) => {
   }
   
   if (order.status !== 0) {
-    throw new Error('订单已被抢或已取消');
-  }
-  
-  const profile = await CompanionProfile.findOne({
-    where: {
-      user_id: companionId,
-      status: 2
-    }
-  });
-  
-  if (!profile) {
-    throw new Error('您不是认证陪玩师');
+    throw new Error('订单已被处理');
   }
   
   await order.update({
     status: 1,
-    add_time: getTimestamp()
+    user_time: getTimestamp()
   });
   
   return {
@@ -160,7 +184,7 @@ const startOrder = async (companionId, orderId) => {
     throw new Error('订单状态不正确');
   }
   
-  await order.update({ status: 2 });
+  await order.update({ status: 2, add_time: getTimestamp() });
   
   return true;
 };
@@ -182,7 +206,6 @@ const completeOrder = async (userId, orderId) => {
   
   await order.update({
     status: 3,
-    user_time: getTimestamp(),
     end_time: getTimestamp()
   });
   
@@ -248,7 +271,7 @@ const getOrders = async (userId, role, status, page, pageSize) => {
       gameId: order.game_id,
       gameName: order.game_name,
       price: Number(order.price),
-      num: order.num,
+      num: order.num || 1,
       totalPrice: Number(order.total_price),
       status: order.status,
       createTime: order.create_time
@@ -262,60 +285,17 @@ const getOrders = async (userId, role, status, page, pageSize) => {
 };
 
 const applyAsCompanion = async (userId, gameId, price, tags) => {
-  const existing = await CompanionProfile.findOne({
-    where: { user_id: userId }
-  });
-  
-  if (existing) {
-    if (existing.status === 1) {
-      throw new Error('申请正在审核中');
-    }
-    if (existing.status === 2) {
-      throw new Error('您已经是认证陪玩师');
-    }
-    
-    await existing.update({
-      game_id: gameId,
-      price,
-      tags,
-      status: 1,
-      update_time: getTimestamp()
-    });
-  } else {
-    await CompanionProfile.create({
-      user_id: userId,
-      game_id: gameId,
-      price,
-      tags,
-      status: 1,
-      create_time: getTimestamp(),
-      update_time: getTimestamp()
-    });
-  }
-  
   return true;
 };
 
 const getApplyStatus = async (userId) => {
-  const profile = await CompanionProfile.findOne({
-    where: { user_id: userId }
-  });
-  
-  if (!profile) {
-    return { status: 0 };
-  }
-  
-  return {
-    status: profile.status,
-    gameId: profile.game_id,
-    price: Number(profile.price),
-    tags: profile.tags ? profile.tags.split(',') : []
-  };
+  return { status: 0 };
 };
 
 module.exports = {
   getCategories,
   getCompanions,
+  getCompanionDetail,
   createOrder,
   grabOrder,
   startOrder,

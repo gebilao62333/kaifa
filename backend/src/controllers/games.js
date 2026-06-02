@@ -1,4 +1,5 @@
 const { gamesService } = require('../services');
+const logger = require('../utils/logger');
 const response = require('../utils/response');
 
 const getCategories = async (req, res) => {
@@ -6,7 +7,7 @@ const getCategories = async (req, res) => {
     const result = await gamesService.getCategories();
     response.success(res, result);
   } catch (error) {
-    console.error('获取游戏分类错误:', error);
+    logger.error('获取游戏分类错误:', error);
     response.error(res, error.message);
   }
 };
@@ -21,7 +22,18 @@ const getCompanions = async (req, res) => {
     );
     response.success(res, result);
   } catch (error) {
-    console.error('获取陪玩师列表错误:', error);
+    logger.error('获取陪玩师列表错误:', error);
+    response.error(res, error.message);
+  }
+};
+
+const getCompanionDetail = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await gamesService.getCompanionDetail(parseInt(id));
+    response.success(res, result);
+  } catch (error) {
+    logger.error('获取陪玩师详情错误:', error);
     response.error(res, error.message);
   }
 };
@@ -42,7 +54,7 @@ const createOrder = async (req, res) => {
     );
     response.success(res, result, '下单成功');
   } catch (error) {
-    console.error('创建订单错误:', error);
+    logger.error('创建订单错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -58,7 +70,7 @@ const grabOrder = async (req, res) => {
     const result = await gamesService.grabOrder(req.userId, parseInt(orderId));
     response.success(res, result, '抢单成功');
   } catch (error) {
-    console.error('抢单错误:', error);
+    logger.error('抢单错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -74,7 +86,7 @@ const startOrder = async (req, res) => {
     await gamesService.startOrder(req.userId, parseInt(orderId));
     response.success(res, {}, '已开始陪玩');
   } catch (error) {
-    console.error('开始陪玩错误:', error);
+    logger.error('开始陪玩错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -90,7 +102,7 @@ const completeOrder = async (req, res) => {
     await gamesService.completeOrder(req.userId, parseInt(orderId));
     response.success(res, {}, '已完成陪玩');
   } catch (error) {
-    console.error('完成订单错误:', error);
+    logger.error('完成订单错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -106,7 +118,7 @@ const cancelOrder = async (req, res) => {
     await gamesService.cancelOrder(req.userId, parseInt(orderId), role);
     response.success(res, {}, '取消成功');
   } catch (error) {
-    console.error('取消订单错误:', error);
+    logger.error('取消订单错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -124,7 +136,7 @@ const getOrders = async (req, res) => {
     );
     response.success(res, result);
   } catch (error) {
-    console.error('获取订单列表错误:', error);
+    logger.error('获取订单列表错误:', error);
     response.error(res, error.message);
   }
 };
@@ -145,7 +157,7 @@ const applyAsCompanion = async (req, res) => {
     );
     response.success(res, {}, '申请已提交，等待审核');
   } catch (error) {
-    console.error('申请陪玩师错误:', error);
+    logger.error('申请陪玩师错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -155,7 +167,7 @@ const getApplyStatus = async (req, res) => {
     const result = await gamesService.getApplyStatus(req.userId);
     response.success(res, result);
   } catch (error) {
-    console.error('获取申请状态错误:', error);
+    logger.error('获取申请状态错误:', error);
     response.error(res, error.message);
   }
 };
@@ -163,6 +175,7 @@ const getApplyStatus = async (req, res) => {
 module.exports = {
   getCategories,
   getCompanions,
+  getCompanionDetail,
   createOrder,
   grabOrder,
   startOrder,

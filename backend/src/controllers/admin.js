@@ -59,7 +59,7 @@ const adminLogin = async (req, res) => {
       response.error(res, '用户名或密码错误');
     }
   } catch (error) {
-    console.error('管理员登录错误:', error);
+    logger.error('管理员登录错误:', error);
     response.error(res, error.message);
   }
 };
@@ -139,7 +139,7 @@ const getUserList = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取用户列表错误:', error);
+    logger.error('获取用户列表错误:', error);
     response.success(res, {
       list: [],
       pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }
@@ -203,7 +203,7 @@ const getUserDetail = async (req, res) => {
       companionService
     });
   } catch (error) {
-    console.error('获取用户详情错误:', error);
+    logger.error('获取用户详情错误:', error);
     response.error(res, error.message);
   }
 };
@@ -263,7 +263,7 @@ const updateUser = async (req, res) => {
     
     response.success(res, {}, '更新成功');
   } catch (error) {
-    console.error('更新用户信息错误:', error);
+    logger.error('更新用户信息错误:', error);
     response.error(res, error.message);
   }
 };
@@ -302,7 +302,7 @@ const updateUserStatus = async (req, res) => {
     
     response.success(res, { status: newStatus }, '状态更新成功');
   } catch (error) {
-    console.error('更新用户状态错误:', error);
+    logger.error('更新用户状态错误:', error);
     response.error(res, error.message);
   }
 };
@@ -337,7 +337,7 @@ const deleteUser = async (req, res) => {
     
     response.success(res, null, '删除成功');
   } catch (error) {
-    console.error('删除用户错误:', error);
+    logger.error('删除用户错误:', error);
     response.error(res, error.message);
   }
 };
@@ -407,7 +407,7 @@ const createUser = async (req, res) => {
       createTime: newUser.create_time
     }, '用户创建成功');
   } catch (error) {
-    console.error('创建用户错误:', error);
+    logger.error('创建用户错误:', error);
     response.error(res, error.message);
   }
 };
@@ -494,7 +494,7 @@ const getOrderList = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取订单列表错误:', error);
+    logger.error('获取订单列表错误:', error);
     response.success(res, {
       list: [],
       pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }
@@ -544,7 +544,7 @@ const getOrderDetail = async (req, res) => {
       gameRoleName: order.game_role_name || ''
     });
   } catch (error) {
-    console.error('获取订单详情错误:', error);
+    logger.error('获取订单详情错误:', error);
     response.error(res, error.message);
   }
 };
@@ -571,7 +571,7 @@ const updateOrderStatus = async (req, res) => {
     await order.update(updateData);
     response.success(res, { status: order.status }, '状态更新成功');
   } catch (error) {
-    console.error('更新订单状态错误:', error);
+    logger.error('更新订单状态错误:', error);
     response.error(res, error.message);
   }
 };
@@ -608,7 +608,7 @@ const createOrder = async (req, res) => {
       createTime: newOrder.create_time
     }, '订单创建成功');
   } catch (error) {
-    console.error('创建订单错误:', error);
+    logger.error('创建订单错误:', error);
     response.error(res, error.message);
   }
 };
@@ -625,7 +625,7 @@ const deleteOrder = async (req, res) => {
     await GameOrder.destroy({ where: { id } });
     response.success(res, {}, '订单删除成功');
   } catch (error) {
-    console.error('删除订单错误:', error);
+    logger.error('删除订单错误:', error);
     response.error(res, error.message);
   }
 };
@@ -688,7 +688,7 @@ const getWithdrawList = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取提现列表错误:', error);
+    logger.error('获取提现列表错误:', error);
     response.success(res, {
       list: [],
       pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }
@@ -716,7 +716,7 @@ const approveWithdraw = async (req, res) => {
     
     response.success(res, { status: 'approved' }, '审核通过');
   } catch (error) {
-    console.error('审核提现错误:', error);
+    logger.error('审核提现错误:', error);
     response.error(res, error.message);
   }
 };
@@ -743,7 +743,7 @@ const rejectWithdraw = async (req, res) => {
     
     response.success(res, { status: 'rejected' }, '已拒绝');
   } catch (error) {
-    console.error('拒绝提现错误:', error);
+    logger.error('拒绝提现错误:', error);
     response.error(res, error.message);
   }
 };
@@ -769,7 +769,7 @@ const getWithdrawDetail = async (req, res) => {
       handleTime: withdraw.handle_time
     });
   } catch (error) {
-    console.error('获取提现详情错误:', error);
+    logger.error('获取提现详情错误:', error);
     response.error(res, error.message);
   }
 };
@@ -795,7 +795,7 @@ const createWithdraw = async (req, res) => {
       createTime: newWithdraw.create_time
     }, '提现记录创建成功');
   } catch (error) {
-    console.error('创建提现记录错误:', error);
+    logger.error('创建提现记录错误:', error);
     response.error(res, error.message);
   }
 };
@@ -812,7 +812,7 @@ const deleteWithdraw = async (req, res) => {
     await Withdraw.destroy({ where: { id: parseInt(id) } });
     response.success(res, {}, '提现记录删除成功');
   } catch (error) {
-    console.error('删除提现记录错误:', error);
+    logger.error('删除提现记录错误:', error);
     response.error(res, error.message);
   }
 };
@@ -870,7 +870,7 @@ const getPostList = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取帖子列表错误:', error);
+    logger.error('获取帖子列表错误:', error);
     response.success(res, {
       list: [],
       pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }
@@ -899,7 +899,7 @@ const getPostDetail = async (req, res) => {
       createTime: (post.create_time || 0) * 1000
     });
   } catch (error) {
-    console.error('获取帖子详情错误:', error);
+    logger.error('获取帖子详情错误:', error);
     response.error(res, error.message);
   }
 };
@@ -916,7 +916,7 @@ const deletePost = async (req, res) => {
     await Post.destroy({ where: { id: parseInt(id) } });
     response.success(res, {}, '帖子删除成功');
   } catch (error) {
-    console.error('删除帖子错误:', error);
+    logger.error('删除帖子错误:', error);
     response.error(res, error.message);
   }
 };
@@ -968,7 +968,7 @@ const getReportList = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取举报列表错误:', error);
+    logger.error('获取举报列表错误:', error);
     response.success(res, {
       list: [],
       pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }
@@ -1009,7 +1009,7 @@ const getReportDetail = async (req, res) => {
       handleTime: report.handle_time ? report.handle_time * 1000 : null
     });
   } catch (error) {
-    console.error('获取举报详情错误:', error);
+    logger.error('获取举报详情错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1024,7 +1024,7 @@ const handleReport = async (req, res) => {
 
     response.success(res, { status: finalStatus }, message);
   } catch (error) {
-    console.error('处理举报错误:', error);
+    logger.error('处理举报错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1034,7 +1034,7 @@ const deleteReport = async (req, res) => {
     const { id } = req.params;
     response.success(res, {}, '举报记录删除成功');
   } catch (error) {
-    console.error('删除举报错误:', error);
+    logger.error('删除举报错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1072,7 +1072,7 @@ const getBannerList = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取Banner列表错误:', error);
+    logger.error('获取Banner列表错误:', error);
     response.success(res, {
       list: [],
       pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }
@@ -1094,7 +1094,7 @@ const getBannerDetail = async (req, res) => {
       createTime: banner.create_time * 1000
     });
   } catch (error) {
-    console.error('获取Banner详情错误:', error);
+    logger.error('获取Banner详情错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1124,7 +1124,7 @@ const createBanner = async (req, res) => {
       createTime: newBanner.create_time * 1000
     }, '创建成功');
   } catch (error) {
-    console.error('创建Banner错误:', error);
+    logger.error('创建Banner错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1148,7 +1148,7 @@ const updateBanner = async (req, res) => {
 
     response.success(res, {}, '更新成功');
   } catch (error) {
-    console.error('更新Banner错误:', error);
+    logger.error('更新Banner错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1168,7 +1168,7 @@ const updateBannerStatus = async (req, res) => {
 
     response.success(res, { status: banner.status }, '状态更新成功');
   } catch (error) {
-    console.error('更新Banner状态错误:', error);
+    logger.error('更新Banner状态错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1186,7 +1186,7 @@ const deleteBanner = async (req, res) => {
 
     response.success(res, {}, '删除成功');
   } catch (error) {
-    console.error('删除Banner错误:', error);
+    logger.error('删除Banner错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1217,7 +1217,7 @@ const getVipPackageList = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取VIP套餐列表错误:', error);
+    logger.error('获取VIP套餐列表错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1233,7 +1233,7 @@ const getVipPackageDetail = async (req, res) => {
       id: parseInt(id)
     });
   } catch (error) {
-    console.error('获取VIP套餐详情错误:', error);
+    logger.error('获取VIP套餐详情错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1256,7 +1256,7 @@ const createVipPackage = async (req, res) => {
       create_time: Math.floor(Date.now() / 1000)
     }, 'VIP套餐创建成功');
   } catch (error) {
-    console.error('创建VIP套餐错误:', error);
+    logger.error('创建VIP套餐错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1266,7 +1266,7 @@ const updateVipPackage = async (req, res) => {
     const { id } = req.params;
     response.success(res, { id: parseInt(id) }, 'VIP套餐更新成功');
   } catch (error) {
-    console.error('更新VIP套餐错误:', error);
+    logger.error('更新VIP套餐错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1278,7 +1278,7 @@ const updateVipPackageStatus = async (req, res) => {
 
     response.success(res, { status }, '状态更新成功');
   } catch (error) {
-    console.error('更新VIP套餐状态错误:', error);
+    logger.error('更新VIP套餐状态错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1288,7 +1288,7 @@ const deleteVipPackage = async (req, res) => {
     const { id } = req.params;
     response.success(res, {}, 'VIP套餐删除成功');
   } catch (error) {
-    console.error('删除VIP套餐错误:', error);
+    logger.error('删除VIP套餐错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1336,7 +1336,7 @@ const getGiftLogList = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取礼物记录列表错误:', error);
+    logger.error('获取礼物记录列表错误:', error);
     response.success(res, {
       list: [],
       pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }
@@ -1371,7 +1371,7 @@ const getGiftLogDetail = async (req, res) => {
       createTime: (giftLog.create_time || 0) * 1000
     });
   } catch (error) {
-    console.error('获取礼物记录详情错误:', error);
+    logger.error('获取礼物记录详情错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1421,7 +1421,7 @@ const getRechargeRecordList = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取充值记录列表错误:', error);
+    logger.error('获取充值记录列表错误:', error);
     response.success(res, {
       list: [],
       pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }
@@ -1455,7 +1455,7 @@ const getRechargeRecordDetail = async (req, res) => {
       createTime: (record.create_time || 0) * 1000
     });
   } catch (error) {
-    console.error('获取充值记录详情错误:', error);
+    logger.error('获取充值记录详情错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1465,7 +1465,7 @@ const deleteRechargeRecord = async (req, res) => {
     const { id } = req.params;
     response.success(res, {}, '充值记录删除成功');
   } catch (error) {
-    console.error('删除充值记录错误:', error);
+    logger.error('删除充值记录错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1511,7 +1511,7 @@ const getGameList = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取游戏列表错误:', error);
+    logger.error('获取游戏列表错误:', error);
     response.success(res, {
       list: [],
       pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }
@@ -1544,7 +1544,7 @@ const getGameDetail = async (req, res) => {
       createTime: game.create_time * 1000
     });
   } catch (error) {
-    console.error('获取游戏详情错误:', error);
+    logger.error('获取游戏详情错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1567,7 +1567,7 @@ const createGame = async (req, res) => {
       createTime: Date.now()
     }, '服务创建成功');
   } catch (error) {
-    console.error('创建游戏错误:', error);
+    logger.error('创建游戏错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1586,7 +1586,7 @@ const updateGame = async (req, res) => {
       status: status !== undefined ? status : 1
     }, '服务更新成功');
   } catch (error) {
-    console.error('更新游戏错误:', error);
+    logger.error('更新游戏错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1598,7 +1598,7 @@ const updateGameStatus = async (req, res) => {
 
     response.success(res, { id: parseInt(id), status }, '状态更新成功');
   } catch (error) {
-    console.error('更新游戏状态错误:', error);
+    logger.error('更新游戏状态错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1608,7 +1608,7 @@ const deleteGame = async (req, res) => {
     const { id } = req.params;
     response.success(res, {}, '服务删除成功');
   } catch (error) {
-    console.error('删除游戏错误:', error);
+    logger.error('删除游戏错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1640,7 +1640,7 @@ const getSystemSettings = async (req, res) => {
     };
     response.success(res, settings);
   } catch (error) {
-    console.error('获取系统设置错误:', error);
+    logger.error('获取系统设置错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1650,7 +1650,7 @@ const updateSystemSettings = async (req, res) => {
     const settings = req.body;
     response.success(res, settings, '系统设置保存成功');
   } catch (error) {
-    console.error('更新系统设置错误:', error);
+    logger.error('更新系统设置错误:', error);
     response.error(res, error.message);
   }
 };
@@ -1709,7 +1709,7 @@ const getDashboardStats = async (req, res) => {
     
     response.success(res, stats);
   } catch (error) {
-    console.error('获取统计数据错误:', error);
+    logger.error('获取统计数据错误:', error);
     response.success(res, {
       totalUsers: 0,
       todayUsers: 0,
@@ -2009,7 +2009,7 @@ const getCompanionApplicationList = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取服务申请列表错误:', error);
+    logger.error('获取服务申请列表错误:', error);
     response.success(res, {
       list: [],
       pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }
@@ -2039,7 +2039,7 @@ const getCompanionApplicationDetail = async (req, res) => {
       createTime: application.createTime
     });
   } catch (error) {
-    console.error('获取服务申请详情错误:', error);
+    logger.error('获取服务申请详情错误:', error);
     response.error(res, error.message);
   }
 };
@@ -2057,7 +2057,7 @@ const approveCompanionApplication = async (req, res) => {
     
     response.success(res, {}, '审核通过成功');
   } catch (error) {
-    console.error('审核通过错误:', error);
+    logger.error('审核通过错误:', error);
     response.error(res, error.message);
   }
 };
@@ -2075,7 +2075,7 @@ const rejectCompanionApplication = async (req, res) => {
     
     response.success(res, {}, '审核拒绝成功');
   } catch (error) {
-    console.error('审核拒绝错误:', error);
+    logger.error('审核拒绝错误:', error);
     response.error(res, error.message);
   }
 };
@@ -2093,7 +2093,7 @@ const deleteCompanionApplication = async (req, res) => {
     
     response.success(res, {}, '删除成功');
   } catch (error) {
-    console.error('删除服务申请错误:', error);
+    logger.error('删除服务申请错误:', error);
     response.error(res, error.message);
   }
 };

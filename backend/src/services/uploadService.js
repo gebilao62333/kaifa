@@ -1,4 +1,5 @@
 const path = require('path');
+const logger = require('../utils/logger');
 const fs = require('fs');
 const config = require('../config');
 
@@ -160,7 +161,7 @@ const deleteFromCos = async (key) => {
       Key: actualKey
     }, (err) => {
       if (err) {
-        console.error('[COS] 删除文件失败:', err);
+        logger.error('[COS] 删除文件失败:', err);
         resolve(false);
       } else {
         resolve(true);

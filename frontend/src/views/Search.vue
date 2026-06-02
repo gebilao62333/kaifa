@@ -305,7 +305,7 @@ const formatTime = (timestamp) => {
 .search-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding-top: 70px;
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
@@ -316,7 +316,7 @@ const formatTime = (timestamp) => {
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  background: #fff;
+  background: var(--bg-primary);
   position: fixed;
   top: 0;
   left: 0;
@@ -330,7 +330,7 @@ const formatTime = (timestamp) => {
   flex: 1;
   display: flex;
   align-items: center;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-radius: 20px;
   padding: 8px 16px;
   margin-right: 12px;
@@ -350,17 +350,17 @@ const formatTime = (timestamp) => {
 }
 
 .search-input::placeholder {
-  color: #999;
+  color: var(--text-muted);
 }
 
 .clear-icon {
-  color: #999;
+  color: var(--text-muted);
   font-size: 12px;
   cursor: pointer;
 }
 
 .cancel-btn {
-  color: #666;
+  color: var(--text-secondary);
   font-size: 14px;
   cursor: pointer;
 }
@@ -383,12 +383,12 @@ const formatTime = (timestamp) => {
 .section-title {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .clear-history {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
 }
 
@@ -399,11 +399,11 @@ const formatTime = (timestamp) => {
 }
 
 .history-item {
-  background: #fff;
+  background: var(--bg-primary);
   padding: 6px 12px;
   border-radius: 14px;
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
@@ -412,7 +412,7 @@ const formatTime = (timestamp) => {
 }
 
 .hot-list {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -421,7 +421,7 @@ const formatTime = (timestamp) => {
   display: flex;
   align-items: center;
   padding: 12px 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
   cursor: pointer;
 }
 
@@ -433,24 +433,24 @@ const formatTime = (timestamp) => {
   width: 20px;
   font-size: 14px;
   font-weight: 600;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .hot-rank.top {
-  color: #ff4d4f;
+  color: var(--primary-color);
 }
 
 .hot-keyword {
   flex: 1;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   margin-left: 12px;
 }
 
 .hot-tag {
   font-size: 10px;
-  color: #ff4d4f;
-  background: #fff1f0;
+  color: var(--primary-color);
+  background: rgba(255, 107, 129, 0.1);
   padding: 2px 6px;
   border-radius: 4px;
 }
@@ -470,7 +470,7 @@ const formatTime = (timestamp) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: #fff;
+  background: var(--bg-primary);
   padding: 20px 0;
   border-radius: 12px;
   cursor: pointer;
@@ -483,7 +483,7 @@ const formatTime = (timestamp) => {
 
 .category-name {
   font-size: 13px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .search-result {
@@ -496,7 +496,7 @@ const formatTime = (timestamp) => {
   align-items: center;
   justify-content: center;
   padding: 60px 0;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .empty-icon {
@@ -509,7 +509,7 @@ const formatTime = (timestamp) => {
 }
 
 .result-section {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 16px;
@@ -525,12 +525,12 @@ const formatTime = (timestamp) => {
 .result-title {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .result-more {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
 }
 
@@ -559,17 +559,17 @@ const formatTime = (timestamp) => {
 
 .user-name {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .user-level {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .follow-btn {
   padding: 4px 12px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: #fff;
   font-size: 12px;
   border-radius: 12px;
@@ -577,8 +577,8 @@ const formatTime = (timestamp) => {
 }
 
 .follow-btn.following {
-  background: #f5f5f5;
-  color: #999;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
 }
 
 .post-list {
@@ -593,7 +593,7 @@ const formatTime = (timestamp) => {
 
 .post-content {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   line-height: 1.5;
   margin-bottom: 8px;
 }
@@ -615,7 +615,7 @@ const formatTime = (timestamp) => {
   display: flex;
   gap: 12px;
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .game-list {
@@ -639,12 +639,12 @@ const formatTime = (timestamp) => {
 
 .game-name {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .game-count {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 @media (min-width: 768px) {

@@ -539,7 +539,7 @@ const handleLogout = () => {
 .settings-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-top: 70px;
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
@@ -558,8 +558,7 @@ const handleLogout = () => {
   top: 0;
   left: 0;
   width: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   z-index: 100;
   box-sizing: border-box;
@@ -587,11 +586,11 @@ const handleLogout = () => {
 }
 
 .section {
-  background: white;
+  background: var(--bg-primary);
   margin-bottom: 12px;
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-light);
   max-width: 100%;
   margin-left: auto;
   margin-right: auto;
@@ -600,15 +599,15 @@ const handleLogout = () => {
 .section-title {
   padding: 12px 20px;
   font-size: 13px;
-  color: #999;
-  background-color: #f5f5f5;
+  color: var(--text-muted);
+  background-color: var(--bg-secondary);
 }
 
 .menu-item {
   display: flex;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
   cursor: pointer;
   transition: background-color 0.2s;
 }
@@ -618,7 +617,7 @@ const handleLogout = () => {
 }
 
 .menu-item:active {
-  background-color: #f9f9f9;
+  background-color: var(--bg-secondary);
 }
 
 .menu-icon {
@@ -629,25 +628,25 @@ const handleLogout = () => {
 .menu-text {
   flex: 1;
   font-size: 15px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .menu-status {
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
   margin-right: 8px;
 }
 
 .menu-arrow {
   font-size: 20px;
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 .switch {
   width: 48px;
   height: 28px;
   border-radius: 10px;
-  background-color: #ddd;
+  background-color: var(--border-color);
   position: relative;
   transition: all 0.3s;
 }
@@ -661,12 +660,12 @@ const handleLogout = () => {
   height: 24px;
   border-radius: 50%;
   background: white;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-light);
   transition: all 0.3s;
 }
 
 .switch.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
 }
 
 .switch.active::after {
@@ -680,7 +679,7 @@ const handleLogout = () => {
 .logout-btn {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+  background: var(--gradient-primary);
   color: white;
   font-size: 16px;
   border: none;
@@ -709,7 +708,7 @@ const handleLogout = () => {
 .modal-content {
   width: 85%;
   max-width: 320px;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -719,8 +718,8 @@ const handleLogout = () => {
   font-size: 18px;
   font-weight: bold;
   text-align: center;
-  color: #333;
-  border-bottom: 1px solid #f0f0f0;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .call-modal {
@@ -744,10 +743,10 @@ const handleLogout = () => {
 
 .call-modal-content {
   width: 320px;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-heavy);
   animation: slideUp 0.3s ease;
 }
 
@@ -764,8 +763,8 @@ const handleLogout = () => {
 }
 
 .price-card {
-  background: linear-gradient(135deg, #f8f9ff 0%, #f0f2ff 100%);
-  border: 2px solid #e8eaff;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-light);
   border-radius: 10px;
   padding: 16px 20px;
   margin-bottom: 12px;
@@ -775,7 +774,7 @@ const handleLogout = () => {
 
 .price-card-label {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
@@ -802,16 +801,16 @@ const handleLogout = () => {
   background: transparent;
   outline: none;
   text-align: center;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .price-card-input:focus {
-  color: #667eea;
+  color: var(--primary-color);
 }
 
 .price-card-unit {
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -820,7 +819,7 @@ const handleLogout = () => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 16px;
-  background: #f8f9fa;
+  background: var(--bg-secondary);
   border-radius: 8px;
   height: 40px;
 }
@@ -837,7 +836,7 @@ const handleLogout = () => {
 
 .call-toggle-text {
   font-size: 15px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 
@@ -859,7 +858,7 @@ const handleLogout = () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: #ddd;
+  background: var(--border-color);
   border-radius: 28px;
   transition: all 0.3s;
 }
@@ -874,11 +873,11 @@ const handleLogout = () => {
   background: #fff;
   border-radius: 50%;
   transition: all 0.3s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-light);
 }
 
 .call-toggle input:checked + .call-toggle-slider {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
 }
 
 .call-toggle input:checked + .call-toggle-slider::before {
@@ -905,19 +904,19 @@ const handleLogout = () => {
 }
 
 .call-btn-cancel {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
 .call-btn-cancel:active {
-  background: #eee;
+  background: var(--border-light);
   transform: scale(0.97);
 }
 
 .call-btn-confirm {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: #fff;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: var(--shadow-medium);
 }
 
 .call-btn-confirm:active {
@@ -933,16 +932,18 @@ const handleLogout = () => {
   width: 100%;
   padding: 12px 16px;
   font-size: 15px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   margin-bottom: 12px;
   box-sizing: border-box;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .code-btn {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
   font-size: 15px;
   text-align: center;
@@ -951,13 +952,13 @@ const handleLogout = () => {
 }
 
 .code-btn.disabled {
-  background: #ccc;
+  background: var(--border-color);
   cursor: not-allowed;
 }
 
 .modal-footer {
   display: flex;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-light);
 }
 
 .modal-btn {
@@ -970,12 +971,12 @@ const handleLogout = () => {
 }
 
 .modal-btn.cancel {
-  color: #999;
-  border-right: 1px solid #f0f0f0;
+  color: var(--text-muted);
+  border-right: 1px solid var(--border-light);
 }
 
 .modal-btn.confirm {
-  color: #667eea;
+  color: var(--primary-color);
   font-weight: 500;
 }
 
@@ -984,7 +985,7 @@ const handleLogout = () => {
   align-items: center;
   justify-content: space-between;
   padding: 16px 0;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--border-light);
   height: 40px;
 }
 
@@ -994,7 +995,7 @@ const handleLogout = () => {
 
 .setting-text {
   font-size: 15px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .select-wrap {
@@ -1002,18 +1003,18 @@ const handleLogout = () => {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-radius: 8px;
 }
 
 .select-value {
   font-size: 14px;
-  color: #667eea;
+  color: var(--primary-color);
 }
 
 .select-arrow {
   font-size: 16px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .select-modal {
@@ -1036,9 +1037,10 @@ const handleLogout = () => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 20px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--border-light);
   cursor: pointer;
   font-size: 15px;
+  color: var(--text-primary);
 }
 
 .select-option:last-child {
@@ -1046,11 +1048,11 @@ const handleLogout = () => {
 }
 
 .select-option.active {
-  background-color: #f0f4ff;
+  background-color: var(--bg-secondary);
 }
 
 .select-option .check-icon {
-  color: #667eea;
+  color: var(--primary-color);
   font-weight: bold;
 }
 
@@ -1150,7 +1152,7 @@ const handleLogout = () => {
 }
 
 .dark .modal-btn.confirm {
-  color: #667eea;
+  color: #FF6B81;
 }
 
 .dark .code-btn {
@@ -1175,7 +1177,7 @@ const handleLogout = () => {
 }
 
 .dark .price-card-input:focus {
-  color: #667eea;
+  color: #FF6B81;
 }
 
 .dark .price-card-unit {
@@ -1210,9 +1212,9 @@ const handleLogout = () => {
 
 .preset-btn {
   padding: 8px 16px;
-  border: 1px solid #667eea;
+  border: 1px solid #FF6B81;
   background: white;
-  color: #667eea;
+  color: #FF6B81;
   border-radius: 20px;
   font-size: 14px;
   cursor: pointer;
@@ -1220,12 +1222,12 @@ const handleLogout = () => {
 }
 
 .preset-btn:hover {
-  background: #667eea;
+  background: #FF6B81;
   color: white;
 }
 
 .preset-btn.active {
-  background: #667eea;
+  background: #FF6B81;
   color: white;
 }
 
@@ -1248,14 +1250,14 @@ const handleLogout = () => {
 }
 
 .dark .preset-btn {
-  border-color: #667eea;
+  border-color: #FF6B81;
   background: #2a2a3e;
-  color: #667eea;
+  color: #FF6B81;
 }
 
 .dark .preset-btn:hover,
 .dark .preset-btn.active {
-  background: #667eea;
+  background: #FF6B81;
   color: white;
 }
 

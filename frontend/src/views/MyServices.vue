@@ -817,8 +817,8 @@ onUnmounted(() => {
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
+  background: -webkit-linear-gradient(315deg, #FF6B81 0%, #E64C65 100%);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -875,7 +875,7 @@ onUnmounted(() => {
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: white;
 }
 
@@ -969,8 +969,8 @@ onUnmounted(() => {
 }
 
 .service-tags .tag {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: rgba(255, 107, 129, 0.1);
+  color: #FF6B81;
   font-size: 12px;
   padding: 4px 12px;
   border-radius: 12px;
@@ -1019,9 +1019,9 @@ onUnmounted(() => {
 .action-btn {
   flex: 1;
   padding: 10px 0;
-  border: 1px solid #667eea;
+  border: 1px solid #FF6B81;
   background: white;
-  color: #667eea;
+  color: #FF6B81;
   border-radius: 20px;
   font-size: 14px;
   cursor: pointer;
@@ -1029,7 +1029,7 @@ onUnmounted(() => {
 }
 
 .action-btn:hover {
-  background: rgba(102, 126, 234, 0.05);
+  background: rgba(255, 107, 129, 0.05);
 }
 
 .action-btn.pause {
@@ -1075,7 +1075,7 @@ onUnmounted(() => {
 }
 
 .empty-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: white;
   border: none;
   padding: 12px 40px;
@@ -1170,7 +1170,7 @@ onUnmounted(() => {
 .select-btn {
   margin-left: auto;
   font-size: 13px;
-  color: #667eea;
+  color: #FF6B81;
   cursor: pointer;
 }
 
@@ -1266,7 +1266,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding: 30px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   border-radius: 12px;
   cursor: pointer;
   position: relative;
@@ -1363,7 +1363,7 @@ onUnmounted(() => {
 }
 
 .picker-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: white;
 }
 
@@ -1390,7 +1390,7 @@ onUnmounted(() => {
 .submit-btn {
   flex: 1;
   padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   border: none;
   border-radius: 12px;
   color: white;
@@ -1502,7 +1502,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: white;
 }
 
@@ -1555,7 +1555,7 @@ onUnmounted(() => {
 .step-number {
   width: 20px;
   height: 20px;
-  background: #667eea;
+  background: #FF6B81;
   color: white;
   border-radius: 50%;
   display: flex;
@@ -1598,7 +1598,7 @@ onUnmounted(() => {
 .alternative-btn {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: white;
   border: none;
   border-radius: 10px;

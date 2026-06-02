@@ -212,22 +212,41 @@ const startServer = async () => {
       console.log('========================================\n');
     });
 
-    process.on('SIGINT', async () => {
-      console.log('\n👋 正在优雅关闭服务...');
-      try {
-        await server.close();
-        console.log('✅ HTTP 服务器已关闭');
-      } catch (error) {
-        console.error('❌ 关闭服务器时出错:', error);
-      }
-      process.exit(0);
-    });
-
   } catch (error) {
     console.error('❌ 服务器启动失败:', error);
     process.exit(1);
   }
 };
+
+const gracefulShutdown = async (signal) => {
+  const msg = `收到${signal}信号，正在优雅关闭服务...`;
+  if (logger && logger.info) {
+    logger.info(msg);
+  } else {
+    console.log(`📤 ${msg}`);
+  }
+  try {
+    await server.close();
+    const closeMsg = 'HTTP 服务器已关闭';
+    if (logger && logger.info) {
+      logger.info(closeMsg);
+    } else {
+      console.log(`✅ ${closeMsg}`);
+    }
+    process.exit(0);
+  } catch (error) {
+    const errMsg = '关闭服务器时出错';
+    if (logger && logger.error) {
+      logger.error(errMsg, error);
+    } else {
+      console.error(`❌ ${errMsg}:`, error);
+    }
+    process.exit(1);
+  }
+};
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 process.on('unhandledRejection', (reason, promise) => {
   const msg = '未处理的Promise拒绝';
@@ -246,42 +265,6 @@ process.on('uncaughtException', (error) => {
     console.error(`❌ ${msg}:`, error);
   }
   process.exit(1);
-});
-
-process.on('SIGTERM', async () => {
-  const msg = '收到SIGTERM信号，正在关闭服务器...';
-  if (logger && logger.info) {
-    logger.info(msg);
-  } else {
-    console.log('📤', msg);
-  }
-  server.close(() => {
-    const closeMsg = '服务器已关闭';
-    if (logger && logger.info) {
-      logger.info(closeMsg);
-    } else {
-      console.log('👋', closeMsg);
-    }
-    process.exit(0);
-  });
-});
-
-process.on('SIGINT', async () => {
-  const msg = '收到SIGINT信号，正在关闭服务器...';
-  if (logger && logger.info) {
-    logger.info(msg);
-  } else {
-    console.log('📤', msg);
-  }
-  server.close(() => {
-    const closeMsg = '服务器已关闭';
-    if (logger && logger.info) {
-      logger.info(closeMsg);
-    } else {
-      console.log('👋', closeMsg);
-    }
-    process.exit(0);
-  });
 });
 
 startServer();

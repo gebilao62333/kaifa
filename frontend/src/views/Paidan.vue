@@ -116,7 +116,7 @@
           <div class="detail-row">
             <div class="detail-section">
               <div class="detail-label">价格</div>
-              <div class="detail-value price">¥{{ currentOrder.price }}/{{ currentOrder.unit }}</div>
+              <div class="detail-value price">{{ currentOrder.price }} 金币/{{ currentOrder.unit }}</div>
             </div>
             <div class="detail-section">
               <div class="detail-label">已接单</div>
@@ -340,8 +340,7 @@ onMounted(() => {
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -363,12 +362,25 @@ onMounted(() => {
   color: white;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  width: 40px;
+  height: 40px;
+  margin-top: 8px;
+  padding-left: 13px;
+  margin-left: -7px;
+  display: flex;
+  align-items: center;
 }
 
 .title {
   font-size: 20px;
   font-weight: bold;
   color: white;
+  background-color: transparent;
+  text-align: center;
+  height: 70px;
+  padding-top: 14px;
+  line-height: 56px;
+  width: 534px;
 }
 
 .tabs {
@@ -392,13 +404,13 @@ onMounted(() => {
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: white;
 }
 
 .tab-count {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: rgba(255, 107, 129, 0.1);
+  color: #FF6B81;
   padding: 2px 6px;
   border-radius: 8px;
   font-size: 11px;
@@ -412,9 +424,9 @@ onMounted(() => {
 .pull-tip {
   text-align: center;
   padding: 10px;
-  color: #667eea;
+  color: #FF6B81;
   font-size: 14px;
-  background: linear-gradient(135deg, #f0f0ff 0%, #fff 100%);
+  background: linear-gradient(135deg, #fff0f0 0%, #fff 100%);
 }
 
 .order-list {
@@ -524,8 +536,8 @@ onMounted(() => {
 }
 
 .order-tags .tag {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: rgba(255, 107, 129, 0.1);
+  color: #FF6B81;
   font-size: 12px;
   padding: 4px 10px;
   border-radius: 4px;
@@ -552,7 +564,7 @@ onMounted(() => {
 }
 
 .apply-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: white;
   border: none;
   padding: 10px 24px;
@@ -698,7 +710,7 @@ onMounted(() => {
 
 .detail-label {
   font-size: 12px;
-  color: #999;
+  color: #FF6B81;
   margin-bottom: 4px;
 }
 
@@ -744,7 +756,7 @@ onMounted(() => {
 }
 
 .action-btn.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: #fff;
 }
 

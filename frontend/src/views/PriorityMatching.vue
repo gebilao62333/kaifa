@@ -199,8 +199,8 @@ watch(settings, saveSettings, { deep: true })
 
 .header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   padding: 0 20px;
   height: 70px;
   position: fixed;
@@ -209,7 +209,7 @@ watch(settings, saveSettings, { deep: true })
   transform: translateX(-50%);
   width: 100%;
   max-width: 650px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   z-index: 100;
 }
 
@@ -237,7 +237,7 @@ watch(settings, saveSettings, { deep: true })
   display: flex;
   align-items: center;
   gap: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   border-radius: 10px;
   padding: 20px;
   margin-bottom: 16px;
@@ -401,7 +401,7 @@ watch(settings, saveSettings, { deep: true })
 }
 
 .switch.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #FF6B81, #E64C65);
 }
 
 .switch.active::after {

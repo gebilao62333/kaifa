@@ -56,7 +56,7 @@ const viewProfile = (user) => {
 .likes-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-top: 82px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
@@ -68,8 +68,7 @@ const viewProfile = (user) => {
   justify-content: space-between;
   padding: 0 20px;
   height: 70px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   position: fixed;
   top: 0;
   left: 50%;
@@ -95,7 +94,7 @@ const viewProfile = (user) => {
 
 .total {
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
   width: 80px;
   text-align: right;
 }
@@ -108,7 +107,7 @@ const viewProfile = (user) => {
   display: flex;
   align-items: center;
   padding: 16px;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   margin-bottom: 10px;
 }
@@ -128,19 +127,19 @@ const viewProfile = (user) => {
 .item-name {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   display: block;
   margin-bottom: 2px;
 }
 
 .item-time {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .item-content {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   text-align: right;
   max-width: 150px;
   overflow: hidden;
@@ -163,7 +162,7 @@ const viewProfile = (user) => {
 
 .empty-text {
   font-size: 15px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 @media (min-width: 768px) {

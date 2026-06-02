@@ -1,0 +1,54 @@
+/* 统一颜色系统 */
+:root {
+  /* 主色调 - 粉红色系 */
+  --primary-color: #FF6B81;
+  --primary-light: #FF9AA2;
+  --primary-dark: #E64C65;
+  
+  /* 辅助色 */
+  --secondary-color: #4ECDC4;
+  --accent-color: #FFE66D;
+  
+  /* 文字颜色 */
+  --text-primary: #2D3436;
+  --text-secondary: #636E72;
+  --text-muted: #B2BEC3;
+  
+  /* 背景色 */
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #F8F9FA;
+  --bg-tertiary: #F0F2F5;
+  
+  /* 边框色 */
+  --border-color: #DFE6E9;
+  --border-light: #E8ECEF;
+  
+  /* 功能色 */
+  --success-color: #00B894;
+  --warning-color: #FD79A8;
+  --error-color: #D63031;
+  --info-color: #0984E3;
+  
+  /* 渐变色 */
+  --gradient-primary: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
+  --gradient-secondary: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+  --gradient-accent: linear-gradient(135deg, #FFE66D 0%, #F7DC6F 100%);
+  
+  /* 阴影 */
+  --shadow-light: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --shadow-heavy: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #F1F2F6;
+    --text-secondary: #B2BEC3;
+    --bg-primary: #1E1E2E;
+    --bg-secondary: #2D2D3F;
+    --bg-tertiary: #3D3D50;
+    --border-color: #3D3D50;
+    --border-light: #4D4D60;
+  }
+}

@@ -13,10 +13,9 @@ const createPost = async (userId, content, images, videos, tagIds, location, vis
     tag_ids: tagIds ? JSON.stringify(tagIds) : null,
     location: location || '',
     visibility: visibility || 0,
-    password: password ? crypto.createHash('md5').update(password).digest('hex') : null,
-    price: price || 0,
+    password: password ? crypto.createHash('sha256').update(password).digest('hex') : null,
     is_private: visibility === 2 ? 1 : 0,
-    private_password: visibility === 3 ? crypto.createHash('md5').update(password).digest('hex') : null,
+    private_password: visibility === 3 ? crypto.createHash('sha256').update(password).digest('hex') : null,
     private_price: visibility === 4 ? price : 0,
     create_time: getTimestamp()
   });
@@ -146,7 +145,7 @@ const unlockPost = async (userId, postId, unlockType, password) => {
   }
   
   if (post.is_private === 1) {
-    const hashedPassword = crypto.createHash('md5').update(password).digest('hex');
+    const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
     if (hashedPassword !== post.private_password) {
       throw new Error('密码错误');
     }

@@ -35,7 +35,7 @@
 
       <div class="menu-grid">
         <div class="menu-item" @click="goTo('member-manage')">
-          <div class="menu-icon" style="background: linear-gradient(135deg, #667eea, #764ba2);">
+          <div class="menu-icon" style="background: linear-gradient(135deg, #FF6B81, #E64C65);">
             <i class="iconfont icon-users"></i>
           </div>
           <span class="menu-text">成员管理</span>
@@ -160,7 +160,7 @@ const goTo = (path) => {
 .team-index {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding-top: 50px;
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
@@ -175,7 +175,7 @@ const goTo = (path) => {
   justify-content: space-between;
   height: 50px;
   padding: 0 20px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   position: fixed;
   top: 0;
   left: 50%;
@@ -206,7 +206,7 @@ const goTo = (path) => {
 }
 
 .team-info-card {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   border-radius: 10px;
   padding: 20px;
   display: flex;
@@ -267,7 +267,7 @@ const goTo = (path) => {
 }
 
 .menu-item {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 20px 10px;
   display: flex;
@@ -289,11 +289,11 @@ const goTo = (path) => {
 
 .menu-text {
   font-size: 13px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .section {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 15px;
   margin-bottom: 15px;
@@ -308,13 +308,13 @@ const goTo = (path) => {
 
 .section-header h4 {
   font-size: 16px;
-  color: #333;
+  color: var(--text-primary);
   margin: 0;
 }
 
 .more {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .notice-list {
@@ -328,7 +328,7 @@ const goTo = (path) => {
   justify-content: space-between;
   align-items: center;
   padding-bottom: 12px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .notice-item:last-child {
@@ -338,13 +338,13 @@ const goTo = (path) => {
 
 .notice-title {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   flex: 1;
 }
 
 .notice-time {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   margin-left: 10px;
 }
 
@@ -372,13 +372,13 @@ const goTo = (path) => {
 
 .member-name {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 3px;
 }
 
 .member-role {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .member-status {
@@ -386,18 +386,18 @@ const goTo = (path) => {
   align-items: center;
   gap: 5px;
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .status-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #999;
+  background: var(--text-muted);
 }
 
 .status-dot.online {
-  background: #43e97b;
+  background: var(--success-color);
 }
 
 @media (min-width: 768px) {

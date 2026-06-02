@@ -49,11 +49,13 @@ const iconMap = {
 let timer = null
 
 watch(() => props.visible, (val) => {
-  if (val && props.duration > 0) {
-    clearTimeout(timer)
-    timer = setTimeout(() => {
-      close()
-    }, props.duration)
+  if (val) {
+    if (timer) clearTimeout(timer)
+  } else {
+    if (timer) {
+      clearTimeout(timer)
+      timer = null
+    }
   }
 })
 

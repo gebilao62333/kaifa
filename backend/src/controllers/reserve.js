@@ -1,4 +1,5 @@
 const { reserveService } = require('../services');
+const logger = require('../utils/logger');
 const response = require('../utils/response');
 
 const getSlots = async (req, res) => {
@@ -16,7 +17,7 @@ const getSlots = async (req, res) => {
     );
     response.success(res, result);
   } catch (error) {
-    console.error('获取可用时间错误:', error);
+    logger.error('获取可用时间错误:', error);
     response.error(res, error.message);
   }
 };
@@ -32,7 +33,7 @@ const batchCreateSlots = async (req, res) => {
     await reserveService.batchCreateSlots(req.userId, gameId ? parseInt(gameId) : 0, slots);
     response.success(res, {}, '设置成功');
   } catch (error) {
-    console.error('批量设置时间错误:', error);
+    logger.error('批量设置时间错误:', error);
     response.error(res, error.message);
   }
 };
@@ -48,7 +49,7 @@ const toggleSlot = async (req, res) => {
     const result = await reserveService.toggleSlot(req.userId, parseInt(slotId));
     response.success(res, result);
   } catch (error) {
-    console.error('切换时间槽状态错误:', error);
+    logger.error('切换时间槽状态错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -70,7 +71,7 @@ const createReserve = async (req, res) => {
     );
     response.created(res, result, '预约成功');
   } catch (error) {
-    console.error('创建预约错误:', error);
+    logger.error('创建预约错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -86,7 +87,7 @@ const confirmReserve = async (req, res) => {
     await reserveService.confirmReserve(req.userId, parseInt(reserveId));
     response.success(res, {}, '已确认预约');
   } catch (error) {
-    console.error('确认预约错误:', error);
+    logger.error('确认预约错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -102,7 +103,7 @@ const rejectReserve = async (req, res) => {
     await reserveService.rejectReserve(req.userId, parseInt(reserveId));
     response.success(res, {}, '已拒绝预约');
   } catch (error) {
-    console.error('拒绝预约错误:', error);
+    logger.error('拒绝预约错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -118,7 +119,7 @@ const cancelReserve = async (req, res) => {
     const result = await reserveService.cancelReserve(req.userId, parseInt(reserveId));
     response.success(res, result, '已取消预约');
   } catch (error) {
-    console.error('取消预约错误:', error);
+    logger.error('取消预约错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -135,7 +136,7 @@ const getReserveList = async (req, res) => {
     );
     response.success(res, result);
   } catch (error) {
-    console.error('获取预约列表错误:', error);
+    logger.error('获取预约列表错误:', error);
     response.error(res, error.message);
   }
 };
@@ -151,7 +152,7 @@ const completeReserve = async (req, res) => {
     await reserveService.completeReserve(req.userId, parseInt(reserveId));
     response.success(res, {}, '预约已完成');
   } catch (error) {
-    console.error('完成预约错误:', error);
+    logger.error('完成预约错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };

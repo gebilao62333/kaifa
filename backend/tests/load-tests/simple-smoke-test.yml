@@ -1,0 +1,25 @@
+config:
+  target: "http://localhost:3001"
+  phases:
+    - duration: 10
+      arrivalRate: 2
+  ensure:
+    thresholds:
+      - http.codes.2xx: 90
+      - http.response_time.p95: 1000
+
+scenarios:
+  - name: "Simple smoke test"
+    flow:
+      - get:
+          url: "/api/health"
+          name: "Health check"
+          expect:
+            - statusCode: 200
+      - think: 1
+      - get:
+          url: "/api/gifts"
+          name: "Get gift list"
+          expect:
+            - statusCode: 200
+      - think: 1

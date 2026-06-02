@@ -1,4 +1,5 @@
 const { reportService } = require('../services');
+const logger = require('../utils/logger');
 const response = require('../utils/response');
 
 const createReport = async (req, res) => {
@@ -18,7 +19,7 @@ const createReport = async (req, res) => {
     );
     response.created(res, result, '举报已提交');
   } catch (error) {
-    console.error('提交举报错误:', error);
+    logger.error('提交举报错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -92,7 +93,7 @@ const getReportList = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取举报列表错误:', error);
+    logger.error('获取举报列表错误:', error);
     response.error(res, error.message);
   }
 };
@@ -107,7 +108,7 @@ const handleReport = async (req, res) => {
     
     response.success(res, {}, '处理成功');
   } catch (error) {
-    console.error('处理举报错误:', error);
+    logger.error('处理举报错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };

@@ -66,7 +66,7 @@ const goBack = () => {
 .records-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-top: 82px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
@@ -78,8 +78,7 @@ const goBack = () => {
   justify-content: space-between;
   padding: 0 20px;
   height: 70px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   position: fixed;
   top: 0;
   left: 50%;
@@ -104,7 +103,7 @@ const goBack = () => {
 }
 
 .total.expense {
-  color: #ef4444;
+  color: var(--danger-color);
   font-weight: 600;
   font-size: 15px;
   width: 80px;
@@ -114,11 +113,11 @@ const goBack = () => {
 .summary-card {
   display: flex;
   align-items: center;
-  background: #fff;
+  background: var(--bg-primary);
   margin: 12px;
   padding: 20px;
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: var(--shadow-light);
 }
 
 .summary-item {
@@ -128,7 +127,7 @@ const goBack = () => {
 
 .summary-label {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   display: block;
   margin-bottom: 6px;
 }
@@ -136,17 +135,17 @@ const goBack = () => {
 .summary-value {
   font-size: 22px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .summary-value.expense {
-  color: #ef4444;
+  color: var(--danger-color);
 }
 
 .summary-divider {
   width: 1px;
   height: 40px;
-  background: #f0f0f0;
+  background: var(--border-light);
   margin: 0 16px;
 }
 
@@ -157,7 +156,7 @@ const goBack = () => {
 .record-card {
   display: flex;
   align-items: center;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 14px;
   padding: 16px;
   margin-bottom: 10px;
@@ -186,21 +185,21 @@ const goBack = () => {
 .record-title {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   display: block;
   margin-bottom: 2px;
 }
 
 .record-desc {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   display: block;
   margin-bottom: 2px;
 }
 
 .record-time {
   font-size: 11px;
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 .record-amount {
@@ -211,7 +210,7 @@ const goBack = () => {
 }
 
 .record-amount.expense {
-  color: #ef4444;
+  color: var(--danger-color);
 }
 
 .empty-state {
@@ -228,7 +227,7 @@ const goBack = () => {
 
 .empty-text {
   font-size: 15px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 @media (min-width: 768px) {

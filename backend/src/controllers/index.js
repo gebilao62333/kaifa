@@ -1,4 +1,5 @@
 const { Banner } = require('../models');
+const logger = require('../utils/logger');
 const response = require('../utils/response');
 
 const getBanners = async (req, res) => {
@@ -22,7 +23,7 @@ const getBanners = async (req, res) => {
     
     response.success(res, result);
   } catch (error) {
-    console.error('获取Banner错误:', error);
+    logger.error('获取Banner错误:', error);
     response.error(res, error.message);
   }
 };

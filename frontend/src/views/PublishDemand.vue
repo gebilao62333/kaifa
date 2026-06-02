@@ -220,7 +220,7 @@
           <div class="custom-field">
             <label class="field-label">预算金额</label>
             <div class="input-wrapper price-input-wrapper">
-              <span class="input-prefix">¥</span>
+              <span class="input-prefix">金币</span>
               <input
                 type="number"
                 class="custom-input"
@@ -261,14 +261,34 @@
             <span class="checkbox-text">我已阅读并同意<a href="#" class="terms-link" @click.prevent="showTerms">服务条款</a>和<a href="#" class="terms-link" @click.prevent="showPrivacy">隐私政策</a></span>
           </label>
         </div>
+        <div class="submit-feedback" :class="submitStatus === 'success' ? 'submit-feedback--success' : 'submit-feedback--error'" v-if="submitStatus === 'error' || submitStatus === 'success'">
+          <span class="feedback-icon">{{ submitStatus === 'success' ? '✓' : '✕' }}</span>
+          <span class="feedback-text">{{ submitMessage }}</span>
+        </div>
         <div class="footer-content">
           <div class="price-info">
             <span class="price-label">预算金额</span>
-            <span class="price-value">¥{{ totalPrice }}</span>
+            <span class="price-value">{{ totalPrice }} 金币</span>
           </div>
-          <button class="submit-btn" :disabled="!canSubmit || submitting" @click="submitDemand">
-            <span v-if="submitting" class="loading-icon">⏳</span>
-            {{ submitting ? '发布中...' : '发布需求' }}
+          <button
+            class="submit-btn"
+            :class="{
+              'submit-btn--loading': submitStatus === 'logging' || submitStatus === 'submitting',
+              'submit-btn--success': submitStatus === 'success',
+              'submit-btn--error': submitStatus === 'error'
+            }"
+            :disabled="!canSubmit || submitting || submitStatus === 'success'"
+            @click="submitDemand"
+          >
+            <span v-if="submitStatus === 'logging'" class="loading-icon">⏳</span>
+            <span v-else-if="submitStatus === 'submitting'" class="loading-icon">⏳</span>
+            <span v-else-if="submitStatus === 'success'" class="status-icon">✓</span>
+            <span v-else-if="submitStatus === 'error'" class="status-icon">✕</span>
+            <template v-if="submitStatus === 'logging'">验证登录中...</template>
+            <template v-else-if="submitStatus === 'submitting'">发布中...</template>
+            <template v-else-if="submitStatus === 'success'">发布成功</template>
+            <template v-else-if="submitStatus === 'error'">发布失败</template>
+            <template v-else>发布需求</template>
           </button>
         </div>
       </div>
@@ -281,6 +301,7 @@ import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLoginManager } from '../composables/useLoginManager'
 import { demandService } from '@/services/demandService'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const { requireLogin } = useLoginManager()
@@ -626,7 +647,7 @@ watch(() => formData.serviceType, () => {
 
 const getCurrentLocation = () => {
   if (!navigator.geolocation) {
-    alert('您的浏览器不支持定位功能')
+    toast.warning('您的浏览器不支持定位功能')
     return
   }
 
@@ -655,7 +676,7 @@ const getCurrentLocation = () => {
           errorMsg = '定位请求超时'
           break
       }
-      alert(errorMsg)
+      toast.error(errorMsg)
     },
     {
       enableHighAccuracy: true,
@@ -699,24 +720,44 @@ const goBack = () => {
 }
 
 const showTerms = () => {
-  alert('服务条款：\n1. 用户需遵守平台规则\n2. 禁止违法违规行为\n3. 保护个人隐私信息')
+  toast.info('服务条款：\n1. 用户需遵守平台规则\n2. 禁止违法违规行为\n3. 保护个人隐私信息')
 }
 
 const showPrivacy = () => {
-  alert('隐私政策：\n1. 我们保护您的个人信息\n2. 不会泄露给第三方\n3. 仅用于服务匹配')
+  toast.info('隐私政策：\n1. 我们保护您的个人信息\n2. 不会泄露给第三方\n3. 仅用于服务匹配')
 }
 
 const submitting = ref(false)
+const submitStatus = ref('idle')
+const submitMessage = ref('')
 
 const submitDemand = async () => {
-  if (!canSubmit.value || submitting.value) return
+  if (!canSubmit.value) {
+    submitStatus.value = 'error'
+    submitMessage.value = '请完善必填信息'
+    setTimeout(() => { submitStatus.value = 'idle'; submitMessage.value = '' }, 3000)
+    return
+  }
 
-  const loginResult = await requireLogin()
-  if (!loginResult.loggedIn) {
+  if (submitting.value) return
+
+  submitStatus.value = 'logging'
+  submitMessage.value = ''
+
+  try {
+    const loginResult = await requireLogin()
+    if (!loginResult.loggedIn) {
+      submitStatus.value = 'idle'
+      return
+    }
+  } catch {
+    submitStatus.value = 'idle'
     return
   }
 
   submitting.value = true
+  submitStatus.value = 'submitting'
+  submitMessage.value = ''
 
   const demandData = {
     serviceType: formData.serviceType,
@@ -734,16 +775,24 @@ const submitDemand = async () => {
 
   try {
     const result = await demandService.createDemand(demandData)
-    
-    if (result.code === 0) {
-      alert('需求发布成功！')
-      router.back()
+
+    if (result.code === 0 || result.code === 200 || result.code === 201) {
+      submitStatus.value = 'success'
+      submitMessage.value = '需求发布成功！'
+      toast.success('需求发布成功！')
+      setTimeout(() => {
+        router.back()
+      }, 1500)
     } else {
-      alert(result.message || '发布失败，请重试')
+      submitStatus.value = 'error'
+      submitMessage.value = result.message || '发布失败，请重试'
+      toast.error(result.message || '发布失败，请重试')
     }
   } catch (error) {
     console.error('发布需求异常:', error)
-    alert('发布失败，请重试')
+    submitStatus.value = 'error'
+    submitMessage.value = error.message || '网络异常，发布失败，请重试'
+    toast.error(error.message || '网络异常，发布失败，请重试')
   } finally {
     submitting.value = false
   }
@@ -794,8 +843,8 @@ onMounted(() => {
   height: 50px;
   height: calc(50px + constant(safe-area-inset-top, 0px));
   height: calc(50px + env(safe-area-inset-top, 0px));
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
+  background: -webkit-linear-gradient(315deg, #FF6B81 0%, #E64C65 100%);
   color: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -883,8 +932,8 @@ onMounted(() => {
 }
 
 .type-item.active {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-  border-color: #667eea;
+  background: linear-gradient(135deg, rgba(255, 107, 129, 0.1), rgba(230, 76, 101, 0.1));
+  border-color: #FF6B81;
 }
 
 .type-icon {
@@ -948,16 +997,16 @@ onMounted(() => {
 }
 
 .game-item:hover {
-  border-color: #e0e0ff;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  border-color: #ffe0e6;
+  box-shadow: 0 4px 12px rgba(255, 107, 129, 0.1);
   transform: translateY(-2px);
 }
 
 .game-item.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #FF6B81, #E64C65);
   color: white;
-  border-color: #667eea;
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
+  border-color: #FF6B81;
+  box-shadow: 0 6px 20px rgba(255, 107, 129, 0.35);
   transform: translateY(-2px);
 }
 
@@ -1156,7 +1205,7 @@ onMounted(() => {
 }
 
 .nav-arrow:hover {
-  background: #667eea;
+  background: #FF6B81;
   color: #fff;
 }
 
@@ -1215,14 +1264,14 @@ onMounted(() => {
 }
 
 .calendar-cell:not(.other):hover {
-  border-color: #667eea;
-  background: #f0f0ff;
+  border-color: #FF6B81;
+  background: #fff0f3;
 }
 
 .calendar-cell.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #FF6B81, #E64C65);
   color: white;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(255, 107, 129, 0.4);
 }
 
 .calendar-cell.disabled {
@@ -1322,15 +1371,15 @@ onMounted(() => {
 }
 
 .wheel-item:hover:not(.empty) {
-  color: #667eea;
+  color: #FF6B81;
   font-weight: 500;
 }
 
 .wheel-item.selected {
   font-size: 19px;
   font-weight: 700;
-  color: #667eea;
-  text-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+  color: #FF6B81;
+  text-shadow: 0 0 10px rgba(255, 107, 129, 0.3);
 }
 
 .wheel-item.disabled {
@@ -1347,9 +1396,9 @@ onMounted(() => {
   height: 44px;
   margin-top: -22px;
   pointer-events: none;
-  border-top: 1px solid #667eea;
-  border-bottom: 1px solid #667eea;
-  background: rgba(102, 126, 234, 0.05);
+  border-top: 1px solid #FF6B81;
+  border-bottom: 1px solid #FF6B81;
+  background: rgba(255, 107, 129, 0.05);
 }
 
 .wheel-separator {
@@ -1389,7 +1438,7 @@ onMounted(() => {
 
 .time-summary .summary-text {
   font-size: 14px;
-  color: #667eea;
+  color: #FF6B81;
   font-weight: 500;
 }
 
@@ -1433,8 +1482,8 @@ onMounted(() => {
 }
 
 .input-wrapper:focus-within {
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+  border-color: #FF6B81;
+  box-shadow: 0 0 0 2px rgba(255, 107, 129, 0.1);
 }
 
 .price-input-wrapper {
@@ -1508,8 +1557,8 @@ onMounted(() => {
 }
 
 .remark-input:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.12);
+  border-color: #FF6B81;
+  box-shadow: 0 0 0 4px rgba(255, 107, 129, 0.12);
   background: white;
 }
 
@@ -1525,7 +1574,8 @@ onMounted(() => {
 }
 
 .footer {
-  height: 80px;
+  min-height: 80px;
+  height: auto;
   padding: 20px;
   padding-bottom: calc(20px + env(safe-area-inset-bottom, 0) + 80px);
   background: white;
@@ -1562,8 +1612,8 @@ onMounted(() => {
 }
 
 .checkbox-label input[type="checkbox"]:checked + .checkbox-check {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-color: #667eea;
+  background: linear-gradient(135deg, #FF6B81, #E64C65);
+  border-color: #FF6B81;
 }
 
 .checkbox-label input[type="checkbox"]:checked + .checkbox-check::after {
@@ -1577,7 +1627,7 @@ onMounted(() => {
 }
 
 .checkbox-label:has(input:focus) .checkbox-check {
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 0 0 3px rgba(255, 107, 129, 0.3);
 }
 
 .checkbox-text {
@@ -1587,23 +1637,24 @@ onMounted(() => {
 }
 
 .terms-link {
-  color: #667eea;
+  color: #FF6B81;
   text-decoration: underline;
 }
 
 .terms-link:hover {
-  color: #764ba2;
+  color: #E64C65;
 }
 
 .terms-link:hover {
-  color: #764ba2;
+  color: #E64C65;
 }
 
 .footer-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: 470px;
+  gap: 16px;
+  width: 100%;
   height: 70px;
   font-size: 15px;
 }
@@ -1611,12 +1662,14 @@ onMounted(() => {
 .price-info {
   display: flex;
   flex-direction: column;
-  padding: 10px;
+  justify-content: center;
+  padding: 10px 18px;
   background: linear-gradient(135deg, #fff5f5 0%, #ffeaea 100%);
   border-radius: 12px;
   border: 1px solid #ffe0e0;
-  width: 90px;
+  flex: 1;
   height: 70px;
+  box-sizing: border-box;
 }
 
 .price-label {
@@ -1626,15 +1679,14 @@ onMounted(() => {
 }
 
 .price-value {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: bold;
   color: #e74c3c;
 }
 
 .submit-btn {
   padding: 16px 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background-color: var(--tw-ring-color);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: white;
   border: none;
   border-radius: 10px;
@@ -1642,22 +1694,26 @@ onMounted(() => {
   font-weight: 800;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 16px rgba(255, 107, 129, 0.4);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 140px;
 }
 
 .submit-btn:disabled {
   background: #e0e0e0;
+  color: #999;
   cursor: not-allowed;
   box-shadow: none;
 }
 
 .submit-btn:not(:disabled):hover {
   transform: scale(1.02);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 20px rgba(255, 107, 129, 0.5);
 }
 
 .submit-btn:not(:disabled):active {
-  transform: scale(0.98);
+  transform: scale(0.97);
 }
 
 .loading-icon {
@@ -1668,6 +1724,71 @@ onMounted(() => {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+.submit-feedback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  animation: feedbackSlideIn 0.3s ease-out;
+}
+
+.submit-feedback--success {
+  background: #f0fff0;
+  border: 1px solid #b7eb8f;
+}
+
+.submit-feedback--error {
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+}
+
+@keyframes feedbackSlideIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.feedback-icon {
+  font-size: 16px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
+.submit-feedback--success .feedback-icon {
+  color: #52c41a;
+}
+
+.submit-feedback--error .feedback-icon {
+  color: #ff4d4f;
+}
+
+.feedback-text {
+  color: #333;
+  flex: 1;
+}
+
+.submit-btn--loading {
+  background: linear-gradient(135deg, #f0a0a0 0%, #d08080 100%) !important;
+  cursor: wait !important;
+}
+
+.submit-btn--success {
+  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%) !important;
+  box-shadow: 0 4px 16px rgba(82, 196, 26, 0.4) !important;
+}
+
+.submit-btn--error {
+  background: linear-gradient(135deg, #ff4d4f 0%, #cf1322 100%) !important;
+  box-shadow: 0 4px 16px rgba(255, 77, 79, 0.4) !important;
+}
+
+.status-icon {
+  margin-right: 8px;
+  font-size: 16px;
 }
 
 @media screen and (max-width: 375px) {

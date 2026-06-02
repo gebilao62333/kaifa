@@ -77,8 +77,8 @@
                 <div class="redpacket-content">
                   <span class="redpacket-title">{{ msg.message }}</span>
                   <span class="redpacket-info">
-                    普通红包 · {{ msg.count }}个 · ¥{{ msg.amount }}
-                  </span>
+                  普通红包 · {{ msg.count }}个 · {{ msg.amount }} 金币
+                </span>
                 </div>
               </div>
             </template>
@@ -1089,7 +1089,7 @@ onUnmounted(() => {
 <style scoped>
 .chat-room {
   height: 100vh;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -1104,8 +1104,8 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 60px 20px 16px;
-  background: white;
-  border-bottom: 1px solid #eee;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-light);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -1180,14 +1180,14 @@ onUnmounted(() => {
 .nickname {
   font-size: 18px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   flex: 1;
   text-align: left;
 }
 
 .online-status {
   font-size: 12px;
-  color: #4cd964;
+  color: var(--success-color);
   margin-right: 10px;
 }
 
@@ -1215,8 +1215,8 @@ onUnmounted(() => {
 }
 
 .date-divider span {
-  background: #ddd;
-  color: #666;
+  background: var(--border-light);
+  color: var(--text-muted);
   padding: 4px 12px;
   border-radius: 4px;
   font-size: 12px;
@@ -1252,7 +1252,7 @@ onUnmounted(() => {
 
 .time {
   font-size: 11px;
-  color: #aaa;
+  color: var(--text-muted);
   margin-bottom: 4px;
 }
 
@@ -1265,26 +1265,26 @@ onUnmounted(() => {
 }
 
 .message.other .bubble {
-  background: white;
-  color: #333;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   border-top-left-radius: 4px;
 }
 
 .message.own .bubble {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border-top-right-radius: 4px;
 }
 
 .system-text {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   text-align: center;
 }
 
 .recalled-text {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -1335,16 +1335,16 @@ onUnmounted(() => {
 
 .send-status {
   font-size: 11px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .send-status.failed {
-  color: #ff4d4f;
+  color: var(--error-color);
   cursor: pointer;
 }
 
 .read-icon {
-  color: #667eea;
+  color: var(--primary-color);
 }
 
 .typing-indicator {
@@ -1402,18 +1402,19 @@ onUnmounted(() => {
 .text-input {
   width: 100%;
   border: none;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding: 10px 14px;
   border-radius: 20px;
   font-size: 15px;
   outline: none;
+  color: var(--text-primary);
 }
 
 .voice-input {
   width: 100%;
   padding: 10px;
   text-align: center;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-radius: 20px;
 }
 
@@ -1425,7 +1426,7 @@ onUnmounted(() => {
 }
 
 .record-indicator.recording {
-  color: #ff4d4f;
+  color: var(--error-color);
 }
 
 .record-icon {
@@ -1442,15 +1443,15 @@ onUnmounted(() => {
 }
 
 .emoji-panel, .add-panel {
-  background: white;
-  border-top: 1px solid #eee;
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-light);
   max-height: 280px;
   overflow-y: auto;
 }
 
 .emoji-tabs {
   display: flex;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .emoji-tabs .tab {
@@ -1462,8 +1463,8 @@ onUnmounted(() => {
 }
 
 .emoji-tabs .tab.active {
-  color: #667eea;
-  border-bottom: 2px solid #667eea;
+  color: var(--primary-color);
+  border-bottom: 2px solid var(--primary-color);
 }
 
 .emoji-content {
@@ -1492,13 +1493,13 @@ onUnmounted(() => {
   align-items: center;
   gap: 4px;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
 }
 
 .add-price {
   font-size: 11px;
-  color: #e6a23c;
+  color: var(--warning-color);
   font-weight: 500;
 }
 
@@ -1507,9 +1508,9 @@ onUnmounted(() => {
   bottom: 100%;
   left: 50%;
   transform: translateX(-50%);
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
-  box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-heavy);
   padding: 10px 0;
   min-width: 200px;
   margin-bottom: 10px;
@@ -1519,25 +1520,25 @@ onUnmounted(() => {
   padding: 14px 30px;
   text-align: center;
   font-size: 15px;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .more-menu .menu-item:hover {
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
 }
 
 .more-menu .menu-item.cancel {
-  color: #999;
-  border-top: 1px solid #f0f0f0;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-light);
 }
 
 .context-menu {
   position: fixed;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-heavy);
   padding: 8px 0;
   min-width: 160px;
   z-index: 1000;
@@ -1546,18 +1547,18 @@ onUnmounted(() => {
 .context-item {
   padding: 10px 20px;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
   transition: background-color 0.2s;
 }
 
 .context-item:hover {
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
 }
 
 .context-item.cancel {
-  color: #999;
-  border-top: 1px solid #f0f0f0;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border-light);
   margin-top: 8px;
 }
 
@@ -1660,7 +1661,7 @@ onUnmounted(() => {
 .location-map {
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -1813,7 +1814,7 @@ onUnmounted(() => {
   gap: 8px;
   margin-top: 16px;
   padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: white;
   border-radius: 8px;
   cursor: pointer;
@@ -1839,7 +1840,7 @@ onUnmounted(() => {
 }
 
 .modal-btn.confirm {
-  color: #667eea;
+  color: #FF6B81;
   font-weight: 500;
 }
 

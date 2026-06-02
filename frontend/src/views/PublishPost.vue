@@ -28,9 +28,15 @@
             alt=""
           />
           <span class="video-indicator" v-if="item.type === 'video'">▶</span>
-          <span class="remove-btn" @click="removeMedia(index)">×</span>
+          <span class="remove-btn" v-if="!item.uploading" @click="removeMedia(index)">×</span>
+          
+          <!-- 上传进度 -->
+          <div v-if="item.uploading" class="upload-progress-container">
+            <div class="upload-progress-bar" :style="{ width: item.progress + '%' }"></div>
+          </div>
+          <div v-if="item.uploading" class="upload-progress-text">{{ item.progress }}%</div>
         </div>
-        <div class="upload-btn" v-if="mediaItems.length < 9" @click="triggerFileInput">
+        <div class="upload-btn" v-if="mediaItems.length < 9 && !uploading" @click="triggerFileInput">
           <span class="icon">+</span>
           <span class="text">图片/视频</span>
         </div>
@@ -179,9 +185,13 @@
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useLoginManager } from '../composables/useLoginManager'
+import { useToast } from '../composables/useToast'
+import circleService from '../services/circleService'
+import uploadService from '../services/uploadService'
 
 const router = useRouter()
 const { requireLogin } = useLoginManager()
+const { showToast } = useToast()
 
 const content = ref('')
 const mediaItems = ref([])
@@ -195,6 +205,7 @@ const showTopicModal = ref(false)
 const showLocationModal = ref(false)
 const locationSearch = ref('')
 const locationLoading = ref(false)
+const uploading = ref(false)
 
 const availableTopics = ref([
   '游戏', '音乐', '美食', '旅行', '摄影', '运动', '阅读', '电影',
@@ -239,7 +250,7 @@ const handleFileChange = (event) => {
   filesToAdd.forEach((file) => {
     const url = URL.createObjectURL(file)
     const isVideo = file.type.startsWith('video/')
-    mediaItems.value.push({ url, type: isVideo ? 'video' : 'image', file })
+    mediaItems.value.push({ url, type: isVideo ? 'video' : 'image', file, uploading: false, progress: 0 })
   })
   
   event.target.value = ''
@@ -258,7 +269,7 @@ const selectLocation = (loc) => {
 
 const getCurrentLocation = () => {
   if (!navigator.geolocation) {
-    alert('您的浏览器不支持定位功能')
+    showToast('您的浏览器不支持定位功能', 'warning')
     return
   }
   
@@ -295,16 +306,16 @@ const getCurrentLocation = () => {
       locationLoading.value = false
       switch (error.code) {
         case error.PERMISSION_DENIED:
-          alert('定位权限被拒绝，请在浏览器设置中开启定位权限')
+          showToast('定位权限被拒绝，请在浏览器设置中开启定位权限', 'warning')
           break
         case error.POSITION_UNAVAILABLE:
-          alert('无法获取您的位置信息')
+          showToast('无法获取您的位置信息', 'warning')
           break
         case error.TIMEOUT:
-          alert('定位请求超时')
+          showToast('定位请求超时', 'warning')
           break
         default:
-          alert('定位失败')
+          showToast('定位失败', 'warning')
       }
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
@@ -320,9 +331,37 @@ const toggleTopic = (t) => {
   }
 }
 
+const uploadMedia = async () => {
+  const uploadedUrls = []
+  
+  for (let i = 0; i < mediaItems.value.length; i++) {
+    const item = mediaItems.value[i]
+    if (item.file) {
+      item.uploading = true
+      try {
+        const result = await uploadService.upload(item.file, (progress) => {
+          item.progress = progress
+        })
+        const url = result.data?.url || result.url || ''
+        uploadedUrls.push({ type: item.type, url })
+      } catch (error) {
+        console.error('上传失败:', error)
+        showToast(`第 ${i + 1} 个文件上传失败: ${error.message}`, 'error')
+        return null
+      } finally {
+        item.uploading = false
+      }
+    } else {
+      uploadedUrls.push({ type: item.type, url: item.url })
+    }
+  }
+  
+  return uploadedUrls
+}
+
 const publish = async () => {
   if (!content.value.trim() && mediaItems.value.length === 0) {
-    alert('请输入内容或添加图片')
+    showToast('请输入内容或添加图片', 'warning')
     return
   }
 
@@ -330,48 +369,68 @@ const publish = async () => {
   if (!loginResult.loggedIn) {
     return
   }
+  
   if (visibility.value === 'password' && !viewPassword.value.trim()) {
-    alert('请输入查看密码')
+    showToast('请输入查看密码', 'warning')
     return
   }
+  
   if (visibility.value === 'pay' && (!viewPrice.value || viewPrice.value <= 0)) {
-    alert('请输入有效的查看金币数')
+    showToast('请输入有效的查看金币数', 'warning')
     return
   }
   
-  const visibilityMap = {
-    'public': 0,
-    'friends': 1,
-    'private': 2,
-    'password': 3,
-    'pay': 4
-  }
+  uploading.value = true
   
-  const images = mediaItems.value
-    .filter(item => item.type === 'image')
-    .map(item => item.url)
-  
-  const videos = mediaItems.value
-    .filter(item => item.type === 'video')
-    .map(item => item.url)
-  
-  const postData = { 
-    content: content.value, 
-    images, 
-    videos,
-    location: location.value, 
-    tagIds: topics.value.map(t => t), 
-    visibility: visibilityMap[visibility.value] || 0
+  try {
+    const visibilityMap = {
+      'public': 0,
+      'friends': 1,
+      'private': 2,
+      'password': 3,
+      'pay': 4
+    }
+    
+    const uploadedMedia = await uploadMedia()
+    if (!uploadedMedia) {
+      uploading.value = false
+      return
+    }
+    
+    const images = uploadedMedia
+      .filter(item => item.type === 'image')
+      .map(item => item.url)
+    
+    const videos = uploadedMedia
+      .filter(item => item.type === 'video')
+      .map(item => item.url)
+    
+    const postData = { 
+      content: content.value, 
+      images, 
+      videos,
+      location: location.value, 
+      tagIds: topics.value.map(t => t), 
+      visibility: visibilityMap[visibility.value] || 0
+    }
+    
+    if (visibility.value === 'password') {
+      postData.password = viewPassword.value
+    }
+    
+    if (visibility.value === 'pay') {
+      postData.price = parseFloat(viewPrice.value)
+    }
+    
+    await circleService.createPost(postData)
+    showToast('发布成功', 'success')
+    router.back()
+  } catch (error) {
+    console.error('发布失败:', error)
+    showToast('发布失败，请重试', 'error')
+  } finally {
+    uploading.value = false
   }
-  if (visibility.value === 'password') {
-    postData.password = viewPassword.value
-  }
-  if (visibility.value === 'pay') {
-    postData.price = parseFloat(viewPrice.value)
-  }
-  console.log('发布动态:', postData)
-  alert('发布成功')
-  router.back()
 }
 </script>
 
@@ -379,7 +438,7 @@ const publish = async () => {
 .publish-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
@@ -388,8 +447,8 @@ const publish = async () => {
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
+  background: -webkit-linear-gradient(315deg, #FF6B81 0%, #E64C65 100%);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -433,6 +492,11 @@ const publish = async () => {
   font-size: 14px;
   cursor: pointer;
   white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.publish-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .content {
@@ -446,14 +510,19 @@ const publish = async () => {
   width: 100%;
   min-height: 150px;
   border: none;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   padding: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-light);
   font-size: 16px;
   outline: none;
   resize: none;
   box-sizing: border-box;
+  color: var(--text-primary);
+}
+
+.text-input::placeholder {
+  color: var(--text-muted);
 }
 
 .image-upload {
@@ -461,10 +530,10 @@ const publish = async () => {
   flex-wrap: wrap;
   gap: 12px;
   margin: 12px 0;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   padding: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-light);
 }
 
 .upload-item {
@@ -492,6 +561,38 @@ const publish = async () => {
   justify-content: center;
   font-size: 16px;
   cursor: pointer;
+  z-index: 10;
+}
+
+.upload-progress-container {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+}
+
+.upload-progress-bar {
+  height: 100%;
+  background: var(--gradient-primary);
+  transition: width 0.1s ease-out;
+  border-radius: 0 0 8px 8px;
+}
+
+.upload-progress-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .video-indicator {
@@ -514,7 +615,7 @@ const publish = async () => {
 .upload-btn {
   width: 100px;
   height: 100px;
-  border: 2px dashed #ddd;
+  border: 2px dashed var(--border-color);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -522,16 +623,22 @@ const publish = async () => {
   justify-content: center;
   gap: 8px;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upload-btn:hover {
+  border-color: var(--primary-color);
+  background: rgba(255, 107, 129, 0.05);
 }
 
 .upload-btn .icon {
   font-size: 32px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .upload-btn .text {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .location-tag, .topic-tag {
@@ -539,11 +646,16 @@ const publish = async () => {
   align-items: center;
   gap: 8px;
   padding: 14px 16px;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-light);
   cursor: pointer;
   margin-bottom: 12px;
+  transition: all 0.2s;
+}
+
+.location-tag:hover, .topic-tag:hover {
+  box-shadow: var(--shadow-medium);
 }
 
 .location-tag .icon, .topic-tag .icon {
@@ -552,21 +664,21 @@ const publish = async () => {
 
 .location-tag .text, .topic-tag .text {
   font-size: 15px;
-  color: #333;
+  color: var(--text-primary);
   flex: 1;
 }
 
 .visibility-setting {
   margin-top: 12px;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 16px;
   padding: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-light);
 }
 
 .visibility-setting .label {
   font-size: 15px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
   display: block;
   margin-bottom: 12px;
@@ -575,23 +687,30 @@ const publish = async () => {
 .visibility-setting .options {
   display: flex;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .visibility-setting .option {
   flex: 1;
+  min-width: 60px;
   text-align: center;
   padding: 10px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.visibility-setting .option:hover {
+  border-color: var(--primary-light);
 }
 
 .visibility-setting .option.active {
-  border-color: #667eea;
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: rgba(255, 107, 129, 0.05);
 }
 
 .visibility-setting .visibility-input {
@@ -601,15 +720,20 @@ const publish = async () => {
 .visibility-setting .visibility-input input {
   width: 100%;
   padding: 10px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
   box-sizing: border-box;
+  color: var(--text-primary);
+}
+
+.visibility-setting .visibility-input input::placeholder {
+  color: var(--text-muted);
 }
 
 .visibility-setting .visibility-input input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--primary-color);
 }
 
 .topic-modal {
@@ -626,8 +750,8 @@ const publish = async () => {
 
 .topic-modal-content {
   width: 100%;
-  background: white;
-  border-radius: 10px;
+  background: var(--bg-primary);
+  border-radius: 10px 10px 0 0;
   max-height: 70vh;
   display: flex;
   flex-direction: column;
@@ -638,18 +762,18 @@ const publish = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .topic-modal-title {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .topic-modal-count {
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .topic-modal-body {
@@ -663,28 +787,28 @@ const publish = async () => {
 
 .topic-item {
   padding: 8px 16px;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-radius: 20px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
   border: 1px solid transparent;
 }
 
 .topic-item:hover {
-  background: #eee;
+  background: var(--bg-tertiary);
 }
 
 .topic-item.selected {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
-  border-color: #667eea;
+  background: rgba(255, 107, 129, 0.1);
+  color: var(--primary-color);
+  border-color: var(--primary-color);
 }
 
 .topic-modal-footer {
   padding: 12px 20px 20px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-light);
 }
 
 .topic-selected {
@@ -696,13 +820,13 @@ const publish = async () => {
 
 .topic-selected-label {
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
   line-height: 28px;
 }
 
 .topic-selected-item {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: rgba(255, 107, 129, 0.1);
+  color: var(--primary-color);
   padding: 4px 12px;
   border-radius: 14px;
   font-size: 13px;
@@ -712,19 +836,25 @@ const publish = async () => {
 .topic-confirm-btn {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   border-radius: 24px;
   font-size: 16px;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.topic-confirm-btn:hover {
+  opacity: 0.9;
 }
 
 .location-tag .clear-btn {
   margin-left: auto;
   font-size: 16px;
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
+  padding: 4px;
 }
 
 .location-modal {
@@ -741,8 +871,8 @@ const publish = async () => {
 
 .location-modal-content {
   width: 100%;
-  background: white;
-  border-radius: 10px;
+  background: var(--bg-primary);
+  border-radius: 10px 10px 0 0;
   max-height: 70vh;
   display: flex;
   flex-direction: column;
@@ -753,32 +883,33 @@ const publish = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .location-modal-title {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .location-modal-close {
   font-size: 24px;
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
+  padding: 4px;
 }
 
 .location-current {
   display: flex;
   align-items: center;
   padding: 14px 20px;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  background: rgba(255, 107, 129, 0.1);
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .location-current:hover {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+  background: rgba(255, 107, 129, 0.15);
 }
 
 .location-current-icon {
@@ -789,7 +920,7 @@ const publish = async () => {
 .location-current-text {
   flex: 1;
   font-size: 15px;
-  color: #667eea;
+  color: var(--primary-color);
   font-weight: 500;
 }
 
@@ -805,21 +936,26 @@ const publish = async () => {
 
 .location-search {
   padding: 12px 20px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .location-search input {
   width: 100%;
   padding: 10px 14px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 20px;
   font-size: 14px;
   box-sizing: border-box;
+  color: var(--text-primary);
+}
+
+.location-search input::placeholder {
+  color: var(--text-muted);
 }
 
 .location-search input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--primary-color);
 }
 
 .location-list {
@@ -832,8 +968,15 @@ const publish = async () => {
   display: flex;
   align-items: center;
   padding: 12px 0;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--bg-secondary);
   cursor: pointer;
+  transition: background 0.2s;
+}
+
+.location-item:hover {
+  background: var(--bg-secondary);
+  margin: 0 -20px;
+  padding: 12px 20px;
 }
 
 .location-item:last-child {
@@ -841,7 +984,7 @@ const publish = async () => {
 }
 
 .location-item.selected .location-text {
-  color: #667eea;
+  color: var(--primary-color);
 }
 
 .location-icon {
@@ -852,11 +995,11 @@ const publish = async () => {
 .location-text {
   flex: 1;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .location-check {
-  color: #667eea;
+  color: var(--primary-color);
   font-size: 16px;
   font-weight: bold;
 }

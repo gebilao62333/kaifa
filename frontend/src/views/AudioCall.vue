@@ -242,14 +242,14 @@ onUnmounted(() => {
   width: 160px;
   height: 160px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 60px;
   color: white;
   margin-bottom: 40px;
-  box-shadow: 0 8px 32px rgba(102,126,234,0.3);
+  box-shadow: 0 8px 32px rgba(255,107,129,0.3);
 }
 
 .audio-wave {
@@ -262,7 +262,7 @@ onUnmounted(() => {
 .wave-bar {
   width: 6px;
   height: 100%;
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(180deg, #FF6B81 0%, #E64C65 100%);
   border-radius: 3px;
   animation: wave 0.8s ease-in-out infinite;
 }

@@ -1,4 +1,5 @@
 const { authService, smsService } = require('../services');
+const logger = require('../utils/logger');
 const response = require('../utils/response');
 const { generateToken } = require('../config/jwt');
 
@@ -17,7 +18,7 @@ const login = async (req, res) => {
     const result = await authService.loginWithPassword(username, password);
     response.success(res, result, '登录成功');
   } catch (error) {
-    console.error('登录错误:', error);
+    logger.error('登录错误:', error);
     if (error.message === '用户不存在') {
       response.unprocessableEntity(res, '用户不存在', { username: ['用户不存在，请检查用户名或使用手机号登录'] });
     } else if (error.message === '密码错误') {
@@ -49,7 +50,7 @@ const register = async (req, res) => {
     const result = await authService.register(phone, password, `用户${phone.slice(-4)}`);
     response.created(res, result, '注册成功');
   } catch (error) {
-    console.error('注册错误:', error);
+    logger.error('注册错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -79,7 +80,7 @@ const resetPassword = async (req, res) => {
 
     response.success(res, {}, '密码重置成功');
   } catch (error) {
-    console.error('重置密码错误:', error);
+    logger.error('重置密码错误:', error);
     response.error(res, '密码重置失败');
   }
 };
@@ -90,7 +91,7 @@ const getUserInfo = async (req, res) => {
     const userInfo = await authService.getUserInfo(req.userId, targetUserId);
     response.success(res, userInfo);
   } catch (error) {
-    console.error('获取用户信息错误:', error);
+    logger.error('获取用户信息错误:', error);
     response.error(res, error.message);
   }
 };
@@ -100,7 +101,7 @@ const updateUserInfo = async (req, res) => {
     await authService.updateUserInfo(req.userId, req.body);
     response.success(res, {}, '更新成功');
   } catch (error) {
-    console.error('更新用户信息错误:', error);
+    logger.error('更新用户信息错误:', error);
     response.error(res, error.message);
   }
 };
@@ -116,7 +117,7 @@ const sendSms = async (req, res) => {
     await smsService.sendSMS(mobile);
     response.success(res, {}, '发送成功');
   } catch (error) {
-    console.error('发送验证码错误:', error);
+    logger.error('发送验证码错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -132,7 +133,7 @@ const loginMobile = async (req, res) => {
     const result = await authService.loginWithMobile(mobile, code, deviceId, platform);
     response.success(res, result, '登录成功');
   } catch (error) {
-    console.error('手机号登录错误:', error);
+    logger.error('手机号登录错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -148,7 +149,7 @@ const loginThird = async (req, res) => {
     const result = await authService.loginWithThird(type, code, encryptedData, iv);
     response.success(res, result, '登录成功');
   } catch (error) {
-    console.error('第三方登录错误:', error);
+    logger.error('第三方登录错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -164,7 +165,7 @@ const follow = async (req, res) => {
     const result = await authService.followUser(req.userId, targetUserId);
     response.success(res, result, action === 1 ? '关注成功' : '取消关注成功');
   } catch (error) {
-    console.error('关注用户错误:', error);
+    logger.error('关注用户错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -204,7 +205,7 @@ const getFans = async (req, res) => {
       list: fans
     });
   } catch (error) {
-    console.error('获取粉丝列表错误:', error);
+    logger.error('获取粉丝列表错误:', error);
     response.error(res, error.message);
   }
 };
@@ -244,7 +245,7 @@ const getFollows = async (req, res) => {
       list
     });
   } catch (error) {
-    console.error('获取关注列表错误:', error);
+    logger.error('获取关注列表错误:', error);
     response.error(res, error.message);
   }
 };
@@ -260,7 +261,7 @@ const refreshToken = async (req, res) => {
     const result = await authService.refreshToken(refreshTokenStr);
     response.success(res, result, '刷新token成功');
   } catch (error) {
-    console.error('刷新token错误:', error);
+    logger.error('刷新token错误:', error);
     if (error.message === '无效的refresh token' || error.message === 'refresh token不能为空') {
       response.unprocessableEntity(res, error.message);
     } else {

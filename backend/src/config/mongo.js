@@ -38,8 +38,9 @@ const connectMongo = async () => {
     await retryConnection(() => mongoose.connect(config.db.mongo.uri, mongoConfig));
     console.log('✅ MongoDB connected successfully');
   } catch (error) {
-    console.error('MongoDB connection error:', error);
-    process.exit(1);
+    console.error('⚠️ MongoDB 连接失败，服务器将继续运行:', error.message);
+    console.warn('💡 提示: 如果需要使用 MongoDB 功能，请先启动 MongoDB 服务');
+    // 不要退出进程，让服务器继续运行
   }
 };
 

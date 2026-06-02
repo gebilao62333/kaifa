@@ -14,7 +14,7 @@
 
     <div class="fee-standard">
       <span class="fee-standard-icon">📋</span>
-      <span class="fee-standard-text">手续费 {{ feeRate }}%，10金币 = ¥1.00</span>
+      <span class="fee-standard-text">手续费 {{ feeRate }}%</span>
     </div>
 
     <div class="section-title">提现金额</div>
@@ -148,7 +148,7 @@
       </div>
       <div class="account-row">
         <span class="account-label">预计到账金额</span>
-        <span class="account-value">¥ {{ formatAmount(actualArrival) }}</span>
+        <span class="account-value">{{ formatAmount(actualArrival) }} 金币</span>
       </div>
       <div class="account-row">
         <span class="account-label">预计到账</span>
@@ -156,7 +156,7 @@
       </div>
       <div class="account-row">
         <span class="account-label">手续费</span>
-        <span class="account-value">{{ feeRate }}% ({{ formatAmount(feeCoins) }} 金币 ≈ ¥{{ formatAmount(feeCoins / 10) }})</span>
+        <span class="account-value">{{ feeRate }}% ({{ formatAmount(feeCoins) }} 金币)</span>
       </div>
       <div class="account-row withdraw-action-row">
         <span class="account-label">提现操作</span>
@@ -274,7 +274,7 @@ const feeCoins = computed(() => {
 })
 
 const actualArrival = computed(() => {
-  return (Number(withdrawAmount.value) - feeCoins.value) / 10
+  return Number(withdrawAmount.value) - feeCoins.value
 })
 
 const goBack = () => {
@@ -388,10 +388,10 @@ const doWithdraw = async () => {
 .withdraw-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background: var(--bg-page, #f5f5f5);
-  padding-top: var(--layout-header-height, 70px);
+  background: var(--bg-secondary);
+  padding-top: 70px;
   /* 底部预留空间：BottomNav */
-  padding-bottom: calc(var(--layout-bottom-nav-height, 60px) + var(--layout-safe-area-bottom, 0px));
+  padding-bottom: 60px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -401,15 +401,15 @@ const doWithdraw = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 var(--spacing-xl, 20px);
-  height: var(--layout-header-height, 70px);
-  background: var(--color-gradient-primary, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+  padding: 0 20px;
+  height: 70px;
+  background: var(--gradient-primary);
   color: white;
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
-  z-index: var(--z-dropdown, 100);
+  z-index: 100;
   box-sizing: border-box;
 }
 
@@ -445,31 +445,31 @@ const doWithdraw = async () => {
 
 /* --- 余额卡片 --- */
 .balance-card {
-  margin: 12px var(--spacing-md, 12px) 20px;
-  background: var(--bg-card, #fff);
-  border-radius: var(--radius-2xl, 16px);
-  padding: 28px var(--spacing-xl, 20px);
+  margin: 12px 12px 20px;
+  background: var(--bg-primary);
+  border-radius: 16px;
+  padding: 28px 20px;
   text-align: center;
-  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.06));
+  box-shadow: var(--shadow-medium);
 }
 
 .balance-card .label {
-  font-size: var(--font-size-md, 14px);
-  color: #999;
+  font-size: 14px;
+  color: var(--text-secondary);
   margin-bottom: 8px;
 }
 
 .balance-card .amount {
   font-size: 40px;
   font-weight: 800;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 4px;
   line-height: 1.2;
 }
 
 .balance-card .unit {
-  font-size: var(--font-size-sm, 12px);
-  color: #999;
+  font-size: 12px;
+  color: var(--text-secondary);
 }
 
 /* --- 手续费提示 --- */
@@ -478,10 +478,10 @@ const doWithdraw = async () => {
   align-items: center;
   gap: 6px;
   padding: 10px 14px;
-  margin: 0 var(--spacing-md, 12px) 0;
-  background: #fff7e6;
-  border-radius: var(--radius-md, 8px);
-  border: 1px solid #ffe7ba;
+  margin: 0 12px 0;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-light);
 }
 
 .fee-standard-icon {
@@ -490,17 +490,17 @@ const doWithdraw = async () => {
 }
 
 .fee-standard-text {
-  font-size: var(--font-size-sm, 12px);
-  color: #d46b08;
+  font-size: 12px;
+  color: var(--text-secondary);
   font-weight: 500;
 }
 
 /* --- 分区标题 --- */
 .section-title {
-  font-size: var(--font-size-lg, 16px);
+  font-size: 16px;
   font-weight: 700;
-  color: #333;
-  padding: 24px var(--spacing-md, 12px) 10px;
+  color: var(--text-primary);
+  padding: 24px 12px 10px;
   margin: 0;
 }
 
@@ -508,11 +508,11 @@ const doWithdraw = async () => {
 .amount-input-wrap {
   display: flex;
   align-items: center;
-  background: var(--bg-card, #fff);
-  margin: 0 var(--spacing-md, 12px);
-  padding: 14px var(--spacing-xl, 20px);
-  border-radius: var(--radius-xl, 12px);
-  box-shadow: var(--shadow-sm, 0 2px 12px rgba(0, 0, 0, 0.04));
+  background: var(--bg-primary);
+  margin: 0 12px;
+  padding: 14px 20px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-light);
 }
 
 .amount-symbol {
@@ -527,18 +527,18 @@ const doWithdraw = async () => {
   outline: none;
   font-size: 28px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-primary);
   background: transparent;
   min-width: 0;
 }
 
 .amount-input::placeholder {
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 .amount-unit {
-  font-size: var(--font-size-md, 14px);
-  color: #999;
+  font-size: 14px;
+  color: var(--text-secondary);
   flex-shrink: 0;
   margin-left: 8px;
 }
@@ -546,13 +546,13 @@ const doWithdraw = async () => {
 .amount-tips {
   display: flex;
   justify-content: space-between;
-  padding: 8px var(--spacing-xl, 20px) 0;
-  font-size: var(--font-size-sm, 12px);
-  color: #999;
+  padding: 8px 20px 0;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .all-btn {
-  color: var(--color-primary, #667eea);
+  color: var(--primary-color);
   cursor: pointer;
   font-weight: 500;
 }
@@ -561,51 +561,51 @@ const doWithdraw = async () => {
 .quick-amounts {
   display: flex;
   gap: 10px;
-  padding: 10px var(--spacing-md, 12px);
+  padding: 10px 12px;
   flex-wrap: wrap;
 }
 
 .quick-item {
-  background: var(--bg-card, #fff);
+  background: var(--bg-primary);
   border: 2px solid transparent;
   border-radius: 20px;
   padding: 8px 18px;
-  font-size: var(--font-size-md, 14px);
-  color: #666;
+  font-size: 14px;
+  color: var(--text-secondary);
   cursor: pointer;
-  transition: all var(--transition-fast, 0.15s ease);
+  transition: all 0.15s ease;
   white-space: nowrap;
 }
 
 .quick-item.active {
-  border-color: var(--color-primary, #667eea);
-  color: var(--color-primary, #667eea);
-  background: rgba(102, 126, 234, 0.05);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: rgba(255, 107, 129, 0.05);
   font-weight: 600;
 }
 
 /* --- 支付方式 --- */
 .payment-methods {
-  padding: 0 var(--spacing-md, 12px);
+  padding: 0 12px;
 }
 
 .payment-item {
   display: flex;
   align-items: center;
-  background: var(--bg-card, #fff);
-  padding: 14px var(--spacing-xl, 20px);
-  border-radius: var(--radius-xl, 12px);
+  background: var(--bg-primary);
+  padding: 14px 20px;
+  border-radius: 12px;
   margin-bottom: 10px;
   border: 2px solid transparent;
   cursor: pointer;
-  transition: all var(--transition-fast, 0.15s ease);
-  box-shadow: var(--shadow-sm, 0 2px 12px rgba(0, 0, 0, 0.04));
+  transition: all 0.15s ease;
+  box-shadow: var(--shadow-light);
 }
 
 .payment-item.active {
-  border-color: var(--color-primary, #667eea);
-  background: rgba(102, 126, 234, 0.03);
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.1);
+  border-color: var(--primary-color);
+  background: rgba(255, 107, 129, 0.03);
+  box-shadow: 0 4px 16px rgba(255, 107, 129, 0.1);
 }
 
 .pay-icon {
@@ -627,31 +627,31 @@ const doWithdraw = async () => {
 }
 
 .pay-name {
-  font-size: var(--font-size-lg, 16px);
+  font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   display: block;
   margin-bottom: 2px;
 }
 
 .pay-desc {
-  font-size: var(--font-size-sm, 12px);
-  color: #999;
+  font-size: 12px;
+  color: var(--text-muted);
   display: block;
 }
 
 /* --- 收款信息卡片 --- */
 .receiver-card {
-  background: var(--bg-card, #fff);
-  margin: 0 var(--spacing-md, 12px) 20px;
-  border-radius: var(--radius-xl, 12px);
-  padding: 4px var(--spacing-lg, 16px);
-  box-shadow: var(--shadow-sm, 0 2px 12px rgba(0, 0, 0, 0.04));
+  background: var(--bg-primary);
+  margin: 0 12px 20px;
+  border-radius: 12px;
+  padding: 4px 16px;
+  box-shadow: var(--shadow-light);
 }
 
 .receiver-field {
   padding: 14px 0;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .receiver-field:last-child {
@@ -659,8 +659,8 @@ const doWithdraw = async () => {
 }
 
 .receiver-label {
-  font-size: var(--font-size-sm, 12px);
-  color: #999;
+  font-size: 12px;
+  color: var(--text-muted);
   display: block;
   margin-bottom: 6px;
 }
@@ -670,14 +670,14 @@ const doWithdraw = async () => {
   padding: 8px 0;
   border: none;
   outline: none;
-  font-size: var(--font-size-lg, 16px);
-  color: #333;
+  font-size: 16px;
+  color: var(--text-primary);
   background: transparent;
   box-sizing: border-box;
 }
 
 .receiver-input::placeholder {
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 .receiver-select {
@@ -689,17 +689,17 @@ const doWithdraw = async () => {
 }
 
 .receiver-select-text {
-  font-size: var(--font-size-lg, 16px);
-  color: #333;
+  font-size: 16px;
+  color: var(--text-primary);
 }
 
 .receiver-select-text.placeholder {
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 .select-arrow {
   font-size: 20px;
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 /* --- 二维码上传 --- */
@@ -709,16 +709,16 @@ const doWithdraw = async () => {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: #f8f9fa;
-  border-radius: var(--radius-xl, 12px);
-  border: 2px dashed #ddd;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  border: 2px dashed var(--border-color);
   cursor: pointer;
   margin-top: 4px;
-  transition: border-color var(--transition-fast, 0.15s ease);
+  transition: border-color 0.15s ease;
 }
 
 .qr-upload:hover {
-  border-color: var(--color-primary, #667eea);
+  border-color: var(--primary-color);
 }
 
 .qr-upload-icon {
@@ -727,14 +727,14 @@ const doWithdraw = async () => {
 }
 
 .qr-upload-text {
-  font-size: var(--font-size-sm, 12px);
-  color: #999;
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
 .qr-preview {
   max-width: 100%;
   max-height: 160px;
-  border-radius: var(--radius-md, 8px);
+  border-radius: 8px;
   object-fit: contain;
 }
 
@@ -748,12 +748,12 @@ const doWithdraw = async () => {
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: flex-end;
-  z-index: var(--z-overlay, 500);
+  z-index: 500;
 }
 
 .bank-picker-content {
   width: 100%;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 20px 20px 0 0;
   max-height: 70vh;
   overflow: hidden;
@@ -766,20 +766,20 @@ const doWithdraw = async () => {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .bank-picker-cancel,
 .bank-picker-confirm {
   font-size: 15px;
-  color: var(--color-primary, #667eea);
+  color: var(--primary-color);
   cursor: pointer;
 }
 
 .bank-picker-title {
-  font-size: var(--font-size-lg, 16px);
+  font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .bank-picker-list {
@@ -789,21 +789,21 @@ const doWithdraw = async () => {
 
 .bank-picker-item {
   padding: 15px 20px;
-  font-size: var(--font-size-lg, 16px);
-  color: #333;
+  font-size: 16px;
+  color: var(--text-primary);
   cursor: pointer;
-  transition: background var(--transition-fast, 0.15s ease);
+  transition: background 0.15s ease;
 }
 
 .bank-picker-item:hover,
 .bank-picker-item:active {
-  background: #f5f5f5;
+  background: var(--bg-secondary);
 }
 
 .bank-picker-item.active {
-  color: var(--color-primary, #667eea);
+  color: var(--primary-color);
   font-weight: 600;
-  background: rgba(102, 126, 234, 0.08);
+  background: rgba(255, 107, 129, 0.08);
 }
 
 /* --- 单选圆圈 --- */
@@ -811,14 +811,14 @@ const doWithdraw = async () => {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid #ddd;
+  border: 2px solid var(--border-color);
   position: relative;
   flex-shrink: 0;
-  transition: all var(--transition-fast, 0.15s ease);
+  transition: all 0.15s ease;
 }
 
 .radio.checked {
-  border-color: var(--color-primary, #667eea);
+  border-color: var(--primary-color);
 }
 
 .radio.checked::after {
@@ -829,16 +829,16 @@ const doWithdraw = async () => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--color-primary, #667eea);
+  background: var(--primary-color);
 }
 
 /* --- 到账信息卡片 --- */
 .account-card {
-  background: var(--bg-card, #fff);
-  margin: 0 var(--spacing-md, 12px);
-  border-radius: var(--radius-xl, 12px);
-  padding: 4px var(--spacing-lg, 16px);
-  box-shadow: var(--shadow-sm, 0 2px 12px rgba(0, 0, 0, 0.04));
+  background: var(--bg-primary);
+  margin: 0 12px;
+  border-radius: 12px;
+  padding: 4px 16px;
+  box-shadow: var(--shadow-light);
 }
 
 .account-row {
@@ -846,7 +846,7 @@ const doWithdraw = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 13px 0;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .account-row:last-child {
@@ -854,26 +854,26 @@ const doWithdraw = async () => {
 }
 
 .account-label {
-  font-size: var(--font-size-md, 14px);
-  color: #666;
+  font-size: 14px;
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
 .account-value {
-  font-size: var(--font-size-md, 14px);
-  color: #333;
+  font-size: 14px;
+  color: var(--text-primary);
   font-weight: 500;
   text-align: right;
 }
 
 .account-value.amount {
-  font-size: var(--font-size-xl, 18px);
+  font-size: 18px;
   font-weight: 700;
-  color: #ff6b6b;
+  color: var(--primary-color);
 }
 
 .account-value.free {
-  color: #10b981;
+  color: var(--success-color);
 }
 
 /* --- 提现操作行（在到账信息卡片内） --- */
@@ -885,15 +885,15 @@ const doWithdraw = async () => {
 
 .withdraw-btn {
   padding: 10px 24px;
-  background: var(--color-gradient-primary, linear-gradient(135deg, #667eea 0%, #764ba2 100%));
+  background: var(--gradient-primary);
   color: white;
   border: none;
   border-radius: 20px;
-  font-size: var(--font-size-md, 14px);
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all var(--transition-fast, 0.15s ease);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25);
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 8px rgba(255, 107, 129, 0.25);
   white-space: nowrap;
 }
 

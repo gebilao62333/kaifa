@@ -188,7 +188,7 @@ const updateTabCounts = () => {
 .mydynamic-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
@@ -198,8 +198,7 @@ const updateTabCounts = () => {
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -241,7 +240,7 @@ const updateTabCounts = () => {
 
 .posts-tabs {
   display: flex;
-  background-color: #fff;
+  background-color: var(--bg-primary);
   gap: 12px;
   padding: 12px;
   max-width: 650px;
@@ -253,14 +252,14 @@ const updateTabCounts = () => {
   text-align: center;
   padding: 10px 0;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   border-radius: 24px;
   transition: all 0.2s;
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   font-weight: 600;
 }
@@ -281,7 +280,7 @@ const updateTabCounts = () => {
 }
 
 .post-card {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 16px;
   margin-bottom: 12px;
   padding: 16px;
@@ -316,14 +315,14 @@ const updateTabCounts = () => {
 .post-nickname {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   display: block;
   margin-bottom: 2px;
 }
 
 .post-time {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .post-status {
@@ -333,7 +332,7 @@ const updateTabCounts = () => {
 }
 
 .post-status.status-published {
-  color: #10b981;
+  color: var(--success-color);
   background: rgba(16, 185, 129, 0.1);
 }
 
@@ -343,7 +342,7 @@ const updateTabCounts = () => {
 }
 
 .post-status.status-rejected {
-  color: #ef4444;
+  color: var(--error-color);
   background: rgba(239, 68, 68, 0.1);
 }
 
@@ -353,7 +352,7 @@ const updateTabCounts = () => {
 
 .post-content {
   font-size: 15px;
-  color: #333;
+  color: var(--text-primary);
   line-height: 1.6;
   margin-bottom: 12px;
   word-break: break-all;
@@ -383,12 +382,12 @@ const updateTabCounts = () => {
   align-items: center;
   gap: 16px;
   padding-top: 12px;
-  border-top: 1px solid #f5f5f5;
+  border-top: 1px solid var(--border-light);
 }
 
 .footer-item {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .post-actions {
@@ -397,7 +396,7 @@ const updateTabCounts = () => {
 
 .action-btn {
   font-size: 13px;
-  color: #ef4444;
+  color: var(--error-color);
   cursor: pointer;
 }
 
@@ -416,12 +415,12 @@ const updateTabCounts = () => {
 
 .empty-text {
   font-size: 15px;
-  color: #999;
+  color: var(--text-muted);
   margin-bottom: 24px;
 }
 
 .empty-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   padding: 12px 32px;

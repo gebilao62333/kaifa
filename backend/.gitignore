@@ -10,3 +10,6 @@ cert/
 dist/
 build/
 coverage/
+test-results/
+playwright-report/
+artillery-report/

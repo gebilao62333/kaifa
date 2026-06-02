@@ -1,4 +1,5 @@
 const { chatService } = require('../services');
+const logger = require('../utils/logger');
 const response = require('../utils/response');
 
 const getChatList = async (req, res) => {
@@ -7,7 +8,7 @@ const getChatList = async (req, res) => {
     const result = await chatService.getChatList(req.userId, parseInt(page), parseInt(pageSize));
     response.success(res, result);
   } catch (error) {
-    console.error('获取聊天列表错误:', error);
+    logger.error('获取聊天列表错误:', error);
     response.error(res, error.message);
   }
 };
@@ -28,7 +29,7 @@ const getMessages = async (req, res) => {
     );
     response.success(res, result);
   } catch (error) {
-    console.error('获取聊天消息错误:', error);
+    logger.error('获取聊天消息错误:', error);
     response.error(res, error.message);
   }
 };
@@ -51,7 +52,7 @@ const sendMessage = async (req, res) => {
     );
     response.success(res, result, '发送成功');
   } catch (error) {
-    console.error('发送消息错误:', error);
+    logger.error('发送消息错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -67,7 +68,7 @@ const revokeMessage = async (req, res) => {
     await chatService.revokeMessage(req.userId, parseInt(messageId));
     response.success(res, {}, '撤回成功');
   } catch (error) {
-    console.error('撤回消息错误:', error);
+    logger.error('撤回消息错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -83,7 +84,7 @@ const createRoom = async (req, res) => {
     const result = await chatService.createRoom(req.userId, title, subtitle, background, roomType);
     response.success(res, result, '申请成功，等待审核');
   } catch (error) {
-    console.error('创建聊天室错误:', error);
+    logger.error('创建聊天室错误:', error);
     response.error(res, error.message);
   }
 };
@@ -99,7 +100,7 @@ const getRoomInfo = async (req, res) => {
     const result = await chatService.getRoomInfo(parseInt(roomId));
     response.success(res, result);
   } catch (error) {
-    console.error('获取聊天室信息错误:', error);
+    logger.error('获取聊天室信息错误:', error);
     response.error(res, error.message);
   }
 };
@@ -110,7 +111,7 @@ const getRooms = async (req, res) => {
     const result = await chatService.getRooms(parseInt(page), parseInt(pageSize));
     response.success(res, result);
   } catch (error) {
-    console.error('获取聊天室列表错误:', error);
+    logger.error('获取聊天室列表错误:', error);
     response.error(res, error.message);
   }
 };
@@ -126,7 +127,7 @@ const markAsRead = async (req, res) => {
     await chatService.markAsRead(req.userId, parseInt(targetUserId));
     response.success(res, {}, '已读');
   } catch (error) {
-    console.error('标记已读错误:', error);
+    logger.error('标记已读错误:', error);
     response.error(res, error.message);
   }
 };

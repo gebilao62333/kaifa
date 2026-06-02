@@ -722,6 +722,36 @@ if (config.useMockDb) {
   const UserSession = require('./mongo/UserSession');
   const Notification = require('./mongo/Notification');
 
+  // 定义模型关联关系
+  CompanionProfile.belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user',
+    targetKey: 'id'
+  });
+
+  User.hasMany(CompanionProfile, {
+    foreignKey: 'user_id',
+    as: 'companion_profiles'
+  });
+
+  GameOrder.belongsTo(User, {
+    foreignKey: 'user_id',
+    as: 'user',
+    targetKey: 'id'
+  });
+
+  GameOrder.belongsTo(User, {
+    foreignKey: 'companion_id',
+    as: 'companion',
+    targetKey: 'id'
+  });
+
+  GameOrder.belongsTo(Game, {
+    foreignKey: 'game_id',
+    as: 'game',
+    targetKey: 'id'
+  });
+
   module.exports = {
     User,
     ChatLog,

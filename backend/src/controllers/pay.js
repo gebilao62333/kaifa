@@ -1,4 +1,5 @@
 const { payService, wechatPayService } = require('../services');
+const logger = require('../utils/logger');
 const response = require('../utils/response');
 
 const getPackages = async (req, res) => {
@@ -6,7 +7,7 @@ const getPackages = async (req, res) => {
     const result = await payService.getPackages();
     response.success(res, result);
   } catch (error) {
-    console.error('获取充值套餐错误:', error);
+    logger.error('获取充值套餐错误:', error);
     response.error(res, error.message);
   }
 };
@@ -26,7 +27,7 @@ const createOrder = async (req, res) => {
     );
     response.success(res, result);
   } catch (error) {
-    console.error('创建订单错误:', error);
+    logger.error('创建订单错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -49,7 +50,7 @@ const createWxOrder = async (req, res) => {
       jsApiParams
     });
   } catch (error) {
-    console.error('创建微信支付订单错误:', error);
+    logger.error('创建微信支付订单错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -73,7 +74,7 @@ const wxNotify = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('微信支付回调错误:', error);
+    logger.error('微信支付回调错误:', error);
     res.set('Content-Type', 'text/xml');
     res.send('<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[ERROR]]></return_msg></xml>');
   }
@@ -90,7 +91,7 @@ const queryWxOrder = async (req, res) => {
     const result = await wechatPayService.queryOrder(orderNo);
     response.success(res, result);
   } catch (error) {
-    console.error('查询微信订单错误:', error);
+    logger.error('查询微信订单错误:', error);
     response.error(res, error.message);
   }
 };
@@ -106,7 +107,7 @@ const closeWxOrder = async (req, res) => {
     const result = await wechatPayService.closeOrder(orderNo);
     response.success(res, result);
   } catch (error) {
-    console.error('关闭微信订单错误:', error);
+    logger.error('关闭微信订单错误:', error);
     response.error(res, error.message);
   }
 };
@@ -122,7 +123,7 @@ const wxCallback = async (req, res) => {
     await payService.wxPayCallback(payNo, transactionId);
     response.success(res, {}, '支付成功');
   } catch (error) {
-    console.error('微信支付回调错误:', error);
+    logger.error('微信支付回调错误:', error);
     response.error(res, error.message);
   }
 };
@@ -138,7 +139,7 @@ const getOrderStatus = async (req, res) => {
     const result = await payService.getOrderStatus(orderNo);
     response.success(res, result);
   } catch (error) {
-    console.error('查询订单状态错误:', error);
+    logger.error('查询订单状态错误:', error);
     response.error(res, error.message);
   }
 };
@@ -154,7 +155,7 @@ const validateCard = async (req, res) => {
     const result = await payService.validateCard(cardCode);
     response.success(res, result);
   } catch (error) {
-    console.error('验证密卡错误:', error);
+    logger.error('验证密卡错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -170,7 +171,7 @@ const useCard = async (req, res) => {
     const result = await payService.useCard(req.userId, cardCode);
     response.success(res, result, '充值成功');
   } catch (error) {
-    console.error('使用密卡错误:', error);
+    logger.error('使用密卡错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -257,7 +258,7 @@ const getRechargeRecords = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取充值记录错误:', error);
+    logger.error('获取充值记录错误:', error);
     response.error(res, error.message);
   }
 };
@@ -267,7 +268,7 @@ const getWalletBalance = async (req, res) => {
     const result = await payService.getWalletBalance(req.userId);
     response.success(res, result);
   } catch (error) {
-    console.error('获取钱包余额错误:', error);
+    logger.error('获取钱包余额错误:', error);
     response.error(res, error.message);
   }
 };
@@ -287,7 +288,7 @@ const rechargeWallet = async (req, res) => {
     );
     response.success(res, result, '充值成功');
   } catch (error) {
-    console.error('充值错误:', error);
+    logger.error('充值错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -302,7 +303,7 @@ const getPaymentHistory = async (req, res) => {
     );
     response.success(res, result);
   } catch (error) {
-    console.error('获取支付记录错误:', error);
+    logger.error('获取支付记录错误:', error);
     response.error(res, error.message);
   }
 };
@@ -323,7 +324,7 @@ const createPayment = async (req, res) => {
     
     response.success(res, result, '支付订单创建成功');
   } catch (error) {
-    console.error('创建支付订单错误:', error);
+    logger.error('创建支付订单错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -343,7 +344,7 @@ const handlePaymentNotify = async (req, res) => {
       response.badRequest(res, '支付失败');
     }
   } catch (error) {
-    console.error('支付回调处理错误:', error);
+    logger.error('支付回调处理错误:', error);
     response.error(res, error.message);
   }
 };

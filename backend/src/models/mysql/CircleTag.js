@@ -20,7 +20,8 @@ const CircleTag = sequelize.define('circle_tag', {
   sortOrder: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
-    comment: '排序'
+    comment: '排序',
+    field: 'sort_order'
   },
   status: {
     type: DataTypes.TINYINT(1),
@@ -29,11 +30,13 @@ const CircleTag = sequelize.define('circle_tag', {
   },
   createTime: {
     type: DataTypes.INTEGER(10),
-    defaultValue: 0
+    defaultValue: 0,
+    field: 'create_time'
   },
   updateTime: {
     type: DataTypes.INTEGER(10),
-    defaultValue: 0
+    defaultValue: 0,
+    field: 'update_time'
   }
 }, {
   tableName: 'xn_circle_tag',

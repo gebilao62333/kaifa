@@ -1,4 +1,5 @@
 const { uploadService } = require('../services');
+const logger = require('../utils/logger');
 const response = require('../utils/response');
 const path = require('path');
 
@@ -11,7 +12,7 @@ const uploadImage = async (req, res) => {
     const result = await uploadService.uploadImage(req.file);
     response.success(res, result, '上传成功');
   } catch (error) {
-    console.error('上传图片错误:', error);
+    logger.error('上传图片错误:', error);
     response.badRequest(res, error.message);
   }
 };
@@ -25,7 +26,7 @@ const uploadAudio = async (req, res) => {
     const result = await uploadService.uploadAudio(req.file);
     response.success(res, result, '上传成功');
   } catch (error) {
-    console.error('上传音频错误:', error);
+    logger.error('上传音频错误:', error);
     response.badRequest(res, error.message);
   }
 };
@@ -39,7 +40,7 @@ const uploadVideo = async (req, res) => {
     const result = await uploadService.uploadVideo(req.file);
     response.success(res, result, '上传成功');
   } catch (error) {
-    console.error('上传视频错误:', error);
+    logger.error('上传视频错误:', error);
     response.badRequest(res, error.message);
   }
 };

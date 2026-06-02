@@ -337,7 +337,7 @@ const handlePermissionContinue = () => {
 .select-btn {
   margin-left: auto;
   font-size: 13px;
-  color: #667eea;
+  color: #FF6B81;
   cursor: pointer;
 }
 
@@ -433,7 +433,7 @@ const handlePermissionContinue = () => {
   align-items: center;
   justify-content: center;
   padding: 30px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   border-radius: 12px;
   cursor: pointer;
   position: relative;
@@ -519,7 +519,7 @@ const handlePermissionContinue = () => {
 .submit-btn {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   border: none;
   border-radius: 12px;
   color: white;
@@ -631,7 +631,7 @@ const handlePermissionContinue = () => {
   align-items: center;
   gap: 12px;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: white;
 }
 
@@ -684,7 +684,7 @@ const handlePermissionContinue = () => {
 .step-number {
   width: 20px;
   height: 20px;
-  background: #667eea;
+  background: #FF6B81;
   color: white;
   border-radius: 50%;
   display: flex;
@@ -727,7 +727,7 @@ const handlePermissionContinue = () => {
 .alternative-btn {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: white;
   border: none;
   border-radius: 10px;

@@ -172,14 +172,14 @@ defineExpose({
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 40px;
   color: white;
   margin: 0 auto 20px;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 24px rgba(255, 107, 129, 0.4);
   animation: pulse 2s infinite;
 }
 

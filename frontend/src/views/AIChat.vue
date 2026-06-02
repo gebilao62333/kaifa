@@ -242,7 +242,7 @@ onMounted(() => {
   flex-direction: column;
   height: 100vh;
   min-height: -webkit-fill-available;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding-top: 70px;
   padding-bottom: calc(70px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
@@ -260,8 +260,7 @@ onMounted(() => {
   top: 0;
   left: 0;
   width: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   z-index: 100;
   box-sizing: border-box;
@@ -349,14 +348,14 @@ onMounted(() => {
 }
 
 .message-item.self .message-bubble {
-  background: #007aff;
+  background: var(--gradient-primary);
   color: #fff;
   border-bottom-right-radius: 4px;
 }
 
 .message-item.other .message-bubble {
-  background: #fff;
-  color: #333;
+  background: var(--bg-primary);
+  color: var(--text-primary);
   border-bottom-left-radius: 4px;
 }
 
@@ -371,7 +370,7 @@ onMounted(() => {
 
 .message-time {
   font-size: 10px;
-  color: #bbb;
+  color: var(--text-muted);
   margin-top: 4px;
   text-align: center;
 }
@@ -381,8 +380,8 @@ onMounted(() => {
 }
 
 .input-area {
-  background: #fff;
-  border-top: 1px solid #eee;
+  background: var(--bg-primary);
+  border-top: 1px solid var(--border-light);
   padding: 8px 12px;
   max-width: 650px;
   margin: 0 auto;
@@ -398,14 +397,15 @@ onMounted(() => {
 
 .quick-reply {
   padding: 6px 12px;
-  background: #f0f0f0;
+  background: var(--bg-secondary);
   border-radius: 16px;
   font-size: 13px;
   cursor: pointer;
+  color: var(--text-secondary);
 }
 
 .quick-reply:hover {
-  background: #e0e0e0;
+  background: var(--border-color);
 }
 
 .input-row {
@@ -418,19 +418,21 @@ onMounted(() => {
   flex: 1;
   height: 36px;
   padding: 0 12px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 18px;
   font-size: 14px;
   outline: none;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .text-input:focus {
-  border-color: #007aff;
+  border-color: var(--primary-color);
 }
 
 .send-btn {
   padding: 8px 16px;
-  background: #007aff;
+  background: var(--gradient-primary);
   color: #fff;
   border: none;
   border-radius: 18px;
@@ -439,7 +441,7 @@ onMounted(() => {
 }
 
 .send-btn:disabled {
-  background: #ccc;
+  background: var(--border-color);
   cursor: not-allowed;
 }
 
@@ -457,9 +459,9 @@ onMounted(() => {
   position: absolute;
   top: 60px;
   right: 16px;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-medium);
   overflow: hidden;
 }
 
@@ -469,10 +471,11 @@ onMounted(() => {
   padding: 12px 16px;
   gap: 8px;
   cursor: pointer;
+  color: var(--text-primary);
 }
 
 .menu-item:hover {
-  background: #f5f5f5;
+  background: var(--bg-secondary);
 }
 
 .menu-icon {

@@ -112,8 +112,10 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import ReserveModal from '@/components/ReserveModal.vue'
 import circleService from '../services/circleService'
+import { useToast } from '../composables/useToast'
 
 const router = useRouter()
+const { showToast } = useToast()
 
 const activeTag = ref(0)
 const tagList = ref([])
@@ -121,37 +123,7 @@ const feedList = ref([])
 const page = ref(1)
 const loading = ref(false)
 const hasMore = ref(true)
-
-const getSystemRecommendFeeds = () => {
-  try {
-    const stored = localStorage.getItem('admin_system_recommend')
-    if (!stored) return []
-    const list = JSON.parse(stored)
-    return list.map((u, idx) => ({
-      postId: 10000 + idx,
-      userId: u.userId,
-      nickName: u.nickname || '用户' + u.userId,
-      avatar: u.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=sys' + u.userId,
-      level: u.level || 1,
-      vip: u.vip || false,
-      gameName: '热门推荐',
-      content: `🔥 热门推荐用户：${u.nickname || '用户' + u.userId}，快来互动吧！`,
-      images: [],
-      tagName: '推荐',
-      likes: u.likeCount || u.likes || 0,
-      comments: u.followerCount || u.followers || 0,
-      isLike: false,
-      isFollow: false,
-      createTime: Date.now() - idx * 3600000,
-      onlineService: true,
-      offlineService: true,
-      offlineLocation: '',
-      isSystemRecommend: true
-    }))
-  } catch (e) {
-    return []
-  }
-}
+const initialLoadComplete = ref(false)
 
 // 预约弹窗
 const showReserveModal = ref(false)
@@ -181,11 +153,18 @@ const formatTime = (timestamp) => {
 const loadTags = async () => {
   try {
     const res = await circleService.getTags()
-    if (res && res.data) {
+    if (res && res.code === 200 && res.data) {
       tagList.value = res.data
     }
   } catch (e) {
     console.error('加载标签失败:', e)
+    // Mock 降级
+    tagList.value = [
+      { id: 1, name: '游戏' },
+      { id: 2, name: '情感' },
+      { id: 3, name: '技术' },
+      { id: 4, name: '生活' }
+    ]
   }
 }
 
@@ -200,115 +179,150 @@ const loadFeedList = async (reset = false) => {
   }
 
   try {
-    await new Promise(resolve => setTimeout(resolve, 500))
+    const params = {
+      page: page.value,
+      pageSize: 10
+    }
     
-    const mockData = [
-      {
-        postId: 1,
-        userId: 1,
-        nickName: '小雪',
-        avatar: 'https://picsum.photos/100/100',
-        level: 28,
-        vip: true,
-        gameName: '王者荣耀',
-        content: '今天玩王者太开心了，连胜五把！有没有大神带我上分呀～🎮✨',
-        images: [
-          'https://picsum.photos/300/300',
-          'https://picsum.photos/300/300'
-        ],
-        tagName: '游戏',
-        likes: 128,
-        comments: 32,
-        isLike: false,
-        isFollow: false,
-        createTime: Date.now() - 3600000,
-        onlineService: true,
-        offlineService: true,
-        offlineLocation: '上海市浦东新区XX电竞馆'
-      },
-      {
-        postId: 2,
-        userId: 2,
-        nickName: '阿杰',
-        avatar: 'https://picsum.photos/100/100',
-        level: 35,
-        vip: false,
-        gameName: '英雄联盟',
-        content: '新赛季更新了，感觉打野位又加强了！有没有一起开黑的小伙伴？',
-        images: [],
-        tagName: '游戏',
-        likes: 89,
-        comments: 45,
-        isLike: true,
-        isFollow: true,
-        createTime: Date.now() - 7200000,
-        onlineService: true,
-        offlineService: false
-      },
-      {
-        postId: 3,
-        userId: 3,
-        nickName: '小美',
-        avatar: 'https://picsum.photos/100/100',
-        level: 22,
-        vip: true,
-        gameName: '和平精英',
-        content: '今天心情不好，有人陪我聊聊天吗？🥺',
-        images: [
-          'https://picsum.photos/300/300'
-        ],
-        tagName: '情感',
-        likes: 256,
-        comments: 78,
-        isLike: false,
-        isFollow: false,
-        createTime: Date.now() - 86400000,
-        onlineService: true,
-        offlineService: true,
-        offlineLocation: '广州市天河区XX网咖'
-      },
-      {
-        postId: 4,
-        userId: 4,
-        nickName: '大飞',
-        avatar: 'https://picsum.photos/100/100',
-        level: 42,
-        vip: true,
-        gameName: '王者荣耀',
-        content: '技术教学：如何在团战中打出最高伤害？学会这些技巧轻松上王者！',
-        images: [
-          'https://picsum.photos/300/300',
-          'https://picsum.photos/300/300',
-          'https://picsum.photos/300/300'
-        ],
-        tagName: '技术',
-        likes: 512,
-        comments: 124,
-        isLike: false,
-        isFollow: true,
-        createTime: Date.now() - 172800000,
-        onlineService: true,
-        offlineService: false
+    // 处理标签筛选
+    if (activeTag.value > 0) {
+      const tag = tagList.value.find(t => t.id === activeTag.value)
+      if (tag) params.tag = tag.name
+    } else if (activeTag.value === -1) {
+      params.sort = 'latest'
+    }
+    
+    const res = await circleService.getPosts(params)
+    
+    if (res && res.code === 200 && res.data) {
+      const newPosts = res.data.list || res.data
+      
+      if (reset) {
+        feedList.value = newPosts
+      } else {
+        feedList.value = [...feedList.value, ...newPosts]
       }
-    ]
-    
-    if (activeTag.value === -1) {
-      mockData.sort((a, b) => b.createTime - a.createTime)
-    }
-    
-    if (reset) {
-      const systemFeeds = activeTag.value === 0 ? getSystemRecommendFeeds() : []
-      feedList.value = [...systemFeeds, ...mockData]
+      
+      hasMore.value = newPosts.length >= 10
+      page.value++
     } else {
-      feedList.value = [...feedList.value, ...mockData]
+      // Mock 降级
+      await loadMockFeeds(reset)
     }
-    hasMore.value = false
-    page.value++
   } catch (error) {
     console.error('加载动态失败:', error)
+    // Mock 降级
+    await loadMockFeeds(reset)
   } finally {
     loading.value = false
+    initialLoadComplete.value = true
   }
+}
+
+const loadMockFeeds = async (reset = false) => {
+  await new Promise(resolve => setTimeout(resolve, 300))
+  
+  const mockData = [
+    {
+      postId: 1,
+      userId: 1,
+      nickName: '小雪',
+      avatar: 'https://picsum.photos/100/100?random=1',
+      level: 28,
+      vip: true,
+      gameName: '王者荣耀',
+      content: '今天玩王者太开心了，连胜五把！有没有大神带我上分呀～🎮✨',
+      images: [
+        'https://picsum.photos/300/300?random=101',
+        'https://picsum.photos/300/300?random=102'
+      ],
+      tagName: '游戏',
+      likes: 128,
+      comments: 32,
+      isLike: false,
+      isFollow: false,
+      createTime: Date.now() - 3600000,
+      onlineService: true,
+      offlineService: true,
+      offlineLocation: '上海市浦东新区XX电竞馆'
+    },
+    {
+      postId: 2,
+      userId: 2,
+      nickName: '阿杰',
+      avatar: 'https://picsum.photos/100/100?random=2',
+      level: 35,
+      vip: false,
+      gameName: '英雄联盟',
+      content: '新赛季更新了，感觉打野位又加强了！有没有一起开黑的小伙伴？',
+      images: [],
+      tagName: '游戏',
+      likes: 89,
+      comments: 45,
+      isLike: true,
+      isFollow: true,
+      createTime: Date.now() - 7200000,
+      onlineService: true,
+      offlineService: false
+    },
+    {
+      postId: 3,
+      userId: 3,
+      nickName: '小美',
+      avatar: 'https://picsum.photos/100/100?random=3',
+      level: 22,
+      vip: true,
+      gameName: '和平精英',
+      content: '今天心情不好，有人陪我聊聊天吗？🥺',
+      images: [
+        'https://picsum.photos/300/300?random=103'
+      ],
+      tagName: '情感',
+      likes: 256,
+      comments: 78,
+      isLike: false,
+      isFollow: false,
+      createTime: Date.now() - 86400000,
+      onlineService: true,
+      offlineService: true,
+      offlineLocation: '广州市天河区XX网咖'
+    },
+    {
+      postId: 4,
+      userId: 4,
+      nickName: '大飞',
+      avatar: 'https://picsum.photos/100/100?random=4',
+      level: 42,
+      vip: true,
+      gameName: '王者荣耀',
+      content: '技术教学：如何在团战中打出最高伤害？学会这些技巧轻松上王者！',
+      images: [
+        'https://picsum.photos/300/300?random=104',
+        'https://picsum.photos/300/300?random=105',
+        'https://picsum.photos/300/300?random=106'
+      ],
+      tagName: '技术',
+      likes: 512,
+      comments: 124,
+      isLike: false,
+      isFollow: true,
+      createTime: Date.now() - 172800000,
+      onlineService: true,
+      offlineService: false
+    }
+  ]
+  
+  if (activeTag.value === -1) {
+    mockData.sort((a, b) => b.createTime - a.createTime)
+  }
+  
+  if (reset) {
+    feedList.value = mockData
+  } else {
+    feedList.value = [...feedList.value, ...mockData]
+  }
+  hasMore.value = false
+  page.value++
 }
 
 const onTagClick = (tagId) => {
@@ -317,23 +331,30 @@ const onTagClick = (tagId) => {
 }
 
 const goDetail = (item) => {
-  console.log('查看详情:', item.postId)
-  router.push(`/post-detail/${item.postId}`)
+  router.push({ 
+    name: 'PostDetail', 
+    params: { id: item.postId },
+    query: { data: encodeURIComponent(JSON.stringify(item)) }
+  })
 }
 
 const goUserProfile = (item) => {
-  console.log('查看用户资料:', item.userId)
   router.push({ name: 'UserProfile', params: { id: item.userId } })
 }
 
 const goEdit = () => {
-  console.log('发布动态')
   router.push('/publish-post')
 }
 
-const toggleFollow = (item) => {
-  item.isFollow = !item.isFollow
-  console.log(item.isFollow ? '关注用户:' : '取消关注:', item.userId)
+const toggleFollow = async (item) => {
+  try {
+    // 这里应该调用用户关注 API
+    // await userService.toggleFollow(item.userId)
+    item.isFollow = !item.isFollow
+    showToast(item.isFollow ? '关注成功' : '已取消关注', 'success')
+  } catch (error) {
+    showToast('操作失败，请重试', 'error')
+  }
 }
 
 const openReserveModal = (item) => {
@@ -353,27 +374,51 @@ const closeReserveModal = () => {
   showReserveModal.value = false
 }
 
-const handleReserveSubmit = (reserveData) => {
-  console.log('提交预约:', reserveData)
-  showReserveModal.value = false
-  alert(`预约成功！\n服务类型：${reserveData.serviceType === 'online' ? '线上陪玩' : '线下陪玩'}\n游戏：${reserveData.game}\n时间：${reserveData.date} ${reserveData.startTime}-${reserveData.endTime}\n时长：${reserveData.duration}小时\n金额：¥${reserveData.price}`)
+const handleReserveSubmit = async (reserveData) => {
+  try {
+    // 这里应该调用预约 API
+    // await reserveService.create(reserveData)
+    showReserveModal.value = false
+    showToast('预约成功！', 'success')
+  } catch (error) {
+    showToast('预约失败，请重试', 'error')
+  }
 }
 
-const likePost = (item) => {
-  item.isLike = !item.isLike
-  item.likes = (item.likes || 0) + (item.isLike ? 1 : -1)
+const likePost = async (item) => {
+  try {
+    if (item.isLike) {
+      await circleService.unlikePost(item.postId)
+      item.likes = (item.likes || 0) - 1
+    } else {
+      await circleService.likePost(item.postId)
+      item.likes = (item.likes || 0) + 1
+    }
+    item.isLike = !item.isLike
+  } catch (error) {
+    console.error('点赞失败:', error)
+    // 回滚状态
+    item.isLike = !item.isLike
+    showToast('操作失败，请重试', 'error')
+  }
 }
 
 const previewImages = (images) => {
   console.log('预览图片:', images)
+  // 可以实现图片预览功能
 }
 
-const sharePost = (item) => {
-  console.log('分享动态:', item.postId)
+const sharePost = async (item) => {
+  try {
+    await circleService.sharePost(item.postId)
+    showToast('分享成功', 'success')
+  } catch (error) {
+    console.error('分享失败:', error)
+  }
 }
 
 const loadMore = () => {
-  if (hasMore.value) {
+  if (hasMore.value && !loading.value) {
     loadFeedList()
   }
 }
@@ -398,17 +443,17 @@ onMounted(() => {
 .activity-page {
   min-height: calc(100vh - 70px);
   min-height: -webkit-fill-available;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding-top: 70px;
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
 /* --- 内容容器 --- */
 .content-container {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-light);
   width: 100%;
   max-width: 100%;
   padding: 0;
@@ -416,7 +461,7 @@ onMounted(() => {
 
 /* --- 头部 --- */
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   padding: 0 20px;
   text-align: center;
   height: 70px;
@@ -440,11 +485,11 @@ onMounted(() => {
 
 /* --- 标签区 --- */
 .tags-section {
-  background-color: #fff;
+  background-color: var(--bg-primary);
   position: sticky;
   top: 0;
   z-index: 10;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid var(--border-light);
   height: 50px;
   display: flex;
   align-items: center;
@@ -466,18 +511,18 @@ onMounted(() => {
   flex-shrink: 0;
   padding: 10px 20px;
   font-size: 14px;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
   border-radius: 20px;
   transition: all 0.25s ease;
-  background-color: #f8fafc;
+  background-color: var(--bg-secondary);
 }
 
 .tag-item.active {
   color: #fff;
   font-weight: 600;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35);
+  background: var(--gradient-primary);
+  box-shadow: 0 4px 12px rgba(255, 107, 129, 0.35);
 }
 
 /* --- Feed 列表 --- */
@@ -486,16 +531,16 @@ onMounted(() => {
 }
 
 .feed-card {
-  background-color: #fff;
+  background-color: var(--bg-primary);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-light);
   transition: all 0.3s ease;
 }
 
 .feed-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow-medium);
   transform: translateY(-2px);
 }
 
@@ -512,7 +557,7 @@ onMounted(() => {
   margin-right: 12px;
   object-fit: cover;
   cursor: pointer;
-  border: 2px solid #f1f5f9;
+  border: 2px solid var(--border-light);
   flex-shrink: 0;
 }
 
@@ -531,13 +576,13 @@ onMounted(() => {
 
 .user-name {
   font-size: 15px;
-  color: #1e293b;
+  color: var(--text-primary);
   font-weight: 600;
   cursor: pointer;
 }
 
 .user-level {
-  background: linear-gradient(135deg, #f87171, #ef4444);
+  background: var(--gradient-primary);
   color: #fff;
   font-size: 11px;
   padding: 2px 8px;
@@ -546,7 +591,7 @@ onMounted(() => {
 }
 
 .vip-tag {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  background: var(--gradient-accent);
   color: #fff;
   font-size: 11px;
   padding: 2px 8px;
@@ -555,7 +600,7 @@ onMounted(() => {
 }
 
 .recommend-badge {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: #fff;
   font-size: 10px;
   padding: 1px 6px;
@@ -565,11 +610,11 @@ onMounted(() => {
 
 .feed-time {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .follow-btn {
-  background-color: #ef4444;
+  background-color: var(--primary-color);
   color: #fff;
   font-size: 13px;
   padding: 7px 16px;
@@ -581,12 +626,12 @@ onMounted(() => {
 }
 
 .follow-btn:hover {
-  background-color: #dc2626;
+  background-color: var(--primary-dark);
   transform: scale(1.05);
 }
 
 .reserve-btn {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
 }
 
 .feed-content {
@@ -595,7 +640,7 @@ onMounted(() => {
 
 .content-text {
   font-size: 15px;
-  color: #334155;
+  color: var(--text-secondary);
   line-height: 1.65;
   margin: 0;
   word-break: break-word;
@@ -626,7 +671,7 @@ onMounted(() => {
 }
 
 .feed-tag {
-  color: #667eea;
+  color: var(--primary-color);
   font-size: 14px;
   font-weight: 500;
 }
@@ -635,14 +680,14 @@ onMounted(() => {
   display: flex;
   justify-content: space-around;
   padding-top: 10px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid var(--border-light);
 }
 
 .action-item {
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #64748b;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.25s ease;
   padding: 8px 16px;
@@ -650,8 +695,8 @@ onMounted(() => {
 }
 
 .action-item:hover {
-  background-color: #f8fafc;
-  color: #667eea;
+  background-color: var(--bg-secondary);
+  color: var(--primary-color);
 }
 
 .action-icon {
@@ -673,19 +718,19 @@ onMounted(() => {
 }
 
 .follow-action {
-  color: #667eea;
+  color: var(--primary-color);
   font-weight: 500;
 }
 
 .follow-action.followed {
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .loading-more,
 .no-more {
   text-align: center;
   padding: 24px;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 14px;
 }
 
@@ -696,7 +741,7 @@ onMounted(() => {
   bottom: 120px;
   width: 56px;
   height: 56px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -705,7 +750,7 @@ onMounted(() => {
   cursor: pointer;
   z-index: 20;
   transition: all 0.3s ease;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 24px rgba(255, 107, 129, 0.4);
 }
 
 .publish-btn span {
@@ -716,7 +761,7 @@ onMounted(() => {
 
 .publish-btn:hover {
   transform: scale(1.1);
-  box-shadow: 0 12px 32px rgba(102, 126, 234, 0.5);
+  box-shadow: 0 12px 32px rgba(255, 107, 129, 0.5);
 }
 
 .publish-btn:active {

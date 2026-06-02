@@ -1,4 +1,5 @@
 const regionService = require('../services/regionService');
+const logger = require('../utils/logger');
 const { success } = require('../utils/response');
 
 class RegionController {
@@ -7,7 +8,7 @@ class RegionController {
       const provinces = await regionService.getAllProvinces();
       success(res, provinces, '获取省份列表成功');
     } catch (error) {
-      console.error('获取省份列表失败:', error);
+      logger.error('获取省份列表失败:', error);
       res.status(500).json({ code: 500, message: '获取省份列表失败' });
     }
   }
@@ -21,7 +22,7 @@ class RegionController {
       const cities = await regionService.getCitiesByProvince(provinceCode);
       success(res, cities, '获取城市列表成功');
     } catch (error) {
-      console.error('获取城市列表失败:', error);
+      logger.error('获取城市列表失败:', error);
       res.status(500).json({ code: 500, message: '获取城市列表失败' });
     }
   }
@@ -35,7 +36,7 @@ class RegionController {
       const districts = await regionService.getDistrictsByCity(cityCode);
       success(res, districts, '获取区县列表成功');
     } catch (error) {
-      console.error('获取区县列表失败:', error);
+      logger.error('获取区县列表失败:', error);
       res.status(500).json({ code: 500, message: '获取区县列表失败' });
     }
   }
@@ -49,7 +50,7 @@ class RegionController {
       const townships = await regionService.getTownshipsByDistrict(districtCode);
       success(res, townships, '获取乡镇列表成功');
     } catch (error) {
-      console.error('获取乡镇列表失败:', error);
+      logger.error('获取乡镇列表失败:', error);
       res.status(500).json({ code: 500, message: '获取乡镇列表失败' });
     }
   }
@@ -63,7 +64,7 @@ class RegionController {
       const results = await regionService.searchRegions(q);
       success(res, results, '搜索成功');
     } catch (error) {
-      console.error('搜索失败:', error);
+      logger.error('搜索失败:', error);
       res.status(500).json({ code: 500, message: '搜索失败' });
     }
   }

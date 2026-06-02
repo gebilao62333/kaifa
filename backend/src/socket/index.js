@@ -12,30 +12,23 @@ const initializeSocket = (socketIO) => {
       const token = socket.handshake.auth.token || socket.handshake.query.token;
       
       if (!token) {
-        console.log('[Socket] 未提供认证令牌，跳过认证（开发模式）');
-        socket.userId = 1;
-        socket.user = { id: 1, nickname: '测试用户' };
-        return next();
+        logger.warn('[Socket] 未提供认证令牌，拒绝连接');
+        return next(new Error('未提供认证令牌'));
       }
       
       const decoded = verifyToken(token);
       
       if (!decoded) {
-        console.log('[Socket] Token验证失败，尝试Mock模式');
-        const mockUserId = parseInt(token.split('-')[1]) || 1;
-        socket.userId = mockUserId;
-        socket.user = { id: mockUserId, nickname: 'Mock用户' };
-        return next();
+        logger.warn('[Socket] Token验证失败，拒绝连接');
+        return next(new Error('令牌无效或已过期'));
       }
       
       const userId = decoded.userId || decoded.id;
       const user = await User.findByPk(userId);
       
       if (!user) {
-        console.log('[Socket] 用户不存在，使用Mock模式');
-        socket.userId = userId;
-        socket.user = { id: userId, nickname: '未知用户' };
-        return next();
+        logger.warn(`[Socket] 用户 ${userId} 不存在，拒绝连接`);
+        return next(new Error('用户不存在'));
       }
       
       socket.userId = userId;
@@ -44,10 +37,7 @@ const initializeSocket = (socketIO) => {
       next();
     } catch (error) {
       logger.error('Socket认证错误:', error);
-      console.log('[Socket] 认证错误，使用Mock模式:', error.message);
-      socket.userId = 1;
-      socket.user = { id: 1, nickname: '测试用户' };
-      next();
+      return next(new Error('认证失败'));
     }
   });
   

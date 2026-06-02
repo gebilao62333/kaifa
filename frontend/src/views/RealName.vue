@@ -165,7 +165,7 @@ const submitForm = async () => {
 .realname-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-top: 82px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
@@ -177,8 +177,7 @@ const submitForm = async () => {
   justify-content: space-between;
   padding: 0 20px;
   height: 70px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   position: fixed;
   top: 0;
   left: 50%;
@@ -212,7 +211,7 @@ const submitForm = async () => {
 }
 
 .tips-card {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   padding: 16px;
   display: flex;
@@ -228,17 +227,17 @@ const submitForm = async () => {
 .tips-title {
   font-size: 15px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .tips-desc {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .form-card {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   padding: 20px;
 }
@@ -249,7 +248,7 @@ const submitForm = async () => {
 
 .form-label {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
   font-weight: 500;
 }
@@ -258,24 +257,26 @@ const submitForm = async () => {
   width: 100%;
   padding: 14px 16px;
   font-size: 15px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   box-sizing: border-box;
   transition: border-color 0.3s;
   -webkit-transition: border-color 0.3s;
   -webkit-appearance: none;
   appearance: none;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .form-input:focus {
-  border-color: #667eea;
+  border-color: var(--primary-color);
   outline: none;
 }
 
 .upload-area {
   width: 100%;
   aspect-ratio: 16 / 10;
-  border: 2px dashed #ddd;
+  border: 2px dashed var(--border-color);
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -290,8 +291,8 @@ const submitForm = async () => {
 }
 
 .upload-area:hover {
-  border-color: #667eea;
-  background: rgba(102,126,234,0.05);
+  border-color: var(--primary-color);
+  background: rgba(255, 107, 129, 0.05);
 }
 
 .upload-icon {
@@ -312,7 +313,7 @@ const submitForm = async () => {
 
 .upload-text {
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .agreement {
@@ -332,15 +333,14 @@ const submitForm = async () => {
 
 .agreement label {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
 .submit-btn {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  background: -webkit-linear-gradient(315deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
   font-size: 16px;
   border: none;
@@ -359,7 +359,7 @@ const submitForm = async () => {
 .success-card {
   text-align: center;
   padding: 40px 20px;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   margin-bottom: 20px;
 }
@@ -372,17 +372,17 @@ const submitForm = async () => {
 .success-title {
   font-size: 20px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .success-desc {
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .info-card {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   padding: 20px;
   margin-bottom: 20px;
@@ -392,7 +392,7 @@ const submitForm = async () => {
   display: flex;
   justify-content: space-between;
   padding: 12px 0;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .info-item:last-child {
@@ -401,12 +401,12 @@ const submitForm = async () => {
 
 .info-label {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .info-value {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: 500;
 }
 

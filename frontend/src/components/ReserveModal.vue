@@ -823,7 +823,7 @@ const submit = () => {
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: white;
 }
 
@@ -901,8 +901,8 @@ const submit = () => {
 }
 
 .type-item.active {
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-  border-color: #667eea;
+  background: linear-gradient(135deg, rgba(255, 107, 129, 0.1), rgba(230, 76, 101, 0.1));
+  border-color: #FF6B81;
 }
 
 .type-item.disabled {
@@ -1190,16 +1190,16 @@ const submit = () => {
 }
 
 .game-item:hover {
-  border-color: #e0e0ff;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  border-color: #ffe0e6;
+  box-shadow: 0 4px 12px rgba(255, 107, 129, 0.1);
   transform: translateY(-2px);
 }
 
 .game-item.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #FF6B81, #E64C65);
   color: white;
-  border-color: #667eea;
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
+  border-color: #FF6B81;
+  box-shadow: 0 6px 20px rgba(255, 107, 129, 0.35);
   transform: translateY(-2px);
 }
 
@@ -1269,14 +1269,14 @@ const submit = () => {
 }
 
 .calendar-cell:not(.empty):hover {
-  border-color: #667eea;
-  background: #f0f0ff;
+  border-color: #FF6B81;
+  background: #fff0f3;
 }
 
 .calendar-cell.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #FF6B81, #E64C65);
   color: white;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(255, 107, 129, 0.4);
 }
 
 .calendar-cell.disabled {
@@ -1350,9 +1350,9 @@ const submit = () => {
   right: 0;
   height: 44px;
   transform: translateY(-50%);
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-  border-top: 1px solid rgba(102, 126, 234, 0.2);
-  border-bottom: 1px solid rgba(102, 126, 234, 0.2);
+  background: linear-gradient(135deg, rgba(255, 107, 129, 0.1), rgba(230, 76, 101, 0.1));
+  border-top: 1px solid rgba(255, 107, 129, 0.2);
+  border-bottom: 1px solid rgba(255, 107, 129, 0.2);
   pointer-events: none;
 }
 
@@ -1376,14 +1376,14 @@ const submit = () => {
 }
 
 .wheel-item:hover:not(.disabled):not(.empty) {
-  color: #667eea;
+  color: #FF6B81;
   font-weight: 500;
 }
 
 .wheel-item.selected {
   font-size: 19px;
   font-weight: 700;
-  color: #667eea;
+  color: #FF6B81;
 }
 
 .wheel-item.disabled {
@@ -1399,9 +1399,9 @@ const submit = () => {
   height: 44px;
   margin-top: -22px;
   pointer-events: none;
-  border-top: 1px solid #667eea;
-  border-bottom: 1px solid #667eea;
-  background: rgba(102, 126, 234, 0.05);
+  border-top: 1px solid #FF6B81;
+  border-bottom: 1px solid #FF6B81;
+  background: rgba(255, 107, 129, 0.05);
 }
 
 .wheel-separator {
@@ -1441,7 +1441,7 @@ const submit = () => {
 
 .summary-text {
   font-size: 14px;
-  color: #667eea;
+  color: #FF6B81;
   font-weight: 500;
 }
 
@@ -1503,8 +1503,8 @@ const submit = () => {
 }
 
 .input-wrapper:focus-within {
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+  border-color: #FF6B81;
+  box-shadow: 0 0 0 2px rgba(255, 107, 129, 0.1);
 }
 
 .price-input-wrapper {
@@ -1553,8 +1553,8 @@ const submit = () => {
 }
 
 .remark-input:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+  border-color: #FF6B81;
+  box-shadow: 0 0 0 2px rgba(255, 107, 129, 0.1);
 }
 
 .remark-input::placeholder {
@@ -1615,8 +1615,8 @@ const submit = () => {
 }
 
 .checkbox-label input[type="checkbox"]:checked + .checkbox-check {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-color: #667eea;
+  background: linear-gradient(135deg, #FF6B81, #E64C65);
+  border-color: #FF6B81;
 }
 
 .checkbox-label input[type="checkbox"]:checked + .checkbox-check::after {
@@ -1636,17 +1636,17 @@ const submit = () => {
 }
 
 .terms-link {
-  color: #667eea;
+  color: #FF6B81;
   text-decoration: underline;
 }
 
 .terms-link:hover {
-  color: #764ba2;
+  color: #E64C65;
 }
 
 .submit-btn {
   padding: 14px 40px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #FF6B81, #E64C65);
   color: white;
   border: none;
   border-radius: 30px;

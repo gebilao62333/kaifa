@@ -79,7 +79,7 @@ const createVirtualUser = async (data) => {
     logger.info(`虚拟用户创建成功: ${username} (ID: ${virtualUser.id})`);
     return getVirtualUserById(virtualUser.id);
   } catch (dbError) {
-    console.warn('虚拟用户数据库操作失败，使用Mock数据:', dbError.message);
+    logger.warn('虚拟用户数据库操作失败，使用Mock数据:', dbError.message);
     
     const existing = mockVirtualUsers.find(u => u.username === username);
     if (existing) {
@@ -124,7 +124,7 @@ const getVirtualUserById = async (id) => {
     result.tags = await getUserTagDetails(user.id);
     return result;
   } catch (dbError) {
-    console.warn('虚拟用户数据库查询失败，使用Mock数据:', dbError.message);
+    logger.warn('虚拟用户数据库查询失败，使用Mock数据:', dbError.message);
     const user = mockVirtualUsers.find(u => u.id === parseInt(id));
     if (!user) {
       throw new Error('虚拟用户不存在');
@@ -213,7 +213,7 @@ const getAllVirtualUsers = async (query) => {
     }
     total = count;
   } catch (dbError) {
-    console.warn('虚拟用户数据库查询失败，使用Mock数据:', dbError.message);
+    logger.warn('虚拟用户数据库查询失败，使用Mock数据:', dbError.message);
     
     let filteredUsers = [...mockVirtualUsers];
     
@@ -301,7 +301,7 @@ const updateVirtualUser = async (id, data) => {
     logger.info(`虚拟用户更新成功: ${user.username} (ID: ${user.id})`);
     return getVirtualUserById(id);
   } catch (dbError) {
-    console.warn('虚拟用户数据库操作失败，使用Mock数据:', dbError.message);
+    logger.warn('虚拟用户数据库操作失败，使用Mock数据:', dbError.message);
     
     const userIndex = mockVirtualUsers.findIndex(u => u.id === parseInt(id));
     if (userIndex === -1) {
@@ -359,7 +359,7 @@ const deleteVirtualUser = async (id) => {
     logger.info(`虚拟用户删除成功: ${user.username} (ID: ${id})`);
     return true;
   } catch (dbError) {
-    console.warn('虚拟用户数据库操作失败，使用Mock数据:', dbError.message);
+    logger.warn('虚拟用户数据库操作失败，使用Mock数据:', dbError.message);
     
     const userIndex = mockVirtualUsers.findIndex(u => u.id === parseInt(id));
     if (userIndex === -1) {
@@ -385,7 +385,7 @@ const toggleOnlineStatus = async (id, isOnline) => {
     logger.info(`虚拟用户状态更新: ${user.username} -> ${isOnline ? '在线' : '离线'}`);
     return getVirtualUserById(id);
   } catch (dbError) {
-    console.warn('虚拟用户数据库操作失败，使用Mock数据:', dbError.message);
+    logger.warn('虚拟用户数据库操作失败，使用Mock数据:', dbError.message);
     
     const userIndex = mockVirtualUsers.findIndex(u => u.id === parseInt(id));
     if (userIndex === -1) {

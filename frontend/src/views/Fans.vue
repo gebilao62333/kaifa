@@ -103,7 +103,7 @@ const viewProfile = (user) => {
 .fans-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
   padding-top: 82px;
@@ -115,8 +115,7 @@ const viewProfile = (user) => {
   justify-content: space-between;
   padding: 0 20px;
   height: 70px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   position: fixed;
   top: 0;
   left: 50%;
@@ -160,11 +159,11 @@ const viewProfile = (user) => {
 .user-card {
   display: flex;
   align-items: center;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   padding: 16px;
   gap: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-light);
 }
 
 .user-avatar {
@@ -182,13 +181,13 @@ const viewProfile = (user) => {
 .user-name {
   font-size: 16px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .user-desc {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
   margin-bottom: 6px;
   white-space: nowrap;
   overflow: hidden;
@@ -203,8 +202,8 @@ const viewProfile = (user) => {
 
 .tag {
   font-size: 11px;
-  color: #667eea;
-  background: rgba(102,126,234,0.1);
+  color: var(--primary-color);
+  background: var(--primary-light);
   padding: 3px 8px;
   border-radius: 10px;
 }
@@ -219,13 +218,13 @@ const viewProfile = (user) => {
 }
 
 .follow-btn.followed {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
 }
 
 .follow-btn:not(.followed) {
-  background: #f5f5f5;
-  color: #333;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .empty-state {
@@ -241,13 +240,13 @@ const viewProfile = (user) => {
 
 .empty-text {
   font-size: 16px;
-  color: #999;
+  color: var(--text-muted);
   margin-bottom: 8px;
 }
 
 .empty-hint {
   font-size: 13px;
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 @media (min-width: 768px) {

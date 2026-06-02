@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const logger = require('../utils/logger');
 const { signToken } = require('../config/jwt');
 const config = require('../config');
 
@@ -89,7 +90,7 @@ const adminLogin = async (req, res) => {
       res.status(401).json({ code: 401, message: '用户名或密码错误' });
     }
   } catch (error) {
-    console.error('Admin login error:', error);
+    logger.error('Admin login error:', error);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }
 };
@@ -127,7 +128,7 @@ const getAdminList = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get admin list error:', error);
+    logger.error('Get admin list error:', error);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }
 };
@@ -168,7 +169,7 @@ const createAdmin = async (req, res) => {
       data: newAdmin
     });
   } catch (error) {
-    console.error('Create admin error:', error);
+    logger.error('Create admin error:', error);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }
 };
@@ -207,7 +208,7 @@ const updateAdmin = async (req, res) => {
       data: admin
     });
   } catch (error) {
-    console.error('Update admin error:', error);
+    logger.error('Update admin error:', error);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }
 };
@@ -227,7 +228,7 @@ const updateAdminPassword = async (req, res) => {
       message: '密码修改成功'
     });
   } catch (error) {
-    console.error('Update admin password error:', error);
+    logger.error('Update admin password error:', error);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }
 };
@@ -253,7 +254,7 @@ const deleteAdmin = async (req, res) => {
       message: '删除成功'
     });
   } catch (error) {
-    console.error('Delete admin error:', error);
+    logger.error('Delete admin error:', error);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }
 };
@@ -273,7 +274,7 @@ const getRoleList = async (req, res) => {
       data: filteredRoles
     });
   } catch (error) {
-    console.error('Get role list error:', error);
+    logger.error('Get role list error:', error);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }
 };
@@ -311,7 +312,7 @@ const createRole = async (req, res) => {
       data: newRole
     });
   } catch (error) {
-    console.error('Create role error:', error);
+    logger.error('Create role error:', error);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }
 };
@@ -352,7 +353,7 @@ const updateRole = async (req, res) => {
       data: role
     });
   } catch (error) {
-    console.error('Update role error:', error);
+    logger.error('Update role error:', error);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }
 };
@@ -380,7 +381,7 @@ const deleteRole = async (req, res) => {
       message: '删除成功'
     });
   } catch (error) {
-    console.error('Delete role error:', error);
+    logger.error('Delete role error:', error);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }
 };
@@ -393,7 +394,7 @@ const getPermissions = async (req, res) => {
       data: DEFAULT_PERMISSIONS
     });
   } catch (error) {
-    console.error('Get permissions error:', error);
+    logger.error('Get permissions error:', error);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }
 };
@@ -412,7 +413,7 @@ const getCurrentAdmin = async (req, res) => {
       data: admin
     });
   } catch (error) {
-    console.error('Get current admin error:', error);
+    logger.error('Get current admin error:', error);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }
 };
@@ -429,7 +430,7 @@ const initAdmin = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Init admin error:', error);
+    logger.error('Init admin error:', error);
     res.status(500).json({ code: 500, message: '服务器错误' });
   }
 };

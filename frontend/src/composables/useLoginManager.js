@@ -6,16 +6,22 @@ export function useLoginManager() {
  const userStore = useUserStore();
  const loginModalVisible = ref(false);
  const loginCallback = ref(null);
+ const loginCancelCallback = ref(null);
  const loginContext = ref(null);
  const isLoggedIn = computed(() => userStore.isLogin);
- const showLoginModal = (callback = null, context = null) => {
+ const showLoginModal = (callback = null, context = null, cancelCallback = null) => {
  loginCallback.value = callback;
+ loginCancelCallback.value = cancelCallback;
  loginContext.value = context;
  loginModalVisible.value = true;
  };
  const hideLoginModal = () => {
+ if (loginCancelCallback.value) {
+ loginCancelCallback.value();
+ }
  loginModalVisible.value = false;
  loginCallback.value = null;
+ loginCancelCallback.value = null;
  loginContext.value = null;
  };
  const handleLoginSuccess = () => {
@@ -39,7 +45,10 @@ export function useLoginManager() {
  const handleSuccess = (ctx) => {
  resolve({ loggedIn: true, user: userStore.profile, context: ctx });
  };
- showLoginModal(handleSuccess, context);
+ const handleCancel = () => {
+ reject(new Error('用户取消登录'));
+ };
+ showLoginModal(handleSuccess, context, handleCancel);
  }
  });
  };

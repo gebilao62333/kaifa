@@ -33,7 +33,7 @@
       <div class="post-tag" v-if="postData.tagName">#{{ postData.tagName }}</div>
       
       <div class="action-bar">
-        <div class="action-item">
+        <div class="action-item" @click="toggleLike">
           <span class="icon">{{ postData.isLike ? '❤️' : '🤍' }}</span>
           <span class="count">{{ postData.likes }}</span>
         </div>
@@ -41,7 +41,7 @@
           <span class="icon">💬</span>
           <span class="count">{{ postData.comments }}</span>
         </div>
-        <div class="action-item">
+        <div class="action-item" @click="sharePost">
           <span class="icon">🔗</span>
           <span class="text">分享</span>
         </div>
@@ -64,7 +64,7 @@
             <div class="comment-text">{{ comment.content }}</div>
             <div class="comment-actions">
               <span class="comment-reply" @click="replyTo(comment)">回复</span>
-              <span class="comment-like">{{ comment.isLike ? '❤️' : '🤍' }} {{ comment.likes }}</span>
+              <span class="comment-like" @click="toggleCommentLike(comment)">{{ comment.isLike ? '❤️' : '🤍' }} {{ comment.likes }}</span>
             </div>
             <div class="reply-list" v-if="comment.replyList && comment.replyList.length">
               <div class="reply-item" v-for="reply in comment.replyList" :key="reply.id">
@@ -97,9 +97,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { useToast } from '../composables/useToast'
+import circleService from '../services/circleService'
 
 const router = useRouter()
+const route = useRoute()
+const { showToast } = useToast()
 
 const postData = ref({
   postId: 1,
@@ -154,6 +158,8 @@ const commentList = ref([
   }
 ])
 
+const loading = ref(false)
+const replyingTo = ref(null)
 const commentText = ref('')
 
 const formatTime = (timestamp) => {
@@ -172,48 +178,179 @@ const formatTime = (timestamp) => {
   return `${date.getMonth() + 1}-${date.getDate()}`
 }
 
+const loadPostData = async () => {
+  try {
+    // 尝试从路由参数获取数据
+    if (route.query.data) {
+      try {
+        const data = JSON.parse(decodeURIComponent(route.query.data))
+        if (data) {
+          postData.value = data
+          // 同时还需要从API获取完整数据，这里先用传递过来的数据
+        }
+      } catch (e) {
+        // 解析失败，继续
+      }
+    }
+
+    // 尝试从API获取完整数据
+    const postId = route.params.id || postData.value.postId
+    if (postId) {
+      const res = await circleService.getPostDetail(postId)
+      if (res && res.code === 200 && res.data) {
+        postData.value = res.data
+      }
+    }
+
+    // 加载评论
+    await loadComments()
+  } catch (error) {
+    console.error('加载动态详情失败:', error)
+    // 保持使用mock数据
+  }
+}
+
+const loadComments = async () => {
+  try {
+    const postId = route.params.id || postData.value.postId
+    const res = await circleService.getComments(postId)
+    if (res && res.code === 200 && res.data) {
+      commentList.value = res.data.list || res.data
+    }
+  } catch (error) {
+    console.error('加载评论失败:', error)
+    // 保持使用mock数据
+  }
+}
+
 const goBack = () => {
   router.back()
 }
 
 const goUserProfile = () => {
-  console.log('查看用户资料')
   router.push({ name: 'UserProfile', params: { id: postData.value.userId } })
 }
 
-const follow = () => {
-  postData.value.isFollow = true
+const follow = async () => {
+  try {
+    // 这里应该调用用户关注API
+    postData.value.isFollow = !postData.value.isFollow
+    showToast(postData.value.isFollow ? '关注成功' : '取消关注', 'success')
+  } catch (error) {
+    showToast('操作失败，请重试', 'error')
+  }
+}
+
+const toggleLike = async () => {
+  try {
+    if (postData.value.isLike) {
+      await circleService.unlikePost(postData.value.postId)
+      postData.value.likes--
+    } else {
+      await circleService.likePost(postData.value.postId)
+      postData.value.likes++
+    }
+    postData.value.isLike = !postData.value.isLike
+  } catch (error) {
+    console.error('点赞失败:', error)
+    // 回滚状态
+    postData.value.isLike = !postData.value.isLike
+    showToast('操作失败，请重试', 'error')
+  }
+}
+
+const sharePost = async () => {
+  try {
+    await circleService.sharePost(postData.value.postId)
+    showToast('分享成功', 'success')
+  } catch (error) {
+    console.error('分享失败:', error)
+  }
 }
 
 const previewImage = (img) => {
   console.log('预览图片:', img)
+  // 可以实现图片预览功能
 }
 
 const replyTo = (comment) => {
+  replyingTo.value = comment
   commentText.value = `回复 ${comment.nickName}：`
 }
 
-const sendComment = () => {
+const toggleCommentLike = async (comment) => {
+  try {
+    if (comment.isLike) {
+      comment.likes--
+    } else {
+      comment.likes++
+    }
+    comment.isLike = !comment.isLike
+  } catch (error) {
+    comment.isLike = !comment.isLike
+    showToast('操作失败，请重试', 'error')
+  }
+}
+
+const sendComment = async () => {
   if (!commentText.value.trim()) return
   
-  commentList.value.unshift({
-    id: Date.now(),
-    userId: 100001,
-    nickName: '我',
-    avatar: 'https://picsum.photos/100/100?random=6',
-    content: commentText.value,
-    likes: 0,
-    isLike: false,
-    createTime: Date.now(),
-    replyList: []
-  })
-  
-  postData.value.comments++
-  commentText.value = ''
+  try {
+    const content = replyingTo.value 
+      ? commentText.value.replace(`回复 ${replyingTo.value.nickName}：`, '')
+      : commentText.value
+      
+    await circleService.commentPost(
+      postData.value.postId, 
+      content,
+      replyingTo.value ? replyingTo.value.id : null
+    )
+    
+    // 乐观更新
+    const newComment = {
+      id: Date.now(),
+      userId: 100001,
+      nickName: '我',
+      avatar: 'https://picsum.photos/100/100?random=6',
+      content: commentText.value,
+      likes: 0,
+      isLike: false,
+      createTime: Date.now(),
+      replyList: []
+    }
+    
+    if (replyingTo.value) {
+      // 添加回复
+      const targetComment = commentList.value.find(c => c.id === replyingTo.value.id)
+      if (targetComment) {
+        if (!targetComment.replyList) {
+          targetComment.replyList = []
+        }
+        targetComment.replyList.push({
+          id: Date.now(),
+          userId: 100001,
+          nickName: '我',
+          content: content,
+          createTime: Date.now()
+        })
+      }
+    } else {
+      // 添加新评论
+      commentList.value.unshift(newComment)
+    }
+    
+    postData.value.comments++
+    commentText.value = ''
+    replyingTo.value = null
+    showToast('评论成功', 'success')
+  } catch (error) {
+    console.error('评论失败:', error)
+    showToast('评论失败，请重试', 'error')
+  }
 }
 
 onMounted(() => {
-  console.log('动态详情页加载完成')
+  loadPostData()
 })
 </script>
 
@@ -221,7 +358,7 @@ onMounted(() => {
 .post-detail-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding-top: 70px;
   padding-bottom: 70px;
   padding-bottom: calc(70px + constant(safe-area-inset-bottom, 0px));
@@ -240,8 +377,8 @@ onMounted(() => {
   top: 0;
   left: 0;
   width: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
+  background: -webkit-linear-gradient(315deg, var(--primary-color) 0%, var(--primary-dark) 100%);
   color: white;
   z-index: 100;
   box-sizing: border-box;
@@ -258,19 +395,20 @@ onMounted(() => {
 }
 
 .post-content {
-  background: white;
+  background: var(--bg-primary);
   margin: 12px auto;
   border-radius: 10px;
   padding: 16px;
   max-width: 650px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-light);
 }
 
 .user-info {
   display: flex;
   align-items: center;
   margin-bottom: 16px;
+  cursor: pointer;
 }
 
 .avatar {
@@ -288,30 +426,36 @@ onMounted(() => {
 .nickname {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .time {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .follow-btn {
-  background: #667eea;
+  background: var(--primary-color);
   color: white;
   padding: 6px 14px;
   border-radius: 10px;
   font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
 .follow-btn.not-follow {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
+}
+
+.follow-btn:hover {
+  opacity: 0.9;
 }
 
 .content-text {
   font-size: 15px;
-  color: #333;
+  color: var(--text-secondary);
   line-height: 1.6;
   margin-bottom: 16px;
 }
@@ -329,10 +473,15 @@ onMounted(() => {
   border-radius: 8px;
   object-fit: cover;
   cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.image:hover {
+  transform: scale(1.02);
 }
 
 .post-tag {
-  color: #667eea;
+  color: var(--primary-color);
   font-size: 14px;
   margin-bottom: 16px;
 }
@@ -341,7 +490,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-around;
   padding: 16px 0;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-light);
   margin-top: 16px;
 }
 
@@ -350,8 +499,16 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
+  padding: 8px 16px;
+  border-radius: 20px;
+  transition: all 0.2s;
+}
+
+.action-item:hover {
+  background: var(--bg-secondary);
+  color: var(--primary-color);
 }
 
 .action-item .icon {
@@ -359,13 +516,13 @@ onMounted(() => {
 }
 
 .comments-section {
-  background: white;
+  background: var(--bg-primary);
   margin: 12px auto;
   border-radius: 10px;
   padding: 16px;
   max-width: 650px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-light);
 }
 
 .section-header {
@@ -375,7 +532,7 @@ onMounted(() => {
 .title {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .comment-list {
@@ -410,17 +567,17 @@ onMounted(() => {
 .comment-nickname {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .comment-time {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .comment-text {
   font-size: 14px;
-  color: #444;
+  color: var(--text-secondary);
   line-height: 1.5;
   margin-bottom: 8px;
 }
@@ -428,20 +585,30 @@ onMounted(() => {
 .comment-actions {
   display: flex;
   gap: 16px;
-  color: #999;
+  color: var(--text-muted);
   font-size: 13px;
 }
 
 .comment-reply {
   cursor: pointer;
+  transition: color 0.2s;
+}
+
+.comment-reply:hover {
+  color: var(--primary-color);
 }
 
 .comment-like {
   cursor: pointer;
+  transition: color 0.2s;
+}
+
+.comment-like:hover {
+  color: var(--primary-color);
 }
 
 .reply-list {
-  background: #f7f7f7;
+  background: var(--bg-secondary);
   padding: 10px;
   border-radius: 8px;
   margin-top: 8px;
@@ -449,12 +616,12 @@ onMounted(() => {
 
 .reply-item {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
 .reply-nickname {
-  color: #667eea;
+  color: var(--primary-color);
   font-weight: 500;
 }
 
@@ -463,16 +630,17 @@ onMounted(() => {
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
+  background: var(--bg-primary);
   padding: 10px 16px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-light);
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .input-wrapper {
   display: flex;
   align-items: center;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-radius: 20px;
   padding: 8px 12px;
 }
@@ -484,6 +652,11 @@ onMounted(() => {
   font-size: 14px;
   outline: none;
   padding: 4px 0;
+  color: var(--text-primary);
+}
+
+.input::placeholder {
+  color: var(--text-muted);
 }
 
 .tools {
@@ -496,15 +669,25 @@ onMounted(() => {
 .tool {
   font-size: 20px;
   cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.tool:hover {
+  transform: scale(1.1);
 }
 
 .send-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   padding: 6px 16px;
   border-radius: 10px;
   font-size: 14px;
   cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.send-btn:hover {
+  opacity: 0.9;
 }
 
 @media (min-width: 768px) {

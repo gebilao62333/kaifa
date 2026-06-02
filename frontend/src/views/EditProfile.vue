@@ -125,7 +125,7 @@
         <div class="form-item">
           <span class="label">陪玩价格</span>
           <div class="price-input">
-            <span class="price-unit">¥</span>
+            <span class="price-unit">金币</span>
             <input type="number" id="price" name="price" class="input price" v-model="form.price" placeholder="88" autocomplete="off" />
             <span class="price-suffix">/小时</span>
           </div>
@@ -176,7 +176,7 @@
               <div class="service-name">{{ service.name }}</div>
               <div class="service-meta">
                 <span class="service-game" v-if="service.game">{{ service.game }}</span>
-                <span class="service-price" v-if="service.price">¥{{ service.price }}/小时</span>
+                <span class="service-price" v-if="service.price">{{ service.price }} 金币/小时</span>
               </div>
               <div class="service-expire">有效期至 {{ service.expiredAt }}</div>
             </div>
@@ -774,7 +774,7 @@ const saveProfile = async () => {
 .edit-profile-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-top: 70px;
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
@@ -788,8 +788,7 @@ const saveProfile = async () => {
   align-items: center;
   justify-content: space-between;
   padding: 0 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   height: 70px;
   position: fixed;
   top: 0;
@@ -807,10 +806,11 @@ const saveProfile = async () => {
 .content { padding: 16px; max-width: 650px; margin: 0 auto; }
 
 .profile-completeness {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   padding: 16px;
   margin-bottom: 16px;
+  box-shadow: var(--shadow-light);
 }
 
 .completeness-header {
@@ -819,12 +819,12 @@ const saveProfile = async () => {
   margin-bottom: 8px;
 }
 
-.completeness-title { font-size: 14px; color: #333; }
-.completeness-percent { font-size: 16px; font-weight: bold; color: #667eea; }
+.completeness-title { font-size: 14px; color: var(--text-primary); }
+.completeness-percent { font-size: 16px; font-weight: bold; color: var(--primary-color); }
 
 .completeness-bar {
   height: 8px;
-  background: #f0f0f0;
+  background: var(--border-light);
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 8px;
@@ -832,14 +832,13 @@ const saveProfile = async () => {
 
 .completeness-fill {
   height: 100%;
-  background: linear-gradient(90deg, #667eea, #764ba2);
-  background: -webkit-linear-gradient(0deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   border-radius: 4px;
   transition: width 0.3s;
   -webkit-transition: width 0.3s;
 }
 
-.completeness-tip { font-size: 12px; color: #999; }
+.completeness-tip { font-size: 12px; color: var(--text-muted); }
 
 .avatar-section {
   position: relative;
@@ -904,20 +903,21 @@ const saveProfile = async () => {
 .section-title {
   font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary);
   margin: 20px 0 10px;
   padding-left: 4px;
 }
 
 .form-section {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   overflow: hidden;
+  box-shadow: var(--shadow-light);
 }
 
 .form-item {
   padding: 14px 16px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--border-light);
   position: relative;
 }
 
@@ -925,7 +925,7 @@ const saveProfile = async () => {
 
 .label {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 8px;
   display: block;
 }
@@ -934,18 +934,19 @@ const saveProfile = async () => {
   width: 100%;
   padding: 10px 12px;
   font-size: 15px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.3s;
   -webkit-transition: border-color 0.3s;
-  background: #fafafa;
+  background: var(--bg-secondary);
   -webkit-appearance: none;
   appearance: none;
+  color: var(--text-primary);
 }
 
-.input:focus, .textarea:focus { border-color: #667eea; background: white; }
+.input:focus, .textarea:focus { border-color: var(--primary-color); background: var(--bg-primary); }
 .textarea { resize: none; height: 80px; }
 
 .char-count {
@@ -953,7 +954,7 @@ const saveProfile = async () => {
   right: 20px;
   bottom: 18px;
   font-size: 12px;
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 .gender-options { display: flex; gap: 10px; }
@@ -965,7 +966,7 @@ const saveProfile = async () => {
   align-items: center;
   gap: 6px;
   padding: 12px;
-  border: 2px solid #e5e5e5;
+  border: 2px solid var(--border-color);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s;
@@ -974,38 +975,38 @@ const saveProfile = async () => {
 }
 
 .gender-option.active {
-  border-color: #667eea;
-  background: rgba(102,126,234,0.05);
+  border-color: var(--primary-color);
+  background: rgba(255, 107, 129, 0.05);
 }
 
 .gender-icon { font-size: 24px; }
-.gender-text { font-size: 13px; color: #666; }
+.gender-text { font-size: 13px; color: var(--text-secondary); }
 
 .region-display {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 10px 12px;
-  background: #fafafa;
-  border: 1px solid #e5e5e5;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 
-.arrow { color: #ccc; font-size: 18px; }
+.arrow { color: var(--text-muted); font-size: 18px; }
 
 .input-with-unit { display: flex; align-items: center; gap: 8px; }
 .input-with-unit .input { flex: 1; }
-.unit { font-size: 14px; color: #666; }
+.unit { font-size: 14px; color: var(--text-secondary); }
 
 .hobby-tags, .game-tags { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .hobby-tag, .game-tag {
   padding: 6px 14px;
-  background: #f5f5f5;
-  color: #666;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 13px;
   border-radius: 10px;
   cursor: pointer;
@@ -1016,50 +1017,49 @@ const saveProfile = async () => {
 }
 
 .hobby-tag.active, .game-tag.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  background: -webkit-linear-gradient(315deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
 }
 
 .game-tag.add {
-  border: 1px dashed #ddd;
+  border: 1px dashed var(--border-color);
   background: transparent;
 }
 
 .hobby-tag.add {
-  border: 1px dashed #ddd;
+  border: 1px dashed var(--border-color);
   background: transparent;
 }
 
 .price-input { display: flex; align-items: center; gap: 8px; }
-.price-unit { font-size: 18px; color: #ff6b6b; font-weight: bold; }
+.price-unit { font-size: 18px; color: var(--primary-color); font-weight: bold; }
 .price-input .input { width: 80px; }
-.price-suffix { font-size: 14px; color: #666; }
+.price-suffix { font-size: 14px; color: var(--text-secondary); }
 
 .verify-status, .vip-status {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 12px;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-radius: 8px;
 }
 
 .verify-icon, .vip-icon { font-size: 18px; }
-.verify-text, .vip-text { flex: 1; font-size: 14px; color: #666; }
+.verify-text, .vip-text { flex: 1; font-size: 14px; color: var(--text-secondary); }
 .verify-btn, .vip-btn {
   font-size: 13px;
-  color: #667eea;
+  color: var(--primary-color);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 
-.vip-status.active { background: rgba(255,215,0,0.1); }
+.vip-status.active { background: rgba(255, 215, 0, 0.1); }
 .vip-status.active .vip-text { color: #ff8c00; font-weight: 500; }
 
 .phone-display { display: flex; align-items: center; justify-content: space-between; }
-.phone-value { font-size: 14px; color: #666; }
-.phone-btn { font-size: 14px; color: #667eea; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.phone-value { font-size: 14px; color: var(--text-secondary); }
+.phone-btn { font-size: 14px; color: var(--primary-color); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
 .bg-preview {
   width: 100%;
@@ -1097,8 +1097,8 @@ const saveProfile = async () => {
 
 .tag-item {
   padding: 6px 14px;
-  background: #f5f5f5;
-  color: #666;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 13px;
   border-radius: 10px;
   cursor: pointer;
@@ -1109,17 +1109,16 @@ const saveProfile = async () => {
 }
 
 .tag-item.selected {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  background: -webkit-linear-gradient(315deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
 }
 
 .tag-item.add {
-  border: 1px dashed #ddd;
+  border: 1px dashed var(--border-color);
   background: transparent;
 }
 
-.tag-tip { font-size: 12px; color: #999; }
+.tag-tip { font-size: 12px; color: var(--text-muted); }
 
 .game-list { display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto; margin-top: 12px; -webkit-overflow-scrolling: touch; }
 .game-list-item {
@@ -1133,9 +1132,9 @@ const saveProfile = async () => {
   -webkit-transition: all 0.2s;
   -webkit-tap-highlight-color: transparent;
 }
-.game-list-item:hover { background: #f5f5f5; }
-.game-list-item.selected { background: #f0f2ff; color: #667eea; font-weight: 500; }
-.game-list-check { color: #667eea; font-weight: bold; font-size: 16px; }
+.game-list-item:hover { background: var(--bg-secondary); }
+.game-list-item.selected { background: rgba(255, 107, 129, 0.1); color: var(--primary-color); font-weight: 500; }
+.game-list-check { color: var(--primary-color); font-weight: bold; font-size: 16px; }
 
 .services-list { display: flex; flex-direction: column; gap: 10px; }
 
@@ -1143,7 +1142,7 @@ const saveProfile = async () => {
   display: flex;
   align-items: center;
   padding: 12px;
-  background: #fafafa;
+  background: var(--bg-secondary);
   border-radius: 10px;
   gap: 12px;
 }
@@ -1152,7 +1151,7 @@ const saveProfile = async () => {
 
 .service-info { flex: 1; min-width: 0; }
 
-.service-name { font-size: 15px; color: #333; font-weight: 500; }
+.service-name { font-size: 15px; color: var(--text-primary); font-weight: 500; }
 
 .service-meta {
   display: flex;
@@ -1163,19 +1162,19 @@ const saveProfile = async () => {
 
 .service-game {
   font-size: 11px;
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  color: var(--primary-color);
+  background: rgba(255, 107, 129, 0.1);
   padding: 2px 6px;
   border-radius: 4px;
 }
 
 .service-price {
   font-size: 12px;
-  color: #ff6b6b;
+  color: var(--primary-color);
   font-weight: 500;
 }
 
-.service-expire { font-size: 12px; color: #999; margin-top: 3px; }
+.service-expire { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
 
 .service-status {
   font-size: 12px;
@@ -1184,22 +1183,20 @@ const saveProfile = async () => {
 }
 
 .service-status.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  background: -webkit-linear-gradient(315deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
 }
 
 .service-status.expired {
-  background: #f0f0f0;
-  color: #999;
+  background: var(--border-light);
+  color: var(--text-muted);
 }
 
 .preview-section { padding: 20px 0; }
 .preview-btn {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  background: -webkit-linear-gradient(315deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
   font-size: 15px;
   border: none;
@@ -1210,6 +1207,7 @@ const saveProfile = async () => {
   justify-content: center;
   gap: 8px;
   -webkit-tap-highlight-color: transparent;
+  box-shadow: var(--shadow-medium);
 }
 
 .region-picker, .modal {
@@ -1237,7 +1235,7 @@ const saveProfile = async () => {
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px 10px 0 0;
 }
 
@@ -1246,44 +1244,44 @@ const saveProfile = async () => {
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
-.picker-cancel, .modal-btn.cancel { color: #999; cursor: pointer; }
-.picker-confirm, .modal-btn.confirm { color: #667eea; font-weight: 500; cursor: pointer; }
-.picker-title, .modal-title { font-size: 16px; font-weight: bold; color: #333; }
-.modal-close { font-size: 24px; color: #999; cursor: pointer; }
+.picker-cancel, .modal-btn.cancel { color: var(--text-muted); cursor: pointer; }
+.picker-confirm, .modal-btn.confirm { color: var(--primary-color); font-weight: 500; cursor: pointer; }
+.picker-title, .modal-title { font-size: 16px; font-weight: bold; color: var(--text-primary); }
+.modal-close { font-size: 24px; color: var(--text-muted); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
 .picker-body, .modal-body { display: flex; max-height: 300px; }
 .picker-column {
   flex: 1;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  border-right: 1px solid #f0f0f0;
+  border-right: 1px solid var(--border-light);
 }
 
 .picker-item {
   padding: 14px 16px;
   font-size: 15px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 
-.picker-item:hover { background: #f9f9f9; }
-.picker-item.active { color: #667eea; font-weight: 500; background: rgba(102,126,234,0.05); }
+.picker-item:hover { background: var(--bg-secondary); }
+.picker-item.active { color: var(--primary-color); font-weight: 500; background: rgba(255, 107, 129, 0.05); }
 
 .modal-content { max-width: 360px; margin: auto; border-radius: 10px; position: relative; top: 50%; -webkit-transform: translateY(-50%); transform: translateY(-50%); }
 .modal-body { padding: 20px; display: block; }
-.modal-input { width: 100%; padding: 12px; font-size: 15px; border: 1px solid #e5e5e5; border-radius: 8px; box-sizing: border-box; margin-bottom: 12px; -webkit-appearance: none; appearance: none; }
+.modal-input { width: 100%; padding: 12px; font-size: 15px; border: 1px solid var(--border-color); border-radius: 8px; box-sizing: border-box; margin-bottom: 12px; -webkit-appearance: none; appearance: none; background: var(--bg-secondary); color: var(--text-primary); }
 .code-row { display: flex; gap: 10px; }
 .code { flex: 1; margin-bottom: 0; }
-.code-btn { padding: 0 16px; background: #667eea; color: white; font-size: 14px; border: none; border-radius: 8px; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+.code-btn { padding: 0 16px; background: var(--primary-color); color: white; font-size: 14px; border: none; border-radius: 8px; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
 
-.modal-footer { display: flex; border-top: 1px solid #f0f0f0; }
+.modal-footer { display: flex; border-top: 1px solid var(--border-light); }
 .modal-btn { flex: 1; padding: 16px; text-align: center; font-size: 16px; border: none; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.modal-btn.cancel { border-right: 1px solid #f0f0f0; color: #666; }
-.modal-btn.confirm { color: #667eea; font-weight: 500; }
+.modal-btn.cancel { border-right: 1px solid var(--border-light); color: var(--text-secondary); }
+.modal-btn.confirm { color: var(--primary-color); font-weight: 500; }
 
 .preview-modal {
   position: absolute;
@@ -1293,7 +1291,7 @@ const saveProfile = async () => {
   transform: translate(-50%, -50%);
   width: 90%;
   max-width: 360px;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   overflow: hidden;
 }
@@ -1303,11 +1301,11 @@ const saveProfile = async () => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
-.preview-title { font-size: 16px; font-weight: bold; }
-.preview-close { font-size: 24px; color: #999; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.preview-title { font-size: 16px; font-weight: bold; color: var(--text-primary); }
+.preview-close { font-size: 24px; color: var(--text-muted); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
 .preview-content { padding: 0; }
 
@@ -1318,7 +1316,7 @@ const saveProfile = async () => {
 }
 
 .preview-info {
-  background: white;
+  background: var(--bg-primary);
   padding: 20px;
   text-align: center;
   margin-top: -40px;
@@ -1329,18 +1327,18 @@ const saveProfile = async () => {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  border: 4px solid white;
+  border: 4px solid var(--bg-primary);
   object-fit: cover;
   margin-bottom: 12px;
 }
 
-.preview-name { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 8px; }
-.preview-signature { font-size: 14px; color: #999; margin-bottom: 16px; }
+.preview-name { font-size: 18px; font-weight: bold; color: var(--text-primary); margin-bottom: 8px; }
+.preview-signature { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; }
 
 .preview-stats { display: flex; justify-content: center; gap: 40px; }
 .preview-stat { text-align: center; }
-.stat-num { font-size: 18px; font-weight: bold; color: #333; }
-.stat-label { font-size: 12px; color: #999; }
+.stat-num { font-size: 18px; font-weight: bold; color: var(--text-primary); }
+.stat-label { font-size: 12px; color: var(--text-muted); }
 
 @media (min-width: 768px) {
   .edit-profile-page {

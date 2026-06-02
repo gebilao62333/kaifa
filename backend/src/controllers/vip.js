@@ -1,4 +1,5 @@
 const { vipService } = require('../services');
+const logger = require('../utils/logger');
 const response = require('../utils/response');
 
 const getVipPackages = async (req, res) => {
@@ -6,7 +7,7 @@ const getVipPackages = async (req, res) => {
     const result = await vipService.getVipPackages();
     response.success(res, result);
   } catch (error) {
-    console.error('获取VIP套餐错误:', error);
+    logger.error('获取VIP套餐错误:', error);
     response.error(res, error.message);
   }
 };
@@ -16,7 +17,7 @@ const getUserVipInfo = async (req, res) => {
     const result = await vipService.getUserVipInfo(req.userId);
     response.success(res, result);
   } catch (error) {
-    console.error('获取VIP信息错误:', error);
+    logger.error('获取VIP信息错误:', error);
     response.error(res, error.message);
   }
 };
@@ -32,7 +33,7 @@ const createVipOrder = async (req, res) => {
     const result = await vipService.createVipOrder(req.userId, parseInt(packageId));
     response.success(res, result);
   } catch (error) {
-    console.error('创建VIP订单错误:', error);
+    logger.error('创建VIP订单错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -48,7 +49,7 @@ const completeVipOrder = async (req, res) => {
     const result = await vipService.completeVipOrder(orderNo, transactionId);
     response.success(res, result, '开通成功');
   } catch (error) {
-    console.error('完成VIP订单错误:', error);
+    logger.error('完成VIP订单错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -64,7 +65,7 @@ const getVipOrderStatus = async (req, res) => {
     const result = await vipService.getVipOrderStatus(orderNo);
     response.success(res, result);
   } catch (error) {
-    console.error('查询VIP订单状态错误:', error);
+    logger.error('查询VIP订单状态错误:', error);
     response.error(res, error.message);
   }
 };
@@ -80,7 +81,7 @@ const getUserVipOrders = async (req, res) => {
     );
     response.success(res, result);
   } catch (error) {
-    console.error('获取VIP订单列表错误:', error);
+    logger.error('获取VIP订单列表错误:', error);
     response.error(res, error.message);
   }
 };

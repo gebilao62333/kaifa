@@ -142,7 +142,7 @@ const submitFeedback = () => {
 .feedback-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-top: 82px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
@@ -154,8 +154,7 @@ const submitFeedback = () => {
   justify-content: space-between;
   padding: 0 20px;
   height: 70px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   position: fixed;
   top: 0;
   left: 50%;
@@ -191,7 +190,7 @@ const submitFeedback = () => {
 .type-card,
 .form-card,
 .history-card {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   padding: 20px;
   margin-bottom: 16px;
@@ -200,7 +199,7 @@ const submitFeedback = () => {
 .section-title {
   font-size: 15px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 16px;
 }
 
@@ -215,7 +214,7 @@ const submitFeedback = () => {
   flex-direction: column;
   align-items: center;
   padding: 20px;
-  border: 2px solid #f0f0f0;
+  border: 2px solid var(--border-light);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.3s;
@@ -224,8 +223,8 @@ const submitFeedback = () => {
 }
 
 .type-item.active {
-  border-color: #667eea;
-  background: rgba(102,126,234,0.05);
+  border-color: var(--primary-color);
+  background: var(--primary-light);
 }
 
 .type-icon {
@@ -235,7 +234,7 @@ const submitFeedback = () => {
 
 .type-text {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .form-item {
@@ -248,7 +247,7 @@ const submitFeedback = () => {
 
 .form-label {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
   font-weight: 500;
   display: flex;
@@ -258,7 +257,7 @@ const submitFeedback = () => {
 
 .count {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .form-textarea {
@@ -266,7 +265,7 @@ const submitFeedback = () => {
   min-height: 120px;
   padding: 12px 16px;
   font-size: 15px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   resize: vertical;
   box-sizing: border-box;
@@ -274,10 +273,12 @@ const submitFeedback = () => {
   -webkit-transition: border-color 0.3s;
   -webkit-appearance: none;
   appearance: none;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .form-textarea:focus {
-  border-color: #667eea;
+  border-color: var(--primary-color);
   outline: none;
 }
 
@@ -285,17 +286,19 @@ const submitFeedback = () => {
   width: 100%;
   padding: 14px 16px;
   font-size: 15px;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   box-sizing: border-box;
   transition: border-color 0.3s;
   -webkit-transition: border-color 0.3s;
   -webkit-appearance: none;
   appearance: none;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .form-input:focus {
-  border-color: #667eea;
+  border-color: var(--primary-color);
   outline: none;
 }
 
@@ -340,7 +343,7 @@ const submitFeedback = () => {
 .upload-btn {
   width: 80px;
   height: 80px;
-  border: 2px dashed #ddd;
+  border: 2px dashed var(--border-color);
   border-radius: 8px;
   display: flex;
   flex-direction: column;
@@ -353,25 +356,24 @@ const submitFeedback = () => {
 }
 
 .upload-btn:hover {
-  border-color: #667eea;
+  border-color: var(--primary-color);
 }
 
 .upload-add {
   font-size: 28px;
-  color: #999;
+  color: var(--text-muted);
   line-height: 1;
 }
 
 .upload-hint {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .submit-btn {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  background: -webkit-linear-gradient(315deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
   font-size: 16px;
   border: none;
@@ -395,7 +397,7 @@ const submitFeedback = () => {
 }
 
 .history-item {
-  background: #f9f9f9;
+  background: var(--bg-secondary);
   border-radius: 8px;
   padding: 12px;
 }
@@ -409,8 +411,8 @@ const submitFeedback = () => {
 
 .history-type {
   font-size: 13px;
-  color: #667eea;
-  background: rgba(102,126,234,0.1);
+  color: var(--primary-color);
+  background: var(--primary-light);
   padding: 4px 10px;
   border-radius: 12px;
 }
@@ -420,22 +422,22 @@ const submitFeedback = () => {
 }
 
 .history-status.done {
-  color: #34c759;
+  color: var(--success-color);
 }
 
 .history-status.pending {
-  color: #ff9500;
+  color: var(--warning-color);
 }
 
 .history-content {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .history-time {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 @media (min-width: 768px) {

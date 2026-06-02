@@ -205,7 +205,7 @@ onMounted(() => {
 .game-index-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-top: 70px;
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
@@ -223,8 +223,8 @@ onMounted(() => {
   display: flex;
   align-items: center;
   padding: 0 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
+  background: -webkit-linear-gradient(315deg, #FF6B81 0%, #E64C65 100%);
 }
 
 .search-box {
@@ -246,7 +246,7 @@ onMounted(() => {
 }
 
 .category-section {
-  background: white;
+  background: var(--bg-primary);
   padding: 20px 0;
   margin-top: -20px;
   position: relative;
@@ -275,7 +275,7 @@ onMounted(() => {
 }
 
 .category-item.active {
-  background: rgba(102, 126, 234, 0.1);
+  background: rgba(255, 107, 129, 0.1);
 }
 
 .category-icon {
@@ -284,16 +284,16 @@ onMounted(() => {
 
 .category-name {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .category-item.active .category-name {
-  color: #667eea;
+  color: var(--primary-color);
   font-weight: 500;
 }
 
 .filter-section {
-  background: white;
+  background: var(--bg-primary);
   margin-top: 12px;
   padding: 16px 0;
   max-width: 650px;
@@ -312,12 +312,12 @@ onMounted(() => {
   padding: 8px 20px;
   border-radius: 20px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
 }
 
 .filter-tab.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -328,7 +328,7 @@ onMounted(() => {
 }
 
 .companion-card {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 16px;
   padding: 16px;
   margin-bottom: 12px;
@@ -352,8 +352,8 @@ onMounted(() => {
   top: 60px;
   width: 16px;
   height: 16px;
-  background: #4cd964;
-  border: 3px solid white;
+  background: var(--success-color);
+  border: 3px solid var(--bg-primary);
   border-radius: 50%;
 }
 
@@ -371,11 +371,11 @@ onMounted(() => {
 .nickname {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .level {
-  background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+  background: var(--gradient-primary);
   color: white;
   font-size: 11px;
   padding: 2px 8px;
@@ -398,8 +398,8 @@ onMounted(() => {
 }
 
 .tag {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   font-size: 12px;
   padding: 4px 10px;
   border-radius: 4px;
@@ -413,18 +413,18 @@ onMounted(() => {
 
 .stat {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .price {
   margin-left: auto;
-  color: #ff6b6b;
+  color: var(--primary-color);
   font-weight: bold;
   font-size: 15px;
 }
 
 .follow-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   font-size: 13px;
   padding: 8px 16px;
@@ -437,7 +437,7 @@ onMounted(() => {
 .no-more {
   text-align: center;
   padding: 20px;
-  color: #999;
+  color: var(--text-muted);
   font-size: 13px;
 }
 

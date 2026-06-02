@@ -530,7 +530,7 @@ onMounted(() => {
 .mine-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-top: 80px;
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
@@ -539,10 +539,10 @@ onMounted(() => {
 
 /* --- 内容卡片 --- */
 .content-container {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-light);
   width: 100%;
   max-width: 100%;
   padding: 0 12px;
@@ -551,7 +551,7 @@ onMounted(() => {
 
 /* --- 头部 --- */
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   padding: 0 20px;
   height: 80px;
   display: flex;
@@ -623,7 +623,7 @@ onMounted(() => {
 }
 
 .vip-tag {
-  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  background: var(--gradient-accent);
   color: #fff;
   font-size: 11px;
   padding: 3px 8px;
@@ -651,8 +651,8 @@ onMounted(() => {
 }
 
 .edit-btn {
-  background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
-  color: #667eea;
+  background: linear-gradient(135deg, #fff 0%, var(--bg-secondary) 100%);
+  color: var(--primary-color);
   font-size: 14px;
   font-weight: 500;
   padding: 10px 20px;
@@ -663,14 +663,14 @@ onMounted(() => {
   gap: 6px;
   margin-left: 20px;
   margin-right: 20px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  box-shadow: var(--shadow-medium);
   transition: all 0.3s ease;
   height: 30px;
 }
 
 .edit-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+  box-shadow: var(--shadow-heavy);
 }
 
 .edit-btn:active {
@@ -687,31 +687,38 @@ onMounted(() => {
   padding: 24px 0;
   margin-top: 24px;
   margin-bottom: 24px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .stat-item {
   text-align: center;
   cursor: pointer;
+  transition: background-color 0.2s;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.stat-item:hover {
+  background-color: var(--bg-secondary);
 }
 
 .stat-num {
   display: block;
   font-size: 20px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .stat-divider {
   width: 1px;
   height: 40px;
-  background-color: #f0f0f0;
+  background-color: var(--border-light);
 }
 
 .wallet-card {
@@ -720,9 +727,9 @@ onMounted(() => {
   gap: 16px;
   margin: 10px 0px;
   padding: 10px 0px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-radius: 10px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-medium);
   cursor: pointer;
   height: 70px;
 }
@@ -770,13 +777,13 @@ onMounted(() => {
   grid-template-columns: repeat(3, 1fr);
   grid-template-rows: repeat(3, 1fr);
   gap: 0;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 10px;
   overflow: hidden;
 }
 
 .menu-group {
-  background-color: #fff;
+  background-color: var(--bg-primary);
   border-radius: 10px;
   margin-bottom: 0;
   overflow: hidden;
@@ -787,9 +794,9 @@ onMounted(() => {
 .menu-title {
   padding: 16px 20px 12px;
   font-size: 15px;
-  color: #333;
+  color: var(--text-primary);
   font-weight: bold;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--bg-secondary);
 }
 
 .menu-item {
@@ -798,8 +805,8 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 12px 4px;
-  border-right: 1px solid #f5f5f5;
-  border-bottom: 1px solid #f5f5f5;
+  border-right: 1px solid var(--bg-secondary);
+  border-bottom: 1px solid var(--bg-secondary);
   cursor: pointer;
   transition: background-color 0.2s;
   height: 88px;
@@ -816,7 +823,7 @@ onMounted(() => {
 }
 
 .menu-item:hover {
-  background-color: #fafafa;
+  background-color: var(--bg-secondary);
 }
 
 .menu-icon {
@@ -831,7 +838,7 @@ onMounted(() => {
 
 .menu-text {
   font-size: 12px;
-  color: #333;
+  color: var(--text-primary);
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
@@ -844,7 +851,7 @@ onMounted(() => {
 }
 
 .tag.new {
-  background-color: #ff6b6b;
+  background-color: var(--error-color);
   color: #fff;
   font-size: 10px;
   padding: 3px 8px;
@@ -853,7 +860,7 @@ onMounted(() => {
 }
 
 .vip-badge {
-  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  background: var(--gradient-accent);
   color: #fff;
   font-size: 10px;
   padding: 2px 8px;
@@ -875,17 +882,23 @@ onMounted(() => {
   display: flex;
   align-items: center;
   padding: 14px 16px;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 10px;
   cursor: pointer;
-  transition: background-color 0.2s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s;
+  box-shadow: var(--shadow-light);
   min-height: 56px;
   box-sizing: border-box;
 }
 
+.service-item:hover {
+  background-color: var(--bg-secondary);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-medium);
+}
+
 .service-item:active {
-  background-color: #f9f9f9;
+  transform: translateY(0);
 }
 
 .service-icon {
@@ -895,7 +908,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea15, #764ba215);
+  background: var(--bg-secondary);
   border-radius: 10px;
   margin-right: 12px;
   flex-shrink: 0;
@@ -908,18 +921,18 @@ onMounted(() => {
 .service-name {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 2px;
 }
 
 .service-desc {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .service-arrow {
   font-size: 18px;
-  color: #ccc;
+  color: var(--text-muted);
   flex-shrink: 0;
   margin-left: 8px;
 }
@@ -1050,7 +1063,7 @@ onMounted(() => {
 }
 
 .share-modal {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 20px 20px 0 0;
   width: 100%;
   max-width: 480px;
@@ -1069,7 +1082,7 @@ onMounted(() => {
 .share-modal-header {
   position: sticky;
   top: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   padding: 24px 20px 20px;
   border-radius: 20px 20px 0 0;
   text-align: center;
@@ -1133,10 +1146,10 @@ onMounted(() => {
 
 /* 分享卡片 */
 .share-card {
-  background: #fafafa;
+  background: var(--bg-secondary);
   border-radius: 14px;
   padding: 16px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--border-light);
 }
 
 .share-card-header {
@@ -1153,7 +1166,7 @@ onMounted(() => {
 .share-card-title {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 /* 邀请码 */
@@ -1170,13 +1183,13 @@ onMounted(() => {
   justify-content: center;
   width: 36px;
   height: 44px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: #fff;
   font-size: 20px;
   font-weight: 800;
   border-radius: 8px;
   letter-spacing: 0;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px rgba(255, 107, 129, 0.3);
 }
 
 /* 二维码 */
@@ -1186,9 +1199,9 @@ onMounted(() => {
   justify-content: center;
   min-height: 180px;
   margin-bottom: 12px;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
-  border: 2px dashed #e0e0e0;
+  border: 2px dashed var(--border-color);
 }
 
 .qr-image {
@@ -1203,15 +1216,15 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  color: #999;
+  color: var(--text-muted);
   font-size: 13px;
 }
 
 .qr-spinner {
   width: 28px;
   height: 28px;
-  border: 3px solid #e0e0e0;
-  border-top-color: #667eea;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -1229,17 +1242,17 @@ onMounted(() => {
 .link-input {
   flex: 1;
   padding: 10px 14px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color);
   border-radius: 10px;
   font-size: 13px;
-  color: #555;
-  background: #fff;
+  color: var(--text-secondary);
+  background: var(--bg-primary);
   transition: border-color 0.2s;
 }
 
 .link-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--primary-color);
 }
 
 /* 按钮 */
@@ -1250,9 +1263,9 @@ onMounted(() => {
   gap: 4px;
   width: 100%;
   padding: 10px;
-  border: 2px solid #667eea;
+  border: 2px solid var(--primary-color);
   background: transparent;
-  color: #667eea;
+  color: var(--primary-color);
   border-radius: 10px;
   font-size: 14px;
   font-weight: 500;
@@ -1261,7 +1274,7 @@ onMounted(() => {
 }
 
 .share-btn-outline:hover {
-  background: #667eea;
+  background: var(--primary-color);
   color: #fff;
 }
 
@@ -1272,7 +1285,7 @@ onMounted(() => {
 .share-btn-primary {
   padding: 10px 20px;
   border: none;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: #fff;
   border-radius: 10px;
   font-size: 14px;
@@ -1299,7 +1312,7 @@ onMounted(() => {
 .channels-label {
   display: block;
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
   margin-bottom: 10px;
   text-align: center;
 }
@@ -1325,7 +1338,7 @@ onMounted(() => {
 }
 
 .channel-btn:hover {
-  background: #f5f5f5;
+  background: var(--bg-secondary);
 }
 
 .channel-btn:active {
@@ -1339,18 +1352,18 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-radius: 14px;
 }
 
-.wechat-btn .channel-icon { background: #e8fce8; }
-.qq-btn .channel-icon { background: #e8f0fe; }
-.copy-btn-channel .channel-icon { background: #fef3e8; }
-.more-btn .channel-icon { background: #f0f0f0; }
+.wechat-btn .channel-icon { background: rgba(232, 252, 232, 0.5); }
+.qq-btn .channel-icon { background: rgba(232, 240, 254, 0.5); }
+.copy-btn-channel .channel-icon { background: rgba(254, 243, 232, 0.5); }
+.more-btn .channel-icon { background: var(--bg-secondary); }
 
 .channel-name {
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 /* Toast */

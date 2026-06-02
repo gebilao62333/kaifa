@@ -1,4 +1,5 @@
 const { demandService } = require('../services');
+const logger = require('../utils/logger');
 const response = require('../utils/response');
 
 const createDemand = async (req, res) => {
@@ -23,7 +24,7 @@ const createDemand = async (req, res) => {
     );
     response.created(res, result, '需求发布成功');
   } catch (error) {
-    console.error('发布需求错误:', error);
+    logger.error('发布需求错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -35,7 +36,7 @@ const getDemandList = async (req, res) => {
     const result = await demandService.getDemandList(req.userId, parseInt(page), parseInt(pageSize));
     response.success(res, result);
   } catch (error) {
-    console.error('获取需求列表错误:', error);
+    logger.error('获取需求列表错误:', error);
     response.error(res, error.message);
   }
 };
@@ -51,7 +52,7 @@ const getDemandDetail = async (req, res) => {
     const result = await demandService.getDemandDetail(parseInt(demandId));
     response.success(res, result);
   } catch (error) {
-    console.error('获取需求详情错误:', error);
+    logger.error('获取需求详情错误:', error);
     response.error(res, error.message);
   }
 };
@@ -67,7 +68,7 @@ const cancelDemand = async (req, res) => {
     await demandService.cancelDemand(req.userId, parseInt(demandId));
     response.success(res, {}, '已取消需求');
   } catch (error) {
-    console.error('取消需求错误:', error);
+    logger.error('取消需求错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };

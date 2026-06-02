@@ -295,8 +295,8 @@ onUnmounted(() => {
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
+  background: -webkit-linear-gradient(315deg, #FF6B81 0%, #E64C65 100%);
   padding: 0 20px;
   text-align: center;
   height: 70px;
@@ -347,7 +347,7 @@ onUnmounted(() => {
 }
 
 .tab-item.active span {
-  color: #667eea;
+  color: #FF6B81;
   font-weight: 600;
 }
 
@@ -359,7 +359,7 @@ onUnmounted(() => {
   transform: translateX(-50%);
   width: 40px;
   height: 3px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   border-radius: 2px;
 }
 
@@ -415,7 +415,7 @@ onUnmounted(() => {
   width: 48px;
   height: 48px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -510,7 +510,7 @@ onUnmounted(() => {
 
 .mark-all-read {
   font-size: 14px;
-  color: #667eea;
+  color: #FF6B81;
   cursor: pointer;
 }
 
@@ -549,6 +549,7 @@ onUnmounted(() => {
 
 .notice-icon.follow {
   background-color: #f0f5ff;
+  border-radius: 5px;
 }
 
 .notice-icon.system {
@@ -607,7 +608,7 @@ onUnmounted(() => {
   width: 40px;
   height: 40px;
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #667eea;
+  border-top: 3px solid #FF6B81;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

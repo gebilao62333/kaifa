@@ -132,15 +132,14 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   padding: 20px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
 
 .login-container {
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 40px;
   width: 100%;
@@ -155,12 +154,12 @@ onMounted(() => {
 
 .login-header h1 {
   font-size: 28px;
-  color: #333;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
 
 .login-header p {
-  color: #666;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -179,24 +178,26 @@ onMounted(() => {
 .form-group label {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .form-input {
   padding: 12px 16px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
   transition: border-color 0.3s;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--primary-color);
 }
 
 .login-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: #fff;
   border: none;
   padding: 14px;
@@ -212,12 +213,12 @@ onMounted(() => {
 }
 
 .login-btn:disabled {
-  opacity: 0.6;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
 .error-message {
-  color: #ff4757;
+  color: var(--danger-color);
   font-size: 13px;
   text-align: center;
   margin-top: -10px;
@@ -227,24 +228,24 @@ onMounted(() => {
   margin-top: 24px;
   text-align: center;
   padding-top: 20px;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-light);
 }
 
 .login-footer p {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   margin: 4px 0;
 }
 
 .init-hint {
   margin-top: 12px !important;
-  color: #667eea !important;
+  color: var(--primary-color) !important;
   cursor: pointer;
   text-decoration: underline;
   transition: color 0.3s;
 }
 
 .init-hint:hover {
-  color: #764ba2 !important;
+  color: var(--primary-light) !important;
 }
 </style>

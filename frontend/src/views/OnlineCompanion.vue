@@ -77,7 +77,7 @@
             </div>
             <div class="companion-bottom">
               <div class="companion-location">
-                <span class="location-icon">📍</span>
+                <span class="location-icon">地点</span>
                 <span class="location-text">{{ item.location }}</span>
               </div>
               <div class="companion-price">
@@ -102,7 +102,7 @@ const loading = ref(true)
 const companions = ref([])
 
 const onlineGames = [
-  { id: 1, name: '王者荣耀', icon: '🎮', price: 50, rating: 4.9, tags: ['打野', 'Carry'], bgColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+  { id: 1, name: '王者荣耀', icon: '🎮', price: 50, rating: 4.9, tags: ['打野', 'Carry'], bgColor: 'linear-gradient(135deg, #FF6B81 0%, #E64C65 100%)' },
   { id: 2, name: '和平精英', icon: '🔫', price: 45, rating: 4.8, tags: ['钢枪', '战术'], bgColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' },
   { id: 3, name: '英雄联盟', icon: '⚔️', price: 55, rating: 4.9, tags: ['中单', '上分'], bgColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
   { id: 4, name: '永劫无间', icon: '🗡️', price: 48, rating: 4.7, tags: ['太刀', '振刀'], bgColor: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' },
@@ -275,8 +275,8 @@ onMounted(() => {
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
+  background: -webkit-linear-gradient(315deg, #FF6B81 0%, #E64C65 100%);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -343,7 +343,7 @@ onMounted(() => {
 .section-title {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: #FF6B81;
   margin-bottom: 14px;
   display: flex;
   align-items: center;
@@ -352,7 +352,7 @@ onMounted(() => {
 
 .count-hint {
   font-size: 13px;
-  color: #667eea;
+  color: #FF6B81;
   font-weight: normal;
 }
 
@@ -407,7 +407,7 @@ onMounted(() => {
 }
 
 .game-card-active {
-  border-color: #667eea;
+  border-color: #FF6B81;
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
 }
 
@@ -471,7 +471,7 @@ onMounted(() => {
   right: 8px;
   width: 24px;
   height: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -484,9 +484,9 @@ onMounted(() => {
 .selection-hint {
   text-align: center;
   font-size: 13px;
-  color: #667eea;
+  color: #FF6B81;
   padding: 12px;
-  background: rgba(102, 126, 234, 0.1);
+  background: rgba(255, 107, 129, 0.1);
   border-radius: 12px;
   margin-bottom: 0;
 }
@@ -504,7 +504,7 @@ onMounted(() => {
   width: 36px;
   height: 36px;
   border: 3px solid #f0f0f0;
-  border-top-color: #667eea;
+  border-top-color: #FF6B81;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   -webkit-animation: spin 0.8s linear infinite;
@@ -687,8 +687,8 @@ onMounted(() => {
 
 .companion-tags .tag {
   font-size: 10px;
-  color: #666;
-  background-color: #f5f5f5;
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
+  color: white;
   padding: 2px 8px;
   border-radius: 20px;
 }
@@ -704,7 +704,7 @@ onMounted(() => {
 .service-tags .service-tag {
   font-size: 10px;
   color: #fff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   padding: 2px 8px;
   border-radius: 20px;
 }

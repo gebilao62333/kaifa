@@ -20,7 +20,7 @@
       </div>
       <div class="stat-item">
         <span class="stat-label">今日提现</span>
-        <span class="stat-value">¥{{ todayAmount }}</span>
+        <span class="stat-value">{{ todayAmount }} 金币</span>
       </div>
     </div>
 
@@ -42,7 +42,7 @@
         <div class="card-body">
           <div class="amount-row">
             <span class="label">提现金额</span>
-            <span class="amount">¥{{ item.money.toFixed(2) }}</span>
+            <span class="amount">{{ item.money.toFixed(2) }} 金币</span>
           </div>
           <div class="info-row">
             <span class="label">提现方式</span>
@@ -288,7 +288,7 @@ onMounted(() => {
 .admin-withdraw-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding-bottom: 20px;
   padding-bottom: calc(20px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px));
@@ -300,7 +300,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   padding: 60px 20px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -325,21 +325,21 @@ onMounted(() => {
   display: flex;
   gap: 10px;
   padding: 12px 20px;
-  background: white;
-  border-bottom: 1px solid #eee;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .filter-item {
   padding: 6px 16px;
   border-radius: 16px;
   font-size: 13px;
-  color: #666;
-  background: #f5f5f5;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
   cursor: pointer;
 }
 
 .filter-item.active {
-  background: #667eea;
+  background: var(--primary-color);
   color: white;
 }
 
@@ -347,8 +347,9 @@ onMounted(() => {
   display: flex;
   padding: 16px 20px;
   gap: 20px;
-  background: white;
+  background: var(--bg-primary);
   margin-bottom: 10px;
+  box-shadow: var(--shadow-light);
 }
 
 .stat-item {
@@ -359,18 +360,18 @@ onMounted(() => {
 .stat-label {
   display: block;
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   margin-bottom: 4px;
 }
 
 .stat-value {
   font-size: 20px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .stat-value.pending {
-  color: #ff6b6b;
+  color: var(--danger-color);
 }
 
 .withdraw-list {
@@ -378,10 +379,11 @@ onMounted(() => {
 }
 
 .withdraw-card {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
   margin-bottom: 12px;
   overflow: hidden;
+  box-shadow: var(--shadow-light);
 }
 
 .card-header {
@@ -389,7 +391,7 @@ onMounted(() => {
   align-items: center;
   justify-content: space-between;
   padding: 14px 16px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .user-info {
@@ -413,12 +415,12 @@ onMounted(() => {
 .nickname {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .mobile {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .status-badge {
@@ -428,18 +430,18 @@ onMounted(() => {
 }
 
 .status-badge.pending {
-  background: #fff7e6;
-  color: #fa8c16;
+  background: var(--warning-light);
+  color: var(--warning-color);
 }
 
 .status-badge.approved {
-  background: #e6f7ff;
-  color: #1890ff;
+  background: var(--success-light);
+  color: var(--success-color);
 }
 
 .status-badge.rejected {
-  background: #fff1f0;
-  color: #ff4d4f;
+  background: var(--danger-light);
+  color: var(--danger-color);
 }
 
 .card-body {
@@ -455,13 +457,13 @@ onMounted(() => {
 
 .amount-row .label {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .amount-row .amount {
   font-size: 22px;
   font-weight: bold;
-  color: #ff6b6b;
+  color: var(--danger-color);
 }
 
 .info-row {
@@ -473,12 +475,12 @@ onMounted(() => {
 
 .info-row .label {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .info-row .value {
   font-size: 13px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .qr-thumb {
@@ -492,23 +494,23 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   padding: 8px 0 0;
-  border-top: 1px solid #f5f5f5;
+  border-top: 1px solid var(--border-light);
   margin-top: 6px;
 }
 
 .time-row .label {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .time-row .value {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .card-footer {
   display: flex;
-  border-top: 1px solid #f5f5f5;
+  border-top: 1px solid var(--border-light);
 }
 
 .reject-btn, .approve-btn {
@@ -521,12 +523,12 @@ onMounted(() => {
 }
 
 .reject-btn {
-  color: #ff4d4f;
-  border-right: 1px solid #f5f5f5;
+  color: var(--danger-color);
+  border-right: 1px solid var(--border-light);
 }
 
 .approve-btn {
-  color: #52c41a;
+  color: var(--success-color);
 }
 
 .empty-state {
@@ -544,7 +546,7 @@ onMounted(() => {
 
 .empty-text {
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .pagination {
@@ -557,7 +559,7 @@ onMounted(() => {
 
 .page-btn {
   padding: 8px 16px;
-  background: #667eea;
+  background: var(--primary-color);
   color: white;
   border-radius: 6px;
   font-size: 13px;
@@ -571,7 +573,7 @@ onMounted(() => {
 
 .page-info {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .reject-modal {
@@ -589,7 +591,7 @@ onMounted(() => {
 
 .modal-content {
   width: 300px;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
   overflow: hidden;
 }
@@ -599,14 +601,15 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  border-bottom: 1px solid #f5f5f5;
+  border-bottom: 1px solid var(--border-light);
   font-size: 15px;
   font-weight: 600;
+  color: var(--text-primary);
 }
 
 .close-btn {
   font-size: 24px;
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
 }
 
@@ -617,16 +620,18 @@ onMounted(() => {
 .modal-body textarea {
   width: 100%;
   padding: 10px;
-  border: 1px solid #e8e8e8;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   font-size: 14px;
   resize: none;
   box-sizing: border-box;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .modal-footer {
   display: flex;
-  border-top: 1px solid #f5f5f5;
+  border-top: 1px solid var(--border-light);
 }
 
 .cancel-btn, .confirm-btn {
@@ -638,11 +643,11 @@ onMounted(() => {
 }
 
 .cancel-btn {
-  color: #666;
-  border-right: 1px solid #f5f5f5;
+  color: var(--text-secondary);
+  border-right: 1px solid var(--border-light);
 }
 
 .confirm-btn {
-  color: #ff4d4f;
+  color: var(--danger-color);
 }
 </style>

@@ -266,9 +266,9 @@ const confirmSuccess = () => {
 }
 
 .type-item.active {
-  background: rgba(102, 126, 234, 0.1);
-  border-color: #667eea;
-  color: #667eea;
+  background: rgba(255, 107, 129, 0.1);
+  border-color: #FF6B81;
+  color: #FF6B81;
 }
 
 .report-reason-section {
@@ -299,7 +299,7 @@ const confirmSuccess = () => {
 }
 
 .reason-item.active {
-  background: rgba(102, 126, 234, 0.05);
+  background: rgba(255, 107, 129, 0.05);
 }
 
 .reason-icon {
@@ -317,8 +317,8 @@ const confirmSuccess = () => {
 }
 
 .reason-item.active .reason-icon {
-  background: #667eea;
-  border-color: #667eea;
+  background: #FF6B81;
+  border-color: #FF6B81;
 }
 
 .reason-text {
@@ -342,7 +342,7 @@ const confirmSuccess = () => {
 }
 
 .desc-input:focus {
-  border-color: #667eea;
+  border-color: #FF6B81;
 }
 
 .desc-length {
@@ -404,7 +404,7 @@ const confirmSuccess = () => {
 }
 
 .evidence-add:hover {
-  border-color: #667eea;
+  border-color: #FF6B81;
 }
 
 .add-icon {
@@ -445,7 +445,7 @@ const confirmSuccess = () => {
   padding: 14px;
   border: none;
   border-radius: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   font-size: 15px;
   color: white;
   cursor: pointer;
@@ -500,7 +500,7 @@ const confirmSuccess = () => {
 }
 
 .success-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: white;
   border: none;
   padding: 12px 40px;

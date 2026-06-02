@@ -144,8 +144,8 @@ onMounted(() => {
 
 .header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   padding: 0 20px;
   height: 70px;
   position: fixed;
@@ -154,7 +154,7 @@ onMounted(() => {
   transform: translateX(-50%);
   width: 100%;
   max-width: 650px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   z-index: 100;
 }
 
@@ -179,7 +179,7 @@ onMounted(() => {
 }
 
 .level-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   border-radius: 10px;
   padding: 24px;
   margin-bottom: 16px;
@@ -387,8 +387,8 @@ onMounted(() => {
 }
 
 .benefit-level-tag.unlocked {
-  background: linear-gradient(135deg, #667eea20, #764ba220);
-  color: #667eea;
+  background: linear-gradient(135deg, #FF6B8120, #E64C6520);
+  color: #FF6B81;
 }
 
 .benefit-name {

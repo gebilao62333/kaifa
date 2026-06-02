@@ -1,4 +1,5 @@
 const { trtcService, callBillingService } = require('../services');
+const logger = require('../utils/logger');
 const response = require('../utils/response');
 
 const getAuth = async (req, res) => {
@@ -11,7 +12,7 @@ const getAuth = async (req, res) => {
     
     response.success(res, result);
   } catch (error) {
-    console.error('获取TRTC鉴权错误:', error);
+    logger.error('获取TRTC鉴权错误:', error);
     response.error(res, error.message);
   }
 };
@@ -33,7 +34,7 @@ const startCall = async (req, res) => {
     );
     response.success(res, result);
   } catch (error) {
-    console.error('发起通话错误:', error);
+    logger.error('发起通话错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -49,7 +50,7 @@ const cancelCall = async (req, res) => {
     await callBillingService.cancelCall(req.userId, parseInt(callId));
     response.success(res, {}, '已取消通话');
   } catch (error) {
-    console.error('取消通话错误:', error);
+    logger.error('取消通话错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -65,7 +66,7 @@ const rejectCall = async (req, res) => {
     await callBillingService.rejectCall(req.userId, parseInt(callId));
     response.success(res, {}, '已拒绝通话');
   } catch (error) {
-    console.error('拒绝通话错误:', error);
+    logger.error('拒绝通话错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -81,7 +82,7 @@ const acceptCall = async (req, res) => {
     await callBillingService.acceptCall(req.userId, parseInt(callId));
     response.success(res, {}, '已接听');
   } catch (error) {
-    console.error('接听通话错误:', error);
+    logger.error('接听通话错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -97,7 +98,7 @@ const endCall = async (req, res) => {
     const result = await callBillingService.endCall(req.userId, parseInt(callId));
     response.success(res, result, '通话已结束');
   } catch (error) {
-    console.error('结束通话错误:', error);
+    logger.error('结束通话错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -112,7 +113,7 @@ const getCallHistory = async (req, res) => {
     );
     response.success(res, result);
   } catch (error) {
-    console.error('获取通话记录错误:', error);
+    logger.error('获取通话记录错误:', error);
     response.error(res, error.message);
   }
 };
@@ -123,7 +124,7 @@ const createRoom = async (req, res) => {
     const result = await trtcService.createRoom(req.userId, roomType);
     response.success(res, result, '房间创建成功');
   } catch (error) {
-    console.error('创建房间错误:', error);
+    logger.error('创建房间错误:', error);
     response.error(res, error.message);
   }
 };
@@ -139,7 +140,7 @@ const enterRoom = async (req, res) => {
     const result = await trtcService.enterRoom(req.userId, roomId);
     response.success(res, result, '进入房间成功');
   } catch (error) {
-    console.error('进入房间错误:', error);
+    logger.error('进入房间错误:', error);
     response.error(res, error.message);
   }
 };
@@ -155,7 +156,7 @@ const leaveRoom = async (req, res) => {
     const result = await trtcService.leaveRoom(req.userId, roomId);
     response.success(res, result, '离开房间成功');
   } catch (error) {
-    console.error('离开房间错误:', error);
+    logger.error('离开房间错误:', error);
     response.error(res, error.message);
   }
 };
@@ -171,7 +172,7 @@ const getRoomInfo = async (req, res) => {
     const result = await trtcService.getRoomInfo(roomId);
     response.success(res, result);
   } catch (error) {
-    console.error('获取房间信息错误:', error);
+    logger.error('获取房间信息错误:', error);
     response.error(res, error.message);
   }
 };
@@ -187,7 +188,7 @@ const startBilling = async (req, res) => {
     const result = await trtcService.startBilling(req.userId, roomId, callType);
     response.success(res, result, '开始计费');
   } catch (error) {
-    console.error('开始计费错误:', error);
+    logger.error('开始计费错误:', error);
     response.error(res, error.message);
   }
 };
@@ -203,7 +204,7 @@ const endBilling = async (req, res) => {
     const result = await trtcService.endBilling(billingId);
     response.success(res, result, '计费结束');
   } catch (error) {
-    console.error('结束计费错误:', error);
+    logger.error('结束计费错误:', error);
     response.error(res, error.message);
   }
 };

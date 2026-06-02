@@ -69,7 +69,7 @@ const frameGroups = ref([
       { id: 'frame3', name: '冰雪蓝边', style: { border: '3px solid #74b9ff', borderRadius: '50%', boxShadow: '0 0 12px rgba(116, 185, 255, 0.5), 0 0 0 4px #fff' }, locked: true, condition: 'VIP2及以上' },
       { id: 'frame4', name: '暗夜紫边', style: { border: '3px solid #6c5ce7', borderRadius: '50%', boxShadow: '0 0 12px rgba(108, 92, 231, 0.5), 0 0 0 4px #fff' }, locked: true, condition: 'VIP3及以上' },
       { id: 'frame5', name: '烈焰红边', style: { border: '3px solid #e74c3c', borderRadius: '50%', boxShadow: '0 0 16px rgba(231, 76, 60, 0.6), 0 0 0 4px #fff' }, locked: true, condition: 'VIP4' },
-      { id: 'frame6', name: '流光幻彩', style: { border: '3px solid transparent', borderRadius: '50%', boxShadow: '0 0 16px rgba(102, 126, 234, 0.6), 0 0 0 4px #fff', background: 'linear-gradient(135deg, #667eea, #764ba2, #ffd700, #ff6b6b) padding-box, linear-gradient(135deg, #667eea, #764ba2, #ffd700, #ff6b6b) border-box' }, locked: true, condition: 'VIP4' }
+      { id: 'frame6', name: '流光幻彩', style: { border: '3px solid transparent', borderRadius: '50%', boxShadow: '0 0 16px rgba(255, 107, 129, 0.6), 0 0 0 4px #fff', background: 'linear-gradient(135deg, #FF6B81, #E64C65, #ffd700, #ff6b6b) padding-box, linear-gradient(135deg, #FF6B81, #E64C65, #ffd700, #ff6b6b) border-box' }, locked: true, condition: 'VIP4' }
     ]
   },
   {
@@ -124,8 +124,8 @@ const selectFrame = (frame) => {
 
 .header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   padding: 0 20px;
   height: 70px;
   position: fixed;
@@ -134,7 +134,7 @@ const selectFrame = (frame) => {
   transform: translateX(-50%);
   width: 100%;
   max-width: 650px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   z-index: 100;
 }
 
@@ -176,7 +176,7 @@ const selectFrame = (frame) => {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: linear-gradient(135deg, #667eea08, #764ba208);
+  background: linear-gradient(135deg, #FF6B8108, #E64C6508);
   border-radius: 12px;
   padding: 30px;
 }
@@ -247,8 +247,8 @@ const selectFrame = (frame) => {
 }
 
 .frame-item.active {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.03);
+  border-color: #FF6B81;
+  background: rgba(255, 107, 129, 0.03);
 }
 
 .frame-item.locked {
@@ -290,7 +290,7 @@ const selectFrame = (frame) => {
   right: 8px;
   width: 22px;
   height: 22px;
-  background: #667eea;
+  background: #FF6B81;
   color: white;
   border-radius: 50%;
   display: flex;

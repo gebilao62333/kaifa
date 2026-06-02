@@ -185,7 +185,7 @@ onMounted(() => {
 .chat-users-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
@@ -194,8 +194,7 @@ onMounted(() => {
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -232,7 +231,7 @@ onMounted(() => {
 
 .category-tabs {
   display: flex;
-  background: white;
+  background: var(--bg-primary);
   padding: 62px 12px 0;
   overflow-x: auto;
   gap: 8px;
@@ -254,11 +253,11 @@ onMounted(() => {
 }
 
 .tab-item.active {
-  border-bottom-color: #667eea;
+  border-bottom-color: var(--primary-color);
 }
 
 .tab-item.active .tab-label {
-  color: #667eea;
+  color: var(--primary-color);
   font-weight: 600;
 }
 
@@ -268,7 +267,7 @@ onMounted(() => {
 
 .tab-label {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   white-space: nowrap;
 }
 
@@ -282,17 +281,17 @@ onMounted(() => {
   display: flex;
   align-items: center;
   padding: 16px 12px;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 16px;
   margin-bottom: 10px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-light);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .user-item:active {
   transform: scale(0.98);
-  background: #f9f9f9;
+  background: var(--bg-secondary);
 }
 
 .avatar-wrap {
@@ -334,7 +333,7 @@ onMounted(() => {
 .nickname {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   max-width: 120px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -349,19 +348,19 @@ onMounted(() => {
 }
 
 .gender-tag.male {
-  background: rgba(102, 126, 234, 0.15);
-  color: #667eea;
+  background: rgba(255, 107, 129, 0.15);
+  color: #FF6B81;
 }
 
 .gender-tag.female {
-  background: rgba(245, 87, 108, 0.15);
-  color: #f5576c;
+  background: rgba(255, 107, 129, 0.15);
+  color: var(--primary-color);
 }
 
 .level-tag {
   font-size: 11px;
-  color: #999;
-  background: #f5f5f5;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
   padding: 1px 6px;
   border-radius: 4px;
 }
@@ -384,8 +383,8 @@ onMounted(() => {
 
 .tag {
   font-size: 11px;
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  color: var(--primary-color);
+  background: rgba(255, 107, 129, 0.1);
   padding: 2px 8px;
   border-radius: 10px;
 }
@@ -398,23 +397,23 @@ onMounted(() => {
 
 .status-text {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .status-text.online {
-  color: #4cd964;
+  color: var(--success-color);
 }
 
 .region-text {
   font-size: 12px;
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 .chat-btn {
   flex-shrink: 0;
   width: 56px;
   height: 32px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border: none;
   border-radius: 16px;
   color: white;
@@ -445,7 +444,7 @@ onMounted(() => {
 
 .empty-text {
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 @media (min-width: 768px) {

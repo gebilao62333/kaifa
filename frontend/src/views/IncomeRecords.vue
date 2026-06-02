@@ -48,7 +48,7 @@ const router = useRouter()
 const totalIncome = ref(68.50)
 
 const records = ref([
-  { icon: '🎮', title: '陪玩订单', desc: '王者荣耀 · 2小时', time: '14:30', amount: 50.00, bgColor: 'linear-gradient(135deg, #667eea, #764ba2)' },
+  { icon: '🎮', title: '陪玩订单', desc: '王者荣耀 · 2小时', time: '14:30', amount: 50.00, bgColor: 'linear-gradient(135deg, #FF6B81, #E64C65)' },
   { icon: '💬', title: '语音陪聊', desc: '语音聊天 · 30分钟', time: '11:20', amount: 18.50, bgColor: 'linear-gradient(135deg, #4facfe, #00f2fe)' },
   { icon: '⭐', title: '打赏收入', desc: '用户"小可爱"打赏', time: '09:15', amount: 8.00, bgColor: 'linear-gradient(135deg, #f093fb, #f5576c)' },
   { icon: '🎯', title: '活动奖励', desc: '每日接单任务奖励', time: '08:00', amount: 2.00, bgColor: 'linear-gradient(135deg, #43e97b, #38f9d7)' }
@@ -67,7 +67,7 @@ const goBack = () => {
 .records-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-top: 70px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
@@ -79,8 +79,7 @@ const goBack = () => {
   justify-content: space-between;
   padding: 0 20px;
   height: 70px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   position: fixed;
   top: 0;
   left: 50%;
@@ -106,7 +105,7 @@ const goBack = () => {
 
 .total {
   font-size: 15px;
-  color: #10b981;
+  color: var(--success-color);
   font-weight: 600;
   width: 80px;
   text-align: right;
@@ -115,11 +114,11 @@ const goBack = () => {
 .summary-card {
   display: flex;
   align-items: center;
-  background: #fff;
+  background: var(--bg-primary);
   margin: 12px;
   padding: 20px;
   border-radius: 10px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  box-shadow: var(--shadow-light);
 }
 
 .summary-item {
@@ -129,7 +128,7 @@ const goBack = () => {
 
 .summary-label {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   display: block;
   margin-bottom: 6px;
 }
@@ -137,17 +136,17 @@ const goBack = () => {
 .summary-value {
   font-size: 22px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .summary-value.income {
-  color: #10b981;
+  color: var(--success-color);
 }
 
 .summary-divider {
   width: 1px;
   height: 40px;
-  background: #f0f0f0;
+  background: var(--border-light);
   margin: 0 16px;
 }
 
@@ -158,7 +157,7 @@ const goBack = () => {
 .record-card {
   display: flex;
   align-items: center;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 14px;
   padding: 16px;
   margin-bottom: 10px;
@@ -187,21 +186,21 @@ const goBack = () => {
 .record-title {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   display: block;
   margin-bottom: 2px;
 }
 
 .record-desc {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   display: block;
   margin-bottom: 2px;
 }
 
 .record-time {
   font-size: 11px;
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 .record-amount {
@@ -212,7 +211,7 @@ const goBack = () => {
 }
 
 .record-amount.income {
-  color: #10b981;
+  color: var(--success-color);
 }
 
 .empty-state {
@@ -229,7 +228,7 @@ const goBack = () => {
 
 .empty-text {
   font-size: 15px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 @media (min-width: 768px) {

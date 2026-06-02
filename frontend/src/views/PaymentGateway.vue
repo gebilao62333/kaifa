@@ -1,13 +1,18 @@
 <template>
   <div class="pay-gateway-page">
     <div class="header">
-      <span class="back-btn" @click="goBack">←</span>
+      <button class="back-btn" @click="goBack">
+        <span class="back-arrow">←</span>
+      </button>
       <span class="title">{{ pageTitle }}</span>
+      <div class="header-spacer"></div>
     </div>
 
     <div class="gateway-body">
       <div class="method-banner" :style="{ background: methodBg }">
-        <span class="method-icon">{{ methodIcon }}</span>
+        <div class="method-icon-wrapper">
+          <span class="method-icon">{{ methodIcon }}</span>
+        </div>
         <div class="method-info">
           <span class="method-name">{{ methodName }}</span>
           <span class="method-desc">{{ payDesc }}</span>
@@ -16,7 +21,7 @@
 
       <div class="amount-card" v-if="!isProcessing && !isDone">
         <span class="label">{{ amountLabel }}</span>
-        <span class="amount-value">{{ isRechargeWithFiat ? '¥' + formatPrice(amount) : formatPrice(amount) + ' 金币' }}</span>
+        <span class="amount-value">{{ formatPrice(amount) }} 金币</span>
       </div>
 
       <div class="pay-qr-section" v-if="showQR && !isProcessing && !isDone">
@@ -76,7 +81,7 @@
       <div class="done-state" v-if="isDone">
         <div class="done-icon">✅</div>
         <div class="done-title">支付成功</div>
-        <div class="done-amount">{{ isRechargeWithFiat ? '¥' + formatPrice(amount) : formatPrice(amount) + ' 金币' }}</div>
+        <div class="done-amount">{{ formatPrice(amount) }} 金币</div>
         <div class="done-method">通过 {{ methodName }} 支付</div>
         <div class="done-balance">剩余金币：{{ formatPrice(newBalance) }}</div>
         <button class="done-btn" @click="finish">完成</button>
@@ -89,12 +94,26 @@
       </div>
     </div>
   </div>
+
+  <div class="pay-confirm-modal" v-if="showConfirmModal" @click.self="showConfirmModal = false">
+    <div class="confirm-dialog">
+      <div class="confirm-icon">💳</div>
+      <div class="confirm-title">确认支付</div>
+      <div class="confirm-amount">{{ formatPrice(amount) }} 金币</div>
+      <div class="confirm-desc">通过 {{ methodName }} 完成支付</div>
+      <div class="confirm-actions">
+        <button class="confirm-btn secondary" @click="showConfirmModal = false">取消</button>
+        <button class="confirm-btn primary" @click="confirmPay">确认支付</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useLoginManager } from '../composables/useLoginManager'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const route = useRoute()
@@ -110,6 +129,7 @@ const newBalance = ref(0)
 const cardNo = ref('')
 const cardExpiry = ref('')
 const cardCvv = ref('')
+const showConfirmModal = ref(false)
 
 const saveBalanceToStorage = () => {
   try {
@@ -129,7 +149,7 @@ const methodConfig = {
   alipay: { name: '支付宝', icon: 'Z', bg: 'linear-gradient(135deg, #1677ff, #4096ff)', desc: '安全快捷支付' },
   wechat: { name: '微信支付', icon: 'W', bg: 'linear-gradient(135deg, #07c160, #39d97e)', desc: '推荐使用微信支付' },
   card: { name: '密卡支付', icon: '💳', bg: 'linear-gradient(135deg, #fa8c16, #ffc53d)', desc: '输入密卡信息完成支付' },
-  balance: { name: '余额支付', icon: '💰', bg: 'linear-gradient(135deg, #667eea, #764ba2)', desc: '直接使用余额支付' }
+  balance: { name: '余额支付', icon: '💰', bg: 'linear-gradient(135deg, #FF6B81, #E64C65)', desc: '直接使用余额支付' }
 }
 
 const config = computed(() => methodConfig[methodId.value] || methodConfig.alipay)
@@ -183,18 +203,18 @@ const goBack = () => {
   router.back()
 }
 
-const startPay = async () => {
-  const loginResult = await requireLogin()
-  if (!loginResult.loggedIn) {
-    return
-  }
-
+const executePay = () => {
   if (methodId.value === 'coin') {
     isProcessing.value = true
     setTimeout(() => {
-      newBalance.value = Math.max(0, balance.value - amount.value)
+      if (type.value === 'recharge') {
+        newBalance.value = balance.value + amount.value
+      } else {
+        newBalance.value = Math.max(0, balance.value - amount.value)
+      }
       isProcessing.value = false
       isDone.value = true
+      toast.success(type.value === 'recharge' ? '充值成功' : '支付成功')
     }, 1500)
     return
   }
@@ -227,14 +247,36 @@ const startPay = async () => {
     }
     isProcessing.value = false
     isDone.value = true
+    toast.success('支付成功')
   }, 2000)
+}
+
+const startPay = async () => {
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) {
+    return
+  }
+
+  // 为了确保可以正常支付，我们先直接执行支付
+  executePay()
+}
+
+const confirmPay = () => {
+  showConfirmModal.value = false
+  executePay()
 }
 
 const fallbackPay = (name) => {
   isProcessing.value = true
   setTimeout(() => {
+    if (type.value === 'recharge') {
+      newBalance.value = balance.value + amount.value
+    } else {
+      newBalance.value = Math.max(0, balance.value - amount.value)
+    }
     isProcessing.value = false
     isDone.value = true
+    toast.success(type.value === 'recharge' ? '充值成功' : '支付成功')
   }, 1500)
 }
 
@@ -257,7 +299,7 @@ const finish = () => {
 .pay-gateway-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background: #f5f5f5;
+  background: linear-gradient(180deg, #f8f9fa 0%, #f0f2f5 100%);
   padding-top: 70px;
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
@@ -269,7 +311,8 @@ const finish = () => {
 .header {
   display: flex;
   align-items: center;
-  padding: 0 20px;
+  justify-content: space-between;
+  padding: 0 16px;
   height: 70px;
   position: fixed;
   top: 0;
@@ -277,28 +320,52 @@ const finish = () => {
   transform: translateX(-50%);
   width: 100%;
   max-width: 650px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
+  background: -webkit-linear-gradient(315deg, #FF6B81 0%, #E64C65 100%);
   color: white;
   z-index: 100;
+  box-shadow: 0 2px 12px rgba(255, 107, 129, 0.25);
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
 }
 
 .back-btn {
-  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.15);
   cursor: pointer;
-  margin-right: 20px;
   -webkit-tap-highlight-color: transparent;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.back-btn:active {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(0.95);
+}
+
+.back-arrow {
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.header-spacer {
+  width: 40px;
 }
 
 .title {
   font-size: 18px;
-  font-weight: bold;
+  font-weight: 700;
+  letter-spacing: 0.3px;
 }
 
 .gateway-body {
-  padding: 12px;
+  padding: 16px;
   max-width: 650px;
   margin: 0 auto;
 }
@@ -307,22 +374,28 @@ const finish = () => {
   display: flex;
   align-items: center;
   padding: 20px;
-  border-radius: 10px;
+  border-radius: 16px;
   color: white;
   margin-bottom: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
-.method-icon {
-  width: 44px;
-  height: 44px;
-  background: rgba(255,255,255,0.25);
-  border-radius: 12px;
+.method-icon-wrapper {
+  width: 52px;
+  height: 52px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
-  font-weight: bold;
   margin-right: 14px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.method-icon {
+  font-size: 24px;
+  font-weight: bold;
 }
 
 .method-info {
@@ -330,36 +403,53 @@ const finish = () => {
 }
 
 .method-name {
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   display: block;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
+  letter-spacing: 0.2px;
 }
 
 .method-desc {
-  font-size: 12px;
-  opacity: 0.85;
+  font-size: 13px;
+  opacity: 0.9;
 }
 
 .amount-card {
   background: white;
-  border-radius: 14px;
-  padding: 24px;
+  border-radius: 20px;
+  padding: 32px 24px;
   text-align: center;
   margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  animation: slideUp 0.4s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .amount-card .label {
-  font-size: 13px;
-  color: #999;
+  font-size: 14px;
+  color: #888;
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
 .amount-value {
-  font-size: 36px;
-  font-weight: bold;
-  color: #333;
+  font-size: 40px;
+  font-weight: 800;
+  color: #1a1a2e;
+  letter-spacing: -0.5px;
 }
 
 .pay-qr-section {
@@ -370,21 +460,23 @@ const finish = () => {
 
 .qr-box {
   background: white;
-  border-radius: 14px;
-  padding: 24px;
+  border-radius: 20px;
+  padding: 28px;
   text-align: center;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 .qr-placeholder {
-  width: 200px;
-  height: 200px;
-  border: 2px dashed #ddd;
-  border-radius: 12px;
+  width: 220px;
+  height: 220px;
+  border: 2px dashed #e5e7eb;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
   overflow: hidden;
+  background: #fafafa;
 }
 
 .qr-img {
@@ -394,19 +486,21 @@ const finish = () => {
 }
 
 .qr-tip {
-  font-size: 13px;
-  color: #999;
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 500;
 }
 
 .card-form {
   background: white;
-  border-radius: 14px;
-  padding: 20px;
+  border-radius: 20px;
+  padding: 24px;
   margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 .card-input-group {
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .card-input-group.half {
@@ -419,42 +513,48 @@ const finish = () => {
 }
 
 .card-input-label {
-  font-size: 13px;
-  color: #666;
+  font-size: 14px;
+  color: #4b5563;
   display: block;
   margin-bottom: 8px;
+  font-weight: 600;
 }
 
 .card-input {
   width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e8e8e8;
-  border-radius: 10px;
+  padding: 14px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
   font-size: 16px;
   outline: none;
   box-sizing: border-box;
-  transition: border-color 0.2s;
+  transition: all 0.2s ease;
+  background: #fafafa;
 }
 
 .card-input:focus {
-  border-color: #667eea;
+  border-color: #FF6B81;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(255, 107, 129, 0.1);
 }
 
 .coin-section {
   background: white;
-  border-radius: 14px;
-  padding: 20px;
+  border-radius: 20px;
+  padding: 24px;
   margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 .coin-check {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .coin-check-icon {
-  font-size: 36px;
+  font-size: 40px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .coin-check-info {
@@ -462,34 +562,37 @@ const finish = () => {
 }
 
 .coin-check-label {
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a2e;
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .coin-check-desc {
-  font-size: 12px;
-  color: #999;
+  font-size: 13px;
+  color: #6b7280;
   display: block;
+  font-weight: 500;
 }
 
 .balance-section {
   background: white;
-  border-radius: 14px;
-  padding: 20px;
+  border-radius: 20px;
+  padding: 24px;
   margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
 }
 
 .balance-check {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .balance-check-icon {
-  font-size: 36px;
+  font-size: 40px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .balance-check-info {
@@ -497,17 +600,18 @@ const finish = () => {
 }
 
 .balance-check-label {
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a2e;
   display: block;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .balance-check-desc {
-  font-size: 12px;
-  color: #999;
+  font-size: 13px;
+  color: #6b7280;
   display: block;
+  font-weight: 500;
 }
 
 .processing-state {
@@ -515,17 +619,18 @@ const finish = () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 0;
+  padding: 100px 0;
 }
 
 .spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #e8e8e8;
-  border-top-color: #667eea;
+  width: 56px;
+  height: 56px;
+  border: 4px solid #e5e7eb;
+  border-top-color: #FF6B81;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 0 20px rgba(255, 107, 129, 0.2);
 }
 
 @keyframes spin {
@@ -533,91 +638,239 @@ const finish = () => {
 }
 
 .processing-text {
-  font-size: 17px;
-  font-weight: 600;
-  color: #333;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a2e;
   margin-bottom: 8px;
 }
 
 .processing-hint {
-  font-size: 13px;
-  color: #999;
+  font-size: 14px;
+  color: #6b7280;
 }
 
 .done-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 60px 0;
+  padding: 80px 0;
+  animation: scaleIn 0.4s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .done-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
+  font-size: 72px;
+  margin-bottom: 20px;
+  animation: bounce 0.6s ease-out;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
 }
 
 .done-title {
-  font-size: 22px;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 8px;
+  font-size: 24px;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin-bottom: 12px;
 }
 
 .done-amount {
-  font-size: 36px;
-  font-weight: bold;
+  font-size: 40px;
+  font-weight: 800;
   color: #10b981;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .done-method {
-  font-size: 13px;
-  color: #999;
-  margin-bottom: 4px;
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 6px;
+  font-weight: 500;
 }
 
 .done-balance {
-  font-size: 14px;
-  color: #666;
-  margin-bottom: 32px;
+  font-size: 15px;
+  color: #4b5563;
+  margin-bottom: 36px;
+  font-weight: 600;
 }
 
 .done-btn {
-  width: 280px;
-  padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  width: 300px;
+  padding: 16px;
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: white;
   border: none;
-  border-radius: 24px;
-  font-size: 16px;
-  font-weight: 600;
+  border-radius: 28px;
+  font-size: 17px;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 4px 16px rgba(255, 107, 129, 0.3);
+  transition: all 0.2s ease;
+}
+
+.done-btn:active {
+  transform: scale(0.96);
+  box-shadow: 0 2px 8px rgba(255, 107, 129, 0.2);
 }
 
 .gateway-actions {
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 .pay-now-btn {
   width: 100%;
-  padding: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 18px;
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   color: white;
   border: none;
-  border-radius: 24px;
-  font-size: 16px;
-  font-weight: bold;
+  border-radius: 28px;
+  font-size: 17px;
+  font-weight: 700;
   cursor: pointer;
-  transition: opacity 0.2s;
+  box-shadow: 0 4px 16px rgba(255, 107, 129, 0.3);
+  transition: all 0.2s ease;
+  letter-spacing: 0.3px;
+}
+
+.pay-now-btn:active {
+  transform: scale(0.96);
+  box-shadow: 0 2px 8px rgba(255, 107, 129, 0.2);
 }
 
 .pay-now-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.pay-confirm-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: overlayFadeIn 0.25s ease-out;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.pay-confirm-modal .confirm-dialog {
+  width: 88%;
+  max-width: 340px;
+  background: white;
+  border-radius: 24px;
+  padding: 32px 24px 24px;
+  text-align: center;
+  animation: dialogBounce 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes dialogBounce {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.pay-confirm-modal .confirm-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+  display: block;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+}
+
+.pay-confirm-modal .confirm-title {
+  font-size: 19px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 10px;
+}
+
+.pay-confirm-modal .confirm-amount {
+  font-size: 32px;
+  font-weight: 800;
+  color: #FF6B81;
+  margin-bottom: 10px;
+  letter-spacing: -0.5px;
+}
+
+.pay-confirm-modal .confirm-desc {
+  font-size: 14px;
+  color: #6b7280;
+  margin-bottom: 24px;
+  font-weight: 500;
+}
+
+.pay-confirm-modal .confirm-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.pay-confirm-modal .confirm-btn {
+  flex: 1;
+  padding: 14px;
+  border-radius: 24px;
+  font-size: 15px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  letter-spacing: 0.3px;
+}
+
+.pay-confirm-modal .confirm-btn:active {
+  transform: scale(0.95);
+}
+
+.pay-confirm-modal .confirm-btn.secondary {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.pay-confirm-modal .confirm-btn.secondary:hover {
+  background: #e5e7eb;
+}
+
+.pay-confirm-modal .confirm-btn.primary {
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
+  color: white;
+  box-shadow: 0 4px 16px rgba(255, 107, 129, 0.3);
+}
+
+.pay-confirm-modal .confirm-btn.primary:hover {
+  box-shadow: 0 6px 20px rgba(255, 107, 129, 0.4);
 }
 
 @media (min-width: 768px) {
-  .payment-gateway-page {
+  .pay-gateway-page {
     max-width: 650px;
     margin: 0 auto;
   }
@@ -628,7 +881,7 @@ const finish = () => {
   }
 }
 @media (min-width: 1024px) {
-  .payment-gateway-page {
+  .pay-gateway-page {
     max-width: 720px;
   }
   .header {

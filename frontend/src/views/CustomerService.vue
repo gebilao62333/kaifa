@@ -159,7 +159,7 @@ const callPhone = () => {
 .customer-service-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
   padding-top: 82px;
@@ -171,8 +171,7 @@ const callPhone = () => {
   justify-content: space-between;
   padding: 0 20px;
   height: 70px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   position: fixed;
   top: 0;
   left: 50%;
@@ -290,8 +289,8 @@ const callPhone = () => {
 }
 
 .agent-role.senior {
-  background: linear-gradient(135deg, #667eea20, #764ba220);
-  color: #667eea;
+  background: linear-gradient(135deg, #FF6B8120, #E64C6520);
+  color: #FF6B81;
 }
 
 .agent-desc {
@@ -359,7 +358,7 @@ const callPhone = () => {
 }
 
 .contact-icon-wrapper.online {
-  background: linear-gradient(135deg, #667eea20, #764ba220);
+  background: linear-gradient(135deg, #FF6B8120, #E64C6520);
 }
 
 .contact-icon-wrapper.phone {

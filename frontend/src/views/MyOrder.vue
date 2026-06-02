@@ -131,20 +131,189 @@
         </div>
       </div>
     </div>
+
+    <div class="confirm-modal" v-if="showCancelModal" @click.self="showCancelModal = false">
+      <div class="confirm-dialog">
+        <div class="confirm-icon">⚠️</div>
+        <div class="confirm-title">确认取消订单</div>
+        <div class="confirm-message">
+          取消订单后将无法恢复，退款会在1-3个工作日内到账。
+        </div>
+        <div class="confirm-actions">
+          <button class="confirm-btn secondary" @click="showCancelModal = false">再想想</button>
+          <button class="confirm-btn danger" @click="confirmCancel">确认取消</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="order-detail-overlay" v-if="showOrderDetail && selectedOrder" @click.self="closeOrderDetail">
+      <div class="order-detail-page">
+        <div class="detail-header">
+          <span class="detail-back-btn" @click="closeOrderDetail">←</span>
+          <span class="detail-title">订单详情</span>
+        </div>
+
+        <div class="detail-body">
+          <div class="detail-status-banner" :class="selectedOrder.status">
+            <span class="status-icon-large">
+              <template v-if="selectedOrder.status === 'pending'">⏳</template>
+              <template v-else-if="selectedOrder.status === 'waiting'">🕐</template>
+              <template v-else-if="selectedOrder.status === 'ongoing'">🔄</template>
+              <template v-else-if="selectedOrder.status === 'finished'">✅</template>
+              <template v-else-if="selectedOrder.status === 'cancelled'">❌</template>
+            </span>
+            <span class="status-text-large">{{ getStatusText(selectedOrder.status) }}</span>
+            <span class="status-desc">{{ getStatusDesc(selectedOrder.status) }}</span>
+          </div>
+
+          <div class="detail-section">
+            <div class="section-title">订单信息</div>
+            <div class="info-grid">
+              <div class="info-item">
+                <span class="info-label">订单编号</span>
+                <span class="info-value">{{ formatOrderNo(selectedOrder.id) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">下单时间</span>
+                <span class="info-value">{{ formatDateTime(selectedOrder.createTime) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">游戏名称</span>
+                <span class="info-value">{{ selectedOrder.game }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">服务类型</span>
+                <span class="info-value">
+                  <span class="tag service-tag">{{ selectedOrder.serviceType }}</span>
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">订单来源</span>
+                <span class="info-value">
+                  <span class="tag source-tag">{{ selectedOrder.orderSource }}</span>
+                </span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">服务时长</span>
+                <span class="info-value">{{ selectedOrder.duration }} 小时</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <div class="section-title">陪玩信息</div>
+            <div class="companion-detail-card">
+              <img class="detail-companion-avatar" :src="selectedOrder.avatar" alt="" />
+              <div class="detail-companion-info">
+                <div class="detail-companion-name">{{ selectedOrder.companionName }}</div>
+                <div class="detail-companion-desc">{{ selectedOrder.title }}</div>
+                <div class="detail-companion-tags">
+                  <span class="tag service-tag">{{ selectedOrder.serviceType }}</span>
+                  <span class="tag source-tag">{{ selectedOrder.orderSource }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <div class="section-title">订单进度</div>
+            <div class="timeline">
+              <div class="timeline-item" :class="{ active: true }">
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">订单创建</div>
+                  <div class="timeline-time">{{ formatDateTime(selectedOrder.createTime) }}</div>
+                </div>
+              </div>
+              <div class="timeline-item" :class="{ active: selectedOrder.status !== 'pending' && selectedOrder.status !== 'cancelled' }">
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">已付款</div>
+                  <div class="timeline-time" v-if="selectedOrder.status !== 'pending' && selectedOrder.status !== 'cancelled'">{{ formatDateTime(selectedOrder.createTime + 600000) }}</div>
+                  <div class="timeline-time" v-else>等待付款</div>
+                </div>
+              </div>
+              <div class="timeline-item" :class="{ active: selectedOrder.status === 'ongoing' || selectedOrder.status === 'finished' }">
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">服务进行中</div>
+                  <div class="timeline-time" v-if="selectedOrder.status === 'ongoing' || selectedOrder.status === 'finished'">{{ formatDateTime(selectedOrder.createTime + 1800000) }}</div>
+                  <div class="timeline-time" v-else>未开始</div>
+                </div>
+              </div>
+              <div class="timeline-item" :class="{ active: selectedOrder.status === 'finished' }">
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                  <div class="timeline-title">服务完成</div>
+                  <div class="timeline-time" v-if="selectedOrder.status === 'finished'">{{ formatDateTime(selectedOrder.createTime + 7200000) }}</div>
+                  <div class="timeline-time" v-else>未完成</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-section">
+            <div class="section-title">金额明细</div>
+            <div class="price-breakdown">
+              <div class="price-row">
+                <span class="price-row-label">服务单价</span>
+                <span class="price-row-value">{{ Math.round(selectedOrder.price / selectedOrder.duration) }} 金币/小时</span>
+              </div>
+              <div class="price-row">
+                <span class="price-row-label">服务时长</span>
+                <span class="price-row-value">{{ selectedOrder.duration }} 小时</span>
+              </div>
+              <div class="price-row price-row--total">
+                <span class="price-row-label">合计</span>
+                <span class="price-row-value price-row-value--total">{{ selectedOrder.price }} 金币</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-footer">
+          <div class="detail-price-info">
+            <span class="detail-price-label">应付金额</span>
+            <span class="detail-price">{{ selectedOrder.price }} 金币</span>
+          </div>
+          <div class="detail-actions">
+            <button class="action-btn secondary" v-if="selectedOrder.status === 'pending'" @click="cancelOrder(selectedOrder)">取消订单</button>
+            <button class="action-btn primary" v-if="selectedOrder.status === 'pending'" @click="payOrder(selectedOrder)">立即付款</button>
+            <button class="action-btn primary" v-if="selectedOrder.status === 'waiting'" @click="startService(selectedOrder); closeOrderDetail()">开始服务</button>
+            <button class="action-btn primary" v-if="selectedOrder.status === 'ongoing'" @click="endService(selectedOrder); closeOrderDetail()">服务结束</button>
+            <button class="action-btn primary" v-if="selectedOrder.status === 'pending' || selectedOrder.status === 'ongoing'" @click="contactCompanion(selectedOrder)">联系陪玩</button>
+            <button class="action-btn primary" v-if="selectedOrder.status === 'finished' && !selectedOrder.rated" @click="rateOrder(selectedOrder); closeOrderDetail()">评价</button>
+            <button class="action-btn secondary" v-if="selectedOrder.status === 'finished' && selectedOrder.rated" disabled>已评价</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useLoginManager } from '../composables/useLoginManager'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const route = useRoute()
+const { requireLogin } = useLoginManager()
 const activeTab = ref('all')
 
 const goBack = () => {
   router.back()
 }
+
+const showRateModal = ref(false)
+const ratingValue = ref(0)
+const ratingComment = ref('')
+const currentRateOrder = ref(null)
+const selectedOrder = ref(null)
+const showOrderDetail = ref(false)
+const showCancelModal = ref(false)
+const cancelTarget = ref(null)
 
 // 在组件挂载时检查是否有刚支付的订单需要更新
 onMounted(() => {
@@ -171,10 +340,6 @@ onMounted(() => {
     router.replace({ path: '/my-order' })
   }
 })
-const showRateModal = ref(false)
-const ratingValue = ref(0)
-const ratingComment = ref('')
-const currentRateOrder = ref(null)
 
 // 默认订单数据
 const defaultOrders = [
@@ -287,6 +452,17 @@ const getStatusText = (status) => {
   return statusMap[status] || status
 }
 
+const getStatusDesc = (status) => {
+  const descMap = {
+    pending: '请尽快完成付款，超时订单将自动取消',
+    waiting: '等待陪玩师开始服务',
+    ongoing: '服务正在进行中，请保持联系',
+    finished: '服务已顺利完成',
+    cancelled: '订单已取消'
+  }
+  return descMap[status] || ''
+}
+
 const formatOrderNo = (id) => {
   return `DD${String(id).padStart(8, '0')}`
 }
@@ -300,21 +476,46 @@ const formatTime = (timestamp) => {
   return `${month}-${day} ${hour}:${minute}`
 }
 
+const formatDateTime = (timestamp) => {
+  const date = new Date(timestamp)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hour = String(date.getHours()).padStart(2, '0')
+  const minute = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hour}:${minute}`
+}
+
 const getFilteredOrders = () => {
   if (activeTab.value === 'all') return orderList.value
   return orderList.value.filter(item => item.status === activeTab.value)
 }
 
 const goOrderDetail = (item) => {
-  console.log('订单详情:', item.id)
-  alert('订单详情功能开发中...')
+  selectedOrder.value = item
+  showOrderDetail.value = true
+}
+
+const closeOrderDetail = () => {
+  showOrderDetail.value = false
+  selectedOrder.value = null
 }
 
 const cancelOrder = (item) => {
-  if (confirm('确定要取消这个订单吗？取消后无法恢复')) {
-    item.status = 'cancelled'
+  cancelTarget.value = item
+  showCancelModal.value = true
+}
+
+const confirmCancel = () => {
+  if (cancelTarget.value) {
+    cancelTarget.value.status = 'cancelled'
     saveOrders(orderList.value)
-    alert('订单已取消，退款将在1-3个工作日内到账')
+    showCancelModal.value = false
+    if (showOrderDetail.value) {
+      closeOrderDetail()
+    }
+    cancelTarget.value = null
+    toast.success('订单已取消，退款将在1-3个工作日内到账')
   }
 }
 
@@ -334,18 +535,19 @@ const payOrder = (item) => {
 const startService = (item) => {
   item.status = 'ongoing'
   saveOrders(orderList.value)
-  alert('服务已开始')
+  toast.success('服务已开始')
 }
 
 const endService = (item) => {
   item.status = 'finished'
   saveOrders(orderList.value)
   activeTab.value = 'finished'
-  alert('服务已结束')
+  toast.success('服务已结束')
 }
 
-const contactCompanion = (item) => {
-  console.log('联系陪玩:', item.companionName)
+const contactCompanion = async (item) => {
+  const loginResult = await requireLogin()
+  if (!loginResult.loggedIn) return
   router.push(`/chat-room/${item.id}`)
 }
 
@@ -366,7 +568,7 @@ const submitRating = () => {
     currentRateOrder.value.rated = true
     saveOrders(orderList.value)
     showRateModal.value = false
-    alert(`评价成功！您的评分：${ratingValue.value}星，评价：${ratingComment.value || '无'}`)
+    toast.success(`评价成功！您的评分：${ratingValue.value}星`)
     currentRateOrder.value = null
   }
 }
@@ -376,7 +578,7 @@ const submitRating = () => {
 .my-order-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background-color: #f5f5f5;
+  background-color: var(--bg-secondary);
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
@@ -386,8 +588,7 @@ const submitRating = () => {
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -418,19 +619,16 @@ const submitRating = () => {
 }
 
 .header .title {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: bold;
   color: white;
-  width: 350px;
-  height: 30px;
   text-align: center;
-  padding: 0 0 10px;
-  margin: 10px 131px 8px 13px;
-  transform: none;
+  flex: 1;
+  margin-right: 40px;
 }
 
 .tabs {
-  background: white;
+  background: var(--bg-primary);
   display: flex;
   justify-content: space-around;
   padding: 12px 0 0;
@@ -443,13 +641,13 @@ const submitRating = () => {
   padding: 8px 16px;
   border-radius: 20px;
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   white-space: nowrap;
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   padding-top: 11px;
   padding-bottom: 5px;
@@ -463,30 +661,31 @@ const submitRating = () => {
 }
 
 .order-card {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
   cursor: pointer;
-  width: 720px;
-  margin-left: -16px;
+  width: 100%;
+  box-sizing: border-box;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .order-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 
 .order-meta {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
-  color: #999;
-  margin-bottom: 12px;
-  padding-bottom: 8px;
-  border-bottom: 1px dashed #f0f0f0;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed var(--border-light);
 }
 
 .order-no {
@@ -507,19 +706,20 @@ const submitRating = () => {
 }
 
 .game-icon {
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .game-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .status {
   font-size: 13px;
-  padding: 4px 12px;
-  border-radius: 4px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 500;
 }
 
 .status.pending {
@@ -538,65 +738,69 @@ const submitRating = () => {
 }
 
 .status.finished {
-  background: #f5f5f5;
-  color: #999;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
 }
 
 .status.cancelled {
-  background: #f5f5f5;
-  color: #999;
+  background: var(--bg-secondary);
+  color: var(--text-muted);
 }
 
 .order-content {
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .companion-info {
   display: flex;
-  gap: 12px;
+  gap: 14px;
+  align-items: center;
 }
 
 .companion-avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: 12px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
   object-fit: cover;
+  border: 2px solid var(--bg-secondary);
 }
 
 .info {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .companion-name {
-  font-size: 15px;
-  font-weight: 500;
-  color: #333;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .order-desc {
-  font-size: 13px;
-  color: #666;
-  line-height: 1.5;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 
 .order-tags {
   display: flex;
-  gap: 6px;
-  margin-top: 6px;
+  gap: 8px;
+  margin-top: 8px;
+  flex-wrap: wrap;
 }
 
 .tag {
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .service-tag {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: rgba(255, 107, 129, 0.1);
+  color: var(--primary-color);
 }
 
 .source-tag {
@@ -608,48 +812,58 @@ const submitRating = () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 12px;
-  border-top: 1px solid #f5f5f5;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-light);
 }
 
 .price-info {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: 10px;
 }
 
 .price {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: bold;
-  color: #ff6b6b;
+  color: var(--primary-color);
 }
 
 .duration {
-  font-size: 13px;
-  color: #999;
+  font-size: 14px;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  padding: 4px 10px;
+  border-radius: 12px;
 }
 
 .order-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .action-btn {
-  padding: 8px 20px;
-  border-radius: 20px;
-  font-size: 13px;
+  padding: 10px 24px;
+  border-radius: 24px;
+  font-size: 14px;
+  font-weight: 500;
   border: none;
   cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.action-btn:active {
+  transform: scale(0.95);
 }
 
 .action-btn.secondary {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
 .action-btn.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
+  box-shadow: 0 4px 12px rgba(255, 107, 129, 0.3);
 }
 
 .action-btn:disabled {
@@ -669,7 +883,7 @@ const submitRating = () => {
 .empty-icon {
   width: 100px;
   height: 100px;
-  background: linear-gradient(135deg, #f0f0f0 0%, #e8e8e8 100%);
+  background: var(--bg-secondary);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -679,12 +893,12 @@ const submitRating = () => {
 
 .empty-text {
   font-size: 15px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .empty-hint {
   font-size: 13px;
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 .rate-modal-overlay {
@@ -704,7 +918,7 @@ const submitRating = () => {
 .rate-modal {
   width: 100%;
   max-width: 360px;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 16px;
   overflow: hidden;
 }
@@ -714,18 +928,18 @@ const submitRating = () => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .modal-title {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .modal-close {
   font-size: 24px;
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
   line-height: 1;
 }
@@ -741,7 +955,7 @@ const submitRating = () => {
 .rating-label {
   display: block;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
@@ -752,7 +966,7 @@ const submitRating = () => {
 
 .star {
   font-size: 40px;
-  color: #e0e0e0;
+  color: var(--border-color);
   cursor: pointer;
   transition: color 0.2s;
 }
@@ -768,7 +982,7 @@ const submitRating = () => {
 .comment-label {
   display: block;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
@@ -776,11 +990,13 @@ const submitRating = () => {
   width: 100%;
   height: 100px;
   padding: 12px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 12px;
   font-size: 14px;
   resize: none;
   box-sizing: border-box;
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }
 
 .char-count {
@@ -788,14 +1004,14 @@ const submitRating = () => {
   right: 8px;
   bottom: 8px;
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .modal-footer {
   display: flex;
   gap: 12px;
   padding: 16px 20px;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-light);
 }
 
 .btn-cancel, .btn-submit {
@@ -808,18 +1024,102 @@ const submitRating = () => {
 }
 
 .btn-cancel {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
 .btn-submit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.confirm-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: overlayFadeIn 0.2s;
+}
+
+.confirm-dialog {
+  width: 85%;
+  max-width: 320px;
+  background: var(--bg-primary);
+  border-radius: 18px;
+  padding: 28px 24px 20px;
+  text-align: center;
+  animation: dialogBounce 0.3s ease-out;
+}
+
+@keyframes dialogBounce {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.confirm-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.confirm-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.confirm-message {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.confirm-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 22px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.confirm-btn:active {
+  transform: scale(0.95);
+}
+
+.confirm-btn.secondary {
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.confirm-btn.danger {
+  background: linear-gradient(135deg, #ff3b30, #ff6b6b);
+  color: white;
 }
 
 @media (min-width: 768px) {
@@ -844,6 +1144,371 @@ const submitRating = () => {
   }
 
   .header {
+    max-width: 720px;
+  }
+}
+
+.order-detail-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  animation: overlayFadeIn 0.3s ease;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.order-detail-page {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
+  height: 100vh;
+  height: 100dvh;
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  animation: slideInRight 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.15);
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(-50%) translateX(40px); opacity: 0; }
+  to { transform: translateX(-50%) translateX(0); opacity: 1; }
+}
+
+.detail-header {
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  height: 60px;
+  flex-shrink: 0;
+}
+
+.detail-back-btn {
+  font-size: 24px;
+  color: white;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.detail-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  flex: 1;
+  text-align: center;
+  margin-right: 40px;
+}
+
+.detail-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 20px;
+  padding-bottom: 120px;
+}
+
+.detail-status-banner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 20px;
+  border-radius: 16px;
+  margin-bottom: 20px;
+  color: white;
+}
+
+.detail-status-banner.pending {
+  background: linear-gradient(135deg, #ff9500, #ff7a00);
+}
+
+.detail-status-banner.waiting {
+  background: linear-gradient(135deg, #007aff, #0056d6);
+}
+
+.detail-status-banner.ongoing {
+  background: linear-gradient(135deg, #34c759, #28a745);
+}
+
+.detail-status-banner.finished {
+  background: linear-gradient(135deg, #8e8e93, #636366);
+}
+
+.detail-status-banner.cancelled {
+  background: linear-gradient(135deg, #ff3b30, #cc0000);
+}
+
+.status-icon-large {
+  font-size: 40px;
+  margin-bottom: 8px;
+}
+
+.status-text-large {
+  font-size: 22px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.status-desc {
+  font-size: 13px;
+  opacity: 0.85;
+  text-align: center;
+}
+
+.detail-section {
+  background: var(--bg-primary);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--text-primary);
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.info-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.info-value {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+  text-align: right;
+}
+
+.companion-detail-card {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.detail-companion-avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(255, 107, 129, 0.2);
+  flex-shrink: 0;
+}
+
+.detail-companion-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-companion-name {
+  font-size: 18px;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+.detail-companion-desc {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.detail-companion-tags {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.timeline {
+  padding-left: 8px;
+}
+
+.timeline-item {
+  display: flex;
+  gap: 14px;
+  padding-bottom: 24px;
+  position: relative;
+  opacity: 0.4;
+}
+
+.timeline-item.active {
+  opacity: 1;
+}
+
+.timeline-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 18px;
+  bottom: 0;
+  width: 2px;
+  background: var(--border-color);
+}
+
+.timeline-item.active:not(:last-child)::after {
+  background: var(--primary-color);
+}
+
+.timeline-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--border-color);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.timeline-item.active .timeline-dot {
+  background: var(--gradient-primary);
+  box-shadow: 0 0 0 4px rgba(255, 107, 129, 0.2);
+}
+
+.timeline-content {
+  flex: 1;
+}
+
+.timeline-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.timeline-time {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.price-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price-row-label {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.price-row-value {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.price-row--total {
+  padding-top: 14px;
+  border-top: 1px solid var(--border-light);
+  margin-top: 4px;
+}
+
+.price-row-value--total {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.detail-footer {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 650px;
+  background: var(--bg-primary);
+  padding: 16px 20px;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.08);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+.detail-price-info {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.detail-price-label {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.detail-price {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--primary-color);
+}
+
+.detail-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (min-width: 768px) {
+  .order-detail-page {
+    max-width: 650px;
+  }
+
+  .detail-footer {
+    max-width: 650px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .order-detail-page {
+    max-width: 720px;
+    border-radius: 0;
+  }
+
+  .detail-footer {
     max-width: 720px;
   }
 }

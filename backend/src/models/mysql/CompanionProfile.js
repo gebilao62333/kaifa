@@ -3,50 +3,34 @@ const sequelize = require('../../config/mysql');
 
 const CompanionProfile = sequelize.define('xn_companion_profile', {
   id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     primaryKey: true,
     autoIncrement: true
   },
   user_id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     allowNull: false,
     unique: true
   },
-  game_id: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0
+  game_ids: {
+    type: DataTypes.TEXT,
+    allowNull: true
   },
-  price: {
+  skill_level: {
+    type: DataTypes.STRING(50),
+    allowNull: true
+  },
+  price_per_hour: {
     type: DataTypes.DECIMAL(10, 2),
     defaultValue: 0
   },
-  tags: {
-    type: DataTypes.STRING(255),
+  intro: {
+    type: DataTypes.TEXT,
     allowNull: true
   },
-  voice_intro: {
-    type: DataTypes.STRING(255),
-    allowNull: true
-  },
-  voice_time: {
-    type: DataTypes.INTEGER,
+  online_status: {
+    type: DataTypes.TINYINT(1),
     defaultValue: 0
-  },
-  order_num: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0
-  },
-  income_total: {
-    type: DataTypes.DECIMAL(12, 2),
-    defaultValue: 0
-  },
-  pingjia_num: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0
-  },
-  star: {
-    type: DataTypes.DECIMAL(3, 2),
-    defaultValue: 5.00
   },
   status: {
     type: DataTypes.TINYINT(1),
@@ -64,9 +48,7 @@ const CompanionProfile = sequelize.define('xn_companion_profile', {
   tableName: 'xn_companion_profile',
   timestamps: false,
   indexes: [
-    { fields: ['user_id'], unique: true },
-    { fields: ['game_id', 'status'] },
-    { fields: ['price'] }
+    { fields: ['user_id'], unique: true }
   ]
 });
 

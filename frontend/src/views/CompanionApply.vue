@@ -171,9 +171,8 @@
           <div class="detail-section">
             <div class="section-title">价格</div>
             <div class="price-wrap">
-              <span class="price-symbol">¥</span>
               <span class="price-value">{{ selectedCompanion.price }}</span>
-              <span class="price-unit">/{{ selectedService?.category === 'online' ? '小时' : '次' }}</span>
+              <span class="price-unit"> 金币 /{{ selectedService?.category === 'online' ? '小时' : '次' }}</span>
             </div>
           </div>
           <div class="action-buttons">
@@ -730,7 +729,7 @@ onUnmounted(() => {
 .companion-apply-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px) + 60px);
   padding-top: 82px;
   -webkit-overflow-scrolling: touch;
@@ -738,8 +737,7 @@ onUnmounted(() => {
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -787,21 +785,21 @@ onUnmounted(() => {
   justify-content: center;
   gap: 8px;
   padding: 16px;
-  background: white;
+  background: var(--bg-primary);
   border: none;
   border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-light);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .tab-btn:hover {
   transform: translateY(-1px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-medium);
 }
 
 .tab-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -849,12 +847,12 @@ onUnmounted(() => {
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: #667eea;
+  accent-color: var(--primary-color);
 }
 
 .agreement-label {
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -862,19 +860,19 @@ onUnmounted(() => {
 }
 
 .agreement-link {
-  color: #f56c6c;
+  color: var(--primary-color);
   text-decoration: underline;
   cursor: pointer;
 }
 
 .agreement-link:hover {
-  color: #f093fb;
+  color: var(--primary-light);
 }
 
 .selection-text {
   text-align: center;
   font-size: 14px;
-  color: #f56c6c;
+  color: var(--primary-color);
   font-weight: 500;
 }
 
@@ -932,7 +930,7 @@ onUnmounted(() => {
 .confirm-btn {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border: none;
   border-radius: 12px;
   color: white;
@@ -944,7 +942,7 @@ onUnmounted(() => {
 
 .confirm-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 24px rgba(255, 107, 129, 0.4);
 }
 
 .modal-overlay {
@@ -961,7 +959,7 @@ onUnmounted(() => {
 }
 
 .modal-content {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 24px;
   width: 90%;
   max-width: 480px;
@@ -969,7 +967,7 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
+  box-shadow: var(--shadow-heavy);
 }
 
 .modal-header {
@@ -977,23 +975,23 @@ onUnmounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .modal-close {
-  color: #999;
+  color: var(--text-muted);
   cursor: pointer;
   font-size: 20px;
 }
 
 .modal-close:hover {
-  color: #333;
+  color: var(--text-primary);
 }
 
 .modal-title {
   font-size: 18px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .modal-body {
@@ -1017,18 +1015,18 @@ onUnmounted(() => {
 .picker-item {
   padding: 16px 20px;
   font-size: 15px;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
   transition: background 0.2s;
 }
 
 .picker-item:hover {
-  background: #f5f5f5;
+  background: var(--bg-secondary);
 }
 
 .picker-item.active {
-  background: #f0f5ff;
-  color: #667eea;
+  background: rgba(255, 107, 129, 0.1);
+  color: var(--primary-color);
 }
 
 .toast-overlay {
@@ -1065,7 +1063,7 @@ onUnmounted(() => {
   align-items: center;
   margin-bottom: 24px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .detail-avatar-wrap {
@@ -1086,9 +1084,9 @@ onUnmounted(() => {
   right: 2px;
   width: 14px;
   height: 14px;
-  background: #10b981;
+  background: var(--success-color);
   border-radius: 50%;
-  border: 2px solid white;
+  border: 2px solid var(--bg-primary);
 }
 
 .detail-info {
@@ -1098,7 +1096,7 @@ onUnmounted(() => {
 .detail-name {
   font-size: 20px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 6px;
 }
 
@@ -1113,7 +1111,7 @@ onUnmounted(() => {
 
 .detail-meta {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .stats-row {
@@ -1126,20 +1124,20 @@ onUnmounted(() => {
   flex: 1;
   text-align: center;
   padding: 16px;
-  background: #f8f9fa;
+  background: var(--bg-secondary);
   border-radius: 12px;
 }
 
 .stat-value {
   font-size: 20px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .detail-section {
@@ -1149,7 +1147,7 @@ onUnmounted(() => {
 .section-title {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 10px;
 }
 
@@ -1161,8 +1159,8 @@ onUnmounted(() => {
 
 .tag {
   font-size: 11px;
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  color: var(--primary-color);
+  background: rgba(255, 107, 129, 0.1);
   padding: 4px 10px;
   border-radius: 10px;
 }
@@ -1175,13 +1173,13 @@ onUnmounted(() => {
 .price-symbol {
   font-size: 18px;
   font-weight: 600;
-  color: #f5576c;
+  color: var(--primary-color);
 }
 
 .price-value {
   font-size: 32px;
   font-weight: 700;
-  color: #f5576c;
+  color: var(--primary-color);
 }
 
 .action-buttons {
@@ -1193,30 +1191,30 @@ onUnmounted(() => {
 .action-btn {
   flex: 1;
   padding: 14px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  background: white;
+  background: var(--bg-primary);
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .action-btn:hover {
-  border-color: #667eea;
-  color: #667eea;
+  border-color: var(--primary-color);
+  color: var(--primary-color);
 }
 
 .action-btn.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-color: transparent;
   color: white;
 }
 
 .action-btn.primary:hover {
   transform: scale(1.02);
-  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 16px rgba(255, 107, 129, 0.4);
 }
 
 .toast-overlay {
@@ -1247,7 +1245,7 @@ onUnmounted(() => {
 }
 
 .permission-guide-modal {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 16px;
   width: 100%;
   max-width: 400px;
@@ -1271,7 +1269,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -1292,12 +1290,12 @@ onUnmounted(() => {
 .guide-message {
   margin: 0 0 16px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.6;
 }
 
 .guide-steps {
-  background: #f8f9fa;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 16px;
   margin-bottom: 16px;
@@ -1306,7 +1304,7 @@ onUnmounted(() => {
 .steps-title {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
@@ -1324,7 +1322,7 @@ onUnmounted(() => {
 .step-number {
   width: 20px;
   height: 20px;
-  background: #667eea;
+  background: var(--primary-color);
   color: white;
   border-radius: 50%;
   display: flex;
@@ -1342,19 +1340,19 @@ onUnmounted(() => {
 
 .step-text {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   line-height: 1.5;
 }
 
 .guide-alternative {
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-light);
   padding-top: 16px;
 }
 
 .alternative-title {
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 12px;
 }
 
@@ -1367,8 +1365,8 @@ onUnmounted(() => {
 .continue-btn {
   width: 100%;
   padding: 12px;
-  background: #f8f9fa;
-  color: #666;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
   border: none;
   border-radius: 10px;
   font-size: 14px;
@@ -1377,23 +1375,23 @@ onUnmounted(() => {
 }
 
 .continue-btn:active {
-  background: #f0f0f0;
+  background: var(--border-color);
 }
 
 .guide-footer {
   display: flex;
   gap: 12px;
   padding: 16px 20px;
-  background: #f8f9fa;
-  border-top: 1px solid #f0f0f0;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-light);
 }
 
 .close-btn {
   flex: 1;
   padding: 12px;
-  background: white;
-  color: #666;
-  border: 1px solid #ddd;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   font-size: 14px;
   cursor: pointer;
@@ -1401,7 +1399,7 @@ onUnmounted(() => {
 }
 
 .close-btn:active {
-  background: #f5f5f5;
+  background: var(--bg-secondary);
 }
 
 @media (min-width: 768px) {

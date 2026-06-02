@@ -20,7 +20,7 @@
         @click="selectedId = item.id"
       >
         <div class="amount">{{ item.coins }} 金币</div>
-        <div class="price">¥{{ item.price }}</div>
+        <div class="price">{{ item.price }} 金币</div>
         <div v-if="item.tag" class="tag">{{ item.tag }}</div>
         <div v-if="item.bonus" class="bonus">赠 {{ item.bonus }} 金币</div>
       </div>
@@ -55,7 +55,7 @@
     <div class="bottom-bar">
       <div class="total">
         <span class="label">支付金额</span>
-        <span class="price">¥{{ selectedPrice }}</span>
+        <span class="price">{{ selectedPrice }} 金币</span>
         <span class="note" v-if="selectedBonus">（含赠币 {{ selectedBonus }}）</span>
       </div>
       <button class="recharge-btn" :disabled="submitting" @click="doRecharge">
@@ -105,12 +105,12 @@ const cardCode = ref('')
 const submitting = ref(false)
 
 const options = ref([
-  { id: 1, coins: '60', price: '6', tag: '', bonus: '' },
-  { id: 2, coins: '180', price: '18', tag: '', bonus: '10' },
-  { id: 3, coins: '300', price: '30', tag: '', bonus: '30' },
-  { id: 4, coins: '680', price: '68', tag: '', bonus: '80' },
-  { id: 5, coins: '1280', price: '128', tag: '', bonus: '200' },
-  { id: 6, coins: '3280', price: '328', tag: '', bonus: '500' },
+  { id: 1, coins: '60', price: '60', tag: '', bonus: '' },
+  { id: 2, coins: '180', price: '180', tag: '', bonus: '10' },
+  { id: 3, coins: '300', price: '300', tag: '', bonus: '30' },
+  { id: 4, coins: '680', price: '680', tag: '', bonus: '80' },
+  { id: 5, coins: '1280', price: '1280', tag: '', bonus: '200' },
+  { id: 6, coins: '3280', price: '3280', tag: '', bonus: '500' },
 ])
 
 const formatAmount = (num) => {
@@ -221,7 +221,7 @@ const doRecharge = async () => {
 .recharge-page {
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   padding-top: 70px;
   padding-bottom: 140px;
   padding-bottom: calc(140px + constant(safe-area-inset-bottom, 0px));
@@ -236,8 +236,8 @@ const doRecharge = async () => {
   justify-content: center;
   padding: 0 20px;
   height: 70px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  background: -webkit-linear-gradient(315deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
+  background: -webkit-linear-gradient(315deg, #FF6B81 0%, #E64C65 100%);
   color: white;
   position: fixed;
   top: 0;
@@ -272,35 +272,35 @@ const doRecharge = async () => {
 .balance-card {
   margin: 10px auto 20px;
   max-width: 650px;
-  background: white;
+  background: var(--bg-primary);
   border-radius: 10px;
   padding: 30px;
   text-align: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-medium);
 }
 
 .balance-card .label {
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
   margin-bottom: 8px;
 }
 
 .balance-card .amount {
   font-size: 36px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .balance-card .unit {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .section-title {
   font-size: 16px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   padding: 20px 12px 12px;
   max-width: 650px;
   margin: 0 auto;
@@ -316,7 +316,7 @@ const doRecharge = async () => {
 }
 
 .amount-item {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 20px 0;
   text-align: center;
@@ -327,20 +327,20 @@ const doRecharge = async () => {
 }
 
 .amount-item.active {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
+  border-color: var(--primary-color);
+  background: rgba(255, 107, 129, 0.05);
 }
 
 .amount-item .amount {
   font-size: 24px;
   font-weight: bold;
-  color: #333;
+  color: var(--text-primary);
   margin-bottom: 6px;
 }
 
 .amount-item .price {
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
 }
 
 .amount-item .tag {
@@ -376,7 +376,7 @@ const doRecharge = async () => {
 .payment-item {
   display: flex;
   align-items: center;
-  background: white;
+  background: var(--bg-primary);
   padding: 16px 20px;
   border-radius: 12px;
   margin-bottom: 12px;
@@ -386,8 +386,8 @@ const doRecharge = async () => {
 }
 
 .payment-item.active {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.03);
+  border-color: var(--primary-color);
+  background: rgba(255, 107, 129, 0.03);
 }
 
 .pay-icon {
@@ -411,14 +411,14 @@ const doRecharge = async () => {
 .pay-name {
   font-size: 15px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-primary);
   display: block;
   margin-bottom: 2px;
 }
 
 .pay-desc {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted);
   display: block;
 }
 
@@ -426,14 +426,14 @@ const doRecharge = async () => {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid #ddd;
+  border: 2px solid var(--border-color);
   position: relative;
   flex-shrink: 0;
   transition: all 0.2s;
 }
 
 .radio.checked {
-  border-color: #667eea;
+  border-color: var(--primary-color);
 }
 
 .radio.checked::after {
@@ -444,7 +444,7 @@ const doRecharge = async () => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #667eea;
+  background: var(--primary-color);
 }
 
 .card-input-section {
@@ -454,7 +454,7 @@ const doRecharge = async () => {
 }
 
 .card-inputs {
-  background: white;
+  background: var(--bg-primary);
   border-radius: 12px;
   padding: 4px 16px;
   margin-bottom: 140px;
@@ -462,7 +462,7 @@ const doRecharge = async () => {
 
 .card-input-group {
   padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-light);
 }
 
 .card-input-group:last-child {
@@ -475,30 +475,30 @@ const doRecharge = async () => {
   border: none;
   outline: none;
   font-size: 15px;
-  color: #333;
+  color: var(--text-primary);
   background: transparent;
   box-sizing: border-box;
 }
 
 .card-input-group input::placeholder {
-  color: #ccc;
+  color: var(--text-muted);
 }
 
 .bottom-bar {
-  background: white;
+  background: var(--bg-primary);
   padding: 16px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow-light);
   margin: 20px auto;
   max-width: 650px;
 }
 
 .total .label {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
   display: block;
   margin-bottom: 4px;
 }
@@ -506,17 +506,17 @@ const doRecharge = async () => {
 .total .price {
   font-size: 24px;
   font-weight: bold;
-  color: #ff6b6b;
+  color: var(--primary-color);
 }
 
 .total .note {
   font-size: 11px;
-  color: #10b981;
+  color: var(--success-color);
   margin-left: 6px;
 }
 
 .recharge-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   padding: 14px 32px;

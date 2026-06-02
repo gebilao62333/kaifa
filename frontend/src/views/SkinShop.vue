@@ -254,8 +254,8 @@ syncData(themeList.value, 'theme')
 
 .header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   padding: 0 20px;
   height: 70px;
   position: fixed;
@@ -264,7 +264,7 @@ syncData(themeList.value, 'theme')
   transform: translateX(-50%);
   width: 100%;
   max-width: 650px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   z-index: 100;
 }
 
@@ -324,7 +324,7 @@ syncData(themeList.value, 'theme')
 }
 
 .tab-item.active {
-  color: #667eea;
+  color: #FF6B81;
   font-weight: 600;
 }
 
@@ -336,7 +336,7 @@ syncData(themeList.value, 'theme')
   transform: translateX(-50%);
   width: 40px;
   height: 3px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #FF6B81, #E64C65);
   border-radius: 2px;
 }
 
@@ -372,8 +372,8 @@ syncData(themeList.value, 'theme')
 }
 
 .skin-card.using {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.03);
+  border-color: #FF6B81;
+  background: rgba(255, 107, 129, 0.03);
 }
 
 .skin-preview {
@@ -405,7 +405,7 @@ syncData(themeList.value, 'theme')
   font-weight: 600;
   padding: 3px 12px;
   border-radius: 10px;
-  background: #667eea;
+  background: #FF6B81;
   color: white;
 }
 
