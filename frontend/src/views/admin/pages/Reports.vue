@@ -66,4 +66,59 @@ import { regionData } from '../../../common/regionData'
 import { useAdmin } from '../composables/useAdmin'
 
 const { token, page, pageSize, total, totalPages, getHost, formatTime, handleLogout, apiGet, apiPost, apiPut, apiDelete } = useAdmin()
+
+const reportList = ref([])
+const filterStatus = ref('')
+const currentReport = ref(null)
+const showReportDetail = ref(false)
+
+const loadReports = async () => {
+  try {
+    const params = { page: page.value, pageSize: pageSize.value }
+    if (filterStatus.value !== '') {
+      params.status = filterStatus.value
+    }
+    const res = await apiGet('/api/admin/reports', params)
+    if (res.code === 200) {
+      reportList.value = res.data?.list || []
+      total.value = res.data?.pagination?.total || 0
+    }
+  } catch (err) {
+    console.error('加载举报记录失败:', err)
+  }
+}
+
+const viewReport = (report) => {
+  currentReport.value = { ...report }
+  showReportDetail.value = true
+}
+
+const handleReport = async (report, status) => {
+  try {
+    const res = await apiPut('/api/admin/reports/' + report.id, { status })
+    if (res.code === 200) {
+      loadReports()
+    }
+  } catch (err) {
+    console.error('处理举报失败:', err)
+  }
+}
+
+const prevPage = () => {
+  if (page.value > 1) {
+    page.value--
+    loadReports()
+  }
+}
+
+const nextPage = () => {
+  if (page.value < totalPages.value) {
+    page.value++
+    loadReports()
+  }
+}
+
+onMounted(() => {
+  loadReports()
+})
 </script>

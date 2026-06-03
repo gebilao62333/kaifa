@@ -452,6 +452,8 @@ if (config.useMockDb) {
   const VipOrder = require('./mysql/VipOrder');
   const AlbumPhoto = require('./mysql/AlbumPhoto');
   const CircleTag = require('./mysql/CircleTag');
+  const Admin = require('./mysql/Admin');
+  const AdminRole = require('./mysql/AdminRole');
 
   const ChatMessage = require('./mongo/ChatMessage');
   const UserSession = require('./mongo/UserSession');
@@ -524,6 +526,8 @@ if (config.useMockDb) {
     AlbumPhoto,
     VipPackage,
     VipOrder,
-    CircleTag
+    CircleTag,
+    Admin,
+    AdminRole
   };
 }

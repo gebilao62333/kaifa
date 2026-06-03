@@ -52,4 +52,67 @@ import { regionData } from '../../../common/regionData'
 import { useAdmin } from '../composables/useAdmin'
 
 const { token, page, pageSize, total, totalPages, getHost, formatTime, handleLogout, apiGet, apiPost, apiPut, apiDelete } = useAdmin()
+
+const roleList = ref([])
+const currentRole = ref(null)
+const showRoleModal = ref(false)
+
+const loadRoles = async () => {
+  try {
+    const res = await apiGet('/api/admin/roles')
+    if (res.code === 200) {
+      roleList.value = res.data?.list || []
+    }
+  } catch (err) {
+    console.error('加载角色列表失败:', err)
+  }
+}
+
+const openCreateRoleModal = () => {
+  currentRole.value = {
+    name: '',
+    description: '',
+    status: 1,
+    sort: 0
+  }
+  showRoleModal.value = true
+}
+
+const editRole = (role) => {
+  currentRole.value = { ...role }
+  showRoleModal.value = true
+}
+
+const saveRole = async () => {
+  try {
+    let res
+    if (currentRole.value.id) {
+      res = await apiPut('/api/admin/roles/' + currentRole.value.id, currentRole.value)
+    } else {
+      res = await apiPost('/api/admin/roles', currentRole.value)
+    }
+    if (res.code === 200) {
+      showRoleModal.value = false
+      loadRoles()
+    }
+  } catch (err) {
+    console.error('保存角色失败:', err)
+  }
+}
+
+const deleteRole = async (role) => {
+  if (!confirm('确定要删除这个角色吗？')) return
+  try {
+    const res = await apiDelete('/api/admin/roles/' + role.id)
+    if (res.code === 200) {
+      loadRoles()
+    }
+  } catch (err) {
+    console.error('删除角色失败:', err)
+  }
+}
+
+onMounted(() => {
+  loadRoles()
+})
 </script>

@@ -51,4 +51,60 @@ import { regionData } from '../../../common/regionData'
 import { useAdmin } from '../composables/useAdmin'
 
 const { token, page, pageSize, total, totalPages, getHost, formatTime, handleLogout, apiGet, apiPost, apiPut, apiDelete } = useAdmin()
+
+const postList = ref([])
+const searchKeyword = ref('')
+const currentPost = ref(null)
+const showPostDetail = ref(false)
+
+const loadPosts = async () => {
+  try {
+    const params = { page: page.value, pageSize: pageSize.value }
+    if (searchKeyword.value) {
+      params.keyword = searchKeyword.value
+    }
+    const res = await apiGet('/api/admin/posts', params)
+    if (res.code === 200) {
+      postList.value = res.data?.list || []
+      total.value = res.data?.pagination?.total || 0
+    }
+  } catch (err) {
+    console.error('加载帖子列表失败:', err)
+  }
+}
+
+const viewPost = (post) => {
+  currentPost.value = { ...post }
+  showPostDetail.value = true
+}
+
+const deletePost = async (post) => {
+  if (!confirm('确定要删除这个帖子吗？')) return
+  try {
+    const res = await apiDelete('/api/admin/posts/' + post.id)
+    if (res.code === 200) {
+      loadPosts()
+    }
+  } catch (err) {
+    console.error('删除帖子失败:', err)
+  }
+}
+
+const prevPage = () => {
+  if (page.value > 1) {
+    page.value--
+    loadPosts()
+  }
+}
+
+const nextPage = () => {
+  if (page.value < totalPages.value) {
+    page.value++
+    loadPosts()
+  }
+}
+
+onMounted(() => {
+  loadPosts()
+})
 </script>

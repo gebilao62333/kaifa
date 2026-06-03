@@ -65,4 +65,165 @@ import { regionData } from '../../../common/regionData'
 import { useAdmin } from '../composables/useAdmin'
 
 const { token, page, pageSize, total, totalPages, getHost, formatTime, handleLogout, apiGet, apiPost, apiPut, apiDelete } = useAdmin()
+
+const rechargeList = ref([])
+const searchKeyword = ref('')
+const filterStatus = ref('')
+const currentRecharge = ref(null)
+const showRechargeDetail = ref(false)
+
+const loadRecharges = async () => {
+  try {
+    const params = { page: page.value, pageSize: pageSize.value }
+    if (searchKeyword.value) {
+      params.keyword = searchKeyword.value
+    }
+    if (filterStatus.value !== '') {
+      params.status = filterStatus.value
+    }
+    const res = await apiGet('/api/admin/recharges', params)
+    if (res.code === 200) {
+      rechargeList.value = res.data?.list || []
+      total.value = res.data?.pagination?.total || 0
+    }
+  } catch (err) {
+    console.error('加载充值记录失败:', err)
+  }
+}
+
+const viewRecharge = (record) => {
+  currentRecharge.value = { ...record }
+  showRechargeDetail.value = true
+}
+
+const prevPage = () => {
+  if (page.value > 1) {
+    page.value--
+    loadRecharges()
+  }
+}
+
+const nextPage = () => {
+  if (page.value < totalPages.value) {
+    page.value++
+    loadRecharges()
+  }
+}
+
+onMounted(() => {
+  loadRecharges()
+})
 </script>
+
+<style scoped>
+.recharge-list {
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+}
+
+.search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+}
+
+.search-select {
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  min-width: 120px;
+}
+
+.search-btn {
+  padding: 8px 16px;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.data-table th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.status-badge {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.status-badge.pending {
+  background: #fff7e6;
+  color: #fa8c16;
+  border: 1px solid #ffd591;
+}
+
+.status-badge.approved {
+  background: #f6ffed;
+  color: #52c41a;
+  border: 1px solid #b7eb8f;
+}
+
+.status-badge.rejected {
+  background: #fff1f0;
+  color: #ff4d4f;
+  border: 1px solid #ffccc7;
+}
+
+.action-btn {
+  padding: 4px 8px;
+  background: #1890ff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.page-btn {
+  padding: 8px 16px;
+  background: white;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: #666;
+}
+</style>

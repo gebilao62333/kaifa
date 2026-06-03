@@ -54,4 +54,48 @@ import { regionData } from '../../../common/regionData'
 import { useAdmin } from '../composables/useAdmin'
 
 const { token, page, pageSize, total, totalPages, getHost, formatTime, handleLogout, apiGet, apiPost, apiPut, apiDelete } = useAdmin()
+
+const withdrawList = ref([])
+const searchKeyword = ref('')
+const currentWithdraw = ref(null)
+const showWithdrawDetail = ref(false)
+
+const loadWithdraws = async () => {
+  try {
+    const params = { page: page.value, pageSize: pageSize.value }
+    if (searchKeyword.value) {
+      params.keyword = searchKeyword.value
+    }
+    const res = await apiGet('/api/admin/withdraws', params)
+    if (res.code === 200) {
+      withdrawList.value = res.data?.list || []
+      total.value = res.data?.pagination?.total || 0
+    }
+  } catch (err) {
+    console.error('加载提现记录失败:', err)
+  }
+}
+
+const viewWithdraw = (withdraw) => {
+  currentWithdraw.value = { ...withdraw }
+  showWithdrawDetail.value = true
+}
+
+const prevPage = () => {
+  if (page.value > 1) {
+    page.value--
+    loadWithdraws()
+  }
+}
+
+const nextPage = () => {
+  if (page.value < totalPages.value) {
+    page.value++
+    loadWithdraws()
+  }
+}
+
+onMounted(() => {
+  loadWithdraws()
+})
 </script>

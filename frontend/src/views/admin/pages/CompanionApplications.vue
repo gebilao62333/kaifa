@@ -64,4 +64,70 @@ import { regionData } from '../../../common/regionData'
 import { useAdmin } from '../composables/useAdmin'
 
 const { token, page, pageSize, total, totalPages, getHost, formatTime, handleLogout, apiGet, apiPost, apiPut, apiDelete } = useAdmin()
+
+const applicationList = ref([])
+const filterStatus = ref('')
+const currentApplication = ref(null)
+const showApplicationDetail = ref(false)
+
+const loadApplications = async () => {
+  try {
+    const params = { page: page.value, pageSize: pageSize.value }
+    if (filterStatus.value !== '') {
+      params.status = filterStatus.value
+    }
+    const res = await apiGet('/api/admin/companion-applications', params)
+    if (res.code === 200) {
+      applicationList.value = res.data?.list || []
+      total.value = res.data?.pagination?.total || 0
+    }
+  } catch (err) {
+    console.error('加载申请列表失败:', err)
+  }
+}
+
+const viewApplication = (app) => {
+  currentApplication.value = { ...app }
+  showApplicationDetail.value = true
+}
+
+const approveApplication = async (app) => {
+  try {
+    const res = await apiPut('/api/admin/companion-applications/' + app.id, { status: 'approved' })
+    if (res.code === 200) {
+      loadApplications()
+    }
+  } catch (err) {
+    console.error('审核失败:', err)
+  }
+}
+
+const rejectApplication = async (app) => {
+  try {
+    const res = await apiPut('/api/admin/companion-applications/' + app.id, { status: 'rejected' })
+    if (res.code === 200) {
+      loadApplications()
+    }
+  } catch (err) {
+    console.error('审核失败:', err)
+  }
+}
+
+const prevPage = () => {
+  if (page.value > 1) {
+    page.value--
+    loadApplications()
+  }
+}
+
+const nextPage = () => {
+  if (page.value < totalPages.value) {
+    page.value++
+    loadApplications()
+  }
+}
+
+onMounted(() => {
+  loadApplications()
+})
 </script>

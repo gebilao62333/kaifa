@@ -151,4 +151,140 @@ import { regionData } from '../../../common/regionData'
 import { useAdmin } from '../composables/useAdmin'
 
 const { token, page, pageSize, total, totalPages, getHost, formatTime, handleLogout, apiGet, apiPost, apiPut, apiDelete } = useAdmin()
+
+const recommendTab = ref('system')
+const recommendList = ref([])
+const manualRecommendList = ref([])
+const newRecommendUserId = ref('')
+
+const mergedRecommendList = computed(() => {
+  const topList = manualRecommendList.filter(u => u.isTop).sort((a, b) => a.sort - b.sort)
+  const normalList = manualRecommendList.filter(u => !u.isTop).sort((a, b) => a.sort - b.sort)
+  return [...topList, ...normalList]
+})
+
+const getRecommendScore = (user) => {
+  return Math.round(((user.likeCount || user.likes || 0) * 0.4 + (user.followerCount || user.followers || 0) * 0.3 + 100) * 0.01 * 100)
+}
+
+const isAlreadyRecommended = (userId) => {
+  return manualRecommendList.some(u => u.userId === userId)
+}
+
+const loadRecommendList = async () => {
+  try {
+    const res = await apiGet('/api/admin/recommend-system', { page: 1, pageSize: 50 })
+    if (res.code === 200) {
+      recommendList.value = res.data?.list || []
+    }
+  } catch (err) {
+    console.error('加载推荐用户失败:', err)
+  }
+}
+
+const loadManualRecommendList = async () => {
+  try {
+    const res = await apiGet('/api/admin/recommend-manual')
+    if (res.code === 200) {
+      manualRecommendList.value = res.data?.list || []
+    }
+  } catch (err) {
+    console.error('加载手动推荐列表失败:', err)
+  }
+}
+
+const addToManualRecommend = async (user) => {
+  try {
+    const res = await apiPost('/api/admin/recommend-manual', {
+      userId: user.userId,
+      nickname: user.nickname,
+      avatar: user.avatar
+    })
+    if (res.code === 200) {
+      loadManualRecommendList()
+    }
+  } catch (err) {
+    console.error('添加推荐用户失败:', err)
+  }
+}
+
+const addManualRecommendUser = async () => {
+  if (!newRecommendUserId.value) return
+  try {
+    const res = await apiPost('/api/admin/recommend-manual', {
+      userId: parseInt(newRecommendUserId.value)
+    })
+    if (res.code === 200) {
+      newRecommendUserId.value = ''
+      loadManualRecommendList()
+    }
+  } catch (err) {
+    console.error('添加推荐用户失败:', err)
+  }
+}
+
+const removeManualRecommend = async (user, idx) => {
+  if (!confirm('确定要移除这个推荐用户吗？')) return
+  try {
+    const res = await apiDelete('/api/admin/recommend-manual/' + user.userId)
+    if (res.code === 200) {
+      loadManualRecommendList()
+    }
+  } catch (err) {
+    console.error('移除推荐用户失败:', err)
+  }
+}
+
+const moveRecommendUp = async (idx) => {
+  if (idx === 0) return
+  const newList = [...manualRecommendList.value]
+  const temp = newList[idx - 1]
+  newList[idx - 1] = newList[idx]
+  newList[idx] = temp
+  manualRecommendList.value = newList
+  await syncRecommendToApi()
+}
+
+const moveRecommendDown = async (idx) => {
+  if (idx === manualRecommendList.value.length - 1) return
+  const newList = [...manualRecommendList.value]
+  const temp = newList[idx + 1]
+  newList[idx + 1] = newList[idx]
+  newList[idx] = temp
+  manualRecommendList.value = newList
+  await syncRecommendToApi()
+}
+
+const toggleRecommendTop = async (user) => {
+  try {
+    const res = await apiPut('/api/admin/recommend-manual/' + user.userId, {
+      isTop: !user.isTop
+    })
+    if (res.code === 200) {
+      loadManualRecommendList()
+    }
+  } catch (err) {
+    console.error('切换置顶状态失败:', err)
+  }
+}
+
+const syncRecommendToApi = async () => {
+  try {
+    const sortedList = manualRecommendList.value.map((u, idx) => ({
+      ...u,
+      sort: idx
+    }))
+    const res = await apiPut('/api/admin/recommend-manual/batch', { list: sortedList })
+    if (res.code === 200) {
+      loadManualRecommendList()
+    }
+  } catch (err) {
+    console.error('同步推荐列表失败:', err)
+  }
+}
+
+onMounted(() => {
+  loadRecommendList()
+  loadManualRecommendList()
+})
 </script>

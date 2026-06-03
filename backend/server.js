@@ -197,22 +197,78 @@ const startServer = async () => {
   try {
     console.log('\n🔄 正在初始化数据库连接...');
     
-    const dbHealthChecker = require('./src/utils/dbHealthChecker');
-    const connectionResults = await dbHealthChecker.initializeDatabases();
+    // 初始化数据库连接（带容错处理）
+    let allConnected = false;
+    try {
+      const dbHealthChecker = require('./src/utils/dbHealthChecker');
+      const connectionResults = await dbHealthChecker.initializeDatabases();
+      allConnected = connectionResults.every(r => r.status === 'fulfilled' && r.value.status === 'healthy');
+    } catch (dbError) {
+      console.warn('⚠️ 数据库连接初始化失败:', dbError.message);
+      console.log('💡 服务器将继续运行，部分功能可能受限');
+      allConnected = false;
+    }
     
-    const allConnected = connectionResults.every(r => r.status === 'fulfilled' && r.value.status === 'healthy');
+    // 直接初始化数据（不自动同步表结构，避免外键问题）
+    if (!config.useMockDb) {
+      try {
+        const { initializeDatabase } = require('./src/utils/dbInitializer');
+        await initializeDatabase();
+      } catch (dataInitError) {
+        console.warn('⚠️ 数据初始化失败:', dataInitError.message);
+        console.log('💡 服务将继续运行，默认数据可能缺失');
+      }
+    }
     
-    server.listen(config.port, () => {
+    const net = require('net');
+    
+    // 检查端口是否被占用
+    const checkPort = (port) => {
+      return new Promise((resolve, reject) => {
+        const server = net.createServer();
+        server.once('error', (err) => {
+          if (err.code === 'EADDRINUSE') {
+            resolve(false);
+          } else {
+            reject(err);
+          }
+        });
+        server.once('listening', () => {
+          server.close();
+          resolve(true);
+        });
+        server.listen(port);
+      });
+    };
+    
+    // 寻找可用端口
+    let finalPort = config.port;
+    const isPortAvailable = await checkPort(finalPort);
+    
+    if (!isPortAvailable) {
+      console.warn(`⚠️ 端口 ${finalPort} 被占用，正在寻找可用端口...`);
+      for (let p = finalPort + 1; p <= finalPort + 100; p++) {
+        const available = await checkPort(p);
+        if (available) {
+          finalPort = p;
+          console.log(`✅ 找到可用端口: ${finalPort}`);
+          break;
+        }
+      }
+    }
+    
+    server.listen(finalPort, () => {
       console.log('\n========================================');
       console.log('🎉 多客陪玩后端服务已成功启动！');
-      console.log(`📍 服务地址: http://localhost:${config.port}`);
-      console.log(`🔍 健康检查: http://localhost:${config.port}/api/health`);
-      console.log(`🔍 数据库状态: http://localhost:${config.port}/api/health/db`);
-      console.log(`🧪 API测试: http://localhost:${config.port}/api/test`);
+      console.log(`📍 服务地址: http://localhost:${finalPort}`);
+      console.log(`🔍 健康检查: http://localhost:${finalPort}/api/health`);
+      console.log(`🔍 数据库状态: http://localhost:${finalPort}/api/health/db`);
+      console.log(`🧪 API测试: http://localhost:${finalPort}/api/test`);
       console.log(`📖 环境: ${config.nodeEnv}`);
       console.log(`⚡ 模式: ${config.useMockDb ? 'Mock (开发)' : 'Production (生产)'}`);
       console.log(`⚡ Socket.IO 已启用`);
       console.log(`📊 数据库连接: ${allConnected ? '全部正常' : '部分异常'}`);
+      console.log(`🔑 默认管理员账号: admin / admin123`);
       console.log('========================================\n');
     });
 

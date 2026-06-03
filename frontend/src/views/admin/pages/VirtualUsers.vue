@@ -76,4 +76,123 @@ import { regionData } from '../../../common/regionData'
 import { useAdmin } from '../composables/useAdmin'
 
 const { token, page, pageSize, total, totalPages, getHost, formatTime, handleLogout, apiGet, apiPost, apiPut, apiDelete } = useAdmin()
+
+const virtualUserList = ref([])
+const searchKeyword = ref('')
+const currentVirtualUser = ref(null)
+const showModal = ref(false)
+
+const getRoleName = (role) => {
+  const map = {
+    'companion': '陪玩师',
+    'normal': '普通用户',
+    'robot': '机器人'
+  }
+  return map[role] || '普通用户'
+}
+
+const getStyleName = (style) => {
+  const map = {
+    'friendly': '友好',
+    'cold': '高冷',
+    'humorous': '幽默',
+    'cute': '可爱'
+  }
+  return map[style] || '友好'
+}
+
+const loadVirtualUsers = async () => {
+  try {
+    const params = { page: page.value, pageSize: pageSize.value }
+    if (searchKeyword.value) {
+      params.keyword = searchKeyword.value
+    }
+    const res = await apiGet('/api/admin/virtual-users', params)
+    if (res.code === 200) {
+      virtualUserList.value = res.data?.list || []
+      total.value = res.data?.pagination?.total || 0
+    }
+  } catch (err) {
+    console.error('加载虚拟用户失败:', err)
+  }
+}
+
+const openCreateModal = () => {
+  currentVirtualUser.value = {
+    username: '',
+    nickname: '',
+    avatar: '',
+    role: 'companion',
+    dialogueStyle: 'friendly',
+    status: 1,
+    isOnline: 0
+  }
+  showModal.value = true
+}
+
+const editUser = (user) => {
+  currentVirtualUser.value = { ...user }
+  showModal.value = true
+}
+
+const saveUser = async () => {
+  try {
+    let res
+    if (currentVirtualUser.value.id) {
+      res = await apiPut('/api/admin/virtual-users/' + currentVirtualUser.value.id, currentVirtualUser.value)
+    } else {
+      res = await apiPost('/api/admin/virtual-users', currentVirtualUser.value)
+    }
+    if (res.code === 200) {
+      showModal.value = false
+      loadVirtualUsers()
+    }
+  } catch (err) {
+    console.error('保存用户失败:', err)
+  }
+}
+
+const toggleStatus = async (user) => {
+  try {
+    const res = await apiPut('/api/admin/virtual-users/' + user.id, {
+      ...user,
+      status: user.status === 1 ? 0 : 1
+    })
+    if (res.code === 200) {
+      loadVirtualUsers()
+    }
+  } catch (err) {
+    console.error('切换状态失败:', err)
+  }
+}
+
+const deleteUser = async (user) => {
+  if (!confirm('确定要删除这个用户吗？')) return
+  try {
+    const res = await apiDelete('/api/admin/virtual-users/' + user.id)
+    if (res.code === 200) {
+      loadVirtualUsers()
+    }
+  } catch (err) {
+    console.error('删除用户失败:', err)
+  }
+}
+
+const prevPage = () => {
+  if (page.value > 1) {
+    page.value--
+    loadVirtualUsers()
+  }
+}
+
+const nextPage = () => {
+  if (page.value < totalPages.value) {
+    page.value++
+    loadVirtualUsers()
+  }
+}
+
+onMounted(() => {
+  loadVirtualUsers()
+})
 </script>
