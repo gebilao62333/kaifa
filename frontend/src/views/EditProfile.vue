@@ -352,7 +352,7 @@ const avatarInput = ref(null)
 const bgInput = ref(null)
 
 const form = reactive({
-  avatar: 'https://picsum.photos/200/200',
+  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=profile',
   nickname: '多客用户',
   gender: 'male',
   birthday: '2000-01-01',
@@ -366,7 +366,7 @@ const form = reactive({
   wechat: '',
   phone: '138****8888',
   email: '',
-  bgImage: 'https://picsum.photos/800/400',
+  bgImage: 'https://api.dicebear.com/7.x/bottts/svg?seed=bg',
   tags: [1, 3, 5],
   isVerified: true,
   isVip: false,
@@ -516,11 +516,11 @@ const toggleGame = (game) => {
 const confirmAddHobby = () => {
   const hobby = newHobby.value.trim()
   if (!hobby) {
-    alert('请输入兴趣爱好')
+    toast.warning('请输入兴趣爱好');
     return
   }
   if (hobbyOptions.value.includes(hobby)) {
-    alert('该兴趣爱好已存在')
+    toast.warning('该兴趣爱好已存在');
     return
   }
   hobbyOptions.value.push(hobby)
@@ -534,12 +534,12 @@ const confirmAddHobby = () => {
 const confirmAddTag = () => {
   const tagName = newTag.value.trim()
   if (!tagName) {
-    alert('请输入标签名称')
+    toast.warning('请输入标签名称');
     return
   }
   const exists = tagOptions.value.some(t => t.name === tagName)
   if (exists) {
-    alert('该标签已存在')
+    toast.warning('该标签已存在');
     return
   }
   const newTagId = nextTagId.value++
@@ -554,7 +554,7 @@ const confirmAddTag = () => {
 const confirmAddGame = () => {
   const gameName = newGame.value.trim()
   if (!gameName) {
-    alert('请输入游戏名称')
+    toast.warning('请输入游戏名称');
     return
   }
   const exists = gameOptions.value.some(g => g.name === gameName)
@@ -598,16 +598,16 @@ const sendCode = () => {
 
 const bindPhone = () => {
   if (!newPhone.value || newPhone.value.length !== 11) {
-    alert('请输入正确的手机号')
+    toast.warning('请输入正确的手机号');
     return
   }
   if (!verifyCode.value) {
-    alert('请输入验证码')
+    toast.warning('请输入验证码');
     return
   }
   form.phone = newPhone.value.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
   showPhoneModal.value = false
-  alert('手机号绑定成功！')
+  toast.success('手机号绑定成功！')
 }
 
 const goRealName = () => { router.push('/real-name') }
@@ -622,7 +622,7 @@ const saveProfile = async () => {
   }
   
   if (!form.nickname.trim()) {
-    alert('请输入昵称')
+    toast.warning('请输入昵称');
     return
   }
   
@@ -645,11 +645,11 @@ const saveProfile = async () => {
       bgImage: form.bgImage
     })
     console.log('API返回:', result)
-    alert(result.message || '保存成功！')
+    toast.success(result.message || '保存成功！')
     router.back()
   } catch (error) {
     console.error('保存失败:', error)
-    alert(error.message || '保存失败，请稍后重试')
+    toast.error(error.message || '保存失败，请稍后重试')
   }
 }
 </script>

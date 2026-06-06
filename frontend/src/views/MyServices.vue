@@ -267,6 +267,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePermissions } from '../composables/usePermissions'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -562,7 +563,7 @@ const onImageChange = (e) => {
   const file = e.target.files?.[0]
   if (file) {
     if (file.size > 5 * 1024 * 1024) {
-      alert('图片大小不能超过5MB')
+      toast.warning('图片大小不能超过5MB');
       return
     }
     const reader = new FileReader()
@@ -732,11 +733,11 @@ const deleteAudio = () => {
 
 const saveService = () => {
   if (!editForm.value.description) {
-    alert('请填写技能介绍')
+    toast.warning('请填写技能介绍');
     return
   }
   if (!editForm.value.price || editForm.value.price <= 0) {
-    alert('请输入有效的价格')
+    toast.warning('请输入有效的价格');
     return
   }
 
@@ -757,7 +758,7 @@ const saveService = () => {
     }
     saveServices()
     closeEditModal()
-    alert('保存成功！')
+    toast.success('保存成功！')
   }
 }
 

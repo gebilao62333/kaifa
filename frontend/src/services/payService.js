@@ -13,12 +13,12 @@ const payService = {
     return request('/api/pay/order-status', 'GET', { orderId })
   },
 
-  async validateCard(cardNo, cardPwd) {
-    return request('/api/pay/validate-card', 'POST', { cardNo, cardPwd })
+  async validateCard(cardCode, cardPwd) {
+    return request('/api/pay/validate-card', 'POST', { cardCode, cardPwd })
   },
 
-  async useCard(cardNo, cardPwd) {
-    return request('/api/pay/use-card', 'POST', { cardNo, cardPwd })
+  async useCard(cardCode, cardPwd) {
+    return request('/api/pay/use-card', 'POST', { cardCode, cardPwd })
   },
 
   async getRechargeRecords(params = {}) {

@@ -40,6 +40,14 @@ const homeService = {
 
   async getNotice() {
     return request(`${api}/user/get`, 'GET')
+  },
+
+  async getRecommendHome() {
+    return request(`${api}/games/recommend-home`, 'GET')
+  },
+
+  async getRecommendSquare() {
+    return request(`${api}/games/recommend-square`, 'GET')
   }
 }
 

@@ -62,53 +62,30 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { customerServiceApi } from '../services/customerService'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
+const agentList = ref([])
+const loading = ref(false)
 
-const agentList = ref([
-  {
-    id: 1,
-    userId: 1001,
-    name: '小雪',
-    avatar: '',
-    online: true,
-    role: 'senior'
-  },
-  {
-    id: 2,
-    userId: 1002,
-    name: '阿杰',
-    avatar: '',
-    online: true,
-    role: 'normal'
-  },
-  {
-    id: 3,
-    userId: 1003,
-    name: '小美',
-    avatar: '',
-    online: false,
-    role: 'normal'
-  },
-  {
-    id: 4,
-    userId: 1004,
-    name: '大飞',
-    avatar: '',
-    online: true,
-    role: 'senior'
-  },
-  {
-    id: 5,
-    userId: 1005,
-    name: '小鹿',
-    avatar: '',
-    online: false,
-    role: 'normal'
+const loadCustomerServices = async () => {
+  loading.value = true
+  try {
+    const res = await customerServiceApi.getList({ status: 1 })
+    if (res.code === 200 && res.data) {
+      agentList.value = res.data
+    } else {
+      console.error('获取客服列表失败:', res.message)
+    }
+  } catch (error) {
+    console.error('获取客服列表失败:', error)
+  } finally {
+    loading.value = false
   }
-])
+}
 
 const faqList = ref([
   {
@@ -147,11 +124,16 @@ const toggleFaq = (index) => {
 }
 
 const startChat = (agent) => {
-  router.push(`/chat-room/${agent.userId}`)
+  router.push(`/customer-chat/${agent.userId}`)
 }
 
+// 页面加载时获取客服列表
+onMounted(() => {
+  loadCustomerServices()
+})
+
 const callPhone = () => {
-  alert('客服热线：400-888-8888\n服务时间：9:00-22:00')
+  toast.info('客服热线：400-888-8888\n服务时间：9:00-22:00')
 }
 </script>
 

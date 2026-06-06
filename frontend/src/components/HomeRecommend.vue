@@ -84,9 +84,8 @@ defineEmits(['load-more', 'user-click'])
   padding: 16px 0;
   margin-top: 10px;
   margin-bottom: 10px;
-  max-width: 650px;
-  margin-left: auto;
-  margin-right: auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .section-header {

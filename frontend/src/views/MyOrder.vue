@@ -296,7 +296,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
-import { generateMockOrders } from '../common/mockData'
+import gamesService from '../services/gamesService'
 import { formatTimeMs, formatTimeHMS } from '../common/common'
 
 const router = useRouter()
@@ -317,64 +317,49 @@ const showOrderDetail = ref(false)
 const showCancelModal = ref(false)
 const cancelTarget = ref(null)
 
-// 在组件挂载时检查是否有刚支付的订单需要更新
-onMounted(() => {
-  const seen = new Set()
-  const deduped = orderList.value.filter(order => {
-    const key = order.id
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
-  if (deduped.length !== orderList.value.length) {
-    orderList.value = deduped
-    saveOrders(deduped)
-  }
-  const paidOrderId = route.query.paidOrderId
-  if (paidOrderId) {
-    const orderId = Number(paidOrderId)
-    const order = orderList.value.find(o => o.id === orderId)
-    if (order && order.status === 'pending') {
-      order.status = 'waiting'
-      saveOrders(orderList.value)
-    }
-    // 清除URL中的查询参数，避免刷新时重复处理
-    router.replace({ path: '/my-order' })
-  }
-})
+const loading = ref(false)
 
-// 默认订单数据（生成50条模拟订单）
-const defaultOrders = generateMockOrders(50).map((order, idx) => ({
-  id: idx + 1,
-  game: order.gameName,
-  avatar: order.companionAvatar,
-  companionName: order.companionName,
-  companionUserId: order.companionId,
-  title: `${order.type}服务`,
-  price: order.price,
-  duration: order.duration,
-  status: order.status === '待接单' ? 'pending' : 
-          order.status === '已接单' ? 'waiting' : 
-          order.status === '进行中' ? 'ongoing' : 
-          order.status === '已完成' ? 'finished' : 'cancelled',
-  rated: order.status === '已完成' && Math.random() > 0.5,
-  createTime: order.createTime,
-  serviceType: order.type,
-  orderSource: ['大厅下单', '组队邀请', '指定下单'][Math.floor(Math.random() * 3)]
-}))
-
-// 从 localStorage 加载订单数据
-const loadOrders = () => {
-  const saved = localStorage.getItem('orderList')
-  if (saved) {
-    try {
-      return JSON.parse(saved)
-    } catch (e) {
-      return defaultOrders
+// 加载订单数据
+const loadOrders = async () => {
+  loading.value = true
+  try {
+    const res = await gamesService.getOrders({ page: 1, pageSize: 50 })
+    if (res.code === 200 && res.data) {
+      const orders = res.data.list || res.data
+      orderList.value = orders.map(order => ({
+        id: order.id || order.orderId,
+        game: order.gameName || '未知游戏',
+        avatar: order.companionAvatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
+        companionName: order.companionName || '未知陪玩',
+        companionUserId: order.companionId || order.companionUserId || 0,
+        title: `${order.type || order.serviceType || '陪玩'}服务`,
+        price: order.price || 0,
+        duration: order.duration || 1,
+        status: order.status === '待接单' ? 'pending' : 
+                order.status === '已接单' ? 'waiting' : 
+                order.status === '进行中' ? 'ongoing' : 
+                order.status === '已完成' ? 'finished' : 
+                order.status === '待付款' ? 'pending' : 'cancelled',
+        rated: order.rated || false,
+        createTime: order.createTime || order.createdAt || Date.now(),
+        serviceType: order.type || order.serviceType || '陪玩',
+        orderSource: order.source || order.orderSource || '大厅下单'
+      }))
     }
+  } catch (error) {
+    console.warn('加载订单失败:', error.message)
+    // 使用本地存储的备份数据
+    const saved = localStorage.getItem('orderList')
+    if (saved) {
+      try {
+        orderList.value = JSON.parse(saved)
+      } catch (e) {
+        orderList.value = []
+      }
+    }
+  } finally {
+    loading.value = false
   }
-  localStorage.setItem('orderList', JSON.stringify(defaultOrders))
-  return defaultOrders
 }
 
 // 保存订单数据到 localStorage（自动去重）
@@ -389,8 +374,26 @@ const saveOrders = (orders) => {
   localStorage.setItem('orderList', JSON.stringify(deduped))
 }
 
+// 在组件挂载时加载订单数据
+onMounted(async () => {
+  await loadOrders()
+  
+  // 检查是否有刚支付的订单需要更新
+  const paidOrderId = route.query.paidOrderId
+  if (paidOrderId) {
+    const orderId = Number(paidOrderId)
+    const order = orderList.value.find(o => o.id === orderId)
+    if (order && order.status === 'pending') {
+      order.status = 'waiting'
+      saveOrders(orderList.value)
+    }
+    // 清除URL中的查询参数，避免刷新时重复处理
+    router.replace({ path: '/my-order' })
+  }
+})
+
 // 订单列表
-const orderList = ref(loadOrders())
+const orderList = ref([])
 
 const getStatusText = (status) => {
   const statusMap = {

@@ -311,7 +311,7 @@ const applyOrder = async (item) => {
   item.status = 'closed'
   item.applyCount++
   closeOrderDetail()
-  alert(`成功申请 "${item.title}" 的订单！`)
+  toast.success(`成功申请 "${item.title}" 的订单！`);
 }
 
 const goBack = () => {

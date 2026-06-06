@@ -32,6 +32,8 @@ defineEmits(['navigate'])
   padding: 10px 0;
   background-color: #fff;
   margin: 10px 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .nav-container {

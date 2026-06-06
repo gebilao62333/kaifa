@@ -98,7 +98,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
-import { host } from '../common/config'
+import walletService from '../services/walletService'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -115,12 +115,8 @@ const userInfo = ref({
 
 const fetchBalance = async () => {
   try {
-    const token = userStore.token || localStorage.getItem('token')
-    const res = await fetch(`${host}/api/pay/wallet/balance`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    const result = await res.json()
-    if (result.code === 200 && result.data) {
+    const result = await walletService.getBalance()
+    if (result && result.code === 200 && result.data) {
       userInfo.value.balance = result.data.balance || 0
     }
   } catch (err) {

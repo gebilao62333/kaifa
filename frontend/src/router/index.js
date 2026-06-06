@@ -59,6 +59,12 @@ const routes = [
     meta: { title: '线上陪玩' }
   },
   {
+    path: '/user/:id',
+    name: 'UserProfile',
+    component: lazyLoad('UserProfile'),
+    meta: { title: '用户资料' }
+  },
+  {
     path: '/offline-companions',
     name: 'OfflineCompanion',
     component: lazyLoad('OfflineCompanion'),
@@ -84,6 +90,11 @@ const routes = [
     path: '/chat-room/:id',
     name: 'ChatRoom',
     component: lazyLoad('ChatRoom')
+  },
+  {
+    path: '/customer-chat/:id',
+    name: 'CustomerChat',
+    component: lazyLoad('CustomerChat')
   },
   {
     path: '/recharge',
@@ -204,17 +215,19 @@ const router = createRouter({
   }
 })
 
-const publicRoutes = ['Login', 'Home', 'Search', 'Activity', 'PostDetail', 'Preferred', 'Mine', 'Friend', 'AdminLogin']
+const publicRoutes = ['Login', 'Home', 'Search', 'Activity', 'PostDetail', 'Preferred', 'Mine', 'Friend']
 const publicPaths = ['/', '/login', '/home', '/search', '/activity', '/friend']
 
 router.beforeEach((to, from, next) => {
   if (to.path.startsWith('/admin')) {
+    // 管理员登录页不需要token
     if (to.path === '/admin/login') {
       next()
       return
     }
     const adminToken = localStorage.getItem('admin_token')
     if (!adminToken) {
+      console.warn('[Router] 管理员未登录，跳转到登录页')
       next('/admin/login')
       return
     }

@@ -1,22 +1,37 @@
 <template>
   <div class="user-list">
-    <div class="page-header">
-      <h2>用户管理</h2>
-      <button @click="openCreateUserAccountModal" class="add-btn">添加用户</button>
-    </div>
-    <div class="search-bar">
-      <input v-model="searchKeyword" type="text" placeholder="搜索用户昵称或手机号" class="search-input" />
-      <select v-model="filterStatus" class="search-select">
-        <option value="">全部状态</option>
-        <option value="0">正常</option>
-        <option value="1">禁用</option>
-      </select>
-      <button @click="loadUsers" class="search-btn">搜索</button>
+    <div class="toolbar">
+      <div class="search-bar">
+        <input v-model="searchKeyword" type="text" placeholder="搜索用户昵称或手机号" class="search-input" />
+        <select v-model="filterStatus" class="search-select">
+          <option value="">全部状态</option>
+          <option value="0">正常</option>
+          <option value="1">禁用</option>
+        </select>
+        <button @click="loadUsers" class="search-btn">搜索</button>
+        <button @click="openCreateUserAccountModal" class="add-btn">添加用户</button>
+        <button @click="exportUsers" class="export-btn">📥 导出</button>
+      </div>
+      <div class="batch-bar" v-if="selectedIds.length > 0">
+        <span>已选 {{ selectedIds.length }} 项</span>
+        <button @click="batchToggleStatus(0)" class="batch-btn">批量启用</button>
+        <button @click="batchToggleStatus(1)" class="batch-btn batch-danger">批量禁用</button>
+        <button @click="selectedIds = []" class="batch-btn">取消选择</button>
+      </div>
     </div>
 
-    <table class="data-table">
+    <!-- Loading -->
+    <div v-if="loading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <span>加载中...</span>
+    </div>
+
+    <table v-else-if="userList.length > 0" class="data-table">
       <thead>
         <tr>
+          <th style="width:40px">
+            <input type="checkbox" :checked="isAllSelected" @change="toggleSelectAll" />
+          </th>
           <th>ID</th>
           <th>头像</th>
           <th>昵称</th>
@@ -35,6 +50,9 @@
       </thead>
       <tbody>
         <tr v-for="user in userList" :key="user.id">
+          <td>
+            <input type="checkbox" :checked="selectedIds.includes(user.id)" @change="toggleSelect(user.id)" />
+          </td>
           <td>{{ user.id }}</td>
           <td>
             <img v-if="user.avatar" :src="user.avatar" class="user-avatar" />
@@ -67,15 +85,32 @@
       </tbody>
     </table>
 
+    <div v-else class="empty-state">
+      <div class="empty-icon">👥</div>
+      <div class="empty-text">暂无用户数据</div>
+    </div>
+
     <div class="pagination">
-      <button @click="prevPage" class="page-btn" :disabled="page <= 1">上一页</button>
-      <span class="page-info">{{ page }} / {{ totalPages }}</span>
-      <button @click="nextPage" class="page-btn" :disabled="page >= totalPages">下一页</button>
+      <select v-model.number="pageSize" @change="loadUsers" class="page-size-select">
+        <option :value="10">10条/页</option>
+        <option :value="20">20条/页</option>
+        <option :value="50">50条/页</option>
+        <option :value="100">100条/页</option>
+      </select>
+      <button @click="goPage(1)" :disabled="page <= 1" class="page-btn">首页</button>
+      <button @click="goPage(page - 1)" :disabled="page <= 1" class="page-btn">上一页</button>
+      <template v-for="p in pageNumbers" :key="p">
+        <button v-if="p === '...'" class="page-btn page-ellipsis" disabled>...</button>
+        <button v-else :class="['page-btn', { 'page-active': p === page }]" @click="goPage(p)">{{ p }}</button>
+      </template>
+      <button @click="goPage(page + 1)" :disabled="page >= totalPages" class="page-btn">下一页</button>
+      <button @click="goPage(totalPages)" :disabled="page >= totalPages" class="page-btn">末页</button>
+      <span class="page-info">共 {{ total }} 条</span>
     </div>
 
     <!-- 用户详情模态框 -->
-    <div v-if="showUserDetail" class="modal-overlay" @click.self="showUserDetail = false">
-      <div class="modal-content">
+    <div v-if="showUserDetail" class="modal-overlay user-overlay" @click.self="showUserDetail = false">
+      <div class="modal-content user-modal">
         <div class="modal-header">
           <h3>用户详情</h3>
           <button @click="showUserDetail = false" class="close-btn">&times;</button>
@@ -130,8 +165,8 @@
     </div>
 
     <!-- 编辑用户模态框 -->
-    <div v-if="showUserModal" class="modal-overlay" @click.self="showUserModal = false">
-      <div class="modal-content">
+    <div v-if="showUserModal" class="modal-overlay user-overlay" @click.self="showUserModal = false">
+      <div class="modal-content user-modal">
         <div class="modal-header">
           <h3>{{ currentUser.id ? '编辑用户' : '添加用户' }}</h3>
           <button @click="showUserModal = false" class="close-btn">&times;</button>
@@ -180,7 +215,7 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { regionData } from '../../../common/regionData'
 import { useAdmin } from '../composables/useAdmin'
 
-const { token, page, pageSize, total, totalPages, getHost, formatTime, handleLogout, apiGet, apiPost, apiPut, apiDelete } = useAdmin()
+const { token, page, pageSize, total, totalPages, pageNumbers, formatTime, apiGet, apiPost, apiPut, apiDelete, exportCSV, toast, confirm } = useAdmin()
 
 const userList = ref([])
 const searchKeyword = ref('')
@@ -188,8 +223,17 @@ const filterStatus = ref('')
 const currentUser = ref(null)
 const showUserModal = ref(false)
 const showUserDetail = ref(false)
+const selectedIds = ref([])
+const loading = ref(false)
 
-const loadUsers = async () => {
+const isAllSelected = computed(() => userList.value.length > 0 && userList.value.every(u => selectedIds.value.includes(u.id)))
+
+const loadUsers = () => {
+  page.value = 1; _loadUsers()
+}
+const goPage = (p) => { page.value = p; _loadUsers() }
+const _loadUsers = async () => {
+  loading.value = true
   try {
     const params = { page: page.value, pageSize: pageSize.value }
     if (searchKeyword.value) {
@@ -205,6 +249,9 @@ const loadUsers = async () => {
     }
   } catch (err) {
     console.error('加载用户列表失败:', err)
+    toast('加载用户列表失败', 'error')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -241,56 +288,81 @@ const saveUserAccount = async () => {
     }
     if (res.code === 200) {
       showUserModal.value = false
-      loadUsers()
+      toast(currentUser.value.id ? '用户已更新' : '用户已创建')
+      _loadUsers()
+    } else {
+      toast(res.message || '操作失败', 'error')
     }
   } catch (err) {
     console.error('保存用户失败:', err)
-  }
-}
-
-const toggleUserStatus = async (user) => {
-  try {
-    const res = await apiPut('/api/admin/users/' + user.id, {
-      ...user,
-      status: user.status === 0 ? 1 : 0
-    })
-    if (res.code === 200) {
-      loadUsers()
-    }
-  } catch (err) {
-    console.error('切换用户状态失败:', err)
-  }
-}
-
-const deleteUserAccount = async (user) => {
-  if (!confirm('确定要删除这个用户吗？')) return
-  try {
-    const res = await apiDelete('/api/admin/users/' + user.id)
-    if (res.code === 200) {
-      loadUsers()
-    }
-  } catch (err) {
-    console.error('删除用户失败:', err)
-  }
-}
-
-const prevPage = () => {
-  if (page.value > 1) {
-    page.value--
-    loadUsers()
-  }
-}
-
-const nextPage = () => {
-  if (page.value < totalPages.value) {
-    page.value++
-    loadUsers()
+    toast('保存用户失败', 'error')
   }
 }
 
 onMounted(() => {
-  loadUsers()
+  _loadUsers()
 })
+
+const toggleSelect = (id) => {
+  const idx = selectedIds.value.indexOf(id)
+  if (idx > -1) selectedIds.value.splice(idx, 1)
+  else selectedIds.value.push(id)
+}
+
+const toggleSelectAll = () => {
+  if (isAllSelected.value) selectedIds.value = []
+  else selectedIds.value = userList.value.map(u => u.id)
+}
+
+const batchToggleStatus = async (status) => {
+  if (!(await confirm(`确定要${status === 1 ? '禁用' : '启用'}选中的 ${selectedIds.value.length} 个用户吗？`))) return
+  for (const id of selectedIds.value) {
+    try { await apiPut('/api/admin/users/' + id + '/status', { status }) } catch (e) {}
+  }
+  toast('批量操作完成')
+  selectedIds.value = []
+  _loadUsers()
+}
+
+const exportUsers = () => {
+  exportCSV(userList.value, [
+    { label: 'ID', key: 'id' },
+    { label: '昵称', key: 'nickname' },
+    { label: '手机号', key: 'phone' },
+    { label: '邮箱', key: 'email' },
+    { label: '性别', key: (r) => r.sex === 1 ? '男' : r.sex === 2 ? '女' : '未知' },
+    { label: '等级', key: 'lv' },
+    { label: '金币', key: 'money' },
+    { label: '城市', key: 'city' },
+    { label: '状态', key: (r) => r.status === 0 ? '正常' : '禁用' },
+    { label: '注册时间', key: (r) => formatTime(r.createTime) }
+  ], '用户列表')
+  toast('导出成功')
+}
+
+const toggleUserStatus = async (user) => {
+  try {
+    const res = await apiPut('/api/admin/users/' + user.id + '/status', {
+      status: user.status === 0 ? 1 : 0
+    })
+    if (res.code === 200) _loadUsers()
+  } catch (err) { console.error('切换用户状态失败:', err) }
+}
+
+const deleteUserAccount = async (user) => {
+  if (!(await confirm('确定要删除这个用户吗？'))) return
+  try {
+    const res = await apiDelete('/api/admin/users/' + user.id)
+    if (res.code === 200) {
+      toast('用户已删除')
+      _loadUsers()
+    }
+  } catch (err) {
+    console.error('删除用户失败:', err)
+    toast('删除用户失败', 'error')
+  }
+}
+
 </script>
 
 <style scoped>
@@ -300,53 +372,97 @@ onMounted(() => {
   border-radius: 8px;
 }
 
-.page-header {
+.toolbar {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
   margin-bottom: 20px;
-}
-
-.page-header h2 {
-  margin: 0;
-  color: #333;
-}
-
-.add-btn {
-  padding: 8px 16px;
-  background: #1890ff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
 }
 
 .search-bar {
   display: flex;
   gap: 10px;
-  margin-bottom: 20px;
+  flex: 1;
+  align-items: center;
+}
+
+.search-input, .search-select, .search-btn, .add-btn {
+  height: 36px;
+  box-sizing: border-box;
+  margin: 0;
+  font-size: 14px;
+  border-radius: 4px;
 }
 
 .search-input {
   flex: 1;
-  padding: 8px 12px;
+  padding: 0 12px;
   border: 1px solid #d9d9d9;
-  border-radius: 4px;
+  background: #fff;
 }
 
 .search-select {
-  padding: 8px 12px;
+  padding: 0 24px 0 12px;
   border: 1px solid #d9d9d9;
-  border-radius: 4px;
+  background: #fff;
+  appearance: none;
 }
 
-.search-btn {
-  padding: 8px 16px;
+.search-btn, .add-btn {
+  padding: 0 16px;
   background: #1890ff;
   color: white;
+  border: 1px solid #1890ff;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.export-btn {
+  padding: 0 16px;
+  background: #52c41a;
+  color: white;
+  border: 1px solid #52c41a;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  height: 36px;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 8px 14px;
+  background: #e6f7ff;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #1890ff;
+}
+
+.batch-btn {
+  padding: 4px 12px;
+  background: #1890ff;
+  color: #fff;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 12px;
+}
+
+.batch-danger {
+  background: #ff4d4f;
+}
+
+.toolbar {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 20px;
 }
 
 .data-table {
@@ -426,20 +542,53 @@ onMounted(() => {
 }
 
 .page-btn {
-  padding: 8px 16px;
+  padding: 6px 10px;
   background: white;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 13px;
+  min-width: 34px;
+  text-align: center;
 }
 
 .page-btn:disabled {
-  opacity: 0.5;
+  opacity: 0.4;
   cursor: not-allowed;
 }
 
+.page-btn:not(:disabled):hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.page-active {
+  background: #1890ff;
+  color: #fff;
+  border-color: #1890ff;
+}
+
+.page-active:hover {
+  color: #fff !important;
+}
+
+.page-ellipsis {
+  border: none;
+  cursor: default;
+}
+
+.page-size-select {
+  padding: 6px 8px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 13px;
+  margin-right: 8px;
+}
+
 .page-info {
-  color: #666;
+  color: #999;
+  font-size: 13px;
+  margin-left: 10px;
 }
 
 .modal-overlay {
@@ -462,6 +611,18 @@ onMounted(() => {
   max-width: 90%;
   max-height: 90vh;
   overflow-y: auto;
+}
+
+.user-overlay {
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-top: 40px;
+  padding-left: 240px;
+}
+
+.user-modal {
+  width: calc(100vw - 280px);
+  max-width: none !important;
 }
 
 .modal-header {

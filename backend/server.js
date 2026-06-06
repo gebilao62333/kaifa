@@ -155,15 +155,15 @@ app.use((req, res) => {
 
 // 错误处理
 app.use((err, req, res, next) => {
-  const errorMsg = '服务器错误';
+  const errMessage = err.message || '服务器内部错误';
   if (logger && logger.error) {
-    logger.error(errorMsg, err);
+    logger.error('服务器错误:', err);
   } else {
-    console.error(`❌ ${errorMsg}:`, err);
+    console.error('❌ 服务器错误:', err);
   }
-  res.status(500).json({
-    code: 500,
-    message: '服务器内部错误'
+  res.status(err.status || 500).json({
+    code: err.status || 500,
+    message: process.env.NODE_ENV === 'production' ? '服务器内部错误' : errMessage
   });
 });
 
@@ -317,13 +317,16 @@ process.on('unhandledRejection', (reason, promise) => {
   }
 });
 
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', async (error) => {
   const msg = '未捕获的异常';
   if (logger && logger.error) {
     logger.error(msg, error);
   } else {
     console.error(`❌ ${msg}:`, error);
   }
+  try {
+    await server.close();
+  } catch {}
   process.exit(1);
 });
 

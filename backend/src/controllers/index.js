@@ -24,7 +24,8 @@ const getBanners = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取Banner错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 

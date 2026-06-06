@@ -138,23 +138,23 @@ const submitForm = async () => {
   if (!userStore.isLogin) { toast.warning('请先登录'); router.push('/login'); return }
 
   if (!realName.value.trim()) {
-    alert('请输入真实姓名')
+    toast.warning('请输入真实姓名');
     return
   }
   if (!idCard.value || idCard.value.length < 15) {
-    alert('请输入正确的身份证号码')
+    toast.warning('请输入正确的身份证号码');
     return
   }
   if (!frontImg.value || !backImg.value) {
-    alert('请上传身份证照片')
+    toast.warning('请上传身份证照片');
     return
   }
   if (!agreed.value) {
-    alert('请先同意认证协议')
+    toast.warning('请先同意认证协议');
     return
   }
   
-  alert('认证信息已提交，将在1-3个工作日内审核')
+  toast.success('认证信息已提交，将在1-3个工作日内审核')
   isVerified.value = true
 }
 </script>

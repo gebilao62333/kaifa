@@ -45,6 +45,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -99,7 +100,7 @@ const goBack = () => {
 
 const selectFrame = (frame) => {
   if (frame.locked) {
-    alert(`解锁条件：${frame.condition}`)
+    toast.info(`解锁条件：${frame.condition}`);
     return
   }
   selectedId.value = frame.id

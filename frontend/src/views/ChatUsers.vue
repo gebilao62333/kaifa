@@ -115,7 +115,7 @@ const loadUsers = async () => {
         allUsers.value = list.map(user => ({
           userId: user.userId || user.id,
           nickName: user.nickName || user.nickname,
-          avatar: user.avatar || 'https://picsum.photos/200/200',
+          avatar: user.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=chatuser',
           gender: user.gender || 'unknown',
           level: user.level || 1,
           online: user.online || false,

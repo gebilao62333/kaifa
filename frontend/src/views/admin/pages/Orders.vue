@@ -1,14 +1,28 @@
 <template>
   <div class="order-list">
-    <div class="page-header">
-      <h2>订单管理</h2>
-    </div>
-    <div class="search-bar">
-      <input v-model="searchKeyword" type="text" placeholder="搜索订单号" class="search-input" />
-      <button @click="loadOrders" class="search-btn">搜索</button>
+    <div class="toolbar">
+      <div class="search-bar">
+        <input v-model="searchKeyword" type="text" placeholder="搜索订单号" class="search-input" />
+        <select v-model="filterStatus" class="search-select">
+          <option value="">全部状态</option>
+          <option value="0">待接单</option>
+          <option value="1">进行中</option>
+          <option value="2">已完成</option>
+          <option value="3">已取消</option>
+          <option value="4">已退款</option>
+        </select>
+        <button @click="loadOrders" class="search-btn">搜索</button>
+        <button @click="exportOrders" class="export-btn">📥 导出</button>
+      </div>
     </div>
 
-    <table class="data-table">
+    <!-- Loading -->
+    <div v-if="loading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <span>加载中...</span>
+    </div>
+
+    <table v-else-if="orderList.length > 0" class="data-table">
       <thead>
         <tr>
           <th>订单号</th>
@@ -36,20 +50,39 @@
           <td>{{ formatUnixTime(order.createTime) }}</td>
           <td>
             <button @click="viewOrderDetail(order)" class="action-btn">详情</button>
+            <button v-if="order.status === 0" @click="cancelOrder(order)" class="action-btn delete-btn">取消</button>
+            <button v-if="order.status === 1" @click="refundOrder(order)" class="action-btn refund-btn">退款</button>
           </td>
         </tr>
       </tbody>
     </table>
 
+    <div v-if="!loading && orderList.length === 0" class="empty-state">
+      <div class="empty-icon">📦</div>
+      <div class="empty-text">暂无订单数据</div>
+    </div>
+
     <div class="pagination">
-      <button @click="prevPage" class="page-btn" :disabled="page <= 1">上一页</button>
-      <span class="page-info">{{ page }} / {{ totalPages }}</span>
-      <button @click="nextPage" class="page-btn" :disabled="page >= totalPages">下一页</button>
+      <select v-model.number="pageSize" @change="loadOrders" class="page-size-select">
+        <option :value="10">10条/页</option>
+        <option :value="20">20条/页</option>
+        <option :value="50">50条/页</option>
+        <option :value="100">100条/页</option>
+      </select>
+      <button @click="goPage(1)" :disabled="page <= 1" class="page-btn">首页</button>
+      <button @click="goPage(page - 1)" :disabled="page <= 1" class="page-btn">上一页</button>
+      <template v-for="p in pageNumbers" :key="p">
+        <button v-if="p === '...'" class="page-btn page-ellipsis" disabled>...</button>
+        <button v-else :class="['page-btn', { 'page-active': p === page }]" @click="goPage(p)">{{ p }}</button>
+      </template>
+      <button @click="goPage(page + 1)" :disabled="page >= totalPages" class="page-btn">下一页</button>
+      <button @click="goPage(totalPages)" :disabled="page >= totalPages" class="page-btn">末页</button>
+      <span class="page-info">共 {{ total }} 条</span>
     </div>
 
     <!-- 订单详情模态框 -->
-    <div v-if="showOrderDetail" class="modal-overlay" @click.self="showOrderDetail = false">
-      <div class="modal-content modal-large">
+    <div v-if="showOrderDetail" class="modal-overlay order-overlay" @click.self="showOrderDetail = false">
+      <div class="modal-content modal-large order-modal">
         <div class="modal-header">
           <h3>订单详情</h3>
           <button @click="showOrderDetail = false" class="close-btn">&times;</button>
@@ -90,6 +123,8 @@
         </div>
         <div class="modal-footer">
           <button @click="showOrderDetail = false" class="cancel-btn">关闭</button>
+          <button v-if="currentOrder?.status === 0" @click="cancelFromDetail()" class="confirm-btn delete-btn">取消订单</button>
+          <button v-if="currentOrder?.status === 1" @click="refundFromDetail()" class="confirm-btn refund-btn">退款</button>
         </div>
       </div>
     </div>
@@ -101,12 +136,17 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { regionData } from '../../../common/regionData'
 import { useAdmin } from '../composables/useAdmin'
 
-const { token, page, pageSize, total, totalPages, getHost, formatTime, handleLogout, apiGet, apiPost, apiPut, apiDelete } = useAdmin()
+const { page, pageSize, total, totalPages, pageNumbers, formatTime, apiGet, apiPut, exportCSV, toast, confirm } = useAdmin()
 
 const orderList = ref([])
 const searchKeyword = ref('')
+const filterStatus = ref('')
 const currentOrder = ref(null)
 const showOrderDetail = ref(false)
+const loading = ref(false)
+
+const loadOrders = () => { page.value = 1; _loadOrders() }
+const goPage = (p) => { page.value = p; _loadOrders() }
 
 const formatUnixTime = (timestamp) => {
   if (!timestamp) return '-'
@@ -136,11 +176,15 @@ const orderStatusClass = (status) => {
   return map[status] || ''
 }
 
-const loadOrders = async () => {
+const _loadOrders = async () => {
+  loading.value = true
   try {
     const params = { page: page.value, pageSize: pageSize.value }
     if (searchKeyword.value) {
       params.keyword = searchKeyword.value
+    }
+    if (filterStatus.value !== '') {
+      params.status = filterStatus.value
     }
     const res = await apiGet('/api/admin/orders', params)
     if (res.code === 200) {
@@ -149,7 +193,24 @@ const loadOrders = async () => {
     }
   } catch (err) {
     console.error('加载订单列表失败:', err)
+    toast('加载订单列表失败', 'error')
+  } finally {
+    loading.value = false
   }
+}
+
+const exportOrders = () => {
+  exportCSV(orderList.value, [
+    { label: '订单号', key: 'orderNo' },
+    { label: '订单内容', key: 'content' },
+    { label: '服务类型', key: 'gameName' },
+    { label: '买家', key: 'userNickname' },
+    { label: '陪玩师', key: 'companionNickname' },
+    { label: '金额', key: 'totalPrice' },
+    { label: '状态', key: (r) => orderStatusText(r.status) },
+    { label: '创建时间', key: (r) => formatTime(r.createTime) }
+  ], '订单列表')
+  toast('导出成功')
 }
 
 const viewOrderDetail = (order) => {
@@ -157,22 +218,76 @@ const viewOrderDetail = (order) => {
   showOrderDetail.value = true
 }
 
-const prevPage = () => {
-  if (page.value > 1) {
-    page.value--
-    loadOrders()
+const cancelOrder = async (order) => {
+  if (!(await confirm('确定要取消此订单吗？'))) return
+  try {
+    const res = await apiPut('/api/admin/orders/' + (order.id || order.orderId) + '/status', { status: 3 })
+    if (res.code === 200) {
+      toast('订单已取消')
+      loadOrders()
+    } else {
+      toast(res.message || '操作失败', 'error')
+    }
+  } catch (err) {
+    console.error('取消订单失败:', err)
+    toast('操作失败', 'error')
   }
 }
 
-const nextPage = () => {
-  if (page.value < totalPages.value) {
-    page.value++
-    loadOrders()
+const refundOrder = async (order) => {
+  if (!(await confirm('确定要退款此订单吗？金币将退回给买家。'))) return
+  try {
+    const res = await apiPut('/api/admin/orders/' + (order.id || order.orderId) + '/status', { status: 4 })
+    if (res.code === 200) {
+      toast('已退款')
+      loadOrders()
+    } else {
+      toast(res.message || '操作失败', 'error')
+    }
+  } catch (err) {
+    console.error('退款失败:', err)
+    toast('操作失败', 'error')
+  }
+}
+
+const cancelFromDetail = async () => {
+  if (!(await confirm('确定要取消此订单吗？'))) return
+  try {
+    const order = currentOrder.value
+    const res = await apiPut('/api/admin/orders/' + (order.id || order.orderId) + '/status', { status: 3 })
+    if (res.code === 200) {
+      toast('订单已取消')
+      showOrderDetail.value = false
+      loadOrders()
+    } else {
+      toast(res.message || '操作失败', 'error')
+    }
+  } catch (err) {
+    console.error('取消订单失败:', err)
+    toast('操作失败', 'error')
+  }
+}
+
+const refundFromDetail = async () => {
+  if (!(await confirm('确定要退款此订单吗？金币将退回给买家。'))) return
+  try {
+    const order = currentOrder.value
+    const res = await apiPut('/api/admin/orders/' + (order.id || order.orderId) + '/status', { status: 4 })
+    if (res.code === 200) {
+      toast('已退款')
+      showOrderDetail.value = false
+      loadOrders()
+    } else {
+      toast(res.message || '操作失败', 'error')
+    }
+  } catch (err) {
+    console.error('退款失败:', err)
+    toast('操作失败', 'error')
   }
 }
 
 onMounted(() => {
-  loadOrders()
+  _loadOrders()
 })
 </script>
 
@@ -206,6 +321,13 @@ onMounted(() => {
   padding: 8px 12px;
   border: 1px solid #d9d9d9;
   border-radius: 4px;
+}
+
+.search-select {
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  background: white;
 }
 
 .search-btn {
@@ -285,12 +407,21 @@ onMounted(() => {
 
 .action-btn {
   padding: 4px 8px;
+  margin-right: 5px;
   background: #1890ff;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-size: 12px;
+}
+
+.refund-btn {
+  background: #ff4d4f;
+}
+
+.delete-btn {
+  background: #ff7875;
 }
 
 .pagination {
@@ -340,6 +471,18 @@ onMounted(() => {
 
 .modal-large {
   width: 700px;
+}
+
+.order-overlay {
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-top: 40px;
+  padding-left: 240px;
+}
+
+.order-modal {
+  width: calc(100vw - 280px);
+  max-width: none !important;
 }
 
 .modal-header {

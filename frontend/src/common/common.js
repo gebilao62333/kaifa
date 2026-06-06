@@ -356,3 +356,40 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
     throw new RequestError('网络连接失败，请检查网络', -1, 0)
   }
 }
+
+/**
+ * 格式化管理员列表页时间戳
+ * @param {number|string} ts - 时间戳（毫秒或秒）
+ * @returns {string} 格式化后的时间字符串
+ */
+export const formatAdminTime = (ts) => {
+  if (!ts && ts !== 0) return '-'
+  let d
+  if (typeof ts === 'number' && ts < 1e12) d = new Date(ts * 1000)
+  else d = new Date(ts)
+  if (isNaN(d.getTime())) return '-'
+  const pad = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+/**
+ * 加载分页列表数据的通用函数
+ * @param {Function} fetchFn - 返回 Promise 的API请求函数
+ * @param {Object} state - { list, total, loading } 引用对象
+ * @param {Object} params - 额外请求参数
+ */
+export const loadPageList = async (fetchFn, state, params = {}) => {
+  state.loading = true
+  try {
+    const res = await fetchFn(params)
+    if (res.code === 200) {
+      state.list = res.data?.list || res.data?.rows || []
+      state.total = res.data?.total || res.data?.count || 0
+      return res.data
+    }
+  } catch (e) {
+    console.error('加载列表失败', e)
+  } finally {
+    state.loading = false
+  }
+}

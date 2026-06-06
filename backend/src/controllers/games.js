@@ -1,6 +1,8 @@
 const { gamesService } = require('../services');
 const logger = require('../utils/logger');
 const response = require('../utils/response');
+const { Recommend } = require('../models');
+const { Op } = require('sequelize');
 
 const getCategories = async (req, res) => {
   try {
@@ -8,7 +10,8 @@ const getCategories = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取游戏分类错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -23,7 +26,8 @@ const getCompanions = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取陪玩师列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -34,7 +38,8 @@ const getCompanionDetail = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取陪玩师详情错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -55,7 +60,8 @@ const createOrder = async (req, res) => {
     response.success(res, result, '下单成功');
   } catch (error) {
     logger.error('创建订单错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -71,7 +77,8 @@ const grabOrder = async (req, res) => {
     response.success(res, result, '抢单成功');
   } catch (error) {
     logger.error('抢单错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -87,7 +94,8 @@ const startOrder = async (req, res) => {
     response.success(res, {}, '已开始陪玩');
   } catch (error) {
     logger.error('开始陪玩错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -103,7 +111,8 @@ const completeOrder = async (req, res) => {
     response.success(res, {}, '已完成陪玩');
   } catch (error) {
     logger.error('完成订单错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -119,7 +128,8 @@ const cancelOrder = async (req, res) => {
     response.success(res, {}, '取消成功');
   } catch (error) {
     logger.error('取消订单错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -137,7 +147,8 @@ const getOrders = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取订单列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -158,7 +169,8 @@ const applyAsCompanion = async (req, res) => {
     response.success(res, {}, '申请已提交，等待审核');
   } catch (error) {
     logger.error('申请陪玩师错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -168,7 +180,76 @@ const getApplyStatus = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取申请状态错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
+  }
+};
+
+// 公共：获取首页推荐（仅返回进行中且未过期的用户）
+const getPublicRecommendHome = async (req, res) => {
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const records = await Recommend.findAll({
+      where: {
+        recommend_type: 'home',
+        status: 1
+      }
+    });
+
+    const list = records
+      .filter(r => r.end_time === 0 || r.end_time > now)
+      .sort((a, b) => {
+        if (a.is_top && !b.is_top) return -1;
+        if (!a.is_top && b.is_top) return 1;
+        return a.sort_order - b.sort_order;
+      })
+      .map(r => ({
+        userId: r.user_id,
+        nickName: r.nickname,
+        avatar: r.avatar,
+        isTop: !!r.is_top,
+        sortOrder: r.sort_order,
+        isAdminRecommend: true
+      }));
+
+    response.success(res, { list, total: list.length });
+  } catch (error) {
+    logger.error('获取首页推荐错误:', error);
+    response.error(res, '操作失败');
+  }
+};
+
+// 公共：获取广场推荐
+const getPublicRecommendSquare = async (req, res) => {
+  try {
+    const now = Math.floor(Date.now() / 1000);
+    const records = await Recommend.findAll({
+      where: {
+        recommend_type: 'square',
+        status: 1
+      }
+    });
+
+    const list = records
+      .filter(r => r.end_time === 0 || r.end_time > now)
+      .sort((a, b) => {
+        if (a.is_top && !b.is_top) return -1;
+        if (!a.is_top && b.is_top) return 1;
+        return a.sort_order - b.sort_order;
+      })
+      .map(r => ({
+        userId: r.user_id,
+        nickName: r.nickname,
+        avatar: r.avatar,
+        isTop: !!r.is_top,
+        sortOrder: r.sort_order,
+        isAdminRecommend: true
+      }));
+
+    response.success(res, { list, total: list.length });
+  } catch (error) {
+    logger.error('获取广场推荐错误:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -183,5 +264,7 @@ module.exports = {
   cancelOrder,
   getOrders,
   applyAsCompanion,
-  getApplyStatus
+  getApplyStatus,
+  getPublicRecommendHome,
+  getPublicRecommendSquare
 };

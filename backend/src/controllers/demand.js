@@ -25,7 +25,8 @@ const createDemand = async (req, res) => {
     response.created(res, result, '需求发布成功');
   } catch (error) {
     logger.error('发布需求错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -37,7 +38,8 @@ const getDemandList = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取需求列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -53,7 +55,8 @@ const getDemandDetail = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取需求详情错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -69,7 +72,8 @@ const cancelDemand = async (req, res) => {
     response.success(res, {}, '已取消需求');
   } catch (error) {
     logger.error('取消需求错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 

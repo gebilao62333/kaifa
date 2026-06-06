@@ -8,7 +8,8 @@ const getVipPackages = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取VIP套餐错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -18,7 +19,8 @@ const getUserVipInfo = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取VIP信息错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -34,7 +36,8 @@ const createVipOrder = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('创建VIP订单错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -50,7 +53,8 @@ const completeVipOrder = async (req, res) => {
     response.success(res, result, '开通成功');
   } catch (error) {
     logger.error('完成VIP订单错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -66,7 +70,8 @@ const getVipOrderStatus = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('查询VIP订单状态错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -82,7 +87,8 @@ const getUserVipOrders = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取VIP订单列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 

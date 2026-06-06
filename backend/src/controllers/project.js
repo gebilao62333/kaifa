@@ -8,7 +8,8 @@ const getStats = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取项目统计错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -19,7 +20,8 @@ const getList = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取项目列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -35,7 +37,8 @@ const getById = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取项目详情错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -51,7 +54,8 @@ const create = async (req, res) => {
     response.created(res, result, '创建成功');
   } catch (error) {
     logger.error('创建项目错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -68,7 +72,8 @@ const update = async (req, res) => {
     response.success(res, {}, '更新成功');
   } catch (error) {
     logger.error('更新项目错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -84,7 +89,8 @@ const deleteProject = async (req, res) => {
     response.success(res, {}, '删除成功');
   } catch (error) {
     logger.error('删除项目错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -100,7 +106,8 @@ const start = async (req, res) => {
     response.success(res, {}, '启动成功');
   } catch (error) {
     logger.error('启动项目错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -116,7 +123,8 @@ const stop = async (req, res) => {
     response.success(res, {}, '停止成功');
   } catch (error) {
     logger.error('停止项目错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -132,7 +140,8 @@ const restart = async (req, res) => {
     response.success(res, {}, '重启成功');
   } catch (error) {
     logger.error('重启项目错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 

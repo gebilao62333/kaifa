@@ -47,6 +47,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { host } from '../common/config';
+import { toast } from '../composables/useToast';
 
 const form = reactive({
   username: '',
@@ -106,13 +107,13 @@ const handleInit = async () => {
     const data = await response.json();
     
     if (data.code === 200) {
-      alert('初始化成功！\n用户名：admin\n密码：admin123');
+      toast.success('初始化成功！\n用户名：admin\n密码：admin123');
       showInitBtn.value = false;
     } else {
-      alert(data.message || '初始化失败');
+      toast.error(data.message || '初始化失败');
     }
   } catch (err) {
-    alert('网络错误，请稍后重试');
+    toast.error('网络错误，请稍后重试');
   }
 };
 

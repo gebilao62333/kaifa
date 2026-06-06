@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const uploadController = require('../controllers/upload');
+const adminUpload = require('../config/upload');
 const { 
   adminLogin, 
   getUserList, 
@@ -22,10 +24,17 @@ const {
   getPostList,
   getPostDetail,
   deletePost,
+  batchDeletePosts,
+  updatePostStatus,
+  batchUpdatePostStatus,
+  getPostStats,
   getReportList,
   getReportDetail,
   handleReport,
+  batchHandleReports,
   deleteReport,
+  batchDeleteReports,
+  getReportStats,
   getBannerList,
   getBannerDetail,
   createBanner,
@@ -48,6 +57,18 @@ const {
   getRechargeRecordList,
   getRechargeRecordDetail,
   deleteRechargeRecord,
+  completeRechargeRecord,
+  failRechargeRecord,
+  getCardList,
+  getCardDetail,
+  createCard,
+  updateCard,
+  updateCardStatus,
+  batchUpdateCardStatus,
+  batchDeleteCards,
+  getCardStats,
+  importCards,
+  deleteCard,
   getGameList,
   getGameDetail,
   createGame,
@@ -68,7 +89,26 @@ const {
   updateVirtualUser,
   deleteVirtualUser,
   toggleVirtualUserStatus,
-  getVirtualUserChatHistory
+  getVirtualUserChatHistory,
+  getRecommendCandidates,
+  getRecommendListByType,
+  addRecommend,
+  updateRecommend,
+  batchUpdateRecommend,
+  deleteRecommend,
+  checkExpiredRecommend,
+  getCustomerServiceList,
+  createCustomerService,
+  updateCustomerService,
+  deleteCustomerService,
+  // 系统通知管理
+  getNotificationList,
+  getNotificationDetail,
+  createNotification,
+  updateNotification,
+  pushNotification,
+  getNotificationStats,
+  deleteNotification
 } = require('../controllers/admin');
 const { adminAuth } = require('../middlewares');
 
@@ -101,14 +141,21 @@ router.delete('/withdraws/:id', adminAuth, deleteWithdraw);
 
 // 帖子管理
 router.get('/posts', adminAuth, getPostList);
+router.get('/posts/stats', adminAuth, getPostStats);
 router.get('/posts/:id', adminAuth, getPostDetail);
 router.delete('/posts/:id', adminAuth, deletePost);
+router.post('/posts/batch-delete', adminAuth, batchDeletePosts);
+router.put('/posts/:id/status', adminAuth, updatePostStatus);
+router.post('/posts/batch-status', adminAuth, batchUpdatePostStatus);
 
 // 举报管理
 router.get('/reports', adminAuth, getReportList);
+router.get('/reports/stats', adminAuth, getReportStats);
 router.get('/reports/:id', adminAuth, getReportDetail);
 router.post('/reports/:id/handle', adminAuth, handleReport);
+router.post('/reports/batch-handle', adminAuth, batchHandleReports);
 router.delete('/reports/:id', adminAuth, deleteReport);
+router.post('/reports/batch-delete', adminAuth, batchDeleteReports);
 
 // Banner管理
 router.get('/banners', adminAuth, getBannerList);
@@ -141,6 +188,20 @@ router.get('/gift-logs/:id', adminAuth, getGiftLogDetail);
 router.get('/recharge-records', adminAuth, getRechargeRecordList);
 router.get('/recharge-records/:id', adminAuth, getRechargeRecordDetail);
 router.delete('/recharge-records/:id', adminAuth, deleteRechargeRecord);
+router.put('/recharge-records/:id/complete', adminAuth, completeRechargeRecord);
+router.put('/recharge-records/:id/fail', adminAuth, failRechargeRecord);
+
+// 密卡管理
+router.get('/cards/stats', adminAuth, getCardStats);
+router.get('/cards', adminAuth, getCardList);
+router.get('/cards/:id', adminAuth, getCardDetail);
+router.post('/cards', adminAuth, createCard);
+router.put('/cards/:id', adminAuth, updateCard);
+router.put('/cards/:id/status', adminAuth, updateCardStatus);
+router.post('/cards/batch-status', adminAuth, batchUpdateCardStatus);
+router.post('/cards/batch-delete', adminAuth, batchDeleteCards);
+router.post('/cards/import', adminAuth, importCards);
+router.delete('/cards/:id', adminAuth, deleteCard);
 
 // 游戏/服务管理
 router.get('/games', adminAuth, getGameList);
@@ -172,6 +233,30 @@ router.put('/settings', adminAuth, updateSystemSettings);
 
 // 仪表板
 router.get('/dashboard', adminAuth, getDashboardStats);
+
+// 推荐管理
+router.get('/recommend-candidates', adminAuth, getRecommendCandidates);
+router.get('/recommend-list/:recommendType', adminAuth, getRecommendListByType);
+router.post('/recommend/check-expired', adminAuth, checkExpiredRecommend);
+router.post('/recommend', adminAuth, addRecommend);
+router.put('/recommend/batch', adminAuth, batchUpdateRecommend);
+router.put('/recommend/:id', adminAuth, updateRecommend);
+router.delete('/recommend/:id', adminAuth, deleteRecommend);
+
+// 客服管理
+router.get('/customer-services', adminAuth, getCustomerServiceList);
+router.post('/customer-services', adminAuth, createCustomerService);
+router.put('/customer-services/:id', adminAuth, updateCustomerService);
+router.delete('/customer-services/:id', adminAuth, deleteCustomerService);
+
+// 系统通知管理
+router.get('/notifications/stats', adminAuth, getNotificationStats);
+router.get('/notifications', adminAuth, getNotificationList);
+router.get('/notifications/:id', adminAuth, getNotificationDetail);
+router.post('/notifications', adminAuth, createNotification);
+router.put('/notifications/:id', adminAuth, updateNotification);
+router.post('/notifications/:id/push', adminAuth, pushNotification);
+router.delete('/notifications/:id', adminAuth, deleteNotification);
 
 // ================ 兼容性API (前端旧调用方式) ================
 // 统计数据
@@ -233,5 +318,8 @@ router.post('/companion-applications/:id/approve', adminAuth, (req, res, next) =
 router.post('/companion-applications/:id/reject', adminAuth, (req, res, next) => {
   rejectCompanionApplication(req, res, next);
 });
+
+// 管理员文件上传
+router.post('/upload', adminAuth, adminUpload.single('image'), uploadController.uploadImage);
 
 module.exports = router;

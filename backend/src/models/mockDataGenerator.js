@@ -40,17 +40,56 @@ const postContents = [
 
 const tagNames = ['游戏', '情感', '技术', '生活', '娱乐'];
 
+// 客服相关数据
+const customerServiceNames = ['小雪', '阿杰', '小美', '大飞', '小鹿'];
+const customerServiceRoles = ['senior', 'normal', 'normal', 'senior', 'normal'];
+const customerServiceDescriptions = [
+  '资深客服，专为您解答各类问题',
+  '活泼开朗，耐心解答您的疑问',
+  '温柔体贴，为您提供优质服务',
+  '经验丰富，快速解决各类问题',
+  '热情友好，随时为您服务'
+];
+
+const chatMessages = [
+  '您好，请问有什么可以帮到您？',
+  '感谢您的咨询，我会尽快为您解答。',
+  '请问您遇到什么问题了呢？',
+  '好的，我明白了，请稍等。',
+  '这个问题我这边正在处理中，请耐心等待。',
+  '请问还有其他问题吗？',
+  '好的，祝您生活愉快！',
+  '如有其他问题，欢迎随时咨询。'
+];
+
+const userMessages = [
+  '你好，我想咨询一下',
+  '请问充值不到账怎么办？',
+  '订单取消后什么时候退款？',
+  '客服MM好，请问...',
+  '谢谢你的帮助',
+  '好的，我知道了',
+  '好的，麻烦你了',
+  '请问这个功能怎么使用？'
+];
+
 const generateMockUsers = (count = 50) => {
+  const bcrypt = require('bcryptjs');
+  const hashedPassword = bcrypt.hashSync('123456', 10);
+  
   const users = [];
   for (let i = 1; i <= count; i++) {
     const isVip = randomInt(0, 3) > 0;
     users.push({
       id: i,
       userId: i,
-      nickname: randomItem(names),
+      username: i === 1 ? 'admin' : `user${i}`,
+      password: i === 1 ? hashedPassword : hashedPassword,
+      nickname: i === 1 ? '管理员' : randomItem(names),
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=user${i}`,
+      mobile: `1${randomInt(3, 9)}${String(randomInt(0, 999999999)).padStart(9, '0')}`,
       phone: `1${randomInt(3, 9)}${String(randomInt(0, 999999999)).padStart(9, '0')}`,
-      status: randomInt(0, 1),
+      status: 1,
       vip: isVip ? 1 : 0,
       vip_lv: isVip ? randomInt(1, 5) : 0,
       money: randomInt(0, 20000),
@@ -248,6 +287,53 @@ const generateMockWithdraws = (count = 20) => {
   return withdraws;
 };
 
+// 生成客服列表
+const generateMockCustomerServices = () => {
+  const customerServices = [];
+  for (let i = 0; i < customerServiceNames.length; i++) {
+    customerServices.push({
+      id: i + 1,
+      userId: 9000 + i + 1,
+      name: customerServiceNames[i],
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=customer${i + 1}`,
+      role: customerServiceRoles[i],
+      description: customerServiceDescriptions[i],
+      online: i % 2 === 0, // 交替在线离线
+      status: 1,
+      create_time: Date.now(),
+      update_time: Date.now()
+    });
+  }
+  return customerServices;
+};
+
+// 生成聊天记录
+const generateMockChatMessages = (count = 100) => {
+  const messages = [];
+  const customerServices = generateMockCustomerServices();
+  
+  for (let i = 1; i <= count; i++) {
+    const isFromCustomer = randomInt(0, 1) === 0;
+    const cs = randomItem(customerServices);
+    
+    messages.push({
+      id: i,
+      user_id: randomInt(1, 50),
+      customer_service_id: cs.userId,
+      customer_service_name: cs.name,
+      sender_type: isFromCustomer ? 'customer_service' : 'user',
+      sender_id: isFromCustomer ? cs.userId : randomInt(1, 50),
+      sender_name: isFromCustomer ? cs.name : '用户',
+      sender_avatar: isFromCustomer ? cs.avatar : `https://api.dicebear.com/7.x/avataaars/svg?seed=user${randomInt(1, 50)}`,
+      message: isFromCustomer ? randomItem(chatMessages) : randomItem(userMessages),
+      message_type: 'text',
+      status: 'read',
+      create_time: Date.now() - randomInt(0, 30) * 86400000
+    });
+  }
+  return messages;
+};
+
 module.exports = {
   generateMockUsers,
   generateMockVirtualUsers,
@@ -259,5 +345,7 @@ module.exports = {
   generateMockGames,
   generateMockVirtualUserTags,
   generateMockGifts,
-  generateMockWithdraws
+  generateMockWithdraws,
+  generateMockCustomerServices,
+  generateMockChatMessages
 };

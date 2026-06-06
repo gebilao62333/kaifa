@@ -33,8 +33,23 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
+
+// 简单 confirm
+const showConfirm = (msg) => {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div')
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99998;display:flex;align-items:flex-end;justify-content:center;'
+    overlay.innerHTML = `<div style="background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:500px;box-shadow:0 -4px 20px rgba(0,0,0,0.15);"><div style="padding:28px 24px 20px;font-size:16px;color:#333;text-align:center;line-height:1.6;">${msg}</div><div style="display:flex;border-top:1px solid #f0f0f0;"><button id="_cfm_c" style="flex:1;padding:16px;background:none;border:none;border-right:1px solid #f0f0f0;font-size:16px;color:#999;cursor:pointer;">取消</button><button id="_cfm_o" style="flex:1;padding:16px;background:none;border:none;font-size:16px;color:#FF6B81;font-weight:600;cursor:pointer;">确认</button></div></div>`
+    const cleanup = () => { overlay.remove() }
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) { resolve(false); cleanup() } })
+    document.body.appendChild(overlay)
+    overlay.querySelector('#_cfm_c').onclick = () => { resolve(false); cleanup() }
+    overlay.querySelector('#_cfm_o').onclick = () => { resolve(true); cleanup() }
+  })
+}
 
 const follows = ref([
   {
@@ -71,8 +86,8 @@ const goBack = () => {
   router.back()
 }
 
-const unfollow = (user) => {
-  if (confirm(`确定取消关注 ${user.name} 吗？`)) {
+const unfollow = async (user) => {
+  if (await showConfirm(`确定取消关注 ${user.name} 吗？`)) {
     const index = follows.value.findIndex(u => u.name === user.name)
     if (index > -1) {
       follows.value.splice(index, 1)

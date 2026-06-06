@@ -9,7 +9,8 @@ const getChatList = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取聊天列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -30,7 +31,8 @@ const getMessages = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取聊天消息错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -53,7 +55,8 @@ const sendMessage = async (req, res) => {
     response.success(res, result, '发送成功');
   } catch (error) {
     logger.error('发送消息错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -69,7 +72,8 @@ const revokeMessage = async (req, res) => {
     response.success(res, {}, '撤回成功');
   } catch (error) {
     logger.error('撤回消息错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -85,7 +89,8 @@ const createRoom = async (req, res) => {
     response.success(res, result, '申请成功，等待审核');
   } catch (error) {
     logger.error('创建聊天室错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -101,7 +106,8 @@ const getRoomInfo = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取聊天室信息错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -112,7 +118,8 @@ const getRooms = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取聊天室列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -128,7 +135,8 @@ const markAsRead = async (req, res) => {
     response.success(res, {}, '已读');
   } catch (error) {
     logger.error('标记已读错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 

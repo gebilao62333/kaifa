@@ -1,5 +1,7 @@
 const crypto = require('crypto');
 const { getRedisClient } = require('../config/redis');
+const response = require('../utils/response');
+const logger = require('../utils/logger');
 
 const sanitizeInput = (input) => {
   if (typeof input !== 'string') {
@@ -82,18 +84,12 @@ const csrfProtection = async (req, res, next) => {
     const token = tokenFromHeader || tokenFromBody || tokenFromQuery;
     
     if (!token) {
-      return res.status(403).json({
-        code: 403,
-        message: 'CSRF token无效或缺失'
-      });
+      return response.forbidden(res, 'CSRF token无效或缺失');
     }
     
     const stored = await redis.get(`${CSRF_REDIS_PREFIX}${token}`);
     if (!stored) {
-      return res.status(403).json({
-        code: 403,
-        message: 'CSRF token无效或已过期'
-      });
+      return response.forbidden(res, 'CSRF token无效或已过期');
     }
     
     await redis.del(`${CSRF_REDIS_PREFIX}${token}`);
@@ -109,16 +105,8 @@ const csrfProtection = async (req, res, next) => {
     
     next();
   } catch (error) {
-    if (error.message === 'Redis client not initialized') {
-      return res.status(500).json({
-        code: 500,
-        message: '服务器内部错误'
-      });
-    }
-    return res.status(500).json({
-      code: 500,
-      message: '服务器内部错误'
-    });
+    logger.error('CSRF 中间件错误:', error);
+    next(error);
   }
 };
 

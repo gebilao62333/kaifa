@@ -24,7 +24,8 @@ const createPost = async (req, res) => {
     response.created(res, result, '发布成功');
   } catch (error) {
     logger.error('发布帖子错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -41,7 +42,8 @@ const getPosts = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取帖子列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -57,7 +59,8 @@ const getPostDetail = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取帖子详情错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -78,7 +81,8 @@ const unlockPost = async (req, res) => {
     response.success(res, {}, '解锁成功');
   } catch (error) {
     logger.error('解锁帖子错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -93,7 +97,8 @@ const getMyPosts = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取我的帖子错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -109,7 +114,8 @@ const likePost = async (req, res) => {
     response.success(res, result, result.isLiked ? '点赞成功' : '取消点赞');
   } catch (error) {
     logger.error('点赞帖子错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -130,7 +136,8 @@ const commentPost = async (req, res) => {
     response.created(res, result, '评论成功');
   } catch (error) {
     logger.error('评论帖子错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -150,7 +157,8 @@ const getComments = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取评论列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -160,7 +168,8 @@ const getTags = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取话题列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -236,7 +245,8 @@ const getAdminPosts = async (req, res) => {
     });
   } catch (error) {
     logger.error('获取管理帖子列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 

@@ -94,6 +94,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import gamesService from '../services/gamesService'
 import { generateMockOfflineCompanions } from '../common/mockData'
 
 const router = useRouter()
@@ -151,12 +152,34 @@ const goToUserProfile = (userId) => {
   router.push({ name: 'UserProfile', params: { id: userId } })
 }
 
-const loadCompanions = () => {
+const loadCompanions = async () => {
   loading.value = true
-  setTimeout(() => {
+  try {
+    const res = await gamesService.getCompanions({ page: 1, pageSize: 50, serviceType: 'offline' })
+    if (res.code === 200 && res.data) {
+      const list = res.data.list || res.data
+      companions.value = list.map(item => ({
+        userId: item.userId || item.id,
+        nickName: item.nickName || item.nickname || '未知',
+        avatar: item.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
+        vip: item.vip === 1 || item.vip === true,
+        vipLevel: item.vipLevel || 1,
+        online: item.online || false,
+        tags: item.tags || [],
+        offlineServices: item.services || item.offlineServices || [],
+        location: item.location || item.city || '未知',
+        price: item.price || 0
+      }))
+    } else {
+      console.warn('获取线下陪玩师数据为空，使用Mock数据')
+      companions.value = generateMockOfflineCompanions(50)
+    }
+  } catch (error) {
+    console.warn('加载线下陪玩师失败，使用Mock数据:', error.message)
     companions.value = generateMockOfflineCompanions(50)
+  } finally {
     loading.value = false
-  }, 500)
+  }
 }
 
 onMounted(() => {

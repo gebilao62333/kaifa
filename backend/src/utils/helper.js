@@ -80,6 +80,11 @@ const retry = async (fn, maxAttempts = 3, delay = 1000) => {
   }
 };
 
+// 异步错误捕获包装器，消除控制器中重复的 try/catch
+const catchAsync = (fn) => (req, res, next) => {
+  Promise.resolve(fn(req, res, next)).catch(next);
+};
+
 module.exports = {
   generateOrderNo,
   generatePacketNo,
@@ -92,5 +97,6 @@ module.exports = {
   parseQuery,
   formatPaginatedResponse,
   sleep,
-  retry
+  retry,
+  catchAsync
 };

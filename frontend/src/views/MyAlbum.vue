@@ -140,6 +140,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { albumService } from '@/services/albumService'
 import { isLoggedIn } from '../common/common'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -236,7 +237,7 @@ const deleteCurrentPhoto = async () => {
       photos.value = photos.value.filter(p => p.id !== currentPhoto.value.id)
       currentPhoto.value = null
     } else {
-      alert(result.message || '删除失败')
+      toast.error(result.message || '删除失败')
     }
   }
 }
@@ -307,10 +308,10 @@ const confirmAdd = async () => {
       photos.value.unshift(...uploadResults)
       cancelAdd()
       if (uploadResults.length < previewUrls.value.length) {
-        alert(`部分图片上传成功，成功 ${uploadResults.length} 张，失败 ${previewUrls.value.length - uploadResults.length} 张`)
+        toast.warning(`部分图片上传成功，成功 ${uploadResults.length} 张，失败 ${previewUrls.value.length - uploadResults.length} 张`)
       }
     } else {
-      alert('上传失败')
+      toast.error('上传失败')
     }
   } finally {
     isUploading.value = false

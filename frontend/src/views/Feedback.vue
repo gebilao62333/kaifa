@@ -70,6 +70,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -119,7 +120,7 @@ const removeImage = (index) => {
 
 const submitFeedback = () => {
   if (!feedbackContent.value.trim()) {
-    alert('请输入反馈内容')
+    toast.warning('请输入反馈内容');
     return
   }
   
@@ -131,7 +132,7 @@ const submitFeedback = () => {
     time: new Date().toLocaleString()
   })
   
-  alert('感谢您的反馈，我们会尽快处理！')
+  toast.success('感谢您的反馈，我们会尽快处理！')
   feedbackContent.value = ''
   contact.value = ''
   uploadImages.value = []

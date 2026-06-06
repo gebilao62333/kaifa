@@ -327,7 +327,7 @@ const validateForm = () => {
 const doWithdraw = async () => {
   const errMsg = validateForm()
   if (errMsg) {
-    alert(errMsg)
+    toast.warning(errMsg)
     return
   }
 
@@ -359,16 +359,16 @@ const doWithdraw = async () => {
           localStorage.setItem('userInfo', JSON.stringify(data))
         } catch {}
       }
-      alert('提现申请已提交')
+      toast.success('提现申请已提交')
       setTimeout(() => {
         router.push('/withdraw-records')
       }, 1500)
     } else {
-      alert(result.message || '提交失败')
+      toast.error(result.message || '提交失败')
     }
   } catch (error) {
     console.error('提现错误:', error)
-    alert(error.message || '网络错误，请重试')
+    toast.error(error.message || '网络错误，请重试')
   } finally {
     submitting.value = false
   }

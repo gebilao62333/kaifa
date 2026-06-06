@@ -100,7 +100,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { host } from '../common/config'
+import walletService from '../services/walletService'
 
 const router = useRouter()
 
@@ -110,12 +110,8 @@ const activeTab = ref('frame')
 
 const fetchBalance = async () => {
   try {
-    const token = localStorage.getItem('token')
-    const res = await fetch(`${host}/api/pay/wallet/balance`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    const result = await res.json()
-    if (result.code === 200 && result.data) {
+    const result = await walletService.getBalance()
+    if (result && result.code === 200 && result.data) {
       userBalance.value = result.data.balance || 0
     }
   } catch (err) {

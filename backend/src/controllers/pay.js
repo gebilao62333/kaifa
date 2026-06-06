@@ -1,4 +1,4 @@
-const { payService, wechatPayService } = require('../services');
+const { payService, wechatPayService, alipayService } = require('../services');
 const logger = require('../utils/logger');
 const response = require('../utils/response');
 
@@ -8,7 +8,8 @@ const getPackages = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取充值套餐错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -28,7 +29,8 @@ const createOrder = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('创建订单错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -51,7 +53,8 @@ const createWxOrder = async (req, res) => {
     });
   } catch (error) {
     logger.error('创建微信支付订单错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -92,7 +95,8 @@ const queryWxOrder = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('查询微信订单错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -108,7 +112,8 @@ const closeWxOrder = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('关闭微信订单错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -124,7 +129,8 @@ const wxCallback = async (req, res) => {
     response.success(res, {}, '支付成功');
   } catch (error) {
     logger.error('微信支付回调错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -140,126 +146,57 @@ const getOrderStatus = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('查询订单状态错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
 const validateCard = async (req, res) => {
   try {
-    const { cardCode } = req.body;
+    const cardCode = req.body.cardCode || req.body.cardNo || req.body.card_code;
+    const cardPwd = req.body.cardPwd || req.body.card_pwd || '';
 
     if (!cardCode) {
       return response.badRequest(res, '密卡不能为空');
     }
 
-    const result = await payService.validateCard(cardCode);
+    const result = await payService.validateCard(cardCode, cardPwd);
     response.success(res, result);
   } catch (error) {
-    logger.error('验证密卡错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('验证密卡错误:', error.message);
+    response.unprocessableEntity(res, error.message || '密卡验证失败');
   }
 };
 
 const useCard = async (req, res) => {
   try {
-    const { cardCode } = req.body;
+    const cardCode = req.body.cardCode || req.body.cardNo || req.body.card_code;
+    const cardPwd = req.body.cardPwd || req.body.card_pwd || '';
     
     if (!cardCode) {
       return response.badRequest(res, '密卡不能为空');
     }
     
-    const result = await payService.useCard(req.userId, cardCode);
+    const result = await payService.useCard(req.userId, cardCode, cardPwd);
     response.success(res, result, '充值成功');
   } catch (error) {
-    logger.error('使用密卡错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('使用密卡错误:', error.message);
+    response.unprocessableEntity(res, error.message || '密卡使用失败');
   }
 };
 
 const getRechargeRecords = async (req, res) => {
   try {
-    const { page = 1, pageSize = 20, userId, status } = req.query;
-    
-    const mockRecords = [
-      {
-        id: 1,
-        order_no: 'R20240101100001',
-        user_id: 1001,
-        username: '张三',
-        amount: 100,
-        pay_type: 1,
-        status: 'completed',
-        create_time: '2024-01-01 10:00:00'
-      },
-      {
-        id: 2,
-        order_no: 'R20240101100002',
-        user_id: 1002,
-        username: '李四',
-        amount: 50,
-        pay_type: 2,
-        status: 'completed',
-        create_time: '2024-01-01 11:00:00'
-      },
-      {
-        id: 3,
-        order_no: 'R20240101100003',
-        user_id: 1003,
-        username: '王五',
-        amount: 200,
-        pay_type: 1,
-        status: 'pending',
-        create_time: '2024-01-01 12:00:00'
-      },
-      {
-        id: 4,
-        order_no: 'R20240101100004',
-        user_id: 1004,
-        username: '赵六',
-        amount: 150,
-        pay_type: 3,
-        status: 'failed',
-        create_time: '2024-01-01 13:00:00'
-      },
-      {
-        id: 5,
-        order_no: 'R20240101100005',
-        user_id: 1005,
-        username: '孙七',
-        amount: 300,
-        pay_type: 1,
-        status: 'completed',
-        create_time: '2024-01-01 14:00:00'
-      }
-    ];
-    
-    let filtered = [...mockRecords];
-    
-    if (userId) {
-      filtered = filtered.filter(r => r.user_id === parseInt(userId));
-    }
-    
-    if (status) {
-      filtered = filtered.filter(r => r.status === status);
-    }
-    
-    const total = filtered.length;
-    const start = (parseInt(page) - 1) * parseInt(pageSize);
-    const end = start + parseInt(pageSize);
-    const list = filtered.slice(start, end);
-    
-    response.success(res, {
-      list,
-      pagination: {
-        page: parseInt(page),
-        pageSize: parseInt(pageSize),
-        total,
-        totalPages: Math.ceil(total / parseInt(pageSize))
-      }
-    });
+    const { page = 1, pageSize = 20, userId } = req.query;
+    const result = await payService.getRechargeRecords(
+      userId ? parseInt(userId) : null,
+      parseInt(page),
+      parseInt(pageSize)
+    );
+    response.success(res, result);
   } catch (error) {
-    logger.error('获取充值记录错误:', error);
-    response.error(res, error.message);
+    logger.error('获取充值记录错误:', error.message);
+    response.error(res, '操作失败');
   }
 };
 
@@ -269,7 +206,8 @@ const getWalletBalance = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取钱包余额错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -289,7 +227,8 @@ const rechargeWallet = async (req, res) => {
     response.success(res, result, '充值成功');
   } catch (error) {
     logger.error('充值错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -304,7 +243,8 @@ const getPaymentHistory = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取支付记录错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -325,7 +265,8 @@ const createPayment = async (req, res) => {
     response.success(res, result, '支付订单创建成功');
   } catch (error) {
     logger.error('创建支付订单错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -345,22 +286,98 @@ const handlePaymentNotify = async (req, res) => {
     }
   } catch (error) {
     logger.error('支付回调处理错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
+
+// ========== 支付宝支付 ==========
+
+const createAlipayOrder = async (req, res) => {
+  try {
+    const { amount, subject, body, tradeType = 'APP' } = req.body;
+    if (!amount || amount <= 0) return response.badRequest(res, '金额必须大于0');
+
+    const result = await alipayService.createOrder(
+      req.userId,
+      parseFloat(amount),
+      subject,
+      body,
+      { tradeType }
+    );
+    response.success(res, result, '支付宝订单创建成功');
+  } catch (error) {
+    logger.error('创建支付宝订单错误:', error.message);
+    response.error(res, error.message || '创建支付宝订单失败');
+  }
+};
+
+const alipayNotify = async (req, res) => {
+  try {
+    const notifyData = req.body;
+    const result = alipayService.handleNotify(notifyData);
+
+    if (result.success) {
+      logger.info('支付宝支付回调成功:', result.outTradeNo);
+      res.send('success');
+    } else {
+      logger.error('支付宝支付回调验签失败:', result.message);
+      res.send('fail');
+    }
+  } catch (error) {
+    logger.error('支付宝支付回调处理错误:', error.message);
+    res.send('fail');
+  }
+};
+
+const queryAlipayOrder = async (req, res) => {
+  try {
+    const { outTradeNo } = req.query;
+    if (!outTradeNo) return response.badRequest(res, '订单号不能为空');
+
+    const result = await alipayService.queryOrder(outTradeNo);
+    response.success(res, result);
+  } catch (error) {
+    logger.error('查询支付宝订单错误:', error.message);
+    response.error(res, error.message || '查询失败');
+  }
+};
+
+const closeAlipayOrder = async (req, res) => {
+  try {
+    const { outTradeNo } = req.body;
+    if (!outTradeNo) return response.badRequest(res, '订单号不能为空');
+
+    const result = await alipayService.closeOrder(outTradeNo);
+    response.success(res, result, '订单已关闭');
+  } catch (error) {
+    logger.error('关闭支付宝订单错误:', error.message);
+    response.error(res, error.message || '关闭失败');
+  }
+};
+
+// ========== 导出 ==========
 
 module.exports = {
   getPackages,
   createOrder,
+  // 微信支付
   createWxOrder,
   wxNotify,
   queryWxOrder,
   closeWxOrder,
   wxCallback,
+  // 支付宝支付
+  createAlipayOrder,
+  alipayNotify,
+  queryAlipayOrder,
+  closeAlipayOrder,
+  // 订单/密卡
   getOrderStatus,
   validateCard,
   useCard,
   getRechargeRecords,
+  // 钱包
   getWalletBalance,
   rechargeWallet,
   getPaymentHistory,

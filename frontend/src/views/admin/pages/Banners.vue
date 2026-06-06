@@ -1,20 +1,25 @@
 <template>
   <div class="banner-list">
-    <div class="page-header">
-      <h2>Banner管理</h2>
-      <button @click="openCreateBannerModal" class="add-btn">添加Banner</button>
+    <div class="toolbar">
+      <div class="search-bar">
+        <select v-model="filterStatus" class="search-select">
+          <option value="">全部状态</option>
+          <option value="1">启用</option>
+          <option value="0">禁用</option>
+        </select>
+        <button @click="loadBanners" class="search-btn">搜索</button>
+        <button @click="openCreateBannerModal" class="add-btn">添加Banner</button>
+        <button @click="exportData" class="export-btn">📥 导出CSV</button>
+      </div>
     </div>
 
-    <div class="search-bar">
-      <select v-model="filterStatus" class="search-select">
-        <option value="">全部状态</option>
-        <option value="1">启用</option>
-        <option value="0">禁用</option>
-      </select>
-      <button @click="loadBanners" class="search-btn">搜索</button>
+    <!-- Loading -->
+    <div v-if="loading" class="loading-state">
+      <div class="loading-spinner"></div>
+      <span>加载中...</span>
     </div>
 
-    <table class="data-table">
+    <table v-else-if="bannerList.length > 0" class="data-table">
       <thead>
         <tr>
           <th>ID</th>
@@ -54,10 +59,32 @@
       </tbody>
     </table>
 
+    <div v-if="!loading && bannerList.length === 0" class="empty-state">
+      <div class="empty-icon">🖼️</div>
+      <div class="empty-text">暂无Banner数据</div>
+    </div>
+
     <div class="pagination">
-      <button @click="prevPage" class="page-btn" :disabled="page <= 1">上一页</button>
-      <span class="page-info">{{ page }} / {{ totalPages }}</span>
-      <button @click="nextPage" class="page-btn" :disabled="page >= totalPages">下一页</button>
+      <div class="pagination-left">
+        <span class="page-size-label">每页</span>
+        <select v-model.number="pageSize" @change="page = 1; loadBanners()" class="page-size-select">
+          <option :value="10">10</option>
+          <option :value="20">20</option>
+          <option :value="50">50</option>
+          <option :value="100">100</option>
+        </select>
+        <span class="page-size-label">条，共 {{ total }} 条</span>
+      </div>
+      <div class="pagination-right">
+        <button @click="page = 1; loadBanners()" class="page-btn" :disabled="page <= 1">首页</button>
+        <button @click="page--; loadBanners()" class="page-btn" :disabled="page <= 1">上一页</button>
+        <template v-for="p in pageNumbers" :key="p">
+          <span v-if="p === '...'" class="page-ellipsis">...</span>
+          <button v-else @click="page = p; loadBanners()" :class="['page-btn', { 'page-active': page === p }]">{{ p }}</button>
+        </template>
+        <button @click="page++; loadBanners()" class="page-btn" :disabled="page >= totalPages">下一页</button>
+        <button @click="page = totalPages; loadBanners()" class="page-btn" :disabled="page >= totalPages">末页</button>
+      </div>
     </div>
 
     <!-- 模态框 -->
@@ -73,8 +100,15 @@
             <input v-model="currentBanner.title" type="text" class="form-input" />
           </div>
           <div class="form-group">
-            <label>图片URL</label>
-            <input v-model="currentBanner.image" type="text" class="form-input" />
+            <label>图片</label>
+            <div class="image-upload-row">
+              <input v-model="currentBanner.image" type="text" class="form-input" placeholder="图片URL或上传" />
+              <input type="file" accept="image/*" @change="handleImageUpload" ref="fileInputRef" class="hidden-file-input" />
+              <button type="button" @click="fileInputRef?.click()" class="upload-btn" :disabled="uploading">
+                {{ uploading ? '上传中...' : '📷 上传' }}
+              </button>
+            </div>
+            <img v-if="currentBanner.image" :src="currentBanner.image" class="image-preview" />
           </div>
           <div class="form-group">
             <label>链接</label>
@@ -106,14 +140,18 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { regionData } from '../../../common/regionData'
 import { useAdmin } from '../composables/useAdmin'
 
-const { token, page, pageSize, total, totalPages, getHost, formatTime, handleLogout, apiGet, apiPost, apiPut, apiDelete } = useAdmin()
+const { token, page, pageSize, total, totalPages, pageNumbers, getHost, formatTime, handleLogout, apiGet, apiPost, apiPut, apiDelete, exportCSV, toast, confirm } = useAdmin()
 
 const bannerList = ref([])
 const filterStatus = ref('')
 const currentBanner = ref(null)
 const showBannerModal = ref(false)
+const loading = ref(false)
+const fileInputRef = ref(null)
+const uploading = ref(false)
 
 const loadBanners = async () => {
+  loading.value = true
   try {
     const params = { page: page.value, pageSize: pageSize.value }
     if (filterStatus.value !== '') {
@@ -126,6 +164,9 @@ const loadBanners = async () => {
     }
   } catch (err) {
     console.error('加载Banner列表失败:', err)
+    toast('加载Banner列表失败', 'error')
+  } finally {
+    loading.value = false
   }
 }
 
@@ -177,29 +218,59 @@ const toggleBannerStatus = async (banner) => {
 }
 
 const deleteBanner = async (banner) => {
-  if (!confirm('确定要删除这个Banner吗？')) return
+  if (!(await confirm('确定要删除这个Banner吗？'))) return
   try {
     const res = await apiDelete('/api/admin/banners/' + banner.id)
     if (res.code === 200) {
+      toast('Banner已删除')
       loadBanners()
+    } else {
+      toast(res.message || '操作失败', 'error')
     }
   } catch (err) {
     console.error('删除Banner失败:', err)
+    toast('删除Banner失败', 'error')
   }
 }
 
-const prevPage = () => {
-  if (page.value > 1) {
-    page.value--
-    loadBanners()
+// Banner图片上传
+const handleImageUpload = async (event) => {
+  const file = event.target.files?.[0]
+  if (!file) return
+  uploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('image', file)
+    const adminToken = localStorage.getItem('admin_token')
+    const res = await fetch('/api/admin/upload', {
+      method: 'POST',
+      headers: adminToken ? { 'Authorization': `Bearer ${adminToken}` } : {},
+      body: formData
+    })
+    const data = await res.json()
+    if (data.code === 200 && data.data?.url) {
+      currentBanner.value.image = data.data.url
+    } else {
+      toast(data.message || '上传失败', 'error')
+    }
+  } catch (err) {
+    console.error('上传图片失败:', err)
+    toast('上传图片失败', 'error')
+  } finally {
+    uploading.value = false
+    event.target.value = ''
   }
 }
 
-const nextPage = () => {
-  if (page.value < totalPages.value) {
-    page.value++
-    loadBanners()
-  }
+const exportData = () => {
+  exportCSV(bannerList.value, [
+    { label: 'ID', key: 'id' },
+    { label: '标题', key: 'title' },
+    { label: '链接', key: 'link' },
+    { label: '排序', key: 'sort' },
+    { label: '状态', key: row => row.status === 1 ? '启用' : '禁用' },
+    { label: '创建时间', key: row => formatTime(row.createTime) }
+  ], 'banners')
 }
 
 onMounted(() => {
@@ -208,215 +279,42 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.banner-list {
-  padding: 20px;
-  background: white;
-  border-radius: 8px;
-}
-
-.page-header {
+/* Banner特有样式 */
+.hidden-file-input { display: none; }
+.image-upload-row {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  gap: 8px;
 }
-
-.page-header h2 {
-  margin: 0;
-  color: #333;
+.image-upload-row .form-input {
+  flex: 1;
 }
-
-.add-btn {
-  padding: 8px 16px;
-  background: #1890ff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.search-bar {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-
-.search-select {
-  padding: 8px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-}
-
-.search-btn {
-  padding: 8px 16px;
-  background: #1890ff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.data-table th,
-.data-table td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #e8e8e8;
-}
-
-.data-table th {
-  background: #fafafa;
-  font-weight: 600;
-}
-
-.status-badge {
-  padding: 2px 8px;
-  border-radius: 4px;
+.upload-btn {
+  padding: 7px 14px;
+  border: 1px dashed #d1d5db;
+  border-radius: 6px;
+  background: #f9fafb;
   font-size: 12px;
-}
-
-.status-badge.active {
-  background: #f6ffed;
-  color: #52c41a;
-  border: 1px solid #b7eb8f;
-}
-
-.status-badge.disabled {
-  background: #fff2f0;
-  color: #ff4d4f;
-  border: 1px solid #ffccc7;
-}
-
-.action-btn {
-  padding: 4px 8px;
-  margin-right: 5px;
-  background: #1890ff;
-  color: white;
-  border: none;
-  border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+  transition: all 0.2s;
 }
-
-.action-btn.delete-btn {
-  background: #ff4d4f;
+.upload-btn:hover:not(:disabled) {
+  border-color: #1677ff;
+  color: #1677ff;
+  background: #eff6ff;
 }
-
-.pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.page-btn {
-  padding: 8px 16px;
-  background: white;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.page-btn:disabled {
+.upload-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-
-.page-info {
-  color: #666;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal-content {
-  background: white;
-  border-radius: 8px;
-  width: 500px;
-  max-width: 90%;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e8e8e8;
-}
-
-.modal-header h3 {
-  margin: 0;
-  color: #333;
-}
-
-.close-btn {
-  background: none;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #999;
-}
-
-.modal-body {
-  padding: 20px;
-}
-
-.form-group {
-  margin-bottom: 16px;
-}
-
-.form-group label {
-  display: block;
-  margin-bottom: 8px;
-  color: #333;
-  font-weight: 500;
-}
-
-.form-input {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  box-sizing: border-box;
-}
-
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 16px 20px;
-  border-top: 1px solid #e8e8e8;
-}
-
-.cancel-btn {
-  padding: 8px 16px;
-  background: white;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.confirm-btn {
-  padding: 8px 16px;
-  background: #1890ff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.image-preview {
+  margin-top: 8px;
+  max-width: 200px;
+  max-height: 120px;
+  border-radius: 6px;
+  border: 1px solid #e8e8e8;
+  object-fit: cover;
 }
 </style>

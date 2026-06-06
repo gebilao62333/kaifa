@@ -51,7 +51,8 @@ const register = async (req, res) => {
     response.created(res, result, '注册成功');
   } catch (error) {
     logger.error('注册错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -92,7 +93,8 @@ const getUserInfo = async (req, res) => {
     response.success(res, userInfo);
   } catch (error) {
     logger.error('获取用户信息错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -102,7 +104,8 @@ const updateUserInfo = async (req, res) => {
     response.success(res, {}, '更新成功');
   } catch (error) {
     logger.error('更新用户信息错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -118,7 +121,8 @@ const sendSms = async (req, res) => {
     response.success(res, {}, '发送成功');
   } catch (error) {
     logger.error('发送验证码错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -134,7 +138,8 @@ const loginMobile = async (req, res) => {
     response.success(res, result, '登录成功');
   } catch (error) {
     logger.error('手机号登录错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -150,7 +155,8 @@ const loginThird = async (req, res) => {
     response.success(res, result, '登录成功');
   } catch (error) {
     logger.error('第三方登录错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -166,7 +172,8 @@ const follow = async (req, res) => {
     response.success(res, result, action === 1 ? '关注成功' : '取消关注成功');
   } catch (error) {
     logger.error('关注用户错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -206,7 +213,8 @@ const getFans = async (req, res) => {
     });
   } catch (error) {
     logger.error('获取粉丝列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -246,7 +254,8 @@ const getFollows = async (req, res) => {
     });
   } catch (error) {
     logger.error('获取关注列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -263,7 +272,8 @@ const refreshToken = async (req, res) => {
   } catch (error) {
     logger.error('刷新token错误:', error);
     if (error.message === '无效的refresh token' || error.message === 'refresh token不能为空') {
-      response.unprocessableEntity(res, error.message);
+      logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
     } else {
       response.error(res, '刷新token失败');
     }

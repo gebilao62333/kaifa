@@ -308,6 +308,7 @@ import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { notificationService } from '../services/notificationService'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -393,30 +394,30 @@ const saveNotification = () => {
   localStorage.setItem('notifications', JSON.stringify(notifications.value))
 
   notificationService.init()
-  alert('消息通知设置已保存')
+  toast.success('消息通知设置已保存')
   showNotification.value = false
 }
 
 const savePrivacy = () => {
   localStorage.setItem('privacy', JSON.stringify(privacy.value))
-  alert('隐私设置已保存')
+  toast.success('隐私设置已保存')
   showPrivacy.value = false
 }
 
 const changePassword = () => {
   if (!oldPwd.value) {
-    alert('请输入旧密码')
+    toast.warning('请输入旧密码');
     return
   }
   if (!newPwd.value || newPwd.value.length < 6) {
-    alert('新密码至少6位')
+    toast.warning('新密码至少6位');
     return
   }
   if (newPwd.value !== confirmPwd.value) {
-    alert('两次输入的密码不一致')
+    toast.warning('两次输入的密码不一致');
     return
   }
-  alert('密码修改成功！')
+  toast.success('密码修改成功！')
   showChangePwd.value = false
   oldPwd.value = ''
   newPwd.value = ''
@@ -477,7 +478,7 @@ const goFeedback = () => {
 const sendCode = () => {
   if (codeCount.value > 0) return
   if (!phone.value || phone.value.length !== 11) {
-    alert('请输入正确的手机号')
+    toast.warning('请输入正确的手机号');
     return
   }
   codeCount.value = 60
@@ -491,10 +492,10 @@ const sendCode = () => {
 
 const confirmPhone = () => {
   if (!phone.value || !code.value) {
-    alert('请填写完整信息')
+    toast.warning('请填写完整信息');
     return
   }
-  alert('手机号更换成功！')
+  toast.success('手机号更换成功！')
   showPhone.value = false
 }
 

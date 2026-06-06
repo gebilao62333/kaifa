@@ -233,7 +233,8 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
-import { api } from '../common/config'
+import { generateQRCode } from '../utils/qrcode'
+import shareService from '../services/shareService'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -241,7 +242,7 @@ const userStore = useUserStore()
 const userInfo = computed(() => ({
   userId: userStore.profile?.userId || 100001,
   nickName: userStore.profile?.nickName || '多客用户',
-  avatar: userStore.profile?.avatar || 'https://picsum.photos/200/200',
+  avatar: userStore.profile?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user',
   level: userStore.profile?.level || 0,
   vip: userStore.profile?.vip || 0,
   vipLevel: userStore.profile?.vipLevel || 0,
@@ -394,16 +395,12 @@ const goShare = async () => {
 
 const fetchInviteCode = async () => {
   try {
-    const response = await fetch(`${api}/share/invite-code?userId=${userInfo.value.userId}`)
-    const data = await response.json()
-    if (data.code === 200 && data.data) {
-      inviteCode.value = data.data.inviteCode
-      return
-    }
+    const data = await shareService.getInviteCode(userInfo.value.userId)
+    inviteCode.value = data.data?.inviteCode || ''
   } catch (error) {
     console.error('获取邀请码失败:', error)
+    inviteCode.value = 'INV' + String(userInfo.value.userId).padStart(5, '0')
   }
-  inviteCode.value = 'INV' + String(userInfo.value.userId).padStart(5, '0')
 }
 
 const generateShareLink = async () => {
@@ -417,21 +414,12 @@ const generateShareLink = async () => {
   isGeneratingQR.value = true
   shareQRCode.value = ''
   try {
-    const response = await fetch(`${api}/share/qrcode`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: shareLink.value, width: 200 })
-    })
-    
-    const data = await response.json()
-    if (data.code === 200 && data.data) {
-      shareQRCode.value = data.data.base64
-    } else {
-      shareQRCode.value = `https://api.qrserver.com/v1/create-qrcode/?size=200x200&data=${encodeURIComponent(shareLink.value)}`
-    }
+    const data = await shareService.generateQRCode(shareLink.value, 200)
+    shareQRCode.value = data.data?.base64 || ''
   } catch (error) {
     console.error('生成二维码失败:', error)
-    shareQRCode.value = `https://api.qrserver.com/v1/create-qrcode/?size=200x200&data=${encodeURIComponent(shareLink.value)}`
+    const result = generateQRCode(shareLink.value, { width: 200 })
+    shareQRCode.value = result.base64
   } finally {
     isGeneratingQR.value = false
   }

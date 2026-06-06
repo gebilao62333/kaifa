@@ -96,7 +96,7 @@ const sending = ref(false)
 const showMenu = ref(false)
 const messagesArea = ref(null)
 const myAvatar = ref('')
-const defaultAvatar = 'https://picsum.photos/200/200'
+const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=aiuser'
 
 const quickReplies = [
   '你好',

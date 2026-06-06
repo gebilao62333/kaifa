@@ -13,7 +13,8 @@ const getAuth = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取TRTC鉴权错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -35,7 +36,8 @@ const startCall = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('发起通话错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -51,7 +53,8 @@ const cancelCall = async (req, res) => {
     response.success(res, {}, '已取消通话');
   } catch (error) {
     logger.error('取消通话错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -67,7 +70,8 @@ const rejectCall = async (req, res) => {
     response.success(res, {}, '已拒绝通话');
   } catch (error) {
     logger.error('拒绝通话错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -83,7 +87,8 @@ const acceptCall = async (req, res) => {
     response.success(res, {}, '已接听');
   } catch (error) {
     logger.error('接听通话错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -99,7 +104,8 @@ const endCall = async (req, res) => {
     response.success(res, result, '通话已结束');
   } catch (error) {
     logger.error('结束通话错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -114,7 +120,8 @@ const getCallHistory = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取通话记录错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -125,7 +132,8 @@ const createRoom = async (req, res) => {
     response.success(res, result, '房间创建成功');
   } catch (error) {
     logger.error('创建房间错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -141,7 +149,8 @@ const enterRoom = async (req, res) => {
     response.success(res, result, '进入房间成功');
   } catch (error) {
     logger.error('进入房间错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -157,7 +166,8 @@ const leaveRoom = async (req, res) => {
     response.success(res, result, '离开房间成功');
   } catch (error) {
     logger.error('离开房间错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -173,7 +183,8 @@ const getRoomInfo = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取房间信息错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -189,7 +200,8 @@ const startBilling = async (req, res) => {
     response.success(res, result, '开始计费');
   } catch (error) {
     logger.error('开始计费错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -205,7 +217,8 @@ const endBilling = async (req, res) => {
     response.success(res, result, '计费结束');
   } catch (error) {
     logger.error('结束计费错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 

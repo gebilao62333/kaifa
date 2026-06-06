@@ -152,22 +152,38 @@ const doRecharge = async () => {
 
   if (payMethod.value === 'card') {
     if (!cardCode.value.trim()) {
-      toast.warning('请输入密卡')
+      toast.warning('请输入密卡号')
       return
     }
 
     submitting.value = true
 
     try {
-      const result = await payService.validateCard(cardCode.value.trim())
-      if (result && result.code === 200 && result.data) {
-        const card = result.data
-        balance.value = Number(balance.value) + Number(card.coins || 0)
-        saveBalance()
-        toast.success(`充值成功！获得 ${card.coins || 0} 金币`)
-        cardCode.value = ''
+      // 第一步：验证密卡有效性
+      const validateResult = await payService.validateCard(
+        cardCode.value.trim(),
+        cardPwd.value.trim()
+      )
+      if (validateResult && validateResult.code === 200 && validateResult.data) {
+        const card = validateResult.data
+
+        // 第二步：消费密卡（真正扣减）
+        const useResult = await payService.useCard(
+          cardCode.value.trim(),
+          cardPwd.value.trim()
+        )
+        if (useResult && useResult.code === 200) {
+          const receivedCoins = Number(card.coins || 0)
+          balance.value = Number(balance.value) + receivedCoins
+          saveBalance()
+          toast.success(`充值成功！获得 ${receivedCoins} 金币`)
+          cardCode.value = ''
+          cardPwd.value = ''
+        } else {
+          toast.error(useResult?.message || '密卡使用失败')
+        }
       } else {
-        toast.error('密卡无效，充值失败')
+        toast.error(validateResult?.message || '密卡无效，充值失败')
       }
     } catch (error) {
       toast.error('网络错误，请重试')

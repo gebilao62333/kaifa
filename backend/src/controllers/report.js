@@ -20,7 +20,8 @@ const createReport = async (req, res) => {
     response.created(res, result, '举报已提交');
   } catch (error) {
     logger.error('提交举报错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -94,7 +95,8 @@ const getReportList = async (req, res) => {
     });
   } catch (error) {
     logger.error('获取举报列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -109,7 +111,8 @@ const handleReport = async (req, res) => {
     response.success(res, {}, '处理成功');
   } catch (error) {
     logger.error('处理举报错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 

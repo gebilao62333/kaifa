@@ -3,14 +3,17 @@ const router = express.Router();
 const circleController = require('../controllers/circle');
 const { CircleTag } = require('../models');
 const { authMiddleware, optionalAuth } = require('../middlewares');
+const response = require('../utils/response');
+const logger = require('../utils/logger');
 
 router.get('/update-tags', async (req, res) => {
   try {
     await CircleTag.update({ name: '最热' }, { where: { id: 1 } });
     await CircleTag.update({ name: '新手报到' }, { where: { id: 2 } });
-    res.json({ code: 200, message: '标签更新成功' });
+    response.success(res, {}, '标签更新成功');
   } catch (error) {
-    res.json({ code: 500, message: '更新失败', error: error.message });
+    logger.error('更新标签失败:', error);
+    response.error(res, '更新标签失败');
   }
 });
 

@@ -3,25 +3,20 @@ const { User } = require('../models');
 const { getRedisClient } = require('../config/redis');
 const config = require('../config');
 const logger = require('../utils/logger');
+const response = require('../utils/response');
 
 const authMiddleware = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
     if (!token) {
-      return res.status(401).json({
-        code: 401,
-        message: '未提供认证令牌'
-      });
+      return response.unauthorized(res, '未提供认证令牌');
     }
     
     let decoded = verifyToken(token);
     
     if (!decoded) {
-      return res.status(401).json({
-        code: 401,
-        message: '令牌无效或已过期'
-      });
+      return response.unauthorized(res, '令牌无效或已过期');
     }
     
     const userId = decoded.userId;
@@ -30,27 +25,18 @@ const authMiddleware = async (req, res, next) => {
     if (redis) {
       const isBlacklisted = await redis.get(`blacklist:${token}`);
       if (isBlacklisted) {
-        return res.status(401).json({
-          code: 401,
-          message: '令牌已失效'
-        });
+        return response.unauthorized(res, '令牌已失效');
       }
     }
     
     const user = await User.findByPk(userId);
     
     if (!user) {
-      return res.status(401).json({
-        code: 401,
-        message: '用户不存在'
-      });
+      return response.unauthorized(res, '用户不存在');
     }
     
     if (user.status === 1) {
-      return res.status(403).json({
-        code: 403,
-        message: '用户已被禁言'
-      });
+      return response.forbidden(res, '用户已被禁言');
     }
     
     req.user = user;
@@ -60,10 +46,7 @@ const authMiddleware = async (req, res, next) => {
     next();
   } catch (error) {
     logger.error('认证中间件错误:', error);
-    return res.status(500).json({
-      code: 500,
-      message: '服务器内部错误'
-    });
+    next(error);
   }
 };
 
@@ -121,10 +104,7 @@ const adminAuth = (req, res, next) => {
   }
   
   if (!isValidAdmin) {
-    return res.status(403).json({
-      code: 403,
-      message: '无管理员权限'
-    });
+    return response.forbidden(res, '无管理员权限');
   }
   
   next();

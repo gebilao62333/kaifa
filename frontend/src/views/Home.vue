@@ -34,9 +34,9 @@ import { toast } from '../composables/useToast'
 const router = useRouter()
 
 const bannerList = ref([
-  { id: 1, title: 'Banner 1', image: 'https://picsum.photos/800/400', link: '' },
-  { id: 2, title: 'Banner 2', image: 'https://picsum.photos/800/401', link: '' },
-  { id: 3, title: 'Banner 3', image: 'https://picsum.photos/800/402', link: '' }
+  { id: 1, title: 'Banner 1', image: 'https://api.dicebear.com/7.x/bottts/svg?seed=banner1', link: '' },
+  { id: 2, title: 'Banner 2', image: 'https://api.dicebear.com/7.x/bottts/svg?seed=banner2', link: '' },
+  { id: 3, title: 'Banner 3', image: 'https://api.dicebear.com/7.x/bottts/svg?seed=banner3', link: '' }
 ])
 
 const recommendList = ref([])
@@ -45,26 +45,29 @@ const loadingCompanions = ref(true)
 const currentPage = ref(1)
 const hasMore = ref(true)
 
-const getAdminRecommendUsers = () => {
+const getAdminRecommendUsers = async () => {
   try {
-    const stored = localStorage.getItem('admin_recommend_users')
-    if (!stored) return []
-    const list = JSON.parse(stored)
-    return list.map((u, idx) => ({
-      userId: u.userId,
-      nickName: u.nickname || '用户' + u.userId,
-      avatar: u.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin' + u.userId,
-      level: u.level || 1,
-      tags: u.tags || ['推荐'],
-      price: u.price || 50,
-      online: true,
-      location: u.location || '',
-      serviceType: 'both',
-      vip: u.vip || false,
-      vipLevel: u.vipLevel || 0,
-      isAdminRecommend: true
-    }))
+    const result = await homeService.getRecommendHome()
+    if (result.code === 200 && result.data) {
+      const list = result.data.list || []
+      return list.map(u => ({
+        userId: u.userId,
+        nickName: u.nickName || '用户' + u.userId,
+        avatar: u.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=admin' + u.userId,
+        level: u.level || 1,
+        tags: u.tags || ['推荐'],
+        price: u.price || 50,
+        online: true,
+        location: u.location || '',
+        serviceType: 'both',
+        vip: u.vip || false,
+        vipLevel: u.vipLevel || 0,
+        isAdminRecommend: true
+      }))
+    }
+    return []
   } catch (e) {
+    console.error('获取首页推荐失败:', e)
     return []
   }
 }
@@ -250,7 +253,7 @@ const loadRecommendCompanions = async (reset = false) => {
         offlineService: item.offlineService !== undefined ? item.offlineService : (item.serviceType === 'offline' || item.serviceType === 'both')
       }))
       if (list.length > 0) {
-        const adminUsers = reset ? getAdminRecommendUsers().map(u => ({
+        const adminUsers = reset ? (await getAdminRecommendUsers()).map(u => ({
           ...u,
           onlineService: u.onlineService !== undefined ? u.onlineService : (u.serviceType === 'online' || u.serviceType === 'both'),
           offlineService: u.offlineService !== undefined ? u.offlineService : (u.serviceType === 'offline' || u.serviceType === 'both')
@@ -265,7 +268,7 @@ const loadRecommendCompanions = async (reset = false) => {
   } catch (error) {
     console.error('加载推荐失败:', error)
     console.log('使用mock数据展示推荐陪玩师')
-    const adminUsers = reset ? getAdminRecommendUsers().map(u => ({
+    const adminUsers = reset ? (await getAdminRecommendUsers()).map(u => ({
       ...u,
       onlineService: u.onlineService !== undefined ? u.onlineService : (u.serviceType === 'online' || u.serviceType === 'both'),
       offlineService: u.offlineService !== undefined ? u.offlineService : (u.serviceType === 'offline' || u.serviceType === 'both')
@@ -314,16 +317,16 @@ onMounted(async () => {
   } catch (error) {
     console.error('加载首页数据失败:', error)
     
-    const adminUsers = getAdminRecommendUsers().map(u => ({
+    const adminUsers = (await getAdminRecommendUsers()).map(u => ({
       ...u,
       onlineService: u.onlineService !== undefined ? u.onlineService : (u.serviceType === 'online' || u.serviceType === 'both'),
       offlineService: u.offlineService !== undefined ? u.offlineService : (u.serviceType === 'offline' || u.serviceType === 'both')
     }))
     const fallbackUsers = adminUsers.length ? adminUsers : [
-      { userId: 1, nickName: '小雪', avatar: 'https://picsum.photos/200/200', level: 28, tags: ['温柔', '甜音', '技术好'], price: 58, online: true, location: '北京', onlineService: true, offlineService: true, vip: true, vipLevel: 2 },
-      { userId: 2, nickName: '阿杰', avatar: 'https://picsum.photos/200/200', level: 35, tags: ['打野', '带飞', '幽默'], price: 65, online: true, location: '上海', onlineService: true, offlineService: false, vip: true, vipLevel: 3 },
-      { userId: 3, nickName: '小美', avatar: 'https://picsum.photos/200/200', level: 22, tags: ['娱乐', '聊天', '唱歌'], price: 45, online: false, location: '广州', onlineService: false, offlineService: true, vip: false },
-      { userId: 4, nickName: '大飞', avatar: 'https://picsum.photos/200/200', level: 42, tags: ['技术陪', '上分', '教学'], price: 78, online: true, location: '深圳', onlineService: true, offlineService: true, vip: true, vipLevel: 4 }
+      { userId: 1, nickName: '小雪', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=xiaoxue', level: 28, tags: ['温柔', '甜音', '技术好'], price: 58, online: true, location: '北京', onlineService: true, offlineService: true, vip: true, vipLevel: 2 },
+      { userId: 2, nickName: '阿杰', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ajie', level: 35, tags: ['打野', '带飞', '幽默'], price: 65, online: true, location: '上海', onlineService: true, offlineService: false, vip: true, vipLevel: 3 },
+      { userId: 3, nickName: '小美', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=xiaomei', level: 22, tags: ['娱乐', '聊天', '唱歌'], price: 45, online: false, location: '广州', onlineService: false, offlineService: true, vip: false },
+      { userId: 4, nickName: '大飞', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=dafei', level: 42, tags: ['技术陪', '上分', '教学'], price: 78, online: true, location: '深圳', onlineService: true, offlineService: true, vip: true, vipLevel: 4 }
     ].map(u => ({
       ...u,
       onlineService: u.onlineService !== undefined ? u.onlineService : (u.serviceType === 'online' || u.serviceType === 'both'),
@@ -355,6 +358,8 @@ defineExpose({
 .content-container {
   width: 100%;
   max-width: 100%;
+  padding: 0 12px;
+  box-sizing: border-box;
   background: var(--bg-primary);
   border-radius: 10px;
   overflow: hidden;
@@ -364,7 +369,7 @@ defineExpose({
 /* --- 导航栏 --- */
 .nav-bar {
   background: var(--gradient-primary);
-  padding: 0 20px;
+  padding: 0 12px;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -431,32 +436,27 @@ defineExpose({
 /* --- PC 端适配 --- */
 @media (min-width: 768px) {
   .home-page {
-    max-width: 650px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
   }
 
   .nav-bar {
     left: 50%;
     transform: translateX(-50%);
     max-width: 650px;
+    padding: 0 12px;
   }
 
   .content-container {
     max-width: 100%;
   }
-
-  .search-box {
-    max-width: 420px;
-  }
 }
 
 @media (min-width: 1024px) {
-  .home-page {
-    max-width: 720px;
-  }
-
   .nav-bar {
     max-width: 720px;
+    padding: 0 12px;
   }
 }
 </style>

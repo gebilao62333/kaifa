@@ -215,6 +215,44 @@ const adminService = {
     return request('/api/admin/recharge-records/' + recordId, 'DELETE')
   },
 
+  // 密卡管理
+  async getCards(params = {}) {
+    const { page = 1, pageSize = 20, keyword, status, category, batchNo } = params
+    const data = { page, pageSize }
+    if (keyword) data.keyword = keyword
+    if (status !== undefined && status !== '') data.status = status
+    if (category) data.category = category
+    if (batchNo) data.batchNo = batchNo
+    return request('/api/admin/cards', 'GET', data)
+  },
+  async getCardDetail(cardId) {
+    return request('/api/admin/cards/' + cardId, 'GET')
+  },
+  async createCard(data) {
+    return request('/api/admin/cards', 'POST', data)
+  },
+  async updateCard(cardId, data) {
+    return request('/api/admin/cards/' + cardId, 'PUT', data)
+  },
+  async updateCardStatus(cardId, status) {
+    return request('/api/admin/cards/' + cardId + '/status', 'PUT', { status })
+  },
+  async batchUpdateCardStatus(ids, status) {
+    return request('/api/admin/cards/batch-status', 'POST', { ids, status })
+  },
+  async batchDeleteCards(ids) {
+    return request('/api/admin/cards/batch-delete', 'POST', { ids })
+  },
+  async getCardStats() {
+    return request('/api/admin/cards/stats', 'GET')
+  },
+  async importCards(cards) {
+    return request('/api/admin/cards/import', 'POST', { cards })
+  },
+  async deleteCard(cardId) {
+    return request('/api/admin/cards/' + cardId, 'DELETE')
+  },
+
   async getGames(params = {}) {
     const { page = 1, pageSize = 20, keyword, serviceType } = params
     const data = { page, pageSize }
@@ -306,6 +344,72 @@ const adminService = {
 
   async getDashboardStats() {
     return request('/api/admin/dashboard', 'GET')
+  },
+
+  // 推荐用户
+  async saveRecommend(data) {
+    return request('/api/admin/recommend', 'POST', data)
+  },
+
+  // Banner CRUD
+  async getBanners(params = {}) {
+    const { page = 1, pageSize = 20, status } = params
+    const data = { page, pageSize }
+    if (status !== undefined) data.status = status
+    return request('/api/admin/banners', 'GET', data)
+  },
+  async getBannerDetail(bannerId) {
+    return request('/api/admin/banners/' + bannerId, 'GET')
+  },
+  async createBanner(data) {
+    return request('/api/admin/banners', 'POST', data)
+  },
+  async updateBanner(bannerId, data) {
+    return request('/api/admin/banners/' + bannerId, 'PUT', data)
+  },
+  async deleteBanner(bannerId) {
+    return request('/api/admin/banners/' + bannerId, 'DELETE')
+  },
+
+  // 充值记录（兼容 /api/admin/recharges）
+  async getRecharges(params = {}) {
+    const { page = 1, pageSize = 20, userId, status } = params
+    const data = { page, pageSize }
+    if (userId) data.userId = userId
+    if (status !== undefined) data.status = status
+    return request('/api/admin/recharges', 'GET', data)
+  },
+
+  // 举报处理（PUT /api/admin/reports/:id）
+  async updateReportStatus(reportId, data) {
+    return request('/api/admin/reports/' + reportId, 'PUT', data)
+  },
+
+  // 系统通知管理
+  async getNotifications(params = {}) {
+    const { page = 1, pageSize = 15, keyword, type } = params
+    const data = { page, pageSize }
+    if (keyword) data.keyword = keyword
+    if (type !== undefined && type !== '') data.type = type
+    return request('/api/admin/notifications', 'GET', data)
+  },
+  async getNotificationDetail(id) {
+    return request('/api/admin/notifications/' + id, 'GET')
+  },
+  async createNotification(data) {
+    return request('/api/admin/notifications', 'POST', data)
+  },
+  async updateNotification(id, data) {
+    return request('/api/admin/notifications/' + id, 'PUT', data)
+  },
+  async pushNotification(id) {
+    return request('/api/admin/notifications/' + id + '/push', 'POST')
+  },
+  async getNotificationStats() {
+    return request('/api/admin/notifications/stats', 'GET')
+  },
+  async deleteNotification(id) {
+    return request('/api/admin/notifications/' + id, 'DELETE')
   }
 }
 

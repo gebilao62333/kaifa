@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const { generateQRCode } = require('../utils/qrcodeGenerator');
 const crypto = require('crypto');
+const response = require('../utils/response');
+const logger = require('../utils/logger');
 
 /**
  * 根据用户 ID 生成邀请码
@@ -33,7 +35,7 @@ router.get('/invite-code', (req, res) => {
     const userId = req.query.userId || req.userId;
     
     if (!userId) {
-      return res.json({ code: 400, message: '缺少用户ID' });
+      return response.badRequest(res, '缺少用户ID');
     }
 
     // 检查是否已有邀请码
@@ -52,7 +54,8 @@ router.get('/invite-code', (req, res) => {
       }
     });
   } catch (error) {
-    res.json({ code: 500, message: '获取失败: ' + error.message });
+    logger.error('获取邀请码失败:', error);
+    response.error(res, '获取邀请码失败');
   }
 });
 
@@ -64,7 +67,7 @@ router.get('/invite-info', (req, res) => {
     const { code } = req.query;
     
     if (!code) {
-      return res.json({ code: 400, message: '缺少邀请码' });
+      return response.badRequest(res, '缺少邀请码');
     }
 
     // 查找邀请码对应的用户
@@ -77,7 +80,7 @@ router.get('/invite-info', (req, res) => {
     }
 
     if (!foundUserId) {
-      return res.json({ code: 404, message: '邀请码无效' });
+      return response.notFound(res, '邀请码无效');
     }
 
     res.json({
@@ -89,7 +92,8 @@ router.get('/invite-info', (req, res) => {
       }
     });
   } catch (error) {
-    res.json({ code: 500, message: '查询失败: ' + error.message });
+    logger.error('查询邀请信息失败:', error);
+    response.error(res, '查询邀请信息失败');
   }
 });
 
@@ -124,16 +128,11 @@ router.post('/qrcode', (req, res) => {
         }
       });
     } else {
-      res.json({
-        code: 500,
-        message: '生成失败: ' + result.error
-      });
+      response.error(res, '二维码生成失败');
     }
   } catch (error) {
-    res.json({
-      code: 500,
-      message: '生成失败: ' + error.message
-    });
+    logger.error('生成二维码失败:', error);
+    response.error(res, '二维码生成失败');
   }
 });
 
@@ -142,10 +141,7 @@ router.get('/qrcode', (req, res) => {
     const { text, width = 200, margin = 4 } = req.query;
     
     if (!text) {
-      return res.json({
-        code: 400,
-        message: '缺少必要参数 text'
-      });
+      return response.badRequest(res, '缺少必要参数 text');
     }
 
     const result = generateQRCode(decodeURIComponent(text), {
@@ -168,16 +164,11 @@ router.get('/qrcode', (req, res) => {
         }
       });
     } else {
-      res.json({
-        code: 500,
-        message: '生成失败: ' + result.error
-      });
+      response.error(res, '二维码生成失败');
     }
   } catch (error) {
-    res.json({
-      code: 500,
-      message: '生成失败: ' + error.message
-    });
+    logger.error('生成二维码失败:', error);
+    response.error(res, '二维码生成失败');
   }
 });
 

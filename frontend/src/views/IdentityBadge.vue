@@ -62,6 +62,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -120,7 +121,7 @@ const goBack = () => {
 
 const selectBadge = (badge) => {
   if (badge.locked) {
-    alert(`解锁条件：${badge.condition}`)
+    toast.info(`解锁条件：${badge.condition}`);
     return
   }
   selectedId.value = badge.id

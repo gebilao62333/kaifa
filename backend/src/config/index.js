@@ -57,12 +57,21 @@ module.exports = {
     qiniu: {
       accessKey: process.env.QINIU_ACCESS_KEY,
       secretKey: process.env.QINIU_SECRET_KEY,
-      bucket: process.env.QINIU_BUCKET
+      bucket: process.env.QINIU_BUCKET,
+      domain: process.env.QINIU_DOMAIN,
+      zone: process.env.QINIU_ZONE || 'z0'
     }
   },
   
+  map: {
+    provider: process.env.MAP_PROVIDER || 'tencent',
+    tencentKey: process.env.TENCENT_MAP_KEY,
+    amapKey: process.env.AMAP_KEY
+  },
+
   wechat: {
     appid: process.env.WECHAT_APPID,
+    secret: process.env.WECHAT_SECRET,
     mchid: process.env.WECHAT_MCHID,
     apiKey: process.env.WECHAT_API_KEY,
     certPath: process.env.WECHAT_CERT_PATH
@@ -71,7 +80,9 @@ module.exports = {
   alipay: {
     appId: process.env.ALIPAY_APP_ID,
     privateKey: process.env.ALIPAY_PRIVATE_KEY,
-    publicKey: process.env.ALIPAY_PUBLIC_KEY
+    publicKey: process.env.ALIPAY_PUBLIC_KEY,
+    notifyUrl: process.env.ALIPAY_NOTIFY_URL || (process.env.SERVER_URL || 'http://localhost:3001') + '/api/pay/alipay-notify',
+    gateway: 'https://openapi.alipay.com/gateway.do'
   },
   
   sms: {

@@ -107,10 +107,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAdmin } from './admin/composables/useAdmin'
 
 const router = useRouter()
+const { apiGet, apiPost, toast, formatTime } = useAdmin()
 
 const list = ref([])
 const total = ref(0)
@@ -143,40 +145,22 @@ const getTypeText = (type) => {
   return map[type] || '未知'
 }
 
-const formatTime = (timestamp) => {
-  if (!timestamp) return '-'
-  const date = new Date(timestamp * 1000)
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
-}
-
 const previewImage = (url) => {
   window.open(url)
 }
 
+const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
+
 const fetchList = async () => {
   try {
-    const host = (window.globalData?.host) || 'https://api.your-domain.com'
-    const token = localStorage.getItem('adminToken') || localStorage.getItem('token') || ''
-
-    const params = new URLSearchParams()
+    const params = { page: page.value, pageSize: pageSize.value }
     if (filterStatus.value !== -1) {
-      params.append('isCheck', filterStatus.value)
+      params.isCheck = filterStatus.value
     }
-    params.append('page', page.value)
-    params.append('pageSize', pageSize.value)
-
-    const res = await fetch(`${host}/api/gift/admin/withdraw/list?${params.toString()}`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-
-    const result = await res.json()
-
+    const result = await apiGet('/api/gift/admin/withdraw/list', params)
     if (result.code === 0) {
       list.value = result.data.list || []
       total.value = result.data.total || 0
-
       pendingCount.value = list.value.filter(item => item.isCheck === 0).length
       todayAmount.value = list.value
         .filter(item => {
@@ -188,37 +172,22 @@ const fetchList = async () => {
     }
   } catch (error) {
     console.error('获取提现列表错误:', error)
-    alert('获取数据失败')
+    toast('获取数据失败', 'error')
   }
 }
 
 const approveItem = async (item) => {
   try {
-    const host = (window.globalData?.host) || 'https://api.your-domain.com'
-    const token = localStorage.getItem('adminToken') || localStorage.getItem('token') || ''
-
-    const res = await fetch(`${host}/api/gift/admin/withdraw/approve`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        withdrawId: item.id
-      })
-    })
-
-    const result = await res.json()
-
+    const result = await apiPost('/api/gift/admin/withdraw/approve', { withdrawId: item.id })
     if (result.code === 0) {
-      alert('审核通过')
+      toast('审核通过')
       fetchList()
     } else {
-      alert(result.message || '操作失败')
+      toast(result.message || '操作失败', 'error')
     }
   } catch (error) {
     console.error('审核错误:', error)
-    alert('网络错误')
+    toast('网络错误', 'error')
   }
 }
 
@@ -230,38 +199,24 @@ const showRejectModal = (item) => {
 
 const confirmReject = async () => {
   if (!rejectReason.value.trim()) {
-    alert('请输入拒绝原因')
+    toast('请输入拒绝原因', 'warning')
     return
   }
-
   try {
-    const host = (window.globalData?.host) || 'https://api.your-domain.com'
-    const token = localStorage.getItem('adminToken') || localStorage.getItem('token') || ''
-
-    const res = await fetch(`${host}/api/gift/admin/withdraw/reject`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        withdrawId: currentItem.value.id,
-        reason: rejectReason.value
-      })
+    const result = await apiPost('/api/gift/admin/withdraw/reject', {
+      withdrawId: currentItem.value.id,
+      reason: rejectReason.value
     })
-
-    const result = await res.json()
-
     if (result.code === 0) {
-      alert('已拒绝')
+      toast('已拒绝')
       showReject.value = false
       fetchList()
     } else {
-      alert(result.message || '操作失败')
+      toast(result.message || '操作失败', 'error')
     }
   } catch (error) {
     console.error('拒绝错误:', error)
-    alert('网络错误')
+    toast('网络错误', 'error')
   }
 }
 
@@ -273,7 +228,7 @@ const prevPage = () => {
 }
 
 const nextPage = () => {
-  if (page.value < Math.ceil(total.value / pageSize.value)) {
+  if (page.value < totalPages.value) {
     page.value++
     fetchList()
   }

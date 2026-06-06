@@ -9,7 +9,8 @@ const getGiftList = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取礼物列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -30,7 +31,8 @@ const sendGift = async (req, res) => {
     response.success(res, result, '赠送成功');
   } catch (error) {
     logger.error('赠送礼物错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -40,7 +42,8 @@ const getGiftBag = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取背包错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -56,7 +59,8 @@ const withdraw = async (req, res) => {
     response.success(res, result, '提现申请已提交');
   } catch (error) {
     logger.error('提现错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -156,7 +160,8 @@ const getWithdrawList = async (req, res) => {
     });
   } catch (error) {
     logger.error('获取提现列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -172,7 +177,8 @@ const approveWithdraw = async (req, res) => {
     response.success(res, result, '提现审核通过');
   } catch (error) {
     logger.error('审核提现错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -188,7 +194,8 @@ const rejectWithdraw = async (req, res) => {
     response.success(res, result, '提现申请已拒绝');
   } catch (error) {
     logger.error('拒绝提现错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -210,7 +217,8 @@ const sendRedPacket = async (req, res) => {
     response.success(res, result, '红包已发送');
   } catch (error) {
     logger.error('发送红包错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -226,7 +234,8 @@ const receiveRedPacket = async (req, res) => {
     response.success(res, result, '领取成功');
   } catch (error) {
     logger.error('领取红包错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -237,7 +246,8 @@ const getRedPacketHistory = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取红包记录错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 

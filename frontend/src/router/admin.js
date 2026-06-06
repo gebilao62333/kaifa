@@ -5,12 +5,8 @@ const adminRoutes = [
   {
     path: '/admin/login',
     name: 'AdminLogin',
-    component: () => import('../views/admin/Login.vue')
-  },
-  {
-    path: '/admin/withdraw',
-    name: 'AdminWithdraw',
-    component: () => import('../views/admin/Withdraw.vue')
+    component: () => import('../views/admin/Login.vue'),
+    meta: { title: '管理员登录' }
   },
   {
     path: '/admin',
@@ -53,6 +49,11 @@ const adminRoutes = [
         component: lazyLoad('Reports')
       },
       {
+        path: 'customer-service',
+        name: 'AdminCustomerService',
+        component: lazyLoad('CustomerServiceManagement')
+      },
+      {
         path: 'banners',
         name: 'AdminBanners',
         component: lazyLoad('Banners')
@@ -78,6 +79,11 @@ const adminRoutes = [
         component: lazyLoad('Recharges')
       },
       {
+        path: 'cards',
+        name: 'AdminCards',
+        component: lazyLoad('Cards')
+      },
+      {
         path: 'games',
         name: 'AdminGames',
         component: lazyLoad('Games')
@@ -101,6 +107,11 @@ const adminRoutes = [
         path: 'roles',
         name: 'AdminRoles',
         component: lazyLoad('Roles')
+      },
+      {
+        path: 'notifications',
+        name: 'AdminNotifications',
+        component: lazyLoad('Notification')
       },
       {
         path: 'settings',

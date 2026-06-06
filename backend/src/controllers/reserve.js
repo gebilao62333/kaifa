@@ -18,7 +18,8 @@ const getSlots = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取可用时间错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -34,7 +35,8 @@ const batchCreateSlots = async (req, res) => {
     response.success(res, {}, '设置成功');
   } catch (error) {
     logger.error('批量设置时间错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -50,7 +52,8 @@ const toggleSlot = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('切换时间槽状态错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -72,7 +75,8 @@ const createReserve = async (req, res) => {
     response.created(res, result, '预约成功');
   } catch (error) {
     logger.error('创建预约错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -88,7 +92,8 @@ const confirmReserve = async (req, res) => {
     response.success(res, {}, '已确认预约');
   } catch (error) {
     logger.error('确认预约错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -104,7 +109,8 @@ const rejectReserve = async (req, res) => {
     response.success(res, {}, '已拒绝预约');
   } catch (error) {
     logger.error('拒绝预约错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -120,7 +126,8 @@ const cancelReserve = async (req, res) => {
     response.success(res, result, '已取消预约');
   } catch (error) {
     logger.error('取消预约错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -137,7 +144,8 @@ const getReserveList = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取预约列表错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -153,7 +161,8 @@ const completeReserve = async (req, res) => {
     response.success(res, {}, '预约已完成');
   } catch (error) {
     logger.error('完成预约错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 

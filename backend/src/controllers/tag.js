@@ -49,7 +49,8 @@ const createTag = async (req, res) => {
     response.created(res, result, '标签创建成功');
   } catch (error) {
     logger.error(`创建标签失败: ${error.message}`);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -60,7 +61,9 @@ const getTag = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error(`获取标签失败: ${error.message}`);
-    response.notFound(res, error.message);
+    logger.error('资源不存在:', error);
+    logger.error('资源不存在:', error);
+    response.notFound(res, '资源不存在');
   }
 };
 
@@ -70,7 +73,8 @@ const getAllTags = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error(`获取标签列表失败: ${error.message}`);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -81,7 +85,8 @@ const getTagsByCategory = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error(`获取分类标签失败: ${error.message}`);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -92,7 +97,8 @@ const updateTag = async (req, res) => {
     response.success(res, result, '标签更新成功');
   } catch (error) {
     logger.error(`更新标签失败: ${error.message}`);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -103,7 +109,9 @@ const deleteTag = async (req, res) => {
     response.success(res, {}, '标签删除成功');
   } catch (error) {
     logger.error(`删除标签失败: ${error.message}`);
-    response.notFound(res, error.message);
+    logger.error('资源不存在:', error);
+    logger.error('资源不存在:', error);
+    response.notFound(res, '资源不存在');
   }
 };
 
@@ -125,7 +133,8 @@ const assignTag = async (req, res) => {
     response.success(res, {}, '标签分配成功');
   } catch (error) {
     logger.error(`分配标签失败: ${error.message}`);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -141,7 +150,8 @@ const removeTag = async (req, res) => {
     response.success(res, {}, '标签移除成功');
   } catch (error) {
     logger.error(`移除标签失败: ${error.message}`);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -152,7 +162,8 @@ const getUserTags = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error(`获取用户标签失败: ${error.message}`);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -168,7 +179,8 @@ const setPrimaryTag = async (req, res) => {
     response.success(res, {}, '主要标签设置成功');
   } catch (error) {
     logger.error(`设置主要标签失败: ${error.message}`);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -178,7 +190,8 @@ const recommendTags = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error(`标签推荐失败: ${error.message}`);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -189,7 +202,9 @@ const getTagUsers = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error(`获取标签用户失败: ${error.message}`);
-    response.notFound(res, error.message);
+    logger.error('资源不存在:', error);
+    logger.error('资源不存在:', error);
+    response.notFound(res, '资源不存在');
   }
 };
 
@@ -199,7 +214,8 @@ const getDefaultTags = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error(`获取默认标签失败: ${error.message}`);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -209,7 +225,8 @@ const initDefaultTags = async (req, res) => {
     response.success(res, {}, '默认标签初始化成功');
   } catch (error) {
     logger.error(`初始化默认标签失败: ${error.message}`);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 

@@ -3,6 +3,7 @@ const chatService = require('./chatService');
 const giftService = require('./giftService');
 const payService = require('./payService');
 const wechatPayService = require('./wechatPayService');
+const alipayService = require('./alipayService');
 const gamesService = require('./gamesService');
 const circleService = require('./circleService');
 const reserveService = require('./reserveService');
@@ -18,6 +19,7 @@ const albumService = require('./albumService');
 const demandService = require('./demandService');
 const projectService = require('./projectService');
 const regionService = require('./regionService');
+const mapService = require('./mapService');
 
 module.exports = {
   authService,
@@ -25,6 +27,7 @@ module.exports = {
   giftService,
   payService,
   wechatPayService,
+  alipayService,
   gamesService,
   circleService,
   reserveService,
@@ -39,5 +42,6 @@ module.exports = {
   albumService,
   demandService,
   projectService,
-  regionService
+  regionService,
+  mapService
 };

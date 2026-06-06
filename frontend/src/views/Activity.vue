@@ -26,6 +26,29 @@
         </div>
 
         <div class="feed-list">
+
+          <!-- 广场推荐用户横滑区 -->
+          <div v-if="activeTag === 0 && recommendUsers.length > 0" class="recommend-section">
+            <div class="recommend-title">
+              <span class="recommend-title-icon">⭐</span>
+              <span>广场推荐</span>
+            </div>
+            <div class="recommend-scroll">
+              <div
+                v-for="user in recommendUsers"
+                :key="user.userId"
+                class="recommend-card"
+                @click="$router.push({ name: 'UserProfile', params: { id: user.userId } })">
+                <div class="recommend-avatar-wrap">
+                  <img :src="user.avatar" class="recommend-avatar" />
+                  <span v-if="user.isTop" class="recommend-top-badge">置顶</span>
+                </div>
+                <div class="recommend-nickname">{{ user.nickName }}</div>
+                <span class="recommend-tag">推荐</span>
+              </div>
+            </div>
+          </div>
+
           <div 
             class="feed-item" 
             v-for="item in feedList" 
@@ -155,10 +178,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import ReserveModal from '@/components/ReserveModal.vue'
 import circleService from '../services/circleService'
+import homeService from '../services/homeService'
 import { useToast } from '../composables/useToast'
 import { useUserStore } from '../store/user-info'
 import { generateMockPosts } from '../common/mockData'
@@ -174,6 +198,30 @@ const page = ref(1)
 const loading = ref(false)
 const hasMore = ref(true)
 const initialLoadComplete = ref(false)
+
+// 广场推荐用户（后台管理配置）
+const recommendUsers = ref([])
+const loadingRecommend = ref(false)
+
+const loadRecommendSquare = async () => {
+  loadingRecommend.value = true
+  try {
+    const res = await homeService.getRecommendSquare()
+    if (res.code === 200 && res.data) {
+      recommendUsers.value = (res.data.list || []).map(u => ({
+        userId: u.userId,
+        nickName: u.nickName || '用户' + u.userId,
+        avatar: u.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=square' + u.userId,
+        isTop: u.isTop,
+        isAdminRecommend: true
+      }))
+    }
+  } catch (e) {
+    console.error('加载广场推荐用户失败:', e)
+  } finally {
+    loadingRecommend.value = false
+  }
+}
 
 const expandedPostId = ref(null)
 const commentsMap = ref({})
@@ -273,12 +321,11 @@ const loadFeedList = async (reset = false) => {
       hasMore.value = newPosts.length >= 10
       page.value++
     } else {
-      // Mock 降级
+      console.warn('获取动态数据为空，使用Mock数据')
       await loadMockFeeds(reset)
     }
   } catch (error) {
-    console.error('加载动态失败:', error)
-    // Mock 降级
+    console.error('加载动态失败，使用Mock数据:', error)
     await loadMockFeeds(reset)
   } finally {
     loading.value = false
@@ -420,7 +467,7 @@ const submitComment = async (postId) => {
       const newComment = {
         id: Date.now(),
         nickName: userStore.nickName || '我',
-        avatar: userStore.avatar || 'https://picsum.photos/200/200',
+        avatar: userStore.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user',
         content: text,
         createTime: Date.now()
       }
@@ -447,7 +494,7 @@ const submitMockComment = (postId, text) => {
   const newComment = {
     id: Date.now(),
     nickName: userStore.nickName || '我',
-    avatar: userStore.avatar || 'https://picsum.photos/200/200',
+    avatar: userStore.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=user',
     content: text,
     createTime: Date.now()
   }
@@ -515,6 +562,8 @@ const loadMore = () => {
 onMounted(() => {
   loadTags()
   loadFeedList()
+  // 初始加载时也加载推荐用户（默认"推荐"tab）
+  loadRecommendSquare()
 })
 </script>
 
@@ -542,17 +591,21 @@ onMounted(() => {
   position: fixed;
   top: 0;
   left: 0;
-  right: 0;
+  width: 100%;
   z-index: 100;
-  background: var(--bg-primary);
-  padding: 20px 24px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  background: var(--gradient-primary);
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  height: 50px;
+  box-sizing: border-box;
 }
 
 .title {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 17px;
+  font-weight: bold;
+  color: white;
+  flex: 1;
   text-align: center;
 }
 
@@ -599,6 +652,88 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* --- 广场推荐用户 --- */
+.recommend-section {
+  background: var(--bg-primary);
+  border-radius: 16px;
+  padding: 16px;
+  overflow: hidden;
+}
+.recommend-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+.recommend-title-icon {
+  font-size: 16px;
+}
+.recommend-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.recommend-scroll::-webkit-scrollbar {
+  display: none;
+}
+.recommend-card {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.recommend-card:active {
+  transform: scale(0.95);
+}
+.recommend-avatar-wrap {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid #f0f0f0;
+}
+.recommend-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.recommend-top-badge {
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  background: #faad14;
+  color: #fff;
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.recommend-nickname {
+  font-size: 12px;
+  color: var(--text-primary);
+  max-width: 64px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+.recommend-tag {
+  font-size: 10px;
+  color: #1677ff;
+  background: #f0f5ff;
+  padding: 1px 8px;
+  border-radius: 10px;
 }
 
 .feed-item {
@@ -1024,15 +1159,57 @@ onMounted(() => {
   font-weight: 300;
   cursor: pointer;
   z-index: 100;
+  transition: transform 0.2s ease;
+}
+
+.fab-button:active {
+  transform: scale(0.92);
 }
 
 .fab-button span {
   width: 30px;
   height: 30px;
-  padding-bottom: 44px;
-  margin-top: 14px;
-  margin-right: 0px;
-  margin-bottom: 13px;
-  padding-left: 6px;
+  font-size: 28px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  margin-top: -5px;
+}
+
+/* PC 端适配 */
+@media (min-width: 768px) {
+  .activity-page {
+    max-width: 650px;
+    margin: 0 auto;
+    position: relative;
+  }
+  
+  .header {
+    max-width: 650px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-radius: 0 0 16px 16px;
+    padding: 14px 20px;
+  }
+  
+  .fab-button {
+    right: calc(50% - 650px / 2 + 24px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .activity-page {
+    max-width: 720px;
+  }
+  
+  .header {
+    max-width: 720px;
+  }
+  
+  .fab-button {
+    right: calc(50% - 720px / 2 + 24px);
+  }
 }
 </style>

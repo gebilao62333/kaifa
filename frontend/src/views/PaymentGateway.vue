@@ -114,6 +114,7 @@ import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
+import { generateQRCode } from '../utils/qrcode'
 
 const router = useRouter()
 const route = useRoute()
@@ -176,8 +177,9 @@ const isRechargeWithFiat = computed(() => {
 })
 
 const qrImage = computed(() => {
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`pay:${methodId.value}:${amount.value}`)}`
-  return qrCodeUrl
+  const payData = `pay:${methodId.value}:${amount.value}`
+  const result = generateQRCode(payData, { width: 200 })
+  return result.base64
 })
 
 const canPay = computed(() => {

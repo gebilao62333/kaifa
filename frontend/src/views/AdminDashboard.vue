@@ -432,10 +432,11 @@
           <div class="page-header">
             <h2>虚拟机器人管理</h2>
             <button @click="openCreateModal" class="add-btn">添加机器人</button>
+            <button @click="openBatchModal" class="add-btn batch-btn">📦 批量添加</button>
           </div>
 
           <div class="search-bar">
-            <input v-model="searchKeyword" type="text" placeholder="搜索用户名/昵称" class="search-input" />
+            <input v-model="searchKeyword" type="text" placeholder="搜索昵称" class="search-input" />
             <button @click="loadVirtualUsers" class="search-btn">搜索</button>
           </div>
 
@@ -444,7 +445,6 @@
               <tr>
                 <th>ID</th>
                 <th>头像</th>
-                <th>用户名</th>
                 <th>昵称</th>
                 <th>角色</th>
                 <th>对话风格</th>
@@ -461,7 +461,6 @@
                   <img v-if="user.avatar" :src="user.avatar" class="user-avatar-small" />
                   <span v-else>🤖</span>
                 </td>
-                <td>{{ user.username }}</td>
                 <td>{{ user.nickname }}</td>
                 <td>{{ getRoleName(user.role) }}</td>
                 <td>{{ getStyleName(user.dialogueStyle) }}</td>
@@ -1384,12 +1383,11 @@
         </div>
         <div class="modal-body">
           <div class="form-group">
-            <label>用户名</label>
-            <input v-model="currentUser.username" type="text" class="form-input" />
-          </div>
-          <div class="form-group">
             <label>昵称</label>
-            <input v-model="currentUser.nickname" type="text" class="form-input" />
+            <div class="input-with-random">
+              <input v-model="currentUser.nickname" type="text" class="form-input" />
+              <button type="button" class="random-btn" @click="currentUser.nickname = randomNickname()" title="随机生成">🎲</button>
+            </div>
           </div>
           <div class="form-group">
             <label>头像URL</label>
@@ -1405,18 +1403,83 @@
             </select>
           </div>
           <div class="form-group">
-            <label>对话风格</label>
-            <select v-model="currentUser.dialogueStyle" class="form-select">
-              <option value="friendly">友好亲切</option>
-              <option value="professional">专业严谨</option>
-              <option value="humorous">幽默风趣</option>
-              <option value="cute">可爱俏皮</option>
-            </select>
+            <label>对话风格 <span class="tag-limit">(多选，最多5个)</span></label>
+            <div class="style-tags">
+              <span
+                v-for="opt in styleOptions"
+                :key="opt.value"
+                :class="['style-tag', { active: selectedStyles.includes(opt.value) }]"
+                @click="toggleStyle(opt.value)"
+              >
+                {{ opt.label }}
+              </span>
+            </div>
+            <div v-if="selectedStyles.length >= 5" class="hint">已选满5个风格</div>
           </div>
         </div>
         <div class="modal-footer">
           <button @click="showModal = false" class="btn-cancel">取消</button>
           <button @click="saveUser" class="btn-save">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 批量添加机器人弹窗 -->
+    <div v-if="showBatchModal" class="modal-overlay" @click="showBatchModal = false">
+      <div class="modal-content batch-modal" @click.stop>
+        <div class="modal-header">
+          <h3>📦 批量添加机器人</h3>
+          <button class="close-btn" @click="showBatchModal = false">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>添加数量</label>
+              <input v-model.number="batchCount" type="number" min="1" max="100" class="form-input" />
+            </div>
+            <div class="form-group">
+              <label>角色</label>
+              <select v-model="batchRole" class="form-select">
+                <option value="default">默认</option>
+                <option value="companion">陪玩师</option>
+                <option value="guide">向导</option>
+                <option value="assistant">助手</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>状态</label>
+              <select v-model.number="batchStatus" class="form-select">
+                <option :value="1">启用</option>
+                <option :value="0">禁用</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>在线状态</label>
+              <select v-model.number="batchOnline" class="form-select">
+                <option :value="1">在线</option>
+                <option :value="0">离线</option>
+              </select>
+            </div>
+          </div>
+          <div class="batch-preview" v-if="batchPreview.length > 0">
+            <label>预览 (随机昵称 + 随机5个风格)：</label>
+            <div class="batch-list">
+              <div v-for="(item, idx) in batchPreview" :key="idx" class="batch-item">
+                <span class="batch-index">{{ idx + 1 }}</span>
+                <span class="batch-name">{{ item.nickname }}</span>
+                <span class="batch-styles">{{ item.styles }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <span class="batch-progress" v-if="batchCreating">{{ batchProgress }}</span>
+          <button @click="showBatchModal = false" class="btn-cancel" :disabled="batchCreating">取消</button>
+          <button @click="batchCreate" class="btn-save" :disabled="batchCreating">
+            {{ batchCreating ? '创建中...' : '批量创建' }}
+          </button>
         </div>
       </div>
     </div>
@@ -1970,9 +2033,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { regionData } from '../common/regionData'
-import { host } from '../common/config'
+import { useAdmin } from './admin/composables/useAdmin'
+import adminService from '../services/adminService'
+import adminManageService from '../services/adminManageService'
+import { toast } from '../composables/useToast'
+
+const { toast, confirm, formatTime, exportCSV } = useAdmin()
 
 const currentPage = ref('dashboard')
 const token = ref('')
@@ -2048,6 +2116,164 @@ const currentUser = ref({
   dialogueStyle: 'friendly',
   status: 1,
   isOnline: 1
+})
+
+// 对话风格多选
+const styleOptions = [
+  { value: 'friendly', label: '友好亲切' },
+  { value: 'professional', label: '专业严谨' },
+  { value: 'humorous', label: '幽默风趣' },
+  { value: 'cute', label: '可爱俏皮' },
+  { value: 'warm', label: '温柔体贴' },
+  { value: 'passionate', label: '热情开朗' },
+  { value: 'mature', label: '成熟稳重' },
+  { value: 'lively', label: '活泼阳光' },
+  { value: 'elegant', label: '优雅大方' },
+  { value: 'cool', label: '高冷酷拽' },
+  { value: 'caring', label: '暖心关怀' },
+  { value: 'witty', label: '机智健谈' },
+  { value: 'calm', label: '沉稳内敛' },
+  { value: 'easygoing', label: '风趣随和' },
+  { value: 'intellectual', label: '知性优雅' },
+  { value: 'bold', label: '豪爽直率' },
+  { value: 'artistic', label: '文艺清新' },
+  { value: 'bossy', label: '霸道总裁' },
+  { value: 'brotherly', label: '邻家大哥' },
+  { value: 'sweetheart', label: '软萌甜心' },
+  { value: 'tsundere', label: '腹黑傲娇' },
+  { value: 'free', label: '潇洒不羁' },
+  { value: 'gentle', label: '温文尔雅' },
+  { value: 'sunny', label: '阳光开朗' },
+  { value: 'mysterious', label: '神秘莫测' },
+  { value: 'sincere', label: '真诚朴实' },
+  { value: 'chatty', label: '话痨社牛' },
+  { value: 'composed', label: '淡定从容' },
+  { value: 'kind', label: '热心肠' },
+  { value: 'sarcastic', label: '毒舌吐槽' },
+  { value: 'devoted', label: '痴情专一' },
+  { value: 'carefree', label: '洒脱自由' },
+]
+const selectedStyles = ref([])
+
+// 随机选5个风格标签
+const randomStyles = () => {
+  const shuffled = [...styleOptions].sort(() => Math.random() - 0.5)
+  selectedStyles.value = shuffled.slice(0, 5).map(s => s.value)
+}
+
+const toggleStyle = (value) => {
+  const idx = selectedStyles.value.indexOf(value)
+  if (idx > -1) {
+    selectedStyles.value.splice(idx, 1)
+  } else if (selectedStyles.value.length < 5) {
+    selectedStyles.value.push(value)
+  }
+}
+
+// 随机昵称生成
+const randomFamilyNames = ['赵', '钱', '孙', '李', '周', '吴', '郑', '王', '冯', '陈', '褚', '卫', '蒋', '沈', '韩', '杨', '朱', '秦', '尤', '许', '何', '吕', '施', '张', '孔', '曹', '严', '华', '金', '魏', '陶', '姜', '谢', '苏', '潘', '葛', '范', '彭', '鲁', '马', '柳', '黄', '萧', '狄', '宋', '乔', '谭', '钟', '徐', '邱', '高', '林', '蔡', '田', '樊', '胡', '凌', '霍', '万', '柯']
+const randomMaleNames = ['伟', '强', '磊', '军', '勇', '杰', '涛', '明', '辉', '鹏', '彬', '宇', '浩', '然', '博', '文', '刚', '超', '飞', '龙', '峰', '亮', '洋', '威', '健', '鑫', '安', '帅', '杰', '宇', '博', '毅', '恒', '霖', '彦', '宸', '诺', '誉', '豪', '瑞']
+const randomFemaleNames = ['芳', '敏', '静', '丽', '婷', '雪', '娟', '艳', '洁', '琳', '倩', '怡', '慧', '颖', '瑶', '晓', '彤', '月', '梦', '萱', '娜', '莉', '欣', '雨', '悦', '莹', '雅', '云', '佳', '宁', '菲', '妍', '莎', '丹', '茜', '媛', '蕾', '柳', '霜', '婉']
+const randomNickPrefixes = ['快乐的', '安静的', '懒懒的', '可爱的', '酷酷的', '温柔的', '阳光的', '甜甜的', '努力的', '佛系的', '呆萌的', '热心的', '幸运的', '治愈的', '优雅的', '元气', '软萌', '高冷', '暖心的', '浪漫的']
+const randomNickAnimals = ['小猫', '小兔', '小熊', '小鹿', '小鱼', '小鸟', '小熊猫', '小柯基', '小柴犬', '小海豚', '小仓鼠', '小奶猫', '布偶猫', '金毛', '柴犬', '橘猫', '狸花', '企鹅', '考拉', '树懒']
+
+const _rand = (max) => Math.floor(Math.random() * max)
+
+const randomNickname = () => {
+  const useRealName = Math.random() > 0.5
+  if (useRealName) {
+    const family = randomFamilyNames[_rand(randomFamilyNames.length)]
+    const pool = Math.random() > 0.5 ? randomMaleNames : randomFemaleNames
+    const given = pool[_rand(pool.length)] + (Math.random() > 0.7 ? pool[_rand(pool.length)] : '')
+    return family + given
+  } else {
+    const prefix = randomNickPrefixes[_rand(randomNickPrefixes.length)]
+    const animal = randomNickAnimals[_rand(randomNickAnimals.length)]
+    return prefix + animal
+  }
+}
+
+// 生成随机风格（批量用）
+const _genRandomStyleLabel = () => {
+  const shuffled = [...styleOptions].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, 5).map(s => s.label).join('、')
+}
+const _genRandomStyleValue = () => {
+  const shuffled = [...styleOptions].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, 5).map(s => s.value).join(',')
+}
+
+// 批量添加
+const showBatchModal = ref(false)
+const batchCount = ref(10)
+const batchRole = ref('default')
+const batchStatus = ref(1)
+const batchOnline = ref(1)
+const batchPreview = ref([])
+const batchCreating = ref(false)
+const batchProgress = ref('')
+
+const refreshBatchPreview = () => {
+  const count = Math.min(Math.max(parseInt(batchCount.value) || 1, 1), 100)
+  batchCount.value = count
+  batchPreview.value = Array.from({ length: count }, () => ({
+    nickname: randomNickname(),
+    styles: _genRandomStyleLabel()
+  }))
+}
+
+const openBatchModal = () => {
+  batchCount.value = 10
+  batchRole.value = 'default'
+  batchStatus.value = 1
+  batchOnline.value = 1
+  batchPreview.value = []
+  batchCreating.value = false
+  batchProgress.value = ''
+  refreshBatchPreview()
+  showBatchModal.value = true
+}
+
+const batchCreate = async () => {
+  const count = Math.min(Math.max(parseInt(batchCount.value) || 1, 1), 100)
+  batchCount.value = count
+  batchCreating.value = true
+  let success = 0
+  let fail = 0
+
+  for (let i = 0; i < count; i++) {
+    batchProgress.value = `正在创建 ${i + 1}/${count}...`
+    try {
+      const data = {
+        nickname: randomNickname(),
+        avatar: '',
+        role: batchRole.value,
+        dialogueStyle: _genRandomStyleValue(),
+        status: batchStatus.value,
+        isOnline: batchOnline.value
+      }
+      const result = await adminService.createVirtualUser(data)
+      if (result.code === 200 || result.code === 0) {
+        success++
+      } else {
+        fail++
+      }
+    } catch (err) {
+      fail++
+      console.error('批量创建失败:', err)
+    }
+  }
+
+  batchCreating.value = false
+  batchProgress.value = ''
+  toast(`批量创建完成！成功 ${success} 个，失败 ${fail} 个`)
+  showBatchModal.value = false
+  loadVirtualUsers()
+}
+
+// 数量变化刷新预览
+watch(batchCount, () => {
+  if (showBatchModal.value) refreshBatchPreview()
 })
 
 const currentGift = ref({
@@ -2256,20 +2482,13 @@ const initPage = () => {
   currentPage.value = pathMap[path] || 'dashboard'
 }
 
-const getHost = () => host || ''
 
 const loadUsers = async () => {
   try {
-    const params = new URLSearchParams()
-    params.append('page', page.value)
-    params.append('pageSize', pageSize.value)
-    if (searchKeyword.value) params.append('nickname', searchKeyword.value)
-    if (filterStatus.value !== '') params.append('status', filterStatus.value)
-
-    const res = await fetch(`${getHost()}/api/admin/users?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const params = {}
+    if (searchKeyword.value) params.nickname = searchKeyword.value
+    if (filterStatus.value !== '') params.status = filterStatus.value
+    const result = await adminService.getUsers({ page: page.value, pageSize: pageSize.value, ...params })
     if (result.code === 200 || result.code === 0) {
       userList.value = result.data.list || []
       total.value = result.data.pagination?.total || 0
@@ -2281,10 +2500,7 @@ const loadUsers = async () => {
 
 const loadRecommendUsers = async () => {
   try {
-    const res = await fetch(`${getHost()}/api/admin/users?page=1&pageSize=50`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminService.getUsers({ page: 1, pageSize: 50 })
     if (result.code === 200 || result.code === 0) {
       const list = result.data.list || []
       recommendList.value = list
@@ -2336,7 +2552,7 @@ const isAlreadyRecommended = (userId) => {
 
 const addToManualRecommend = (user) => {
   if (isAlreadyRecommended(user.userId)) {
-    alert('该用户已在推荐列表中')
+    toast('该用户已在推荐列表中')
     return
   }
   manualRecommendList.value.push({
@@ -2346,24 +2562,21 @@ const addToManualRecommend = (user) => {
     createTime: new Date().getTime()
   })
   saveManualRecommendList()
-  alert(`已添加用户 ${user.nickname} 到推荐列表`)
+  toast(`已添加用户 ${user.nickname} 到推荐列表`)
 }
 
 const addManualRecommendUser = async () => {
   const userId = parseInt(newRecommendUserId.value)
   if (!userId) {
-    alert('请输入有效的用户ID')
+    toast('请输入有效的用户ID')
     return
   }
   if (isAlreadyRecommended(userId)) {
-    alert('该用户已在推荐列表中')
+    toast('该用户已在推荐列表中')
     return
   }
   try {
-    const res = await fetch(`${getHost()}/api/admin/users/${userId}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminService.getUserDetail(userId)
     if (result.code === 200 || result.code === 0) {
       const user = result.data
       manualRecommendList.value.push({
@@ -2374,18 +2587,18 @@ const addManualRecommendUser = async () => {
       })
       saveManualRecommendList()
       newRecommendUserId.value = ''
-      alert(`已成功添加用户 ${user.nickname}`)
+      toast(`已成功添加用户 ${user.nickname}`)
     } else {
-      alert('未找到该用户，请检查ID是否正确')
+      toast('未找到该用户，请检查ID是否正确')
     }
   } catch (err) {
     console.error('添加推荐用户失败:', err)
-    alert('添加失败，请检查网络或用户ID')
+    toast('添加失败，请检查网络或用户ID')
   }
 }
 
-const removeManualRecommend = (user, idx) => {
-  if (!confirm(`确定要移除用户 ${user.nickname} 的推荐吗？`)) return
+const removeManualRecommend = async (user, idx) => {
+  if (!(await confirm(`确定要移除用户 ${user.nickname} 的推荐吗？`)) return
   manualRecommendList.value.splice(idx, 1)
   saveManualRecommendList()
 }
@@ -2421,23 +2634,15 @@ const syncRecommendToApi = async () => {
         isTop: u.isTop ? 1 : 0
       }))
     }
-    const res = await fetch(`${getHost()}/api/admin/recommend`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify(data)
-    })
-    const result = await res.json()
+    const result = await adminService.saveRecommend(data)
     if (result.code === 200 || result.code === 0) {
-      alert('推荐列表已保存到服务器')
+      toast('推荐列表已保存到服务器')
     } else {
-      alert('服务器暂不支持保存，数据已保存在本地')
+      toast('服务器暂不支持保存，数据已保存在本地')
     }
   } catch (err) {
     console.warn('保存到服务器失败:', err)
-    alert('服务器暂不可用，数据已保存在本地缓存')
+    toast('服务器暂不可用，数据已保存在本地缓存')
   }
 }
 
@@ -2454,22 +2659,14 @@ const closeUserDetail = () => {
 const toggleUserStatus = async (user) => {
   const newStatus = user.status === 0 ? 1 : 0
   try {
-    const res = await fetch(`${getHost()}/api/admin/users/${user.userId}/status`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify({ status: newStatus })
-    })
-    const result = await res.json()
+    const result = await adminService.updateUserStatus(user.userId, newStatus)
     if (result.code === 200 || result.code === 0) {
       user.status = newStatus
-      alert('状态更新成功')
+      toast('状态更新成功')
     }
   } catch (err) {
     console.error('更新状态失败:', err)
-    alert('更新状态失败')
+    toast('更新状态失败')
   }
 }
 
@@ -2511,16 +2708,11 @@ const editUserAccount = (user) => {
 
 const saveUserAccountEdit = async () => {
   if (!currentUserEdit.value.nickname) {
-    alert('请输入用户昵称')
+    toast('请输入用户昵称')
     return
   }
 
   try {
-    const url = isUserEdit.value 
-      ? `${getHost()}/api/admin/users/${currentUserEdit.value.userId}`
-      : `${getHost()}/api/admin/users`
-    const method = isUserEdit.value ? 'PUT' : 'POST'
-    
     const data = {
       nickname: currentUserEdit.value.nickname,
       phone: currentUserEdit.value.phone,
@@ -2534,64 +2726,45 @@ const saveUserAccountEdit = async () => {
       status: currentUserEdit.value.status
     }
     
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify(data)
-    })
+    const result = isUserEdit.value
+      ? await adminService.updateUser(currentUserEdit.value.userId, data)
+      : await adminService.createUser(data)
     
-    const result = await res.json()
     if (result.code === 200 || result.code === 0) {
-      alert(isUserEdit.value ? '更新成功' : '创建成功')
+      toast(isUserEdit.value ? '更新成功' : '创建成功')
       showUserModal.value = false
       loadUsers()
     } else {
-      alert(result.message || '操作失败')
+      toast(result.message || '操作失败')
     }
   } catch (err) {
     console.error('保存用户失败:', err)
-    alert('保存失败')
+    toast('保存失败')
   }
 }
 
 const deleteUserAccount = async (user) => {
-  if (!confirm(`确定要删除用户 ${user.nickname} 吗？`)) {
+  if (!(await confirm(`确定要删除用户 ${user.nickname} 吗？`)) {
     return
   }
   
   try {
-    const res = await fetch(`${getHost()}/api/admin/users/${user.userId}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    
-    const result = await res.json()
+    const result = await adminService.deleteUser(user.userId)
     if (result.code === 200 || result.code === 0) {
-      alert('删除成功')
+      toast('删除成功')
       loadUsers()
     }
   } catch (err) {
     console.error('删除失败:', err)
-    alert('删除失败')
+    toast('删除失败')
   }
 }
 
 const loadOrders = async () => {
   try {
-    const params = new URLSearchParams()
-    params.append('page', page.value)
-    params.append('pageSize', pageSize.value)
-    if (searchKeyword.value) {
-      params.append('orderNo', searchKeyword.value)
-    }
-
-    const res = await fetch(`${getHost()}/api/admin/orders?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const params = {}
+    if (searchKeyword.value) params.orderNo = searchKeyword.value
+    const result = await adminService.getOrders({ page: page.value, pageSize: pageSize.value, ...params })
     if (result.code === 200 || result.code === 0) {
       orderList.value = result.data.list || []
       total.value = result.data.pagination?.total || 0
@@ -2603,10 +2776,7 @@ const loadOrders = async () => {
 
 const viewOrderDetail = async (order) => {
   try {
-    const res = await fetch(`${getHost()}/api/admin/orders/${order.orderId}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminService.getOrderDetail(order.orderId)
     if (result.code === 200 || result.code === 0) {
       currentOrderDetail.value = result.data || order
       showOrderDetail.value = true
@@ -2639,14 +2809,8 @@ const formatUnixTime = (ts) => {
 
 const loadWithdraws = async () => {
   try {
-    const params = new URLSearchParams()
-    params.append('page', page.value)
-    params.append('pageSize', pageSize.value)
 
-    const res = await fetch(`${getHost()}/api/admin/withdraws?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminService.getWithdraws({ page: page.value, pageSize: pageSize.value })
     if (result.code === 200 || result.code === 0) {
       withdrawList.value = result.data.list || []
       total.value = result.data.pagination?.total || 0
@@ -2657,19 +2821,13 @@ const loadWithdraws = async () => {
 }
 
 const viewWithdraw = (withdraw) => {
-  alert('查看提现详情: ' + withdraw.id)
+  toast('查看提现详情: ' + withdraw.id)
 }
 
 const loadVirtualUsers = async () => {
   try {
-    const params = new URLSearchParams()
-    params.append('page', page.value)
-    params.append('pageSize', pageSize.value)
 
-    const res = await fetch(`${getHost()}/api/admin/virtual-users?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminService.getVirtualUsers({ page: page.value, pageSize: pageSize.value })
     if (result.code === 200 || result.code === 0) {
       virtualUserList.value = result.data.list || result.data || []
       total.value = result.data.pagination?.total || virtualUserList.value.length
@@ -2683,14 +2841,14 @@ const openCreateModal = () => {
   isEdit.value = false
   currentUser.value = {
     id: '',
-    username: '',
-    nickname: '',
+    nickname: randomNickname(),
     avatar: '',
     role: 'default',
-    dialogueStyle: 'friendly',
+    dialogueStyle: '',
     status: 1,
     isOnline: 1
   }
+  randomStyles()
   showModal.value = true
 }
 
@@ -2702,64 +2860,48 @@ const editUser = (user) => {
     nickname: user.nickname,
     avatar: user.avatar || '',
     role: user.role || 'default',
-    dialogueStyle: user.dialogueStyle || 'friendly',
+    dialogueStyle: user.dialogueStyle || '',
     status: user.status,
     isOnline: user.isOnline
   }
+  selectedStyles.value = user.dialogueStyle ? String(user.dialogueStyle).split(',').filter(Boolean) : []
   showModal.value = true
 }
 
 const saveUser = async () => {
-  if (!currentUser.value.username || !currentUser.value.nickname) {
-    alert('请填写完整信息')
+  if (!currentUser.value.nickname) {
+    toast('请填写昵称')
     return
   }
 
+  // 同步多选风格到字段
+  currentUser.value.dialogueStyle = selectedStyles.value.join(',')
+
   try {
-    const url = isEdit.value 
-      ? `${getHost()}/api/admin/virtual-users/${currentUser.value.id}`
-      : `${getHost()}/api/admin/virtual-users`
-    const method = isEdit.value ? 'PUT' : 'POST'
+    const result = isEdit.value
+      ? await adminService.updateVirtualUser(currentUser.value.id, currentUser.value)
+      : await adminService.createVirtualUser(currentUser.value)
     
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify(currentUser.value)
-    })
-    
-    const result = await res.json()
     if (result.code === 200 || result.code === 0) {
-      alert('保存成功')
+      toast('保存成功')
       showModal.value = false
       loadVirtualUsers()
     } else {
-      alert(result.message || '保存失败')
+      toast(result.message || '保存失败')
     }
   } catch (err) {
     console.error('保存失败:', err)
-    alert('保存失败')
+    toast('保存失败')
   }
 }
 
 const toggleStatus = async (user) => {
   const newStatus = user.status === 1 ? 0 : 1
   try {
-    const res = await fetch(`${getHost()}/api/admin/virtual-users/${user.id}/status`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify({ status: newStatus })
-    })
-    
-    const result = await res.json()
+    const result = await adminService.toggleVirtualUserStatus(user.id, newStatus)
     if (result.code === 200 || result.code === 0) {
       user.status = newStatus
-      alert('状态更新成功')
+      toast('状态更新成功')
     }
   } catch (err) {
     console.error('更新状态失败:', err)
@@ -2767,39 +2909,29 @@ const toggleStatus = async (user) => {
 }
 
 const deleteUser = async (user) => {
-  if (!confirm(`确定要删除用户 ${user.nickname} 吗？`)) {
+  if (!(await confirm(`确定要删除用户 ${user.nickname} 吗？`)) {
     return
   }
   
   try {
-    const res = await fetch(`${getHost()}/api/admin/virtual-users/${user.id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    
-    const result = await res.json()
+    const result = await adminService.deleteVirtualUser(user.id)
     if (result.code === 200 || result.code === 0) {
-      alert('删除成功')
+      toast('删除成功')
       loadVirtualUsers()
     }
   } catch (err) {
     console.error('删除失败:', err)
-    alert('删除失败')
+    toast('删除失败')
   }
 }
 
 const loadGifts = async () => {
   try {
-    const params = new URLSearchParams()
-    params.append('page', page.value)
-    params.append('pageSize', pageSize.value)
-    if (searchKeyword.value) params.append('keyword', searchKeyword.value)
-    if (filterStatus.value !== '') params.append('status', filterStatus.value)
+    const params = {}
+    if (searchKeyword.value) params.keyword = searchKeyword.value
+    if (filterStatus.value !== '') params.status = filterStatus.value
 
-    const res = await fetch(`${getHost()}/api/admin/gifts?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminService.getGifts({ page: page.value, pageSize: pageSize.value, ...params })
     if (result.code === 200 || result.code === 0) {
       giftList.value = result.data.list || result.data || []
       total.value = result.data.pagination?.total || giftList.value.length
@@ -2845,55 +2977,35 @@ const editGift = (gift) => {
 
 const saveGift = async () => {
   if (!currentGift.value.title || !currentGift.value.image || currentGift.value.money === undefined) {
-    alert('请填写必填项（礼物名称、图片、价格）')
+    toast('请填写必填项（礼物名称、图片、价格）')
     return
   }
 
   try {
-    const url = isGiftEdit.value 
-      ? `${getHost()}/api/admin/gifts/${currentGift.value.id}`
-      : `${getHost()}/api/admin/gifts`
-    const method = isGiftEdit.value ? 'PUT' : 'POST'
+    const result = isGiftEdit.value
+      ? await adminService.updateGift(currentGift.value.id, currentGift.value)
+      : await adminService.createGift(currentGift.value)
     
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify(currentGift.value)
-    })
-    
-    const result = await res.json()
     if (result.code === 200 || result.code === 0) {
-      alert('保存成功')
+      toast('保存成功')
       showGiftModal.value = false
       loadGifts()
     } else {
-      alert(result.message || '保存失败')
+      toast(result.message || '保存失败')
     }
   } catch (err) {
     console.error('保存失败:', err)
-    alert('保存失败')
+    toast('保存失败')
   }
 }
 
 const toggleGiftStatus = async (gift) => {
   const newStatus = gift.status === 1 ? 0 : 1
   try {
-    const res = await fetch(`${getHost()}/api/admin/gifts/${gift.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify({ ...gift, status: newStatus })
-    })
-    
-    const result = await res.json()
+    const result = await adminService.updateGift(gift.id, { ...gift, status: newStatus })
     if (result.code === 200 || result.code === 0) {
       gift.status = newStatus
-      alert('状态更新成功')
+      toast('状态更新成功')
     }
   } catch (err) {
     console.error('更新状态失败:', err)
@@ -2901,38 +3013,26 @@ const toggleGiftStatus = async (gift) => {
 }
 
 const deleteGift = async (gift) => {
-  if (!confirm(`确定要删除礼物 ${gift.title} 吗？`)) {
+  if (!(await confirm(`确定要删除礼物 ${gift.title} 吗？`)) {
     return
   }
   
   try {
-    const res = await fetch(`${getHost()}/api/admin/gifts/${gift.id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    
-    const result = await res.json()
+    const result = await adminService.deleteGift(gift.id)
     if (result.code === 200 || result.code === 0) {
-      alert('删除成功')
+      toast('删除成功')
       loadGifts()
     }
   } catch (err) {
     console.error('删除失败:', err)
-    alert('删除失败')
+    toast('删除失败')
   }
 }
 
 const loadGiftLogs = async () => {
   try {
-    const params = new URLSearchParams()
-    params.append('page', page.value)
-    params.append('pageSize', pageSize.value)
-    if (searchKeyword.value) params.append('keyword', searchKeyword.value)
 
-    const res = await fetch(`${getHost()}/api/admin/gift-logs?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminService.getGiftLogs({ page: page.value, pageSize: pageSize.value, userId: searchKeyword.value || undefined })
     if (result.code === 200 || result.code === 0) {
       giftLogList.value = result.data.list || result.data || []
       total.value = result.data.pagination?.total || giftLogList.value.length
@@ -2943,7 +3043,7 @@ const loadGiftLogs = async () => {
 }
 
 const viewGiftLog = (log) => {
-  alert(`礼物记录详情：\nID: ${log.id}\n赠送用户: ${log.fromNickname || '用户' + log.fromUserId}\n接收用户: ${log.toNickname || '用户' + log.toUserId}\n礼物: ${log.giftName}\n数量: ${log.count}\n总金额: ${log.amount} 金币\n时间: ${formatTime(log.createTime)}`)
+  toast(`礼物记录详情：\nID: ${log.id}\n赠送用户: ${log.fromNickname || '用户' + log.fromUserId}\n接收用户: ${log.toNickname || '用户' + log.toUserId}\n礼物: ${log.giftName}\n数量: ${log.count}\n总金额: ${log.amount} 金币\n时间: ${formatTime(log.createTime)}`)
 }
 
 const getRoleName = (role) => {
@@ -2961,9 +3061,39 @@ const getStyleName = (style) => {
     friendly: '友好亲切',
     professional: '专业严谨',
     humorous: '幽默风趣',
-    cute: '可爱俏皮'
+    cute: '可爱俏皮',
+    warm: '温柔体贴',
+    passionate: '热情开朗',
+    mature: '成熟稳重',
+    lively: '活泼阳光',
+    elegant: '优雅大方',
+    cool: '高冷酷拽',
+    caring: '暖心关怀',
+    witty: '机智健谈',
+    calm: '沉稳内敛',
+    easygoing: '风趣随和',
+    intellectual: '知性优雅',
+    bold: '豪爽直率',
+    artistic: '文艺清新',
+    bossy: '霸道总裁',
+    brotherly: '邻家大哥',
+    sweetheart: '软萌甜心',
+    tsundere: '腹黑傲娇',
+    free: '潇洒不羁',
+    gentle: '温文尔雅',
+    sunny: '阳光开朗',
+    mysterious: '神秘莫测',
+    sincere: '真诚朴实',
+    chatty: '话痨社牛',
+    composed: '淡定从容',
+    kind: '热心肠',
+    sarcastic: '毒舌吐槽',
+    devoted: '痴情专一',
+    carefree: '洒脱自由',
   }
-  return styleMap[style] || '友好亲切'
+  if (!style) return ''
+  const arr = Array.isArray(style) ? style : String(style).split(',').filter(Boolean)
+  return arr.map(s => styleMap[s] || s).join('、')
 }
 
 const formatTime = (time) => {
@@ -3000,15 +3130,7 @@ const nextPage = () => {
 
 const loadPosts = async () => {
   try {
-    const params = new URLSearchParams()
-    params.append('page', page.value)
-    params.append('pageSize', pageSize.value)
-    if (searchKeyword.value) params.append('keyword', searchKeyword.value)
-
-    const res = await fetch(`${getHost()}/api/admin/posts?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminService.getPosts({ page: page.value, pageSize: pageSize.value, keyword: searchKeyword.value || undefined })
     if (result.code === 200 || result.code === 0) {
       postList.value = result.data.list || result.data || []
       total.value = result.data.pagination?.total || postList.value.length
@@ -3019,42 +3141,29 @@ const loadPosts = async () => {
 }
 
 const viewPost = (post) => {
-  alert(`查看帖子详情：\nID: ${post.id}\n用户: ${post.userId}\n内容: ${post.content?.substring(0, 50)}...`)
+  toast(`查看帖子详情：\nID: ${post.id}\n用户: ${post.userId}\n内容: ${post.content?.substring(0, 50)}...`)
 }
 
 const deletePost = async (post) => {
-  if (!confirm('确定要删除这条帖子吗？')) {
+  if (!(await confirm('确定要删除这条帖子吗？')) {
     return
   }
   
   try {
-    const res = await fetch(`${getHost()}/api/admin/posts/${post.id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    
-    const result = await res.json()
+    const result = await adminService.deletePost(post.id)
     if (result.code === 200 || result.code === 0) {
-      alert('删除成功')
+      toast('删除成功')
       loadPosts()
     }
   } catch (err) {
     console.error('删除失败:', err)
-    alert('删除失败')
+    toast('删除失败')
   }
 }
 
 const loadReports = async () => {
   try {
-    const params = new URLSearchParams()
-    params.append('page', page.value)
-    params.append('pageSize', pageSize.value)
-    if (filterStatus.value !== '') params.append('status', filterStatus.value)
-
-    const res = await fetch(`${getHost()}/api/admin/reports?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminService.getReports({ page: page.value, pageSize: pageSize.value, status: filterStatus.value || undefined })
     if (result.code === 200 || result.code === 0) {
       reportList.value = result.data.list || result.data || []
       total.value = result.data.pagination?.total || reportList.value.length
@@ -3065,23 +3174,14 @@ const loadReports = async () => {
 }
 
 const viewReport = (report) => {
-  alert(`查看举报详情：\nID: ${report.id}\n举报人: ${report.reporterName || '用户' + report.reporterId}\n类型: ${report.targetType}\n内容: ${report.targetContent?.substring(0, 50)}...\n原因: ${report.reason}`)
+  toast(`查看举报详情：\nID: ${report.id}\n举报人: ${report.reporterName || '用户' + report.reporterId}\n类型: ${report.targetType}\n内容: ${report.targetContent?.substring(0, 50)}...\n原因: ${report.reason}`)
 }
 
 const handleReport = async (report, status) => {
   try {
-    const res = await fetch(`${getHost()}/api/admin/reports/${report.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify({ status })
-    })
-    
-    const result = await res.json()
+    const result = await adminService.updateReportStatus(report.id, { status })
     if (result.code === 200 || result.code === 0) {
-      alert(status === 'resolved' ? '举报已处理' : '举报已驳回')
+      toast(status === 'resolved' ? '举报已处理' : '举报已驳回')
       loadReports()
     }
   } catch (err) {
@@ -3091,14 +3191,7 @@ const handleReport = async (report, status) => {
 
 const loadVipPackages = async () => {
   try {
-    const params = new URLSearchParams()
-    params.append('page', page.value)
-    params.append('pageSize', pageSize.value)
-
-    const res = await fetch(`${getHost()}/api/admin/vip-packages?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminService.getVipPackages({ page: page.value, pageSize: pageSize.value })
     if (result.code === 200 || result.code === 0) {
       vipPackageList.value = result.data.list || result.data || []
       total.value = result.data.pagination?.total || vipPackageList.value.length
@@ -3142,55 +3235,36 @@ const editVipPackage = (pkg) => {
 
 const saveVipPackage = async () => {
   if (!currentVipPackage.value.name || currentVipPackage.value.price === undefined || !currentVipPackage.value.duration) {
-    alert('请填写必填项（套餐名称、价格、时长）')
+    toast('请填写必填项（套餐名称、价格、时长）')
     return
   }
 
   try {
-    const url = isVipEdit.value 
-      ? `${getHost()}/api/admin/vip-packages/${currentVipPackage.value.id}`
-      : `${getHost()}/api/admin/vip-packages`
-    const method = isVipEdit.value ? 'PUT' : 'POST'
-    
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify(currentVipPackage.value)
-    })
-    
-    const result = await res.json()
+    const result = isVipEdit.value
+      ? await adminService.updateVipPackage(currentVipPackage.value.id, currentVipPackage.value)
+      : await adminService.createVipPackage(currentVipPackage.value)
     if (result.code === 200 || result.code === 0) {
-      alert('保存成功')
+      toast('保存成功')
       showVipModal.value = false
       loadVipPackages()
     } else {
-      alert(result.message || '保存失败')
+      toast(result.message || '保存失败')
     }
   } catch (err) {
     console.error('保存失败:', err)
-    alert('保存失败')
+    toast('保存失败')
   }
 }
 
 const toggleVipPackageStatus = async (pkg) => {
   const newStatus = pkg.status === 1 ? 0 : 1
   try {
-    const res = await fetch(`${getHost()}/api/admin/vip-packages/${pkg.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify({ ...pkg, status: newStatus })
-    })
+    const result = await adminService.updateVipPackageStatus(pkg.id, newStatus)
     
     const result = await res.json()
     if (result.code === 200 || result.code === 0) {
       pkg.status = newStatus
-      alert('状态更新成功')
+      toast('状态更新成功')
     }
   } catch (err) {
     console.error('更新状态失败:', err)
@@ -3198,39 +3272,28 @@ const toggleVipPackageStatus = async (pkg) => {
 }
 
 const deleteVipPackage = async (pkg) => {
-  if (!confirm(`确定要删除VIP套餐 ${pkg.name} 吗？`)) {
+  if (!(await confirm(`确定要删除VIP套餐 ${pkg.name} 吗？`)) {
     return
   }
   
   try {
-    const res = await fetch(`${getHost()}/api/admin/vip-packages/${pkg.id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
+    const result = await adminService.deleteVipPackage(pkg.id)
     
     const result = await res.json()
     if (result.code === 200 || result.code === 0) {
-      alert('删除成功')
+      toast('删除成功')
       loadVipPackages()
     }
   } catch (err) {
     console.error('删除失败:', err)
-    alert('删除失败')
+    toast('删除失败')
   }
 }
 
 const loadRecharges = async () => {
   try {
-    const params = new URLSearchParams()
-    params.append('page', page.value)
-    params.append('pageSize', pageSize.value)
-    if (searchKeyword.value) params.append('userId', searchKeyword.value)
-    if (filterStatus.value !== '') params.append('status', filterStatus.value)
 
-    const res = await fetch(`${getHost()}/api/admin/recharges?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminService.getRecharges({ page: page.value, pageSize: pageSize.value, userId: searchKeyword.value || undefined, status: filterStatus.value || undefined })
     if (result.code === 200 || result.code === 0) {
       rechargeList.value = result.data.list || result.data || []
       total.value = result.data.pagination?.total || rechargeList.value.length
@@ -3241,19 +3304,13 @@ const loadRecharges = async () => {
 }
 
 const viewRecharge = (recharge) => {
-  alert(`查看充值记录详情：\nID: ${recharge.id}\n订单号: ${recharge.orderNo}\n用户: ${recharge.userId}\n金额: ${recharge.amount} 金币\n支付方式: ${recharge.paymentMethod}\n状态: ${recharge.status}`)
+  toast(`查看充值记录详情：\nID: ${recharge.id}\n订单号: ${recharge.orderNo}\n用户: ${recharge.userId}\n金额: ${recharge.amount} 金币\n支付方式: ${recharge.paymentMethod}\n状态: ${recharge.status}`)
 }
 
 const loadGames = async () => {
   try {
-    const params = new URLSearchParams()
-    params.append('page', page.value)
-    params.append('pageSize', pageSize.value)
 
-    const res = await fetch(`${getHost()}/api/admin/games?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminService.getGames({ page: page.value, pageSize: pageSize.value })
     if (result.code === 200 || result.code === 0) {
       gameList.value = result.data.list || result.data || []
       total.value = result.data.pagination?.total || gameList.value.length
@@ -3291,55 +3348,34 @@ const editGame = (game) => {
 
 const saveGame = async () => {
   if (!currentGame.value.name) {
-    alert('请填写分类名称')
+    toast('请填写分类名称')
     return
   }
 
   try {
-    const url = isGameEdit.value 
-      ? `${getHost()}/api/admin/games/${currentGame.value.id}`
-      : `${getHost()}/api/admin/games`
-    const method = isGameEdit.value ? 'PUT' : 'POST'
-    
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify(currentGame.value)
-    })
-    
-    const result = await res.json()
+    const result = isGameEdit.value
+      ? await adminService.updateGame(currentGame.value.id, currentGame.value)
+      : await adminService.createGame(currentGame.value)
     if (result.code === 200 || result.code === 0) {
-      alert('保存成功')
+      toast('保存成功')
       showGameModal.value = false
       loadGames()
     } else {
-      alert(result.message || '保存失败')
+      toast(result.message || '保存失败')
     }
   } catch (err) {
     console.error('保存失败:', err)
-    alert('保存失败')
+    toast('保存失败')
   }
 }
 
 const toggleGameStatus = async (game) => {
   const newStatus = game.status === 1 ? 0 : 1
   try {
-    const res = await fetch(`${getHost()}/api/admin/games/${game.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify({ ...game, status: newStatus })
-    })
-    
-    const result = await res.json()
+    const result = await adminService.updateGame(game.id, { ...game, status: newStatus })
     if (result.code === 200 || result.code === 0) {
       game.status = newStatus
-      alert('状态更新成功')
+      toast('状态更新成功')
     }
   } catch (err) {
     console.error('更新状态失败:', err)
@@ -3347,38 +3383,26 @@ const toggleGameStatus = async (game) => {
 }
 
 const deleteGame = async (game) => {
-  if (!confirm(`确定要删除服务分类 ${game.name} 吗？`)) {
+  if (!(await confirm(`确定要删除服务分类 ${game.name} 吗？`)) {
     return
   }
   
   try {
-    const res = await fetch(`${getHost()}/api/admin/games/${game.id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    
-    const result = await res.json()
+    const result = await adminService.deleteGame(game.id)
     if (result.code === 200 || result.code === 0) {
-      alert('删除成功')
+      toast('删除成功')
       loadGames()
     }
   } catch (err) {
     console.error('删除失败:', err)
-    alert('删除失败')
+    toast('删除失败')
   }
 }
 
 const loadBanners = async () => {
   try {
-    const params = new URLSearchParams()
-    params.append('page', page.value)
-    params.append('pageSize', pageSize.value)
-    if (filterStatus.value !== '') params.append('status', filterStatus.value)
 
-    const res = await fetch(`${getHost()}/api/admin/banners?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminService.getBanners({ page: page.value, pageSize: pageSize.value, status: filterStatus.value || undefined })
     if (result.code === 200 || result.code === 0) {
       bannerList.value = result.data.list || result.data || []
       total.value = result.data.pagination?.total || bannerList.value.length
@@ -3416,55 +3440,34 @@ const editBanner = (banner) => {
 
 const saveBanner = async () => {
   if (!currentBanner.value.title || !currentBanner.value.image) {
-    alert('请填写标题和图片URL')
+    toast('请填写标题和图片URL')
     return
   }
 
   try {
-    const url = isBannerEdit.value 
-      ? `${getHost()}/api/admin/banners/${currentBanner.value.id}`
-      : `${getHost()}/api/admin/banners`
-    const method = isBannerEdit.value ? 'PUT' : 'POST'
-    
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify(currentBanner.value)
-    })
-    
-    const result = await res.json()
+    const result = isBannerEdit.value
+      ? await adminService.updateBanner(currentBanner.value.id, currentBanner.value)
+      : await adminService.createBanner(currentBanner.value)
     if (result.code === 200 || result.code === 0) {
-      alert('保存成功')
+      toast('保存成功')
       showBannerModal.value = false
       loadBanners()
     } else {
-      alert(result.message || '保存失败')
+      toast(result.message || '保存失败')
     }
   } catch (err) {
     console.error('保存失败:', err)
-    alert('保存失败')
+    toast('保存失败')
   }
 }
 
 const toggleBannerStatus = async (banner) => {
   const newStatus = banner.status === 1 ? 0 : 1
   try {
-    const res = await fetch(`${getHost()}/api/admin/banners/${banner.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify({ ...banner, status: newStatus })
-    })
-    
-    const result = await res.json()
+    const result = await adminService.updateBanner(banner.id, { ...banner, status: newStatus })
     if (result.code === 200 || result.code === 0) {
       banner.status = newStatus
-      alert('状态更新成功')
+      toast('状态更新成功')
     }
   } catch (err) {
     console.error('更新状态失败:', err)
@@ -3472,38 +3475,26 @@ const toggleBannerStatus = async (banner) => {
 }
 
 const deleteBanner = async (banner) => {
-  if (!confirm(`确定要删除Banner ${banner.title}吗？`)) {
+  if (!(await confirm(`确定要删除Banner ${banner.title}吗？`)) {
     return
   }
   
   try {
-    const res = await fetch(`${getHost()}/api/admin/banners/${banner.id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    
-    const result = await res.json()
+    const result = await adminService.deleteBanner(banner.id)
     if (result.code === 200 || result.code === 0) {
-      alert('删除成功')
+      toast('删除成功')
       loadBanners()
     }
   } catch (err) {
     console.error('删除失败:', err)
-    alert('删除失败')
+    toast('删除失败')
   }
 }
 
 const loadApplications = async () => {
   try {
-    const params = new URLSearchParams()
-    params.append('page', page.value)
-    params.append('pageSize', pageSize.value)
-    if (filterStatus.value !== '') params.append('status', filterStatus.value)
 
-    const res = await fetch(`${getHost()}/api/admin/companion-applications?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminService.getCompanionApplications({ page: page.value, pageSize: pageSize.value, status: filterStatus.value || undefined })
     if (result.code === 200 || result.code === 0) {
       applicationList.value = result.data.list || result.data || []
       total.value = result.data.pagination?.total || applicationList.value.length
@@ -3514,19 +3505,14 @@ const loadApplications = async () => {
 }
 
 const viewApplication = (app) => {
-  alert(`查看服务申请详情：\nID: ${app.id}\n用户: ${app.userId}\n服务类型: ${app.gameName || '游戏陪玩'}\n申请时间: ${formatTime(app.createTime)}\n状态: ${app.status}`)
+  toast(`查看服务申请详情：\nID: ${app.id}\n用户: ${app.userId}\n服务类型: ${app.gameName || '游戏陪玩'}\n申请时间: ${formatTime(app.createTime)}\n状态: ${app.status}`)
 }
 
 const approveApplication = async (app) => {
   try {
-    const res = await fetch(`${getHost()}/api/admin/companion-applications/${app.id}/approve`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    
-    const result = await res.json()
+    const result = await adminService.approveCompanionApplication(app.id)
     if (result.code === 200 || result.code === 0) {
-      alert('申请已通过')
+      toast('申请已通过')
       loadApplications()
     }
   } catch (err) {
@@ -3536,14 +3522,9 @@ const approveApplication = async (app) => {
 
 const rejectApplication = async (app) => {
   try {
-    const res = await fetch(`${getHost()}/api/admin/companion-applications/${app.id}/reject`, {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    
-    const result = await res.json()
+    const result = await adminService.rejectCompanionApplication(app.id)
     if (result.code === 200 || result.code === 0) {
-      alert('申请已拒绝')
+      toast('申请已拒绝')
       loadApplications()
     }
   } catch (err) {
@@ -3553,10 +3534,7 @@ const rejectApplication = async (app) => {
 
 const loadSettings = async () => {
   try {
-    const res = await fetch(`${getHost()}/api/admin/settings`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminService.getSystemSettings()
     if (result.code === 200 || result.code === 0) {
       systemSettings.value = { ...systemSettings.value, ...result.data }
     }
@@ -3567,24 +3545,15 @@ const loadSettings = async () => {
 
 const saveSettings = async () => {
   try {
-    const res = await fetch(`${getHost()}/api/admin/settings`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify(systemSettings.value)
-    })
-    
-    const result = await res.json()
+    const result = await adminService.updateSystemSettings(systemSettings.value)
     if (result.code === 200 || result.code === 0) {
-      alert('设置保存成功')
+      toast('设置保存成功')
     } else {
-      alert(result.message || '保存失败')
+      toast(result.message || '保存失败')
     }
   } catch (err) {
     console.error('保存设置失败:', err)
-    alert('保存失败')
+    toast('保存失败')
   }
 }
 
@@ -3653,16 +3622,8 @@ const loadCurrentPageData = async () => {
 
 const loadAdmins = async () => {
   try {
-    const params = new URLSearchParams()
-    params.append('page', page.value)
-    params.append('pageSize', pageSize.value)
-    if (searchKeyword.value) params.append('keyword', searchKeyword.value)
-    if (filterStatus.value !== '') params.append('status', filterStatus.value)
 
-    const res = await fetch(`${getHost()}/api/admin-manage/admins?${params.toString()}`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminManageService.getAdmins({ page: page.value, pageSize: pageSize.value, keyword: searchKeyword.value || undefined, status: filterStatus.value || undefined })
     if (result.code === 200 || result.code === 0) {
       adminList.value = result.data.list || []
       total.value = result.data.pagination?.total || adminList.value.length
@@ -3714,62 +3675,45 @@ const editAdmin = async (admin) => {
 
 const saveAdmin = async () => {
   try {
-    const url = isAdminEdit.value 
-      ? `${getHost()}/api/admin-manage/admins/${currentAdmin.value.id}` 
-      : `${getHost()}/api/admin-manage/admins`
-    const method = isAdminEdit.value ? 'PUT' : 'POST'
-    
     const data = { ...currentAdmin.value }
     if (!isAdminEdit.value && !data.password) {
-      alert('请输入密码')
+      toast('请输入密码')
       return
     }
     if (isAdminEdit.value) {
       delete data.password
     }
 
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify(data)
-    })
-    
-    const result = await res.json()
+    const result = isAdminEdit.value
+      ? await adminManageService.updateAdmin(currentAdmin.value.id, data)
+      : await adminManageService.createAdmin(data)
     if (result.code === 200 || result.code === 0) {
-      alert(isAdminEdit.value ? '更新成功' : '创建成功')
+      toast(isAdminEdit.value ? '更新成功' : '创建成功')
       showAdminModal.value = false
       loadAdmins()
     } else {
-      alert(result.message || '操作失败')
+      toast(result.message || '操作失败')
     }
   } catch (err) {
     console.error('保存管理员失败:', err)
-    alert('保存失败')
+    toast('保存失败')
   }
 }
 
 const deleteAdmin = async (admin) => {
-  if (!confirm(`确定要删除管理员 ${admin.username} 吗？`)) {
+  if (!(await confirm(`确定要删除管理员 ${admin.username} 吗？`)) {
     return
   }
   
   try {
-    const res = await fetch(`${getHost()}/api/admin-manage/admins/${admin.id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    
-    const result = await res.json()
+    const result = await adminManageService.deleteAdmin(admin.id)
     if (result.code === 200 || result.code === 0) {
-      alert('删除成功')
+      toast('删除成功')
       loadAdmins()
     }
   } catch (err) {
     console.error('删除失败:', err)
-    alert('删除失败')
+    toast('删除失败')
   }
 }
 
@@ -3806,39 +3750,27 @@ const openPasswordModal = (admin) => {
 
 const updatePassword = async () => {
   if (!passwordForm.value.newPassword) {
-    alert('请输入新密码')
+    toast('请输入新密码')
     return
   }
 
   try {
-    const res = await fetch(`${getHost()}/api/admin-manage/admins/${passwordAdminId.value}/password`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify(passwordForm.value)
-    })
-    
-    const result = await res.json()
+    const result = await adminManageService.updateAdminPassword(passwordAdminId.value, passwordForm.value)
     if (result.code === 200 || result.code === 0) {
-      alert('密码修改成功')
+      toast('密码修改成功')
       showPasswordModal.value = false
     } else {
-      alert(result.message || '修改失败')
+      toast(result.message || '修改失败')
     }
   } catch (err) {
     console.error('修改密码失败:', err)
-    alert('修改失败')
+    toast('修改失败')
   }
 }
 
 const loadRoles = async () => {
   try {
-    const res = await fetch(`${getHost()}/api/admin-manage/roles`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminManageService.getRoles()
     if (result.code === 200 || result.code === 0) {
       roleList.value = result.data || []
     }
@@ -3849,10 +3781,7 @@ const loadRoles = async () => {
 
 const loadPermissions = async () => {
   try {
-    const res = await fetch(`${getHost()}/api/admin-manage/permissions`, {
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
-    const result = await res.json()
+    const result = await adminManageService.getPermissions()
     if (result.code === 200 || result.code === 0) {
       allPermissions.value = result.data || []
     }
@@ -3880,7 +3809,7 @@ const openCreateRoleModal = async () => {
 
 const editRole = async (role) => {
   if (role.is_super) {
-    alert('超级管理员角色不可编辑')
+    toast('超级管理员角色不可编辑')
     return
   }
   isRoleEdit.value = true
@@ -3902,57 +3831,42 @@ const editRole = async (role) => {
 const saveRole = async () => {
   try {
     if (!currentRole.value.name) {
-      alert('请输入角色名称')
+      toast('请输入角色名称')
       return
     }
     
-    const url = isRoleEdit.value 
-      ? `${getHost()}/api/admin-manage/roles/${currentRole.value.id}` 
-      : `${getHost()}/api/admin-manage/roles`
-    const method = isRoleEdit.value ? 'PUT' : 'POST'
-
-    const res = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token.value}`
-      },
-      body: JSON.stringify(currentRole.value)
-    })
-    
-    const result = await res.json()
+    const result = isRoleEdit.value
+      ? await adminManageService.updateRole(currentRole.value.id, currentRole.value)
+      : await adminManageService.createRole(currentRole.value)
     if (result.code === 200 || result.code === 0) {
-      alert(isRoleEdit.value ? '更新成功' : '创建成功')
+      toast(isRoleEdit.value ? '更新成功' : '创建成功')
       showRoleModal.value = false
       loadRoles()
     } else {
-      alert(result.message || '操作失败')
+      toast(result.message || '操作失败')
     }
   } catch (err) {
     console.error('保存角色失败:', err)
-    alert('保存失败')
+    toast('保存失败')
   }
 }
 
 const deleteRole = async (role) => {
-  if (!confirm(`确定要删除角色 ${role.name} 吗？`)) {
+  if (!(await confirm(`确定要删除角色 ${role.name} 吗？`)) {
     return
   }
   
   try {
-    const res = await fetch(`${getHost()}/api/admin-manage/roles/${role.id}`, {
-      method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${token.value}` }
-    })
+    const result = await adminManageService.deleteRole(role.id)
     
     const result = await res.json()
     if (result.code === 200 || result.code === 0) {
-      alert('删除成功')
+      toast('删除成功')
       loadRoles()
     }
   } catch (err) {
     console.error('删除失败:', err)
-    alert('删除失败')
+    toast('删除失败')
   }
 }
 
@@ -4450,15 +4364,17 @@ onMounted(async () => {
   bottom: 0;
   background: rgba(0,0,0,0.5);
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding-top: 40px;
+  padding-left: 240px;
   z-index: 1000;
 }
 
 .modal-content {
   background: white;
-  width: 90%;
-  max-width: 500px;
+  width: calc(100vw - 280px);
+  max-width: none !important;
   border-radius: 8px;
 }
 
@@ -4518,6 +4434,163 @@ onMounted(async () => {
   display: block;
   margin-bottom: 5px;
   font-weight: 500;
+}
+
+.tag-limit {
+  font-weight: 400;
+  font-size: 12px;
+  color: #999;
+}
+
+.style-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.style-tag {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 1px solid #d9d9d9;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+  background: #fafafa;
+  color: #666;
+}
+
+.style-tag:hover {
+  border-color: #1890ff;
+  color: #1890ff;
+}
+
+.style-tag.active {
+  background: #1890ff;
+  color: #fff;
+  border-color: #1890ff;
+}
+
+.hint {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #ff9800;
+}
+
+.input-with-random {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.input-with-random .form-input {
+  flex: 1;
+}
+
+.random-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.random-btn:hover {
+  border-color: #1890ff;
+  background: #e6f7ff;
+  transform: rotate(15deg);
+}
+
+.batch-btn {
+  background: #52c41a !important;
+  border-color: #52c41a !important;
+}
+.batch-btn:hover {
+  background: #73d13d !important;
+}
+
+.batch-modal .modal-content {
+  max-height: 90vh;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+}
+.form-row .form-group {
+  flex: 1;
+}
+
+.batch-preview {
+  margin-top: 16px;
+}
+.batch-preview > label {
+  display: block;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.batch-list {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  padding: 4px;
+}
+
+.batch-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.batch-item:nth-child(even) {
+  background: #fafafa;
+}
+
+.batch-index {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #1890ff;
+  color: #fff;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.batch-name {
+  font-weight: 600;
+  min-width: 80px;
+  color: #333;
+}
+
+.batch-styles {
+  color: #888;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.batch-progress {
+  font-size: 13px;
+  color: #1890ff;
+  margin-right: auto;
 }
 
 .form-input,

@@ -9,7 +9,8 @@ const getPhotos = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取相册错误:', error);
-    response.error(res, error.message);
+    logger.error('操作失败:', error);
+    response.error(res, '操作失败');
   }
 };
 
@@ -24,7 +25,9 @@ const uploadPhoto = async (req, res) => {
     response.success(res, result, '上传成功');
   } catch (error) {
     logger.error('上传照片错误:', error);
-    response.badRequest(res, error.message);
+    logger.error('请求参数错误:', error);
+    logger.error('请求参数错误:', error);
+    response.badRequest(res, '请求参数错误');
   }
 };
 
@@ -40,7 +43,8 @@ const deletePhoto = async (req, res) => {
     response.success(res, {}, '删除成功');
   } catch (error) {
     logger.error('删除照片错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 
@@ -56,7 +60,8 @@ const likePhoto = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('点赞照片错误:', error);
-    response.unprocessableEntity(res, error.message);
+    logger.error('参数验证失败:', error);
+    response.unprocessableEntity(res, '参数验证失败');
   }
 };
 

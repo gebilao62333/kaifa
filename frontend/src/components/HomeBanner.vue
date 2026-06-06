@@ -94,7 +94,9 @@ onUnmounted(() => {
 
 <style scoped>
 .banner-section {
-  margin: 10px 12px 0;
+  margin: 10px 0 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .banner-swiper {
@@ -155,7 +157,7 @@ onUnmounted(() => {
 /* PC端Banner优化 */
 @media (min-width: 768px) {
   .banner-section {
-    margin: 12px 12px 0;
+    margin: 12px 0 0;
   }
   
   .banner-swiper {

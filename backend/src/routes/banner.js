@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+const response = require('../utils/response');
+const logger = require('../utils/logger');
 
 const mockBanners = [
   {
@@ -62,11 +64,8 @@ router.get('/list', (req, res) => {
       }
     });
   } catch (error) {
-    console.error('获取Banner列表失败:', error);
-    res.status(500).json({
-      code: 500,
-      message: '服务器错误'
-    });
+    logger.error('获取Banner列表失败:', error);
+    response.error(res, '服务器错误');
   }
 });
 
@@ -76,10 +75,7 @@ router.get('/:id', (req, res) => {
     const banner = mockBanners.find(b => b.id === parseInt(id));
     
     if (!banner) {
-      return res.status(404).json({
-        code: 404,
-        message: 'Banner不存在'
-      });
+      return response.notFound(res, 'Banner不存在');
     }
     
     res.json({
@@ -88,11 +84,8 @@ router.get('/:id', (req, res) => {
       data: banner
     });
   } catch (error) {
-    console.error('获取Banner详情失败:', error);
-    res.status(500).json({
-      code: 500,
-      message: '服务器错误'
-    });
+    logger.error('获取Banner详情失败:', error);
+    response.error(res, '服务器错误');
   }
 });
 
@@ -119,11 +112,8 @@ router.post('/', (req, res) => {
       data: newBanner
     });
   } catch (error) {
-    console.error('创建Banner失败:', error);
-    res.status(500).json({
-      code: 500,
-      message: '服务器错误'
-    });
+    logger.error('创建Banner失败:', error);
+    response.error(res, '服务器错误');
   }
 });
 
@@ -135,10 +125,7 @@ router.put('/:id', (req, res) => {
     const banner = mockBanners.find(b => b.id === parseInt(id));
     
     if (!banner) {
-      return res.status(404).json({
-        code: 404,
-        message: 'Banner不存在'
-      });
+      return response.notFound(res, 'Banner不存在');
     }
     
     if (title !== undefined) banner.title = title;
@@ -154,11 +141,8 @@ router.put('/:id', (req, res) => {
       data: banner
     });
   } catch (error) {
-    console.error('更新Banner失败:', error);
-    res.status(500).json({
-      code: 500,
-      message: '服务器错误'
-    });
+    logger.error('更新Banner失败:', error);
+    response.error(res, '服务器错误');
   }
 });
 
@@ -168,10 +152,7 @@ router.delete('/:id', (req, res) => {
     const index = mockBanners.findIndex(b => b.id === parseInt(id));
     
     if (index === -1) {
-      return res.status(404).json({
-        code: 404,
-        message: 'Banner不存在'
-      });
+      return response.notFound(res, 'Banner不存在');
     }
     
     mockBanners.splice(index, 1);
@@ -181,11 +162,8 @@ router.delete('/:id', (req, res) => {
       message: '删除成功'
     });
   } catch (error) {
-    console.error('删除Banner失败:', error);
-    res.status(500).json({
-      code: 500,
-      message: '服务器错误'
-    });
+    logger.error('删除Banner失败:', error);
+    response.error(res, '服务器错误');
   }
 });
 
@@ -197,10 +175,7 @@ router.put('/:id/status', (req, res) => {
     const banner = mockBanners.find(b => b.id === parseInt(id));
     
     if (!banner) {
-      return res.status(404).json({
-        code: 404,
-        message: 'Banner不存在'
-      });
+      return response.notFound(res, 'Banner不存在');
     }
     
     banner.status = status;
@@ -211,11 +186,8 @@ router.put('/:id/status', (req, res) => {
       data: banner
     });
   } catch (error) {
-    console.error('更新Banner状态失败:', error);
-    res.status(500).json({
-      code: 500,
-      message: '服务器错误'
-    });
+    logger.error('更新Banner状态失败:', error);
+    response.error(res, '服务器错误');
   }
 });
 

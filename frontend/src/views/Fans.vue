@@ -88,9 +88,9 @@ const goBack = () => {
 const toggleFollow = (user) => {
   user.isFollow = !user.isFollow
   if (user.isFollow) {
-    alert(`已关注 ${user.name}`)
+    toast.success(`已关注 ${user.name}`);
   } else {
-    alert(`已取消关注 ${user.name}`)
+    toast.info(`已取消关注 ${user.name}`);
   }
 }
 

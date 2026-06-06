@@ -188,7 +188,7 @@ const selectCategory = (idx) => {
 
 const goCompanionDetail = (item) => {
   console.log('陪玩师详情:', item.id)
-  alert('陪玩师详情功能开发中...')
+  toast.info('陪玩师详情功能开发中...');
 }
 
 const followCompanion = (item) => {

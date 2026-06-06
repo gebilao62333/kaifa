@@ -47,6 +47,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { host } from '../../common/config';
+import { toast } from '../../composables/useToast';
 
 const form = reactive({
   username: '',
@@ -55,7 +56,7 @@ const form = reactive({
 
 const loading = ref(false);
 const error = ref('');
-const showInitBtn = ref(false);
+const initMsg = ref('');
 
 const getHost = () => host || '';
 
@@ -106,13 +107,13 @@ const handleInit = async () => {
     const data = await response.json();
     
     if (data.code === 200) {
-      alert('初始化成功！\n用户名：admin\n密码：admin123');
-      showInitBtn.value = false;
+      initMsg.value = '';
+      toast('初始化成功！\n用户名：admin\n密码：admin123');
     } else {
-      alert(data.message || '初始化失败');
+      toast(data.message || '初始化失败', 'error');
     }
   } catch (err) {
-    alert('网络错误，请稍后重试');
+    toast('网络错误，请稍后重试', 'error');
   }
 };
 
@@ -126,40 +127,41 @@ onMounted(() => {
 
 <style scoped>
 .admin-login {
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
+  position: fixed;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 20px;
-  -webkit-overflow-scrolling: touch;
-  overflow-x: hidden;
+  z-index: 200;
 }
 
 .login-container {
-  background: var(--bg-primary);
-  border-radius: 12px;
-  padding: 40px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 48px 40px;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.25);
 }
 
 .login-header {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 32px;
 }
 
 .login-header h1 {
-  font-size: 28px;
-  color: var(--text-primary);
+  font-size: 24px;
+  color: #1a1a2e;
   margin: 0 0 8px 0;
+  font-weight: 700;
 }
 
 .login-header p {
-  color: var(--text-secondary);
+  color: #909399;
   margin: 0;
+  font-size: 14px;
 }
 
 .login-form {
@@ -171,44 +173,52 @@ onMounted(() => {
 .form-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .form-group label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  color: var(--text-primary);
+  color: #303133;
 }
 
 .form-input {
   padding: 12px 16px;
-  border: 1px solid var(--border-color);
+  border: 1px solid #dcdfe6;
   border-radius: 8px;
   font-size: 14px;
-  transition: border-color 0.3s;
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: #f7f8fa;
+  color: #303133;
+  outline: none;
 }
 
 .form-input:focus {
-  outline: none;
-  border-color: var(--primary-color);
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background: #fff;
+}
+
+.form-input::placeholder {
+  color: #c0c4cc;
 }
 
 .login-btn {
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
   border: none;
   padding: 14px;
   border-radius: 8px;
-  font-size: 16px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.3s;
+  transition: opacity 0.2s, transform 0.2s;
+  margin-top: 4px;
 }
 
 .login-btn:hover:not(:disabled) {
-  opacity: 0.9;
+  opacity: 0.92;
+  transform: translateY(-1px);
 }
 
 .login-btn:disabled {
@@ -217,34 +227,38 @@ onMounted(() => {
 }
 
 .error-message {
-  color: var(--danger-color);
+  color: #f56c6c;
   font-size: 13px;
   text-align: center;
-  margin-top: -10px;
+  margin-top: -8px;
+  background: #fef0f0;
+  padding: 8px 12px;
+  border-radius: 6px;
 }
 
 .login-footer {
-  margin-top: 24px;
+  margin-top: 28px;
   text-align: center;
   padding-top: 20px;
-  border-top: 1px solid var(--border-light);
+  border-top: 1px solid #ebeef5;
 }
 
 .login-footer p {
   font-size: 12px;
-  color: var(--text-muted);
+  color: #909399;
   margin: 4px 0;
 }
 
 .init-hint {
   margin-top: 12px !important;
-  color: var(--primary-color) !important;
+  color: #667eea !important;
   cursor: pointer;
-  text-decoration: underline;
-  transition: color 0.3s;
+  text-decoration: none;
+  font-size: 13px !important;
+  transition: color 0.2s;
 }
 
 .init-hint:hover {
-  color: var(--primary-light) !important;
+  color: #764ba2 !important;
 }
 </style>

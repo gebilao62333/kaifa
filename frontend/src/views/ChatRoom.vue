@@ -302,6 +302,27 @@ import GiftList from '../components/gift-list/gift-list.vue';
 import RedPacketPanel from '../components/RedPacketPanel.vue';
 import { formatTimeHMS } from '../common/common';
 import { toast } from '../composables/useToast';
+
+// 简单 confirm 弹窗
+const showConfirm = (message) => {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div')
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:99998;display:flex;align-items:flex-end;justify-content:center;animation:fadeIn 0.2s ease;'
+    overlay.innerHTML = `<div style="background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:500px;box-shadow:0 -4px 20px rgba(0,0,0,0.15);animation:slideUp 0.25s ease;">
+      <div style="padding:28px 24px 20px;font-size:16px;color:#333;text-align:center;line-height:1.6;">${message}</div>
+      <div style="display:flex;border-top:1px solid #f0f0f0;">
+        <button id="_cfm_c" style="flex:1;padding:16px;background:none;border:none;border-right:1px solid #f0f0f0;font-size:16px;color:#999;cursor:pointer;">取消</button>
+        <button id="_cfm_o" style="flex:1;padding:16px;background:none;border:none;font-size:16px;color:#FF6B81;font-weight:600;cursor:pointer;">确认</button>
+      </div></div>`
+    const cleanup = () => { overlay.remove() }
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) { resolve(false); cleanup() } })
+    document.body.appendChild(overlay)
+    overlay.querySelector('#_cfm_c').onclick = () => { resolve(false); cleanup() }
+    overlay.querySelector('#_cfm_o').onclick = () => { resolve(true); cleanup() }
+    const onEsc = (e) => { if (e.key === 'Escape') { resolve(false); cleanup(); document.removeEventListener('keydown', onEsc) } }
+    document.addEventListener('keydown', onEsc)
+  })
+}
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
@@ -362,12 +383,12 @@ const selectedMessage = ref(null);
 const contextMenuStyle = ref({});
 const forwardSearch = ref('');
 const forwardFriends = ref([
-  { id: 2, nickName: '游戏达人', avatar: 'https://picsum.photos/100/100?random=1', isOnline: true },
-  { id: 3, nickName: '小猫咪', avatar: 'https://picsum.photos/100/100?random=2', isOnline: true },
-  { id: 4, nickName: '电竞王者', avatar: 'https://picsum.photos/100/100?random=3', isOnline: false },
-  { id: 5, nickName: '午夜战神', avatar: 'https://picsum.photos/100/100?random=4', isOnline: true },
-  { id: 6, nickName: '小甜心', avatar: 'https://picsum.photos/100/100?random=5', isOnline: false },
-  { id: 7, nickName: '技术流', avatar: 'https://picsum.photos/100/100?random=6', isOnline: true },
+  { id: 2, nickName: '游戏达人', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=friend2', isOnline: true },
+  { id: 3, nickName: '小猫咪', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=friend3', isOnline: true },
+  { id: 4, nickName: '电竞王者', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=friend4', isOnline: false },
+  { id: 5, nickName: '午夜战神', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=friend5', isOnline: true },
+  { id: 6, nickName: '小甜心', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=friend6', isOnline: false },
+  { id: 7, nickName: '技术流', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=friend7', isOnline: true },
 ]);
 const typing = ref(false);
 const playingAudioId = ref(null);
@@ -482,9 +503,9 @@ const goUserProfile = () => {
  showMoreMenu.value = false;
  router.push(`/user/${userInfo.value.userId}`);
 };
-const blockUser = () => {
- if (confirm(`确定要拉黑 ${userInfo.value.nickName} 吗？`)) {
- alert('已拉黑该用户');
+const blockUser = async () => {
+ if (await showConfirm(`确定要拉黑 ${userInfo.value.nickName} 吗？`)) {
+ toast.show('已拉黑该用户');
  showMoreMenu.value = false;
  router.back();
  }
@@ -691,7 +712,7 @@ const selectVideo = () => {
           isOwn: true,
           type: 'video',
           content: videoUrl,
-          thumbnail: `https://picsum.photos/200/150?random=${msgId}`,
+          thumbnail: `https://api.dicebear.com/7.x/bottts/svg?seed=video${msgId}`,
           duration: '00:15',
           showTime: messages.value.length === 0 ||
             (Date.now() - messages.value[messages.value.length - 1].createTime) > 300000,
@@ -752,21 +773,21 @@ const onCityChange = () => {
 const useCurrentLocation = () => {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition((position) => {
-      alert('已获取当前位置');
+      toast.success('已获取当前位置');
       selectedProvince.value = '440000';
       onProvinceChange();
       selectedCity.value = '440300';
       onCityChange();
     }, () => {
-      alert('无法获取位置，请手动选择');
+      toast.warning('无法获取位置，请手动选择');
     });
   } else {
-    alert('您的浏览器不支持定位');
+    toast.warning('您的浏览器不支持定位');
   }
 };
 const sendLocation = () => {
   if (!selectedProvince.value || !selectedCity.value) {
-    alert('请选择完整地址');
+    toast.warning('请选择完整地址');
     return;
   }
   const provinceName = provinces.value.find(p => p.code === selectedProvince.value)?.name || '';
@@ -858,7 +879,7 @@ const makeCall = () => {
   const saved = localStorage.getItem('callSettings')
   const callSettings = saved ? JSON.parse(saved) : { voice: true, voicePrice: 0 }
   if (!callSettings.voice) {
-    alert('对方已关闭语音通话功能')
+    toast.warning('对方已关闭语音通话功能')
     showAdd.value = false
     return
   }
@@ -869,7 +890,7 @@ const makeVideoCall = () => {
   const saved = localStorage.getItem('callSettings')
   const callSettings = saved ? JSON.parse(saved) : { video: true, videoPrice: 0 }
   if (!callSettings.video) {
-    alert('对方已关闭视频通话功能')
+    toast.warning('对方已关闭视频通话功能')
     showAdd.value = false
     return
   }
@@ -891,8 +912,8 @@ const showMessageMenu = (msg, event) => {
  };
  showMessageContextMenu.value = true;
 };
-const revokeMessage = (msg) => {
- if (confirm('确定要撤回这条消息吗？')) {
+const revokeMessage = async (msg) => {
+ if (await showConfirm('确定要撤回这条消息吗？')) {
  chatService.revokeMessage(msg.id);
  const index = messages.value.findIndex(m => m.id === msg.id);
  if (index > -1) {
@@ -905,7 +926,7 @@ const revokeMessage = (msg) => {
 const copyMessage = (msg) => {
  if (msg.type === 'text') {
  navigator.clipboard.writeText(msg.content).then(() => {
- alert('已复制');
+    toast.success('已复制');
  });
  }
  showMessageContextMenu.value = false;
@@ -929,7 +950,7 @@ const confirmForward = (friend) => {
  selectedMessage.value.content,
  getMessageTypeCode(selectedMessage.value.type)
  ).then(() => {
- alert(`已转发给 ${friend.nickName}`);
+    toast.success(`已转发给 ${friend.nickName}`);
  });
  }
  showForwardPanel.value = false;

@@ -22,7 +22,8 @@ const Card = sequelize.define('xn_card', {
   },
   coin_amount: {
     type: DataTypes.INTEGER,
-    allowNull: false
+    allowNull: false,
+    defaultValue: 0
   },
   status: {
     type: DataTypes.TINYINT(1),
@@ -43,13 +44,35 @@ const Card = sequelize.define('xn_card', {
   create_time: {
     type: DataTypes.INTEGER(10),
     defaultValue: 0
+  },
+  category: {
+    type: DataTypes.STRING(50),
+    defaultValue: '',
+    comment: '分类：vip/newbie/activity/general'
+  },
+  tag: {
+    type: DataTypes.STRING(100),
+    defaultValue: '',
+    comment: '标签，逗号分隔'
+  },
+  batch_no: {
+    type: DataTypes.STRING(64),
+    defaultValue: '',
+    comment: '批次号'
+  },
+  remark: {
+    type: DataTypes.STRING(255),
+    defaultValue: '',
+    comment: '备注'
   }
 }, {
   tableName: 'xn_card',
   timestamps: false,
   indexes: [
     { fields: ['card_no'], unique: true },
-    { fields: ['status'] }
+    { fields: ['status'] },
+    { fields: ['category'] },
+    { fields: ['batch_no'] }
   ]
 });
 

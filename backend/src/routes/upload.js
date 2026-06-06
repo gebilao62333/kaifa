@@ -7,5 +7,6 @@ const upload = require('../config/upload');
 router.post('/image', authMiddleware, uploadLimiter, upload.single('image'), uploadController.uploadImage);
 router.post('/audio', authMiddleware, uploadLimiter, upload.single('audio'), uploadController.uploadAudio);
 router.post('/video', authMiddleware, uploadLimiter, upload.single('video'), uploadController.uploadVideo);
+router.get('/token', authMiddleware, uploadController.getUploadToken);
 
 module.exports = router;
