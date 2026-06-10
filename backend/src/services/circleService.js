@@ -176,6 +176,11 @@ const unlockPost = async (userId, postId, unlockType, password) => {
       by: post.private_price,
       where: { id: post.user_id }
     });
+    
+    await User.increment('gift_money', {
+      by: post.private_price,
+      where: { id: post.user_id }
+    });
   }
   
   await PostUnlock.create({

@@ -183,6 +183,7 @@ const goTo = (path) => {
   width: 100%;
   max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .header-left,
@@ -401,7 +402,7 @@ const goTo = (path) => {
 }
 
 @media (min-width: 768px) {
-  .team-index-page {
+  .team-index {
     max-width: 650px;
     margin: 0 auto;
   }
@@ -412,7 +413,7 @@ const goTo = (path) => {
   }
 }
 @media (min-width: 1024px) {
-  .team-index-page {
+  .team-index {
     max-width: 720px;
   }
   .header {

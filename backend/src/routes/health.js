@@ -1,15 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const response = require('../utils/response');
 
 router.get('/health', (req, res) => {
-  res.json({
-    code: 200,
-    message: 'OK',
-    data: {
-      status: 'healthy',
-      timestamp: Date.now()
-    }
-  });
+  response.success(res, {
+    status: 'healthy',
+    timestamp: Date.now()
+  }, 'OK');
 });
 
 module.exports = router;

@@ -6,14 +6,14 @@ const projectService = {
     const { status, page = 1, pageSize = 20 } = params
     const data = { page, pageSize }
     if (status !== undefined) data.status = status
-    return request('/api/project/list', 'GET', data)
+    return request('/api/project', 'GET', data)
   },
 
   async getProjectDetail(projectId) {
     validateParams({ projectId }, {
       projectId: { required: true, label: '项目ID', type: 'number' }
     })
-    return request(`/api/project/detail?projectId=${projectId}`, 'GET')
+    return request(`/api/project/${projectId}`, 'GET')
   },
 
   async createProject(params) {
@@ -24,28 +24,28 @@ const projectService = {
       price: { required: true, label: '项目价格', type: 'number' },
       duration: { required: true, label: '服务时长', type: 'number' }
     })
-    return request('/api/project/create', 'POST', params)
+    return request('/api/project', 'POST', params)
   },
 
   async updateProject(projectId, params) {
     validateParams({ projectId }, {
       projectId: { required: true, label: '项目ID', type: 'number' }
     })
-    return request('/api/project/update', 'POST', { projectId, ...params })
+    return request(`/api/project/${projectId}`, 'PUT', params)
   },
 
   async deleteProject(projectId) {
     validateParams({ projectId }, {
       projectId: { required: true, label: '项目ID', type: 'number' }
     })
-    return request('/api/project/delete', 'POST', { projectId })
+    return request(`/api/project/${projectId}`, 'DELETE')
   },
 
   async toggleProjectStatus(projectId) {
     validateParams({ projectId }, {
       projectId: { required: true, label: '项目ID', type: 'number' }
     })
-    return request('/api/project/toggle-status', 'POST', { projectId })
+    return request(`/api/project/${projectId}/toggle-status`, 'POST', { projectId })
   },
 
   async getProjectOrders(projectId, params = {}) {
@@ -53,7 +53,7 @@ const projectService = {
       projectId: { required: true, label: '项目ID', type: 'number' }
     })
     const { status, page = 1, pageSize = 20 } = params
-    return request('/api/project/orders', 'GET', { projectId, status, page, pageSize })
+    return request(`/api/project/${projectId}/orders`, 'GET', { status, page, pageSize })
   },
 
   async getProjectStats() {

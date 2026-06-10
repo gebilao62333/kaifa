@@ -1,97 +1,64 @@
-const { Sequelize } = require('sequelize');
+/**
+ * 数据库配置 - 支持真实 MySQL / 本地数据源模式
+ *
+ * - USE_MOCK_DB=false → 连接真实 MySQL 数据库
+ * - USE_MOCK_DB=true / 未设置 → 使用 LocalSequelize（内存+JSON 持久化）
+ */
+
 const config = require('./index');
-const path = require('path');
 
 let sequelize;
 
-const retryConnection = async (fn, retries = 3, delay = 2000) => {
+if (config.useMockDb) {
+  // === 本地数据源模式 ===
+  const { LocalSequelize } = require('./localDb');
+  console.log('📦 使用本地数据源模式（数据持久化到 JSON 文件）');
+
+  sequelize = new LocalSequelize();
+} else {
+  // === 真实 MySQL 模式 ===
+  const { Sequelize } = require('sequelize');
+  const dbConfig = config.db.mysql;
+
+  console.log(`🗄️ 连接 MySQL: ${dbConfig.host}:${dbConfig.port}/${dbConfig.name}`);
+
+  sequelize = new Sequelize(dbConfig.name, dbConfig.user, dbConfig.password, {
+    host: dbConfig.host,
+    port: dbConfig.port,
+    dialect: 'mysql',
+    dialectModule: require('mysql2'),
+    charset: dbConfig.charset,
+    pool: dbConfig.pool,
+    retry: dbConfig.retry,
+    logging: config.nodeEnv === 'development' ? (msg) => console.log('  SQL:', msg) : false,
+    timezone: '+08:00',
+    define: {
+      charset: dbConfig.charset,
+      collate: dbConfig.charset + '_unicode_ci',
+      timestamps: true,
+      underscored: false
+    }
+  });
+}
+
+// 添加 authenticateWithRetry 兼容方法
+sequelize.authenticateWithRetry = async (retries = 3, delay = 2000) => {
   for (let i = 0; i < retries; i++) {
     try {
-      return await fn();
-    } catch (error) {
-      console.warn(`数据库连接失败 (${i + 1}/${retries}):`, error.message);
+      await sequelize.authenticate();
+      const mode = config.useMockDb ? '本地数据源' : 'MySQL';
+      console.log(`✅ ${mode} 连接成功`);
+      return Promise.resolve();
+    } catch (e) {
       if (i < retries - 1) {
-        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
+        console.warn(`⚠️ 数据库连接失败 (${i + 1}/${retries})，${delay / 1000}s 后重试:`, e.message);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      } else {
+        console.error('❌ 数据库连接失败（已耗尽重试次数）:', e.message);
+        throw e;
       }
     }
   }
-  throw new Error('数据库连接重试次数已用完');
 };
-
-if (config.useMockDb) {
-  console.log('📦 使用 Mock 数据库模式');
-  sequelize = {
-    authenticate: async () => {
-      console.log('✅ Mock 数据库认证成功');
-      return Promise.resolve();
-    },
-    sync: async () => {
-      console.log('✅ Mock 数据库同步成功');
-      return Promise.resolve();
-    },
-    define: () => ({ sync: async () => {} })
-  };
-} else if (config.db.type === 'sqlite') {
-  console.log('📦 使用 SQLite 数据库模式');
-  const dbPath = path.resolve(__dirname, '../..', config.db.sqlite.path);
-  
-  sequelize = new Sequelize({
-    dialect: 'sqlite',
-    storage: dbPath,
-    logging: config.nodeEnv === 'development' ? (msg) => console.log(`[SQL] ${msg}`) : false,
-    define: {
-      timestamps: false,
-      underscored: true,
-      freezeTableName: true
-    }
-  });
-
-  sequelize.authenticateWithRetry = async () => {
-    return retryConnection(() => sequelize.authenticate());
-  };
-} else {
-  sequelize = new Sequelize(
-    config.db.mysql.name,
-    config.db.mysql.user,
-    config.db.mysql.password,
-    {
-      host: config.db.mysql.host,
-      port: config.db.mysql.port,
-      dialect: 'mysql',
-      charset: config.db.mysql.charset,
-      logging: config.nodeEnv === 'development' ? (msg) => console.log(`[SQL] ${msg}`) : false,
-      pool: {
-        ...config.db.mysql.pool,
-        validateConnection: (conn) => {
-          return conn.state === 'authenticated';
-        }
-      },
-      define: {
-        timestamps: false,
-        underscored: true,
-        freezeTableName: true,
-        charset: 'utf8mb4',
-        collate: 'utf8mb4_unicode_ci'
-      },
-      retry: {
-        match: [
-          /ETIMEDOUT/,
-          /EHOSTUNREACH/,
-          /ECONNRESET/,
-          /ECONNREFUSED/,
-          /ETIMEDOUT/,
-          /ESOCKETTIMEDOUT/
-        ],
-        max: 5
-      },
-      queryTimeout: 30000,
-      benchmark: config.nodeEnv === 'development'
-    }
-  );
-
-  sequelize.authenticateWithRetry = async () => {
-    return retryConnection(() => sequelize.authenticate());
-  };
-}
 
 module.exports = sequelize;

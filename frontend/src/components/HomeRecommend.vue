@@ -367,7 +367,7 @@ defineEmits(['load-more', 'user-click'])
   align-items: center;
   gap: 2px;
   font-size: 11px;
-  color: #999;
+  color: var(--text-muted);
   margin-bottom: 0;
 }
 

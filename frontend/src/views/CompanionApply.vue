@@ -27,20 +27,20 @@
       <div class="selection-text">请阅读协议后再选择服务</div>
       <div class="agreement-container">
         <div class="agreement-item">
-          <input type="checkbox" class="agreement-checkbox" v-model="currentAgreement.agreeRegister" :id="activeTab + '-register-agreement'" />
+          <input type="checkbox" class="agreement-checkbox" :checked="currentAgreement.agreeRegister" :id="activeTab + '-register-agreement'" @change="handleAgreementChange('agreeRegister', $event.target.checked)" />
           <label :for="activeTab + '-register-agreement'" class="agreement-label">
             同意
             <span class="agreement-link">用户注册协议</span>
           </label>
         </div>
         <div class="agreement-item">
-          <input type="checkbox" class="agreement-checkbox" v-model="currentAgreement.agreePrivacy" :id="activeTab + '-privacy-agreement'" />
+          <input type="checkbox" class="agreement-checkbox" :checked="currentAgreement.agreePrivacy" :id="activeTab + '-privacy-agreement'" @change="handleAgreementChange('agreePrivacy', $event.target.checked)" />
           <label :for="activeTab + '-privacy-agreement'" class="agreement-label">
             <span class="agreement-link">隐私保护政策</span>
           </label>
         </div>
         <div class="agreement-item">
-          <input type="checkbox" class="agreement-checkbox" v-model="currentAgreement.agreeMinor" :id="activeTab + '-minor-agreement'" />
+          <input type="checkbox" class="agreement-checkbox" :checked="currentAgreement.agreeMinor" :id="activeTab + '-minor-agreement'" @change="handleAgreementChange('agreeMinor', $event.target.checked)" />
           <label :for="activeTab + '-minor-agreement'" class="agreement-label">
             <span class="agreement-link">未成年人保护</span>
           </label>
@@ -49,9 +49,29 @@
     </div>
 
     <div class="service-content" v-show="activeTab === 'online'">
-      <OnlineCompanion v-model="selectedOnlineIds" @change="onOnlineServicesChange" :class="{ 'disabled-content': !isAgreementAccepted }" />
+      <div class="service-section" :class="{ 'disabled-content': !isAgreementAccepted }">
+        <div class="section-title">选择游戏</div>
+        <div class="service-grid">
+          <div
+            class="service-card"
+            v-for="game in onlineGames"
+            :key="game.id"
+            :class="{ 'service-card-active': selectedOnlineIds.includes(game.id) }"
+            @click="toggleOnlineSelect(game)"
+          >
+            <div class="service-icon-wrap" :style="{ background: game.bgColor }">
+              <span class="service-icon">{{ game.icon }}</span>
+            </div>
+            <span class="service-name">{{ game.name }}</span>
+            <div v-if="selectedOnlineIds.includes(game.id)" class="selected-check">✓</div>
+          </div>
+        </div>
+        <div class="selection-hint" v-if="selectedOnlineIds.length > 0">
+          已选择 {{ selectedOnlineIds.length }} 项游戏
+        </div>
+      </div>
       <div class="agreement-overlay" v-if="!isAgreementAccepted"></div>
-      <div class="offline-actions" v-if="selectedOnlineIds.length > 0 && isAgreementAccepted">
+      <div class="bottom-actions" v-if="selectedOnlineIds.length > 0 && isAgreementAccepted">
         <button class="confirm-btn" @click="openOnlineApplyModal">
           申请认证 (已选 {{ selectedOnlineIds.length }} 项)
         </button>
@@ -59,9 +79,29 @@
     </div>
 
     <div class="service-content" v-show="activeTab === 'offline'">
-      <OfflineCompanion v-model="selectedOfflineIds" @change="onOfflineServicesChange" :class="{ 'disabled-content': !isAgreementAccepted }" />
+      <div class="service-section" :class="{ 'disabled-content': !isAgreementAccepted }">
+        <div class="section-title">选择服务</div>
+        <div class="service-grid">
+          <div
+            class="service-card"
+            v-for="item in offlineServices"
+            :key="item.id"
+            :class="{ 'service-card-active': selectedOfflineIds.includes(item.id) }"
+            @click="toggleOfflineSelect(item)"
+          >
+            <div class="service-icon-wrap" :style="{ background: item.bgColor }">
+              <span class="service-icon">{{ item.icon }}</span>
+            </div>
+            <span class="service-name">{{ item.name }}</span>
+            <div v-if="selectedOfflineIds.includes(item.id)" class="selected-check">✓</div>
+          </div>
+        </div>
+        <div class="selection-hint" v-if="selectedOfflineIds.length > 0">
+          已选择 {{ selectedOfflineIds.length }} 项服务
+        </div>
+      </div>
       <div class="agreement-overlay" v-if="!isAgreementAccepted"></div>
-      <div class="offline-actions" v-if="selectedOfflineIds.length > 0 && isAgreementAccepted">
+      <div class="bottom-actions" v-if="selectedOfflineIds.length > 0 && isAgreementAccepted">
         <button class="confirm-btn" @click="openOfflineApplyModal">
           申请认证 (已选 {{ selectedOfflineIds.length }} 项)
         </button>
@@ -103,14 +143,65 @@
     </div>
 
     <div class="modal-overlay" v-if="showCityPicker || showLevelPicker || showSkillPicker || showZonePicker || showPositionPicker || showTypePicker" @click="closeAllPickers">
-      <div class="modal-content picker-modal" @click.stop>
-        <div class="modal-header">
+      <div :class="['modal-content', 'picker-modal', { 'region-picker': currentPicker === 'city' }]" @click.stop>
+        <!-- 城市选择器：步骤式头部 -->
+        <div v-if="currentPicker === 'city'" class="modal-header region-header">
+          <span v-if="regionStep === 'province'" class="modal-close" @click="closeAllPickers">✕</span>
+          <span v-else class="modal-back" @click="goBackRegionStep">← 返回</span>
+          <span class="modal-title">
+            {{ regionStep === 'province' ? '选择省份' : regionStep === 'city' ? '选择城市' : '选择区县' }}
+          </span>
+          <span class="modal-path-badge" v-if="tempProvince && regionStep !== 'province'">{{ tempProvince }}</span>
+        </div>
+        <!-- 其他选择器：默认头部 -->
+        <div v-else class="modal-header">
           <span class="modal-close" @click="closeAllPickers">✕</span>
           <span class="modal-title">{{ pickerTitle }}</span>
           <span style="width: 30px;"></span>
         </div>
         <div class="modal-body picker-body">
-          <div class="picker-list">
+          <!-- 城市选择：步骤式单列 -->
+          <div v-if="currentPicker === 'city'" class="region-step-body">
+            <!-- 步骤1：省份 -->
+            <div v-if="regionStep === 'province'" class="region-step-list">
+              <div 
+                v-for="province in regionData" 
+                :key="province.code" 
+                class="region-step-item"
+                @click="selectCityProvince(province)"
+              >
+                <span class="region-step-name">{{ province.name }}</span>
+                <span class="region-step-arrow">›</span>
+              </div>
+            </div>
+            <!-- 步骤2：城市 -->
+            <div v-if="regionStep === 'city'" class="region-step-list">
+              <div 
+                v-for="city in currentProvince?.cities" 
+                :key="city.code" 
+                class="region-step-item"
+                @click="selectCityCity(city)"
+              >
+                <span class="region-step-name">{{ city.name }}</span>
+                <span class="region-step-arrow" v-if="city.districts?.length">›</span>
+                <span class="region-step-check" v-else>✓</span>
+              </div>
+            </div>
+            <!-- 步骤3：区县 -->
+            <div v-if="regionStep === 'district'" class="region-step-list">
+              <div 
+                v-for="district in currentCity?.districts" 
+                :key="district.code" 
+                class="region-step-item"
+                @click="selectCityDistrict(district)"
+              >
+                <span class="region-step-name">{{ district.name }}</span>
+                <span class="region-step-check">✓</span>
+              </div>
+            </div>
+          </div>
+          <!-- 其他选择：平面列表 -->
+          <div v-else class="picker-list">
             <div 
               v-for="item in pickerOptions" 
               :key="item.value" 
@@ -233,13 +324,17 @@
 
 <script setup>
 import { ref, computed, onUnmounted } from 'vue'
-import OnlineCompanion from './OnlineCompanion.vue'
-import OfflineCompanion from './OfflineCompanion.vue'
 import OnlineApplyForm from './OnlineApplyForm.vue'
 import OfflineApplyForm from './OfflineApplyForm.vue'
 import { usePermissions } from '../composables/usePermissions'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
+import { regionData } from '../common/regionData'
+import { useRouter } from 'vue-router'
+import { useLoginManager } from '../composables/useLoginManager'
+
+const router = useRouter()
+const { requireLogin } = useLoginManager()
 
 const { 
   requestMicrophonePermission,
@@ -257,6 +352,56 @@ const selectedOfflineIds = ref([])
 const selectedOfflineServices = ref([])
 const selectedOnlineIds = ref([])
 const selectedOnlineServices = ref([])
+
+const onlineGames = [
+  { id: 1, name: '王者荣耀', icon: '🎮', price: 50, tags: ['打野', 'Carry'], bgColor: 'linear-gradient(135deg, #FF6B81 0%, #E64C65 100%)' },
+  { id: 2, name: '和平精英', icon: '🔫', price: 45, tags: ['钢枪', '战术'], bgColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' },
+  { id: 3, name: '英雄联盟', icon: '⚔️', price: 55, tags: ['中单', '上分'], bgColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
+  { id: 4, name: '永劫无间', icon: '🗡️', price: 48, tags: ['太刀', '振刀'], bgColor: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' },
+  { id: 5, name: '原神', icon: '✨', price: 40, tags: ['代肝', '深渊'], bgColor: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' },
+  { id: 6, name: 'CS2', icon: '🎯', price: 60, tags: ['突破', 'AWP'], bgColor: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)' }
+]
+
+const offlineActivities = [
+  { id: 201, name: '逛街购物', icon: '🛍️', price: 150, desc: '陪同逛街购物', bgColor: 'linear-gradient(135deg, #FF6B81 0%, #E64C65 100%)' },
+  { id: 202, name: '看电影', icon: '🎬', price: 200, desc: '陪同观看电影', bgColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
+  { id: 203, name: '美食探店', icon: '🍽️', price: 180, desc: '陪同品尝美食', bgColor: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' },
+  { id: 204, name: '密室逃脱', icon: '🔐', price: 160, desc: '组队密室挑战', bgColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }
+]
+
+const sportsActivities = [
+  { id: 301, name: '运动健身', icon: '💪', price: 120, desc: '陪同健身指导', bgColor: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' },
+  { id: 302, name: '羽毛球', icon: '🏸', price: 100, desc: '双人羽毛球对打', bgColor: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)' },
+  { id: 303, name: '跑步陪练', icon: '🏃', price: 80, desc: '户外跑步陪伴', bgColor: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)' },
+  { id: 304, name: '篮球', icon: '🏀', price: 150, desc: '组队篮球比赛', bgColor: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' }
+]
+
+const offlineServices = computed(() => {
+  return [...offlineActivities, ...sportsActivities]
+})
+
+const toggleOnlineSelect = (game) => {
+  const index = selectedOnlineIds.value.indexOf(game.id)
+  if (index === -1) {
+    selectedOnlineIds.value.push(game.id)
+    selectedOnlineServices.value.push(game)
+  } else {
+    selectedOnlineIds.value.splice(index, 1)
+    selectedOnlineServices.value.splice(index, 1)
+  }
+}
+
+const toggleOfflineSelect = (item) => {
+  const index = selectedOfflineIds.value.indexOf(item.id)
+  if (index === -1) {
+    selectedOfflineIds.value.push(item.id)
+    selectedOfflineServices.value.push(item)
+  } else {
+    selectedOfflineIds.value.splice(index, 1)
+    selectedOfflineServices.value.splice(index, 1)
+  }
+}
+
 const showToast = ref(false)
 const toastMessage = ref('')
 const showPermissionGuide = ref(false)
@@ -280,6 +425,15 @@ const offlineAgreement = ref({
 const currentAgreement = computed(() => {
   return activeTab.value === 'online' ? onlineAgreement.value : offlineAgreement.value
 })
+
+// 处理协议复选框变更（写入对应的 ref）
+const handleAgreementChange = (field, checked) => {
+  if (activeTab.value === 'online') {
+    onlineAgreement.value[field] = checked
+  } else {
+    offlineAgreement.value[field] = checked
+  }
+}
 
 // 检查当前协议是否全部勾选
 const isAgreementAccepted = computed(() => {
@@ -317,16 +471,13 @@ const showTypePicker = ref(false)
 
 const currentPicker = ref('')
 
-const cityOptions = [
-  { value: 'beijing', label: '北京市' },
-  { value: 'shanghai', label: '上海市' },
-  { value: 'guangzhou', label: '广州市' },
-  { value: 'shenzhen', label: '深圳市' },
-  { value: 'chengdu', label: '成都市' },
-  { value: 'hangzhou', label: '杭州市' },
-  { value: 'wuhan', label: '武汉市' },
-  { value: 'xian', label: '西安市' }
-]
+// 级联区域选择器状态
+const regionStep = ref('province')
+const tempProvince = ref('')
+const tempCity = ref('')
+const tempDistrict = ref('')
+const currentProvince = ref(null)
+const currentCity = ref(null)
 
 const levelOptions = [
   { value: 'beginner', label: '新手' },
@@ -388,7 +539,6 @@ const pickerTitle = computed(() => {
 
 const pickerOptions = computed(() => {
   const options = {
-    city: cityOptions,
     level: levelOptions,
     skill: skillOptions,
     zone: zoneOptions,
@@ -415,6 +565,48 @@ const selectPickerItem = (item) => {
   closeAllPickers()
 }
 
+// 级联区域选择：选择省份
+const selectCityProvince = (province) => {
+  tempProvince.value = province.name
+  tempCity.value = ''
+  tempDistrict.value = ''
+  currentProvince.value = province
+  regionStep.value = 'city'
+}
+
+// 级联区域选择：选择城市
+const selectCityCity = (city) => {
+  tempCity.value = city.name
+  tempDistrict.value = ''
+  currentCity.value = city
+  if (city.districts && city.districts.length > 0) {
+    regionStep.value = 'district'
+  } else {
+    // 没有区县则直接返回
+    formData.value.city = tempProvince.value + '-' + tempCity.value
+    closeAllPickers()
+  }
+}
+
+// 级联区域选择：选择区县
+const selectCityDistrict = (district) => {
+  tempDistrict.value = district.name
+  formData.value.city = tempProvince.value + '-' + tempCity.value + '-' + tempDistrict.value
+  closeAllPickers()
+}
+
+// 级联选择器返回上一步
+const goBackRegionStep = () => {
+  if (regionStep.value === 'district') {
+    regionStep.value = 'city'
+    tempDistrict.value = ''
+  } else if (regionStep.value === 'city') {
+    regionStep.value = 'province'
+    tempCity.value = ''
+    currentProvince.value = null
+  }
+}
+
 const closeAllPickers = () => {
   showCityPicker.value = false
   showLevelPicker.value = false
@@ -423,10 +615,17 @@ const closeAllPickers = () => {
   showPositionPicker.value = false
   showTypePicker.value = false
   currentPicker.value = ''
+  // 重置级联选择器状态
+  regionStep.value = 'province'
+  tempProvince.value = ''
+  tempCity.value = ''
+  tempDistrict.value = ''
+  currentProvince.value = null
+  currentCity.value = null
 }
 
 const submitForm = async () => {
-  if (!userStore.isLogin) { toast.warning('请先登录'); router.push('/login'); return }
+  if (!userStore.isLogin) { try { await requireLogin() } catch { return } }
 
   if (!currentAgreement.value.agreeRegister || !currentAgreement.value.agreePrivacy || !currentAgreement.value.agreeMinor) {
     showToastMsg('请先同意所有协议')
@@ -728,7 +927,7 @@ onUnmounted(() => {
   min-height: -webkit-fill-available;
   background: var(--bg-secondary);
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px) + 60px);
-  padding-top: 82px;
+  padding-top: 70px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -897,7 +1096,7 @@ onUnmounted(() => {
   border-radius: 16px;
 }
 
-.offline-actions {
+.bottom-actions {
   position: fixed;
   bottom: 60px;
   left: 0;
@@ -911,7 +1110,7 @@ onUnmounted(() => {
 }
 
 @media (min-width: 768px) {
-  .offline-actions {
+  .bottom-actions {
     max-width: 650px;
     left: 50%;
     transform: translateX(-50%);
@@ -919,7 +1118,7 @@ onUnmounted(() => {
 }
 
 @media (min-width: 1024px) {
-  .offline-actions {
+  .bottom-actions {
     max-width: 720px;
   }
 }
@@ -998,7 +1197,22 @@ onUnmounted(() => {
 }
 
 .picker-modal {
-  max-height: 60vh;
+  max-height: 65vh;
+  max-width: 520px;
+  width: 92%;
+}
+
+/* 城市级联选择器模式加宽 */
+.picker-modal.region-picker {
+  max-width: 600px;
+  width: 95%;
+}
+
+.apply-modal {
+  width: 100%;
+  max-width: none;
+  max-height: 90vh;
+  border-radius: 16px;
 }
 
 .picker-body {
@@ -1024,6 +1238,68 @@ onUnmounted(() => {
 .picker-item.active {
   background: rgba(255, 107, 129, 0.1);
   color: var(--primary-color);
+}
+
+/* 级联区域选择器 - 步骤式单列 */
+.region-step-body {
+  max-height: 55vh;
+  min-height: 280px;
+  overflow: hidden;
+}
+
+.region-step-list {
+  overflow-y: auto;
+  max-height: 55vh;
+  -webkit-overflow-scrolling: touch;
+}
+
+.region-step-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-light);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.region-step-item:active {
+  background: var(--bg-secondary);
+}
+
+.region-step-name {
+  font-size: 16px;
+  color: var(--text-primary);
+}
+
+.region-step-arrow {
+  font-size: 20px;
+  color: var(--text-muted);
+}
+
+.region-step-check {
+  font-size: 16px;
+  color: var(--primary-color);
+}
+
+.region-header {
+  background: var(--bg-primary);
+}
+
+.modal-back {
+  font-size: 15px;
+  color: var(--primary-color);
+  cursor: pointer;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.modal-path-badge {
+  font-size: 11px;
+  color: var(--primary-color);
+  background: rgba(255, 107, 129, 0.1);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 .toast-overlay {
@@ -1141,11 +1417,92 @@ onUnmounted(() => {
   margin-bottom: 20px;
 }
 
+/* 服务网格 - 九宫格布局 */
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.service-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.service-card:active {
+  transform: scale(0.95);
+}
+
+.service-card-active {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(255, 107, 129, 0.2);
+  background: linear-gradient(135deg, rgba(255, 107, 129, 0.05), rgba(230, 76, 101, 0.02));
+}
+
+.service-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.service-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.service-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.selected-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(255, 107, 129, 0.4);
+}
+
+.selection-hint {
+  font-size: 13px;
+  color: var(--primary-color);
+  text-align: center;
+  margin-top: 12px;
+  font-weight: 500;
+}
+
 .section-title {
   font-size: 14px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .tags-wrap {
@@ -1409,12 +1766,18 @@ onUnmounted(() => {
     left: 50%;
     transform: translateX(-50%);
   }
+  .apply-modal {
+    max-width: 650px;
+  }
 }
 @media (min-width: 1024px) {
   .companion-apply-page {
     max-width: 720px;
   }
   .header {
+    max-width: 720px;
+  }
+  .apply-modal {
     max-width: 720px;
   }
 }

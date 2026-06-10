@@ -35,6 +35,13 @@ const response = {
       message
     });
   },
+
+  tooManyRequests: (res, message = '请求过于频繁') => {
+    return res.status(429).json({
+      code: 429,
+      message
+    });
+  },
   
   notFound: (res, message = '资源不存在') => {
     return res.status(404).json({

@@ -298,10 +298,12 @@ import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
 import gamesService from '../services/gamesService'
 import { formatTimeMs, formatTimeHMS } from '../common/common'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const { requireLogin } = useLoginManager()
 const activeTab = ref('all')
 
 const goBack = () => {
@@ -485,9 +487,11 @@ const endService = (item) => {
 
 const contactCompanion = async (item) => {
   if (!userStore.isLogin) {
-    toast.warning('请先登录')
-    router.push('/login')
-    return
+    try {
+      await requireLogin()
+    } catch {
+      return
+    }
   }
   const targetId = item.companionUserId
   if (!targetId) {
@@ -528,7 +532,7 @@ const submitRating = () => {
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-  padding-top: 82px;
+  padding-top: 70px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -547,6 +551,7 @@ const submitRating = () => {
   width: 100%;
   max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .back-btn {
@@ -613,7 +618,6 @@ const submitRating = () => {
   margin-bottom: 16px;
   cursor: pointer;
   width: 100%;
-  box-sizing: border-box;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
@@ -940,7 +944,6 @@ const submitRating = () => {
   border-radius: 12px;
   font-size: 14px;
   resize: none;
-  box-sizing: border-box;
   background: var(--bg-primary);
   color: var(--text-primary);
 }
@@ -1411,7 +1414,6 @@ const submitRating = () => {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  box-sizing: border-box;
 }
 
 .detail-price-info {

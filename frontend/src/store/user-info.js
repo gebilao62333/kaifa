@@ -143,17 +143,35 @@ export const useUserStore = defineStore('user', {
     async sendSms(phone, type = 'login') {
       try {
         const result = await authService.sendSms(phone, type)
-        return { success: result.code === 200, message: result.message }
+        return {
+          success: result.code === 200,
+          message: result.message,
+          code: result.code === 200 ? result.data?.code : null
+        }
       } catch (error) {
         console.error('发送短信失败:', error)
         return { success: false, message: error.message || '发送失败' }
       }
     },
 
-    async register(phone, password, code) {
+    async checkSmsConfig() {
+      try {
+        const result = await authService.checkSmsConfig()
+        return {
+          success: result.code === 200,
+          smsConfigured: result.data?.smsConfigured || false,
+          thirdPartyLoginEnabled: result.data?.thirdPartyLoginEnabled !== false
+        }
+      } catch (error) {
+        console.error('检查短信配置失败:', error)
+        return { success: false, smsConfigured: false, thirdPartyLoginEnabled: true }
+      }
+    },
+
+    async register(phone, password, code, inviteCode) {
       try {
         this.loading = true
-        const result = await authService.register(phone, password, code)
+        const result = await authService.register(phone, password, code, inviteCode)
         
         if (result.code === 200 && result.data) {
           const { token, userInfo } = result.data

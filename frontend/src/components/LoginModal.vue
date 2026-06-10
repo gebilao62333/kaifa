@@ -59,7 +59,7 @@
                     <span class="checkmark"></span>
                     记住我
                   </label>
-                  <span class="form-link" @click="showForgotPassword = true">忘记密码?</span>
+                  <span class="form-link" @click="emit('navigate', '/login')">忘记密码?</span>
                 </div>
               </div>
 
@@ -87,11 +87,15 @@
                     />
                     <button 
                       class="code-btn" 
-                      :disabled="countdown > 0 || !formData.phone"
+                      :disabled="codeCountdown > 0 || !formData.phone"
                       @click="sendCode"
                     >
-                      {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
+                      {{ codeCountdown > 0 ? `${codeCountdown}s` : '获取验证码' }}
                     </button>
+                  </div>
+                  <div v-if="devCode" class="dev-code-notification">
+                    <span class="dev-code-icon">🔑</span>
+                    <span class="dev-code-text">您的验证码：<strong>{{ devCode }}</strong></span>
                   </div>
                 </div>
               </div>
@@ -129,10 +133,39 @@
               {{ isLoading ? '登录中...' : '登 录' }}
             </button>
 
-            <!-- 注册链接 -->
-            <div class="login-footer">
-              <span>还没有账号?</span>
-              <span class="footer-link" @click="handleRegister">立即注册</span>
+            <!-- 注册表单 -->
+            <div v-if="showRegisterModal" class="register-section">
+              <form class="login-form" @submit.prevent="handleRegister">
+                <div class="form-group">
+                  <label class="form-label">手机号</label>
+                  <input v-model="regPhone" type="tel" class="form-input" placeholder="请输入手机号" maxlength="11" />
+                </div>
+                <div class="form-group code-group">
+                  <label class="form-label">验证码</label>
+                  <div class="code-input-wrapper">
+                    <input v-model="regCode" type="text" class="form-input code-input" placeholder="请输入验证码" maxlength="6" />
+                    <button type="button" class="register-code-btn" :disabled="codeSending || isCodeCooldown || !regPhone" @click="sendRegisterCode">
+                      {{ codeSending || isCodeCooldown ? `${codeCountdown}s` : '获取验证码' }}
+                    </button>
+                  </div>
+                  <div v-if="devCode" class="dev-code-notification">
+                    <span class="dev-code-icon">🔑</span>
+                    <span class="dev-code-text">您的验证码：<strong>{{ devCode }}</strong></span>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">邀请码</label>
+                  <input v-model="regInviteCode" type="text" class="form-input" placeholder="请输入邀请码（必填）" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label">设置密码</label>
+                  <input v-model="regPwd" type="password" class="form-input" placeholder="请设置6-16位密码" />
+                </div>
+                <button type="submit" class="login-submit-btn" :disabled="codeSending">注册</button>
+              </form>
+              <div class="login-footer">
+                <span class="footer-link" @click="showRegisterModal = false">返回登录</span>
+              </div>
             </div>
           </div>
         </div>
@@ -143,6 +176,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
 
@@ -165,15 +199,24 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'login-success'])
+const emit = defineEmits(['close', 'login-success', 'navigate'])
 
+const router = useRouter()
 const userStore = useUserStore()
 
 const activeTab = ref('password')
 const rememberMe = ref(false)
-const countdown = ref(0)
 const isLoading = ref(false)
-const showForgotPassword = ref(false)
+const devCode = ref('')
+const codeSending = ref(false)
+const codeCountdown = ref(0)
+const isCodeCooldown = computed(() => codeCountdown.value > 0)
+const regPhone = ref('')
+const regCode = ref('')
+const regPwd = ref('')
+const regInviteCode = ref('')
+const showRegisterModal = ref(false)
+const thirdPartyEnabled = ref(true)
 
 const formData = ref({
   username: '',
@@ -182,11 +225,15 @@ const formData = ref({
   code: ''
 })
 
-const tabs = [
+const allTabs = [
   { key: 'password', label: '账号密码' },
   { key: 'mobile', label: '手机验证码' },
   { key: 'third', label: '第三方登录' }
 ]
+
+const tabs = computed(() => {
+  return allTabs.filter(t => t.key !== 'third' || thirdPartyEnabled.value)
+})
 
 const canSubmit = computed(() => {
   if (activeTab.value === 'password') {
@@ -197,13 +244,24 @@ const canSubmit = computed(() => {
   return false
 })
 
-watch(() => props.visible, (val) => {
+watch(() => props.visible, async (val) => {
   if (val) {
     formData.value = {
       username: rememberMe.value ? localStorage.getItem('rememberedUsername') || '' : '',
       password: '',
       phone: '',
       code: ''
+    }
+    // 获取系统配置（第三方登录开关等）
+    try {
+      const configResult = await userStore.checkSmsConfig()
+      thirdPartyEnabled.value = configResult.thirdPartyLoginEnabled !== false
+    } catch {
+      thirdPartyEnabled.value = true
+    }
+    // 如果当前是第三方登录 tab 但功能已关闭，切回第一个可用 tab
+    if (!thirdPartyEnabled.value && activeTab.value === 'third') {
+      activeTab.value = 'password'
     }
   }
 })
@@ -216,31 +274,92 @@ const handleClose = () => {
   emit('close')
 }
 
+const startCountdown = () => {
+  codeCountdown.value = 60
+  const timer = setInterval(() => {
+    codeCountdown.value--
+    if (codeCountdown.value <= 0) {
+      clearInterval(timer)
+      codeSending.value = false
+    }
+  }, 1000)
+}
+
 const sendCode = async () => {
   if (!/^1[3-9]\d{9}$/.test(formData.value.phone)) {
     toast.warning('请输入正确的手机号')
     return
   }
   
-  countdown.value = 60
-  const timer = setInterval(() => {
-    countdown.value--
-    if (countdown.value <= 0) {
-      clearInterval(timer)
-    }
-  }, 1000)
-
+  devCode.value = ''
+  codeSending.value = true
+  
   try {
+    const configResult = await userStore.checkSmsConfig()
+    
+    if (!configResult.smsConfigured) {
+      const code = Math.random().toString().substr(2, 6)
+      devCode.value = code
+      formData.value.code = code
+      startCountdown()
+      return
+    }
+    
     const result = await userStore.sendSms(formData.value.phone, 'login')
     if (!result.success) {
       toast.error(result.message)
-      countdown.value = 0
+      codeSending.value = false
     } else {
-      toast.success('验证码发送成功')
+      if (result.code) {
+        devCode.value = result.code
+        formData.value.code = result.code
+      } else {
+        toast.success('验证码已发送')
+      }
+      startCountdown()
     }
   } catch (error) {
     toast.error('发送失败')
-    countdown.value = 0
+    codeSending.value = false
+  }
+}
+
+const sendRegisterCode = async () => {
+  if (!/^1[3-9]\d{9}$/.test(regPhone.value)) {
+    toast.warning('请输入正确的手机号')
+    return
+  }
+  
+  devCode.value = ''
+  codeSending.value = true
+  
+  try {
+    const configResult = await userStore.checkSmsConfig()
+    
+    if (!configResult.smsConfigured) {
+      const code = Math.random().toString().substr(2, 6)
+      devCode.value = code
+      regCode.value = code
+      startCountdown()
+      return
+    }
+    
+    const result = await userStore.sendSms(regPhone.value, 'register')
+    if (!result.success) {
+      toast.error(result.message)
+      codeSending.value = false
+    } else {
+      if (result.code) {
+        devCode.value = result.code
+        regCode.value = result.code
+      } else {
+        toast.success('验证码已发送')
+      }
+      startCountdown()
+    }
+  } catch (error) {
+    toast.error('发送失败')
+    codeSending.value = false
   }
 }
 
@@ -288,8 +407,45 @@ const handleThirdLogin = async (provider) => {
   toast.info(`即将跳转到${provider === 'wechat' ? '微信' : provider === 'qq' ? 'QQ' : '微博'}登录`)
 }
 
-const handleRegister = () => {
-  toast.info('注册功能开发中')
+const handleRegister = async () => {
+  if (!regPhone.value || !regCode.value || !regPwd.value) {
+    toast.warning('请填写完整信息')
+    return
+  }
+  if (!regInviteCode.value.trim()) {
+    toast.warning('请输入邀请码')
+    return
+  }
+  if (!/^1[3-9]\d{9}$/.test(regPhone.value)) {
+    toast.warning('手机号格式不正确')
+    return
+  }
+  if (regPwd.value.length < 6) {
+    toast.warning('密码至少6位')
+    return
+  }
+  if (regCode.value.length < 4) {
+    toast.warning('验证码格式不正确')
+    return
+  }
+
+  try {
+    const result = await userStore.register(regPhone.value, regPwd.value, regCode.value, regInviteCode.value.trim())
+    
+    if (result.success) {
+      toast.success('注册成功')
+      showRegisterModal.value = false
+      formData.value.username = regPhone.value
+      formData.value.password = regPwd.value
+      activeTab.value = 'password'
+      emit('close')
+    } else {
+      toast.error(result.message || '注册失败')
+    }
+  } catch (error) {
+    console.error('注册失败:', error)
+    toast.error('注册失败，请重试')
+  }
 }
 </script>
 
@@ -311,7 +467,7 @@ const handleRegister = () => {
 .login-modal-wrapper {
   width: 90%;
   max-width: 420px;
-  background: #fff;
+  background: var(--bg-primary);
   border-radius: 20px;
   overflow: hidden;
   transform: translateY(20px);
@@ -331,18 +487,18 @@ const handleRegister = () => {
   width: 32px;
   height: 32px;
   border: none;
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--bg-secondary);
   border-radius: 50%;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #666;
+  color: var(--text-muted);
   transition: all 0.2s;
   
   &:hover {
-    background: rgba(0, 0, 0, 0.1);
-    color: #333;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
   }
   
   svg {
@@ -369,19 +525,19 @@ const handleRegister = () => {
 .login-modal-title {
   font-size: 24px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-primary);
   margin: 0 0 8px 0;
 }
 
 .login-modal-subtitle {
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
   margin: 0;
 }
 
 .login-tabs {
   display: flex;
-  background: #f5f5f5;
+  background: var(--bg-secondary);
   border-radius: 12px;
   padding: 4px;
   margin-bottom: 24px;
@@ -394,15 +550,15 @@ const handleRegister = () => {
   background: transparent;
   border-radius: 8px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.2s;
   
   &.active {
-    background: #fff;
-    color: #1a1a1a;
+    background: var(--bg-primary);
+    color: var(--text-primary);
     font-weight: 500;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-light);
   }
 }
 
@@ -418,7 +574,7 @@ const handleRegister = () => {
   .form-label {
     display: block;
     font-size: 14px;
-    color: #333;
+    color: var(--text-primary);
     margin-bottom: 8px;
     font-weight: 500;
   }
@@ -426,20 +582,21 @@ const handleRegister = () => {
   .form-input {
     width: 100%;
     padding: 12px 16px;
-    border: 1px solid #e0e0e0;
+    border: 1px solid var(--border-color);
     border-radius: 10px;
     font-size: 14px;
     transition: all 0.2s;
     box-sizing: border-box;
+    background: var(--bg-primary);
     
     &:focus {
       outline: none;
-      border-color: #4a90d9;
-      box-shadow: 0 0 0 3px rgba(74, 144, 217, 0.1);
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(255, 107, 129, 0.1);
     }
     
     &::placeholder {
-      color: #ccc;
+      color: var(--text-muted);
     }
   }
   
@@ -456,7 +613,7 @@ const handleRegister = () => {
     .code-btn {
       padding: 12px 20px;
       border: none;
-      background: linear-gradient(135deg, #4a90d9, #357abd);
+      background: var(--gradient-primary);
       color: #fff;
       border-radius: 10px;
       font-size: 14px;
@@ -464,7 +621,7 @@ const handleRegister = () => {
       transition: all 0.2s;
       
       &:disabled {
-        background: #ccc;
+        opacity: 0.5;
         cursor: not-allowed;
       }
       
@@ -486,7 +643,7 @@ const handleRegister = () => {
     align-items: center;
     gap: 8px;
     font-size: 13px;
-    color: #666;
+    color: var(--text-secondary);
     cursor: pointer;
     
     input {
@@ -496,7 +653,7 @@ const handleRegister = () => {
     .checkmark {
       width: 18px;
       height: 18px;
-      border: 1px solid #ddd;
+      border: 1px solid var(--border-color);
       border-radius: 4px;
       position: relative;
       
@@ -507,7 +664,7 @@ const handleRegister = () => {
         top: 2px;
         width: 5px;
         height: 10px;
-        border: solid #4a90d9;
+        border: solid var(--primary-color);
         border-width: 0 2px 2px 0;
         transform: rotate(45deg);
         opacity: 0;
@@ -516,8 +673,8 @@ const handleRegister = () => {
     }
     
     input:checked + .checkmark {
-      background: #4a90d9;
-      border-color: #4a90d9;
+      background: var(--primary-color);
+      border-color: var(--primary-color);
       
       &::after {
         opacity: 1;
@@ -527,7 +684,7 @@ const handleRegister = () => {
   
   .form-link {
     font-size: 13px;
-    color: #4a90d9;
+    color: var(--primary-color);
     cursor: pointer;
     
     &:hover {
@@ -548,17 +705,17 @@ const handleRegister = () => {
   justify-content: center;
   gap: 12px;
   padding: 14px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-primary);
   cursor: pointer;
   transition: all 0.2s;
   font-size: 14px;
-  color: #333;
+  color: var(--text-primary);
   
   &:hover {
-    background: #fafafa;
-    border-color: #ccc;
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
   }
   
   .third-party-icon {
@@ -586,7 +743,7 @@ const handleRegister = () => {
   width: 100%;
   padding: 14px;
   border: none;
-  background: linear-gradient(135deg, #4a90d9, #357abd);
+  background: var(--gradient-primary);
   color: #fff;
   border-radius: 10px;
   font-size: 16px;
@@ -596,24 +753,24 @@ const handleRegister = () => {
   margin-bottom: 20px;
   
   &:disabled {
-    background: #ccc;
+    opacity: 0.5;
     cursor: not-allowed;
   }
   
   &:hover:not(:disabled) {
     opacity: 0.9;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(74, 144, 217, 0.3);
+    box-shadow: 0 4px 12px rgba(255, 107, 129, 0.3);
   }
 }
 
 .login-footer {
   text-align: center;
   font-size: 14px;
-  color: #999;
+  color: var(--text-muted);
   
   .footer-link {
-    color: #4a90d9;
+    color: var(--primary-color);
     margin-left: 8px;
     cursor: pointer;
     
@@ -631,5 +788,66 @@ const handleRegister = () => {
 .login-modal-enter-from,
 .login-modal-leave-to {
   opacity: 0;
+}
+
+/* 注册表单 */
+.register-section {
+  .login-form {
+    margin-bottom: 16px;
+  }
+
+  .register-code-btn {
+    padding: 12px 20px;
+    border: none;
+    background: var(--gradient-primary);
+    color: #fff;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    &:hover:not(:disabled) {
+      opacity: 0.9;
+    }
+  }
+
+  .login-footer {
+    border-top: 1px solid var(--border-light);
+    padding-top: 16px;
+    margin-top: 4px;
+  }
+}
+
+/* 开发模式验证码提示 */
+.dev-code-notification {
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #795548;
+  line-height: 1.5;
+}
+
+.dev-code-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.dev-code-text strong {
+  font-size: 16px;
+  color: #e65100;
+  letter-spacing: 2px;
+  user-select: all;
 }
 </style>

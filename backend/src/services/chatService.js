@@ -3,75 +3,83 @@ const { getTimestamp, parseQuery } = require('../utils/helper');
 const { Op } = require('sequelize');
 
 const getChatList = async (userId, page, pageSize) => {
-  const { offset, limit } = parseQuery({ page, pageSize });
-  
-  const sessions = await UserSession.findAndCountAll({
-    where: { userId },
-    offset,
-    limit,
-    order: [['updateTime', 'DESC']]
-  });
-  
-  const list = await Promise.all(sessions.rows.map(async (session) => {
-    const peerUser = await User.findByPk(session.peerId);
+  try {
+    const { offset, limit } = parseQuery({ page, pageSize });
+    
+    const sessions = await UserSession.findAndCountAll({
+      where: { userId },
+      offset,
+      limit,
+      order: [['updateTime', 'DESC']]
+    });
+    
+    const list = await Promise.all(sessions.rows.map(async (session) => {
+      const peerUser = await User.findByPk(session.peerId);
+      
+      return {
+        id: session.id,
+        fromId: session.peerId,
+        toId: userId,
+        nickname: session.peerName || peerUser?.nickname || '',
+        avatar: session.peerAvatar || peerUser?.avatar || '',
+        content: session.lastMessage,
+        sendTime: session.lastMessageTime,
+        unreadCount: session.unreadCount,
+        level: peerUser?.lv || 1,
+        vip: peerUser?.vip || 0
+      };
+    }));
     
     return {
-      id: session.id,
-      fromId: session.peerId,
-      toId: userId,
-      nickname: session.peerName || peerUser?.nickname || '',
-      avatar: session.peerAvatar || peerUser?.avatar || '',
-      content: session.lastMessage,
-      sendTime: session.lastMessageTime,
-      unreadCount: session.unreadCount,
-      level: peerUser?.lv || 1,
-      vip: peerUser?.vip || 0
+      total: sessions.count,
+      list
     };
-  }));
-  
-  return {
-    total: sessions.count,
-    list
-  };
+  } catch (error) {
+    return { total: 0, list: [] };
+  }
 };
 
 const getChatMessages = async (userId, targetUserId, page, pageSize) => {
-  const { offset, limit } = parseQuery({ page, pageSize });
-  
-  const { count, rows } = await ChatLog.findAndCountAll({
-    where: {
-      [Op.or]: [
-        { fromid: userId, toid: targetUserId },
-        { fromid: targetUserId, toid: userId }
-      ],
-      is_del: 0
-    },
-    offset,
-    limit,
-    order: [['time', 'DESC']]
-  });
-  
-  const messages = rows.map(msg => ({
-    id: msg.id,
-    fromId: msg.fromid,
-    toId: msg.toid,
-    content: msg.content,
-    type: msg.type,
-    mediaUrl: msg.vod_url,
-    duration: msg.sec,
-    sendTime: msg.time,
-    isSelf: msg.fromid === userId,
-    avatar: (msg.fromid === userId ? 
-      (User.findByPk(userId))?.avatar : 
-      (User.findByPk(targetUserId))?.avatar) || '',
-    isRevoked: msg.is_revoked === 1,
-    revokeTime: msg.revoke_time
-  }));
-  
-  return {
-    total: count,
-    list: messages.reverse()
-  };
+  try {
+    const { offset, limit } = parseQuery({ page, pageSize });
+    
+    const { count, rows } = await ChatLog.findAndCountAll({
+      where: {
+        [Op.or]: [
+          { fromid: userId, toid: targetUserId },
+          { fromid: targetUserId, toid: userId }
+        ],
+        is_del: 0
+      },
+      offset,
+      limit,
+      order: [['time', 'DESC']]
+    });
+    
+    const messages = rows.map(msg => ({
+      id: msg.id,
+      fromId: msg.fromid,
+      toId: msg.toid,
+      content: msg.content,
+      type: msg.type,
+      mediaUrl: msg.vod_url,
+      duration: msg.sec,
+      sendTime: msg.time,
+      isSelf: msg.fromid === userId,
+      avatar: (msg.fromid === userId ? 
+        (User.findByPk(userId))?.avatar : 
+        (User.findByPk(targetUserId))?.avatar) || '',
+      isRevoked: msg.is_revoked === 1,
+      revokeTime: msg.revoke_time
+    }));
+    
+    return {
+      total: count,
+      list: messages.reverse()
+    };
+  } catch (error) {
+    return { total: 0, list: [] };
+  }
 };
 
 const sendMessage = async (fromId, toId, content, type = 0, mediaUrl, duration) => {
@@ -209,30 +217,34 @@ const getRoomInfo = async (roomId) => {
 };
 
 const getRooms = async (page, pageSize) => {
-  const { offset, limit } = parseQuery({ page, pageSize });
-  
-  const { count, rows } = await ChatRoom.findAndCountAll({
-    where: {
-      status: 1,
-      open: 1
-    },
-    offset,
-    limit,
-    order: [['create_time', 'DESC']]
-  });
-  
-  return {
-    total: count,
-    list: rows.map(room => ({
-      roomId: room.id,
-      title: room.title,
-      subtitle: room.title_sub,
-      coverImage: room.image,
-      backgroundImage: room.image_bg,
-      managerId: room.manage_id,
-      roomType: room.type
-    }))
-  };
+  try {
+    const { offset, limit } = parseQuery({ page, pageSize });
+    
+    const { count, rows } = await ChatRoom.findAndCountAll({
+      where: {
+        status: 1,
+        open: 1
+      },
+      offset,
+      limit,
+      order: [['create_time', 'DESC']]
+    });
+    
+    return {
+      total: count,
+      list: rows.map(room => ({
+        roomId: room.id,
+        title: room.title,
+        subtitle: room.title_sub,
+        coverImage: room.image,
+        backgroundImage: room.image_bg,
+        managerId: room.manage_id,
+        roomType: room.type
+      }))
+    };
+  } catch (error) {
+    return { total: 0, list: [] };
+  }
 };
 
 const markAsRead = async (userId, peerId) => {

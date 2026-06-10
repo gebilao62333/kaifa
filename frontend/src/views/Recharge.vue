@@ -73,9 +73,11 @@ import { getRechargeMethods } from '../common/payMethods'
 import { toast } from '../composables/useToast'
 import { formatBalance } from '../common/common'
 import payService from '../services/payService'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
 const userStore = useUserStore()
+const { requireLogin } = useLoginManager()
 
 const loadBalance = () => {
   try {
@@ -145,9 +147,11 @@ const doRecharge = async () => {
   if (submitting.value) return
 
   if (!userStore.isLogin) {
-    toast.warning('请先登录')
-    router.push('/login')
-    return
+    try {
+      await requireLogin()
+    } catch {
+      return
+    }
   }
 
   if (payMethod.value === 'card') {
@@ -483,7 +487,6 @@ const doRecharge = async () => {
   font-size: 15px;
   color: var(--text-primary);
   background: transparent;
-  box-sizing: border-box;
 }
 
 .card-input-group input::placeholder {

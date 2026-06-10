@@ -12,6 +12,7 @@ router.post('/follow', authMiddleware, userController.follow);
 router.get('/fans', authMiddleware, userController.getFans);
 router.get('/follows', authMiddleware, userController.getFollows);
 router.post('/send-sms', smsLimiter, userController.sendSms);
+router.get('/sms-config', userController.checkSmsConfig);
 router.post('/login-mobile', loginLimiter, userController.loginMobile);
 router.post('/login-third', loginLimiter, userController.loginThird);
 router.post('/refresh-token', userController.refreshToken);

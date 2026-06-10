@@ -1039,7 +1039,7 @@ onMounted(() => {
 }
 
 @media (min-width: 768px) {
-  .service-detail-page {
+  .service-detail-container {
     max-width: 650px;
     margin: 0 auto;
   }
@@ -1050,7 +1050,7 @@ onMounted(() => {
   }
 }
 @media (min-width: 1024px) {
-  .service-detail-page {
+  .service-detail-container {
     max-width: 720px;
   }
   .header {

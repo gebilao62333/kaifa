@@ -236,9 +236,11 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
 const userStore = useUserStore()
+const { requireLogin } = useLoginManager()
 
 const currentTab = ref('pending')
 const showDetail = ref(false)
@@ -384,9 +386,11 @@ const finishService = (order) => {
 
 const contactUser = async (order) => {
   if (!userStore.isLogin) {
-    toast.warning('请先登录')
-    router.push('/login')
-    return
+    try {
+      await requireLogin()
+    } catch {
+      return
+    }
   }
   const targetId = order.companionUserId
   if (!targetId) {
@@ -443,7 +447,7 @@ onUnmounted(() => {
   min-height: -webkit-fill-available;
   background-color: var(--bg-secondary);
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-  padding-top: 82px;
+  padding-top: 70px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }

@@ -11,6 +11,7 @@ export default defineConfig({
   },
   server: {
     port: 5176,
+    allowedHosts: ['.sealoshzh.site'],
     proxy: {
       '/api': {
         target: 'http://localhost:3001',

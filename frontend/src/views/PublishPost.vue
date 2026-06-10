@@ -51,7 +51,7 @@
         />
       </div>
       
-      <div class="location-tag" @click="showLocationModal = true">
+      <div class="location-tag" @click="openLocationModal">
         <span class="icon">📍</span>
         <span class="text">{{ location || '添加位置' }}</span>
         <span class="clear-btn" v-if="location" @click.stop="location = ''">×</span>
@@ -68,24 +68,46 @@
             <span class="location-current-text">{{ locationLoading ? '定位中...' : '使用当前位置' }}</span>
             <span class="location-current-loading" v-if="locationLoading">⏳</span>
           </div>
-          <div class="location-search">
-            <input 
-              type="text" 
-              v-model="locationSearch" 
-              placeholder="搜索城市或地区"
-            />
+          <div class="location-picker-header">
+            <span class="location-picker-hint">{{ tempLocation.province ? tempLocation.province + (tempLocation.city ? ' · ' + tempLocation.city + (tempLocation.district ? ' · ' + tempLocation.district + (customLocationStreet ? ' · ' + customLocationStreet : '') : '') : '') : '请选择省/市/区' }}</span>
+            <span class="location-picker-confirm" @click="confirmLocation">确定</span>
           </div>
-          <div class="location-list">
-            <div 
-              v-for="loc in filteredLocations" 
-              :key="loc"
-              class="location-item"
-              :class="{ selected: location === loc }"
-              @click="selectLocation(loc)"
-            >
-              <span class="location-icon">📍</span>
-              <span class="location-text">{{ loc }}</span>
-              <span class="location-check" v-if="location === loc">✓</span>
+          <div class="location-picker-body">
+            <div class="location-picker-column">
+              <div 
+                class="location-picker-item" 
+                :class="{ active: locationStep === 'province' && tempLocation.province === p.name }"
+                v-for="p in regionData" 
+                :key="p.code" 
+                @click="selectLocationProvince(p)"
+              >{{ p.name }}</div>
+            </div>
+            <div class="location-picker-column" v-if="locationStep === 'city' || locationStep === 'district' || locationStep === 'street'">
+              <div 
+                class="location-picker-item" 
+                :class="{ active: tempLocation.city === c.name }"
+                v-for="c in currentLocationProvince?.cities" 
+                :key="c.code" 
+                @click="selectLocationCity(c)"
+              >{{ c.name }}</div>
+            </div>
+            <div class="location-picker-column" v-if="locationStep === 'district' || locationStep === 'street'">
+              <div 
+                class="location-picker-item" 
+                :class="{ active: tempLocation.district === d.name }"
+                v-for="d in currentLocationCity?.districts" 
+                :key="d.code" 
+                @click="selectLocationDistrict(d)"
+              >{{ d.name }}</div>
+            </div>
+            <div class="location-picker-column location-picker-column-custom" v-if="locationStep === 'street'">
+              <input
+                class="location-picker-input"
+                v-model="customLocationStreet"
+                placeholder="请输入街道/乡镇（可选）"
+                @click.stop
+              />
+              <div class="location-picker-custom-hint">支持自定义输入，也可留空</div>
             </div>
           </div>
         </div>
@@ -182,17 +204,19 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { useToast } from '../composables/useToast'
 import circleService from '../services/circleService'
 import uploadService from '../services/uploadService'
-import { popularLocations } from '../common/regionData'
+import { regionData } from '../common/regionData'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
 const userStore = useUserStore()
 const { showToast } = useToast()
+const { requireLogin } = useLoginManager()
 
 const content = ref('')
 const mediaItems = ref([])
@@ -204,22 +228,21 @@ const viewPrice = ref('')
 const fileInputRef = ref(null)
 const showTopicModal = ref(false)
 const showLocationModal = ref(false)
-const locationSearch = ref('')
 const locationLoading = ref(false)
 const uploading = ref(false)
+
+// 位置选择器 - 四级联动（第四级为自定义输入）
+const locationStep = ref('province')
+const tempLocation = reactive({ province: '', city: '', district: '', street: '' })
+const currentLocationProvince = ref(null)
+const currentLocationCity = ref(null)
+const currentLocationDistrict = ref(null)
+const customLocationStreet = ref('')
 
 const availableTopics = ref([
   '游戏', '音乐', '美食', '旅行', '摄影', '运动', '阅读', '电影',
   '美妆', '穿搭', '萌宠', '科技', '电竞', '社交', '情感', '职场'
 ])
-
-const popularLocationsData = ref(popularLocations)
-
-const filteredLocations = computed(() => {
-  if (!locationSearch.value) return popularLocationsData.value
-  const search = locationSearch.value.toLowerCase()
-  return popularLocationsData.value.filter(loc => loc.toLowerCase().includes(search))
-})
 
 const goBack = () => {
   router.back()
@@ -250,10 +273,58 @@ const removeMedia = (index) => {
   mediaItems.value.splice(index, 1)
 }
 
-const selectLocation = (loc) => {
-  location.value = loc
+const openLocationModal = () => {
+  locationStep.value = 'province'
+  tempLocation.province = ''
+  tempLocation.city = ''
+  tempLocation.district = ''
+  tempLocation.street = ''
+  customLocationStreet.value = ''
+  currentLocationProvince.value = null
+  currentLocationCity.value = null
+  currentLocationDistrict.value = null
+  showLocationModal.value = true
+}
+
+const selectLocationProvince = (province) => {
+  tempLocation.province = province.name
+  tempLocation.city = ''
+  tempLocation.district = ''
+  tempLocation.street = ''
+  customLocationStreet.value = ''
+  currentLocationProvince.value = province
+  currentLocationCity.value = null
+  currentLocationDistrict.value = null
+  locationStep.value = 'city'
+}
+
+const selectLocationCity = (city) => {
+  tempLocation.city = city.name
+  tempLocation.district = ''
+  tempLocation.street = ''
+  customLocationStreet.value = ''
+  currentLocationCity.value = city
+  currentLocationDistrict.value = null
+  locationStep.value = 'district'
+}
+
+const selectLocationDistrict = (district) => {
+  tempLocation.district = district.name
+  tempLocation.street = ''
+  customLocationStreet.value = ''
+  currentLocationDistrict.value = district
+  locationStep.value = 'street'
+}
+
+const confirmLocation = () => {
+  if (tempLocation.province) {
+    tempLocation.street = customLocationStreet.value.trim()
+    location.value = tempLocation.province
+      + (tempLocation.city ? '·' + tempLocation.city : '')
+      + (tempLocation.district ? '·' + tempLocation.district : '')
+      + (tempLocation.street ? '·' + tempLocation.street : '')
+  }
   showLocationModal.value = false
-  locationSearch.value = ''
 }
 
 const getCurrentLocation = () => {
@@ -354,7 +425,7 @@ const publish = async () => {
     return
   }
 
-  if (!userStore.isLogin) { showToast('请先登录', 'warning'); router.push('/login'); return }
+  if (!userStore.isLogin) { try { await requireLogin() } catch { return } }
 
   if (visibility.value === 'password' && !viewPassword.value.trim()) {
     showToast('请输入查看密码', 'warning')
@@ -449,6 +520,7 @@ const publish = async () => {
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
+  box-sizing: border-box;
   max-width: 650px;
   z-index: 100;
 }
@@ -736,11 +808,19 @@ const publish = async () => {
 
 .topic-modal-content {
   width: 100%;
+  max-width: 650px;
+  margin: 0 auto;
   background: var(--bg-primary);
   border-radius: 10px 10px 0 0;
   max-height: 70vh;
   display: flex;
   flex-direction: column;
+}
+
+@media (min-width: 1024px) {
+  .topic-modal-content {
+    max-width: 720px;
+  }
 }
 
 .topic-modal-header {
@@ -857,11 +937,19 @@ const publish = async () => {
 
 .location-modal-content {
   width: 100%;
+  max-width: 650px;
+  margin: 0 auto;
   background: var(--bg-primary);
   border-radius: 10px 10px 0 0;
   max-height: 70vh;
   display: flex;
   flex-direction: column;
+}
+
+@media (min-width: 1024px) {
+  .location-modal-content {
+    max-width: 720px;
+  }
 }
 
 .location-modal-header {
@@ -920,74 +1008,106 @@ const publish = async () => {
   to { transform: rotate(360deg); }
 }
 
-.location-search {
+/* 位置选择器 - 三级联动（与编辑资料共享 regionData） */
+.location-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 12px 20px;
   border-bottom: 1px solid var(--border-light);
+  background: var(--bg-secondary);
 }
 
-.location-search input {
-  width: 100%;
-  padding: 10px 14px;
-  border: 1px solid var(--border-color);
-  border-radius: 20px;
+.location-picker-hint {
   font-size: 14px;
-  box-sizing: border-box;
-  color: var(--text-primary);
-}
-
-.location-search input::placeholder {
   color: var(--text-muted);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.location-search input:focus {
+.location-picker-confirm {
+  font-size: 15px;
+  color: var(--primary-color);
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.location-picker-body {
+  display: flex;
+  max-height: 300px;
+  overflow: hidden;
+}
+
+.location-picker-column {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  border-right: 1px solid var(--border-light);
+}
+
+.location-picker-column:last-child {
+  border-right: none;
+}
+
+.location-picker-item {
+  padding: 14px 16px;
+  font-size: 15px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: background 0.15s;
+}
+
+.location-picker-item:hover {
+  background: var(--bg-secondary);
+}
+
+.location-picker-item.active {
+  color: var(--primary-color);
+  font-weight: 500;
+  background: rgba(255, 107, 129, 0.05);
+}
+
+.location-picker-column-custom {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.location-picker-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: 8px;
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--bg-primary, #fff);
   outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.location-picker-input:focus {
   border-color: var(--primary-color);
 }
 
-.location-list {
-  padding: 8px 20px;
-  overflow-y: auto;
-  flex: 1;
+.location-picker-input::placeholder {
+  color: var(--text-muted, #bbb);
 }
 
-.location-item {
-  display: flex;
-  align-items: center;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--bg-secondary);
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.location-item:hover {
-  background: var(--bg-secondary);
-  margin: 0 -20px;
-  padding: 12px 20px;
-}
-
-.location-item:last-child {
-  border-bottom: none;
-}
-
-.location-item.selected .location-text {
-  color: var(--primary-color);
-}
-
-.location-icon {
-  margin-right: 10px;
-  font-size: 14px;
-}
-
-.location-text {
-  flex: 1;
-  font-size: 14px;
-  color: var(--text-primary);
-}
-
-.location-check {
-  color: var(--primary-color);
-  font-size: 16px;
-  font-weight: bold;
+.location-picker-custom-hint {
+  font-size: 12px;
+  color: var(--text-muted, #bbb);
+  text-align: center;
 }
 
 @media (min-width: 768px) {

@@ -1,11 +1,9 @@
-const { createClient, Cluster } = require('redis');
 const config = require('./index');
 
 let redisClient = null;
-let isCluster = false;
 
 const createMockRedis = () => {
-  console.log('📦 使用 Mock Redis 模式');
+  console.log('📦 使用本地内存 Redis 模式');
   const mockStorage = {};
   return {
     get: async (key) => mockStorage[key] || null,
@@ -50,7 +48,7 @@ const createMockRedis = () => {
     },
     ttl: async (key) => mockStorage[key] !== undefined ? -1 : -2,
     keys: async (pattern) => {
-      const regex = new RegExp(pattern.replace('*', '.*'));
+      const regex = new RegExp(pattern.replace(/\*/g, '.*'));
       return Object.keys(mockStorage).filter(k => regex.test(k));
     },
     flushAll: async () => {
@@ -61,72 +59,47 @@ const createMockRedis = () => {
   };
 };
 
-const retryConnection = async (fn, retries = 3, delay = 2000) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      console.warn(`Redis 连接失败 (${i + 1}/${retries}):`, error.message);
-      if (i < retries - 1) {
-        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
-      }
-    }
-  }
-  throw new Error('Redis 连接重试次数已用完');
+const createRealRedis = () => {
+  const Redis = require('redis');
+  const redisConfig = config.db.redis;
+  console.log(`🗄️ 连接 Redis: ${redisConfig.host}:${redisConfig.port}`);
+
+  const client = Redis.createClient({
+    socket: {
+      host: redisConfig.host,
+      port: redisConfig.port,
+      reconnectStrategy: (retries) => Math.min(retries * 100, 3000)
+    },
+    username: redisConfig.username,
+    password: redisConfig.password
+  });
+
+  client.on('connect', () => console.log('✅ Redis 连接成功'));
+  client.on('error', (err) => {
+    console.error('❌ Redis 连接错误:', err.message);
+    console.log('💡 将以本地内存模式继续运行');
+  });
+  client.on('end', () => console.log('🔌 Redis 连接已关闭'));
+
+  return client;
 };
 
 const connectRedis = async () => {
-  if (config.useMockDb || config.db.type === 'sqlite') {
+  if (redisClient) return redisClient;
+
+  if (config.useMockDb) {
     redisClient = createMockRedis();
-    return redisClient;
+  } else {
+    try {
+      const client = createRealRedis();
+      await client.connect();
+      redisClient = client;
+    } catch (error) {
+      console.warn('⚠️ Redis 真实连接失败，回退到内存模式:', error.message);
+      redisClient = createMockRedis();
+    }
   }
-  
-  try {
-    const redisConfig = {
-      socket: {
-        host: config.db.redis.host,
-        port: config.db.redis.port,
-        reconnectStrategy: (retries) => Math.min(retries * 50, 5000),
-        timeout: 5000
-      },
-      password: config.db.redis.password || undefined,
-      username: config.db.redis.username || undefined,
-      database: 0,
-      maxRetriesPerRequest: 3,
-      lazyConnect: true
-    };
-
-    redisClient = createClient(redisConfig);
-
-    redisClient.on('error', (err) => {
-      console.error('Redis Client Error:', err);
-    });
-
-    redisClient.on('connect', () => {
-      console.log('✅ Redis connected successfully');
-    });
-
-    redisClient.on('reconnecting', () => {
-      console.warn('🔄 Redis reconnecting...');
-    });
-
-    redisClient.on('ready', () => {
-      console.log('✅ Redis is ready');
-    });
-
-    redisClient.on('end', () => {
-      console.warn('🔌 Redis connection ended');
-    });
-
-    await retryConnection(() => redisClient.connect());
-    
-    return redisClient;
-  } catch (error) {
-    console.error('Redis connection error:', error);
-    console.log('📦 降级到 Mock Redis 模式');
-    redisClient = createMockRedis();
-    return redisClient;
-  }
+  return redisClient;
 };
 
 const getRedisClient = () => {

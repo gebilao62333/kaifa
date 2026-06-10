@@ -145,6 +145,67 @@ const restart = async (req, res) => {
   }
 };
 
+const toggleStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return response.badRequest(res, '项目ID不能为空');
+    }
+
+    const { Project } = require('../models');
+    const project = await Project.findByPk(parseInt(id));
+    if (!project) {
+      return response.badRequest(res, '项目不存在');
+    }
+
+    const newStatus = project.status === 1 ? 0 : 1;
+    await project.update({ status: newStatus });
+    response.success(res, { id: project.id, status: newStatus }, newStatus === 1 ? '已启用' : '已禁用');
+  } catch (error) {
+    logger.error('切换项目状态错误:', error);
+    response.unprocessableEntity(res, '参数验证失败');
+  }
+};
+
+const getOrders = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, page = 1, pageSize = 20 } = req.query;
+
+    if (!id) {
+      return response.badRequest(res, '项目ID不能为空');
+    }
+
+    const { Order } = require('../models');
+    const { Op } = require('sequelize');
+    const where = { project_id: parseInt(id) };
+    if (status !== undefined && status !== '') {
+      where.status = parseInt(status);
+    }
+
+    const { count, rows } = await Order.findAndCountAll({
+      where,
+      order: [['create_time', 'DESC']],
+      limit: parseInt(pageSize),
+      offset: (parseInt(page) - 1) * parseInt(pageSize)
+    });
+
+    response.success(res, {
+      list: rows,
+      pagination: {
+        page: parseInt(page),
+        pageSize: parseInt(pageSize),
+        total: count,
+        totalPages: Math.ceil(count / parseInt(pageSize))
+      }
+    });
+  } catch (error) {
+    logger.error('获取项目订单错误:', error);
+    response.error(res, '操作失败');
+  }
+};
+
 module.exports = {
   getStats,
   getList,
@@ -154,5 +215,7 @@ module.exports = {
   deleteProject,
   start,
   stop,
-  restart
+  restart,
+  toggleStatus,
+  getOrders
 };

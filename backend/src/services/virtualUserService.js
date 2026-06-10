@@ -3,13 +3,56 @@ const { getTimestamp, generateUUID, parseQuery, formatPaginatedResponse } = requ
 const logger = require('../utils/logger');
 
 let mockVirtualUsers = [
-  { id: 1, username: 'xiaoxin', nickname: '小新', avatar: '', role: 'companion', personality: '活泼开朗，喜欢游戏', dialogueStyle: 'friendly', description: '游戏陪玩师，擅长各种游戏', modelConfig: '{}', status: 1, isOnline: 1, contextExpireTime: 3600, maxContextLength: 50, permissions: '[]', createTime: Date.now() - 86400000, updateTime: Date.now() - 86400000 },
-  { id: 2, username: 'xiaomei', nickname: '小美', avatar: '', role: 'guide', personality: '温柔体贴，耐心细致', dialogueStyle: 'professional', description: '平台向导，熟悉平台功能', modelConfig: '{}', status: 1, isOnline: 1, contextExpireTime: 3600, maxContextLength: 50, permissions: '[]', createTime: Date.now() - 172800000, updateTime: Date.now() - 172800000 },
-  { id: 3, username: 'xiaolong', nickname: '小龙', avatar: '', role: 'assistant', personality: '幽默风趣，热爱运动', dialogueStyle: 'humorous', description: 'AI助手，提供各种服务', modelConfig: '{}', status: 1, isOnline: 0, contextExpireTime: 3600, maxContextLength: 50, permissions: '[]', createTime: Date.now() - 259200000, updateTime: Date.now() - 259200000 },
-  { id: 4, username: 'xiaoxue', nickname: '小雪', avatar: '', role: 'default', personality: '可爱甜美，喜欢聊天', dialogueStyle: 'cute', description: '虚拟好友，陪你聊天', modelConfig: '{}', status: 0, isOnline: 0, contextExpireTime: 3600, maxContextLength: 50, permissions: '[]', createTime: Date.now() - 345600000, updateTime: Date.now() - 345600000 }
+  { id: 1, username: 'xiaoxin', nickname: '小新', avatar: '', role: 'companion', personality: '活泼开朗，喜欢游戏', dialogueStyle: 'friendly', description: '游戏陪玩师，擅长各种游戏', modelConfig: '{}', status: 1, isOnline: 1, contextExpireTime: 3600, maxContextLength: 50, permissions: '[]', createTime: Math.floor(Date.now() / 1000) - 86400, updateTime: Math.floor(Date.now() / 1000) - 86400 },
+  { id: 2, username: 'xiaomei', nickname: '小美', avatar: '', role: 'guide', personality: '温柔体贴，耐心细致', dialogueStyle: 'professional', description: '平台向导，熟悉平台功能', modelConfig: '{}', status: 1, isOnline: 1, contextExpireTime: 3600, maxContextLength: 50, permissions: '[]', createTime: Math.floor(Date.now() / 1000) - 172800, updateTime: Math.floor(Date.now() / 1000) - 172800 },
+  { id: 3, username: 'xiaolong', nickname: '小龙', avatar: '', role: 'assistant', personality: '幽默风趣，热爱运动', dialogueStyle: 'humorous', description: 'AI助手，提供各种服务', modelConfig: '{}', status: 1, isOnline: 0, contextExpireTime: 3600, maxContextLength: 50, permissions: '[]', createTime: Math.floor(Date.now() / 1000) - 259200, updateTime: Math.floor(Date.now() / 1000) - 259200 },
+  { id: 4, username: 'xiaoxue', nickname: '小雪', avatar: '', role: 'default', personality: '可爱甜美，喜欢聊天', dialogueStyle: 'cute', description: '虚拟好友，陪你聊天', modelConfig: '{}', status: 0, isOnline: 0, contextExpireTime: 3600, maxContextLength: 50, permissions: '[]', createTime: Math.floor(Date.now() / 1000) - 345600, updateTime: Math.floor(Date.now() / 1000) - 345600 }
 ];
 
 let nextMockId = 5;
+
+// Mock 标签数据 — 用于数据库不可用时的 fallback
+const mockTags = [
+  { id: 1, name: '游戏达人', type: 'skill', status: 1, createTime: Math.floor(Date.now() / 1000) - 864000 },
+  { id: 2, name: '幽默风趣', type: 'personality', status: 1, createTime: Math.floor(Date.now() / 1000) - 864000 },
+  { id: 3, name: '温柔体贴', type: 'personality', status: 1, createTime: Math.floor(Date.now() / 1000) - 864000 },
+  { id: 4, name: '王者荣耀', type: 'game', status: 1, createTime: Math.floor(Date.now() / 1000) - 864000 },
+  { id: 5, name: '英雄联盟', type: 'game', status: 1, createTime: Math.floor(Date.now() / 1000) - 864000 },
+  { id: 6, name: '聊天陪玩', type: 'service', status: 1, createTime: Math.floor(Date.now() / 1000) - 864000 },
+  { id: 7, name: '新手友好', type: 'feature', status: 1, createTime: Math.floor(Date.now() / 1000) - 864000 },
+  { id: 8, name: '声音甜美', type: 'voice', status: 1, createTime: Math.floor(Date.now() / 1000) - 864000 }
+];
+
+// 虚拟用户与标签的 Mock 关联
+const mockTagRelations = [
+  { virtualUserId: 1, tagId: 1, isPrimary: 1 },  // 小新 → 游戏达人
+  { virtualUserId: 1, tagId: 4, isPrimary: 0 },  // 小新 → 王者荣耀
+  { virtualUserId: 1, tagId: 6, isPrimary: 0 },  // 小新 → 聊天陪玩
+  { virtualUserId: 2, tagId: 3, isPrimary: 1 },  // 小美 → 温柔体贴
+  { virtualUserId: 2, tagId: 7, isPrimary: 0 },  // 小美 → 新手友好
+  { virtualUserId: 2, tagId: 8, isPrimary: 0 },  // 小美 → 声音甜美
+  { virtualUserId: 3, tagId: 2, isPrimary: 1 },  // 小龙 → 幽默风趣
+  { virtualUserId: 3, tagId: 5, isPrimary: 0 },  // 小龙 → 英雄联盟
+  { virtualUserId: 4, tagId: 6, isPrimary: 1 },  // 小雪 → 聊天陪玩
+  { virtualUserId: 4, tagId: 8, isPrimary: 0 }   // 小雪 → 声音甜美
+];
+
+// Mock 标签查询函数
+const getMockUserTagDetails = (virtualUserId) => {
+  const relations = mockTagRelations
+    .filter(r => r.virtualUserId === virtualUserId)
+    .sort((a, b) => b.isPrimary - a.isPrimary);
+
+  return relations.map(r => {
+    const tag = mockTags.find(t => t.id === r.tagId);
+    return tag ? {
+      id: tag.id,
+      name: tag.name,
+      type: tag.type,
+      isPrimary: r.isPrimary === 1
+    } : null;
+  }).filter(Boolean);
+};
 
 const AI_MODELS = {
   OPENAI: 'openai',
@@ -109,7 +152,7 @@ const createVirtualUser = async (data) => {
     logger.info(`虚拟用户创建成功(Mock): ${username} (ID: ${newUser.id})`);
     
     const result = formatVirtualUser(newUser);
-    result.tags = [];
+    result.tags = getMockUserTagDetails(newUser.id);
     return result;
   }
 };
@@ -130,7 +173,7 @@ const getVirtualUserById = async (id) => {
       throw new Error('虚拟用户不存在');
     }
     const result = formatVirtualUser(user);
-    result.tags = [];
+    result.tags = getMockUserTagDetails(user.id);
     return result;
   }
 };
@@ -188,7 +231,7 @@ const getAllVirtualUsers = async (query) => {
   }
 
   if (query.isOnline !== undefined) {
-    where.isOnline = parseInt(query.isOnline);
+    where.online_status = parseInt(query.isOnline);
   }
 
   if (query.role) {
@@ -203,7 +246,7 @@ const getAllVirtualUsers = async (query) => {
       where,
       offset,
       limit,
-      order: [['createTime', 'DESC']]
+      order: [['create_time', 'DESC']]
     });
 
     for (const user of rows) {
@@ -233,7 +276,7 @@ const getAllVirtualUsers = async (query) => {
     
     users = filteredUsers.slice(offset, offset + parseInt(limit)).map(u => {
       const result = formatVirtualUser(u);
-      result.tags = [];
+      result.tags = getMockUserTagDetails(u.id);
       return result;
     });
     total = filteredUsers.length;
@@ -265,17 +308,17 @@ const updateVirtualUser = async (id, data) => {
     if (data.avatar !== undefined) updateData.avatar = data.avatar;
     if (data.role !== undefined) updateData.role = data.role;
     if (data.personality !== undefined) updateData.personality = data.personality;
-    if (data.dialogueStyle !== undefined) updateData.dialogueStyle = data.dialogueStyle;
+    if (data.dialogueStyle !== undefined) updateData.dialogue_style = data.dialogueStyle;
     if (data.description !== undefined) updateData.description = data.description;
     if (data.modelConfig !== undefined) {
-      updateData.modelConfig = typeof data.modelConfig === 'string'
+      updateData.model_config = typeof data.modelConfig === 'string'
         ? data.modelConfig
         : JSON.stringify(data.modelConfig);
     }
     if (data.status !== undefined) updateData.status = data.status;
-    if (data.isOnline !== undefined) updateData.isOnline = data.isOnline;
-    if (data.contextExpireTime !== undefined) updateData.contextExpireTime = data.contextExpireTime;
-    if (data.maxContextLength !== undefined) updateData.maxContextLength = data.maxContextLength;
+    if (data.isOnline !== undefined) updateData.online_status = data.isOnline;
+    if (data.contextExpireTime !== undefined) updateData.context_expire_time = data.contextExpireTime;
+    if (data.maxContextLength !== undefined) updateData.max_context_length = data.maxContextLength;
     if (data.permissions !== undefined) {
       updateData.permissions = typeof data.permissions === 'string'
         ? data.permissions
@@ -340,7 +383,7 @@ const updateVirtualUser = async (id, data) => {
     logger.info(`虚拟用户更新成功(Mock): ${user.username} (ID: ${user.id})`);
     
     const result = formatVirtualUser(user);
-    result.tags = [];
+    result.tags = getMockUserTagDetails(user.id);
     return result;
   }
 };
@@ -381,7 +424,7 @@ const toggleOnlineStatus = async (id, isOnline) => {
       throw new Error('虚拟用户不存在');
     }
 
-    await user.update({ isOnline: isOnline ? 1 : 0, updateTime: getTimestamp() });
+    await user.update({ online_status: isOnline ? 1 : 0, update_time: getTimestamp() });
     logger.info(`虚拟用户状态更新: ${user.username} -> ${isOnline ? '在线' : '离线'}`);
     return getVirtualUserById(id);
   } catch (dbError) {
@@ -399,7 +442,7 @@ const toggleOnlineStatus = async (id, isOnline) => {
     logger.info(`虚拟用户状态更新(Mock): ${user.username} -> ${isOnline ? '在线' : '离线'}`);
     
     const result = formatVirtualUser(user);
-    result.tags = [];
+    result.tags = getMockUserTagDetails(user.id);
     return result;
   }
 };
@@ -414,8 +457,8 @@ const generateResponse = async (virtualUserId, userId, message, contextId) => {
     contextId = generateUUID();
   }
 
-  const modelConfig = JSON.parse(virtualUser.modelConfig || '{}');
-  const permissions = JSON.parse(virtualUser.permissions || '[]');
+  const modelConfig = virtualUser.modelConfig || {};
+  const permissions = virtualUser.permissions || [];
 
   if (!hasPermission(virtualUser, 'chat')) {
     throw new Error('虚拟用户无聊天权限');
@@ -766,7 +809,7 @@ const clearContext = async (virtualUserId, userId, contextId) => {
 };
 
 const hasPermission = (virtualUser, permission) => {
-  const permissions = JSON.parse(virtualUser.permissions || '[]');
+  const permissions = virtualUser.permissions || [];
   return permissions.includes(permission);
 };
 
@@ -778,16 +821,16 @@ const formatVirtualUser = (user) => {
     avatar: user.avatar,
     role: user.role,
     personality: user.personality,
-    dialogueStyle: user.dialogueStyle,
+    dialogueStyle: user.dialogueStyle || user.dialogue_style,
     description: user.description,
-    modelConfig: user.modelConfig ? JSON.parse(user.modelConfig) : {},
+    modelConfig: user.modelConfig || {},
     status: user.status,
-    isOnline: user.isOnline,
-    contextExpireTime: user.contextExpireTime,
-    maxContextLength: user.maxContextLength,
-    permissions: user.permissions ? JSON.parse(user.permissions) : [],
-    createTime: user.createTime,
-    updateTime: user.updateTime
+    isOnline: user.isOnline || user.online_status,
+    contextExpireTime: user.contextExpireTime || user.context_expire_time,
+    maxContextLength: user.maxContextLength || user.max_context_length,
+    permissions: user.permissions || [],
+    createTime: user.create_time,
+    updateTime: user.update_time
   };
 };
 

@@ -132,9 +132,10 @@ const acceptCall = async (calleeId, callId) => {
 };
 
 const createBilling = async (call, duration) => {
+  const config = require('../config');
   const FREE_DURATION = 180;
   const BILLING_DURATION = 60;
-  const COMPANION_RATIO = 0.7;
+  const COMPANION_RATIO = (config.platform && config.platform.commissionRate) || 0.7;
   
   let billableDuration = 0;
   if (duration > FREE_DURATION) {
@@ -167,44 +168,48 @@ const createBilling = async (call, duration) => {
 };
 
 const getCallHistory = async (userId, page, pageSize) => {
-  const { offset, limit } = parseQuery({ page, pageSize });
-  
-  const { count, rows } = await CallRecord.findAndCountAll({
-    where: {
-      [require('sequelize').Op.or]: [
-        { caller_id: userId },
-        { callee_id: userId }
-      ]
-    },
-    offset,
-    limit,
-    order: [['create_time', 'DESC']]
-  });
-  
-  const records = await Promise.all(rows.map(async (call) => {
-    const otherUserId = call.caller_id === userId ? call.callee_id : call.caller_id;
-    const otherUser = await User.findByPk(otherUserId);
+  try {
+    const { offset, limit } = parseQuery({ page, pageSize });
+    
+    const { count, rows } = await CallRecord.findAndCountAll({
+      where: {
+        [require('sequelize').Op.or]: [
+          { caller_id: userId },
+          { callee_id: userId }
+        ]
+      },
+      offset,
+      limit,
+      order: [['create_time', 'DESC']]
+    });
+    
+    const records = await Promise.all(rows.map(async (call) => {
+      const otherUserId = call.caller_id === userId ? call.callee_id : call.caller_id;
+      const otherUser = await User.findByPk(otherUserId);
+      
+      return {
+        callId: call.id,
+        callNo: call.call_no,
+        callerId: call.caller_id,
+        calleeId: call.callee_id,
+        otherName: otherUser?.nickname || '',
+        otherAvatar: otherUser?.avatar || '',
+        callType: call.call_type,
+        status: call.status,
+        duration: call.duration,
+        isCompanionCall: call.is_companion_call === 1,
+        createTime: call.create_time,
+        connectTime: call.connect_time
+      };
+    }));
     
     return {
-      callId: call.id,
-      callNo: call.call_no,
-      callerId: call.caller_id,
-      calleeId: call.callee_id,
-      otherName: otherUser?.nickname || '',
-      otherAvatar: otherUser?.avatar || '',
-      callType: call.call_type,
-      status: call.status,
-      duration: call.duration,
-      isCompanionCall: call.is_companion_call === 1,
-      createTime: call.create_time,
-      connectTime: call.connect_time
+      total: count,
+      list: records
     };
-  }));
-  
-  return {
-    total: count,
-    list: records
-  };
+  } catch (error) {
+    return { total: 0, list: [] };
+  }
 };
 
 module.exports = {

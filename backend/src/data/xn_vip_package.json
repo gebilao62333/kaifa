@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "name": "VIP月卡",
+    "price": 18,
+    "original_price": 30,
+    "duration": 30,
+    "level": 1,
+    "hot": 1,
+    "sort": 1,
+    "status": 1,
+    "create_time": 1780992502
+  },
+  {
+    "id": 2,
+    "name": "VIP季卡",
+    "price": 48,
+    "original_price": 90,
+    "duration": 90,
+    "level": 1,
+    "hot": 0,
+    "sort": 2,
+    "status": 1,
+    "create_time": 1780992502
+  },
+  {
+    "id": 3,
+    "name": "VIP年卡",
+    "price": 128,
+    "original_price": 360,
+    "duration": 365,
+    "level": 2,
+    "hot": 1,
+    "sort": 3,
+    "status": 1,
+    "create_time": 1780992502
+  }
+]

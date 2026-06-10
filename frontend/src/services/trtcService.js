@@ -6,7 +6,7 @@ export const trtcService = {
   },
 
   async startCall(calleeId, callType = 1, isCompanionCall = false, orderId = 0) {
-    return request('/api/trtc/start-call', 'POST', {
+    return request('/api/trtc/start', 'POST', {
       calleeId,
       callType,
       isCompanionCall,
@@ -15,23 +15,23 @@ export const trtcService = {
   },
 
   async cancelCall(callId) {
-    return request('/api/trtc/cancel-call', 'POST', { callId })
+    return request('/api/trtc/cancel', 'POST', { callId })
   },
 
   async rejectCall(callId) {
-    return request('/api/trtc/reject-call', 'POST', { callId })
+    return request('/api/trtc/reject', 'POST', { callId })
   },
 
   async acceptCall(callId) {
-    return request('/api/trtc/accept-call', 'POST', { callId })
+    return request('/api/trtc/accept', 'POST', { callId })
   },
 
   async endCall(callId) {
-    return request('/api/trtc/end-call', 'POST', { callId })
+    return request('/api/trtc/end', 'POST', { callId })
   },
 
   async getCallHistory(page = 1, pageSize = 20) {
-    return request('/api/trtc/call-history', 'GET', { page, pageSize })
+    return request('/api/trtc/history', 'GET', { page, pageSize })
   }
 }
 

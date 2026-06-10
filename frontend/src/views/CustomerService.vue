@@ -77,14 +77,12 @@ const loadCustomerServices = async () => {
     const res = await customerServiceApi.getList({ status: 1 })
     if (res.code === 200 && res.data) {
       agentList.value = res.data
-    } else {
-      console.error('获取客服列表失败:', res.message)
+      return
     }
-  } catch (error) {
-    console.error('获取客服列表失败:', error)
-  } finally {
-    loading.value = false
+  } catch (_) {
+    console.warn('加载客服列表失败')
   }
+  loading.value = false
 }
 
 const faqList = ref([
@@ -144,7 +142,7 @@ const callPhone = () => {
   background-color: var(--bg-secondary);
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
-  padding-top: 82px;
+  padding-top: 70px;
 }
 
 .header {
@@ -160,6 +158,7 @@ const callPhone = () => {
   transform: translateX(-50%);
   width: 100%;
   max-width: 650px;
+  box-sizing: border-box;
   z-index: 100;
 }
 

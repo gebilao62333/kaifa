@@ -303,6 +303,10 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
     if (response.status === 401) {
       localStorage.removeItem('token')
       localStorage.removeItem('pinia-app-state')
+      if (!isRedirecting) {
+        isRedirecting = true
+        window.location.href = '/login'
+      }
       throw new RequestError('登录失效，请重新登录', -1, 401)
     }
 

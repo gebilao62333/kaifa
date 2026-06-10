@@ -125,7 +125,7 @@ test_api "举报管理" "获取举报列表" "GET" "${BASE_URL}/reports" "?page=
 test_api "举报管理" "获取举报统计" "GET" "${BASE_URL}/reports/stats" "" "true"
 test_api "举报管理" "获取举报详情" "GET" "${BASE_URL}/reports/1" "" "true"
 test_api "举报管理" "处理举报" "POST" "${BASE_URL}/reports/1/handle" '{"result":"已处理","action":"warn"}' "true"
-test_api "举报管理" "批量处理举报" "POST" "${BASE_URL}/reports/batch-handle" '{"ids":[1,2],"result":"已处理"}' "true"
+test_api "举报管理" "批量处理举报" "POST" "${BASE_URL}/reports/batch-handle" '{"ids":[1,2],"result":"已处理","action":"resolved"}' "true"
 
 # =============== 8. Banner管理 ===============
 echo -e "\n${YELLOW}========== Banner管理模块 ==========${NC}"
@@ -147,7 +147,7 @@ test_api "VIP套餐" "更新VIP套餐状态" "PUT" "${BASE_URL}/vip-packages/1/s
 echo -e "\n${YELLOW}========== 礼物管理模块 ==========${NC}"
 test_api "礼物管理" "获取礼物列表" "GET" "${BASE_URL}/gifts" "?page=1&pageSize=10" "true"
 test_api "礼物管理" "获取礼物详情" "GET" "${BASE_URL}/gifts/1" "" "true"
-test_api "礼物管理" "创建礼物" "POST" "${BASE_URL}/gifts" '{"title":"测试礼物","price":10,"image":"https://example.com/gift.png"}' "true"
+test_api "礼物管理" "创建礼物" "POST" "${BASE_URL}/gifts" '{"title":"测试礼物","money":10,"image":"https://example.com/gift.png"}' "true"
 test_api "礼物管理" "更新礼物" "PUT" "${BASE_URL}/gifts/1" '{"title":"更新后礼物","price":20}' "true"
 test_api "礼物管理" "删除礼物" "DELETE" "${BASE_URL}/gifts/1" "" "true"
 
@@ -166,7 +166,7 @@ echo -e "\n${YELLOW}========== 密卡管理模块 ==========${NC}"
 test_api "密卡管理" "获取密卡统计" "GET" "${BASE_URL}/cards/stats" "" "true"
 test_api "密卡管理" "获取密卡列表" "GET" "${BASE_URL}/cards" "?page=1&pageSize=10" "true"
 test_api "密卡管理" "获取密卡详情" "GET" "${BASE_URL}/cards/1" "" "true"
-test_api "密卡管理" "创建密卡" "POST" "${BASE_URL}/cards" '{"card_no":"TEST001","card_pwd":"PWD001","face_value":100,"coin_amount":1000}' "true"
+test_api "密卡管理" "创建密卡" "POST" "${BASE_URL}/cards" '{"card_no":"TEST001","card_pwd":"PWD001","faceValue":100,"coinAmount":1000}' "true"
 test_api "密卡管理" "批量更新密卡状态" "POST" "${BASE_URL}/cards/batch-status" '{"ids":[1,2,3],"status":1}' "true"
 test_api "密卡管理" "导入密卡" "POST" "${BASE_URL}/cards/import" '{"cards":[{"card_no":"IMP001","card_pwd":"IMPPWD","face_value":50}]}' "true"
 
@@ -189,7 +189,7 @@ test_api "陪玩师申请" "审核拒绝" "PUT" "${BASE_URL}/companion-applicati
 echo -e "\n${YELLOW}========== 虚拟用户管理模块 ==========${NC}"
 test_api "虚拟用户" "获取虚拟用户列表" "GET" "${BASE_URL}/virtual-users" "?page=1&pageSize=10" "true"
 test_api "虚拟用户" "获取虚拟用户详情" "GET" "${BASE_URL}/virtual-users/1" "" "true"
-test_api "虚拟用户" "创建虚拟用户" "POST" "${BASE_URL}/virtual-users" '{"name":"测试虚拟用户","avatar":"https://example.com/avatar.png","gender":1}' "true"
+test_api "虚拟用户" "创建虚拟用户" "POST" "${BASE_URL}/virtual-users" '{"username":"test_virtual","nickname":"测试虚拟用户","avatar":"https://example.com/avatar.png"}' "true"
 test_api "虚拟用户" "获取虚拟用户聊天历史" "GET" "${BASE_URL}/virtual-users/1/chat-history" "" "true"
 test_api "虚拟用户" "切换虚拟用户状态" "PUT" "${BASE_URL}/virtual-users/1/status" '{}' "true"
 test_api "虚拟用户" "删除虚拟用户" "DELETE" "${BASE_URL}/virtual-users/1" "" "true"
@@ -198,7 +198,7 @@ test_api "虚拟用户" "删除虚拟用户" "DELETE" "${BASE_URL}/virtual-users
 echo -e "\n${YELLOW}========== 推荐管理模块 ==========${NC}"
 test_api "推荐管理" "获取推荐候选人" "GET" "${BASE_URL}/recommend-candidates" "?type=home" "true"
 test_api "推荐管理" "获取推荐列表" "GET" "${BASE_URL}/recommend-list/home" "" "true"
-test_api "推荐管理" "添加推荐" "POST" "${BASE_URL}/recommend" '{"user_id":1,"recommend_type":"home"}' "true"
+test_api "推荐管理" "添加推荐" "POST" "${BASE_URL}/recommend" '{"userId":1,"recommendType":"home"}' "true"
 test_api "推荐管理" "检查过期推荐" "POST" "${BASE_URL}/recommend/check-expired" '{}' "true"
 
 # =============== 18. 客服管理 ===============
@@ -231,9 +231,7 @@ test_api "兼容性API" "更新用户状态(旧)" "POST" "${BASE_URL}/update-use
 # =============== 22. 安全性测试 ===============
 echo -e "\n${YELLOW}========== 安全性测试模块 ==========${NC}"
 # 无Token访问
-test_api "安全性" "无Token访问(应失败)" "GET" "${BASE_URL}/users" ""
-TOTAL=$((TOTAL-1))  # 修正: 上面的test_api没有传AUTH，但不增加计数
-
+# 注意: test_api会传入AUTH header，所以无Token测试需手动curl
 NO_AUTH_RES=$(curl -s "${BASE_URL}/users")
 NO_AUTH_CODE=$(echo "$NO_AUTH_RES" | python3 -c "import sys,json; print(json.load(sys.stdin).get('code',-1))" 2>/dev/null)
 TOTAL=$((TOTAL+1))
@@ -249,11 +247,22 @@ fi
 test_api "安全性" "登录时空用户名(应失败)" "POST" "${BASE_URL}/login" '{"username":"","password":""}' "false"
 
 # 文件上传
-test_api "安全性" "管理员文件上传(不传文件应失败)" "POST" "${BASE_URL}/upload" '{}' "true"
+test_api "安全性" "管理员文件上传(不传文件应失败)" "POST" "${BASE_URL}/upload" '{}' "false"
 
 # =============== 23. 非管理API - 通知 ===============
 echo -e "\n${YELLOW}========== 用户端通知API ==========${NC}"
-NOTI_RES=$(curl -s "http://localhost:3001/api/notification/" -H "$AUTH")
+# 获取普通用户Token（admin token在用户端API不适用）
+USER_LOGIN_RES=$(curl -s "http://localhost:3001/api/user/login" -X POST \
+  -H "Content-Type: application/json" \
+  -d '{"username":"user2","password":"123456"}')
+USER_TOKEN=$(echo "$USER_LOGIN_RES" | python3 -c "import sys,json; print(json.load(sys.stdin).get('data',{}).get('accessToken','') or json.load(sys.stdin).get('data',{}).get('token',''))" 2>/dev/null)
+if [ -n "$USER_TOKEN" ]; then
+  USER_AUTH="Authorization: Bearer ${USER_TOKEN}"
+  NOTI_RES=$(curl -s "http://localhost:3001/api/notification/" -H "$USER_AUTH")
+else
+  # 如果用户登录失败（Mock模式可能直接返回无验证登录），尝试无Token访问
+  NOTI_RES=$(curl -s "http://localhost:3001/api/notification/")
+fi
 NOTI_CODE=$(echo "$NOTI_RES" | python3 -c "import sys,json; print(json.load(sys.stdin).get('code',-1))" 2>/dev/null)
 TOTAL=$((TOTAL+1))
 if [ "$NOTI_CODE" == "200" ] || [ "$NOTI_CODE" == "0" ]; then

@@ -50,14 +50,22 @@
             <div class="modal-body">
               <div class="form-group">
                 <label class="form-label">手机号</label>
-                <input v-model="regPhone" type="text" class="form-input" placeholder="请输入手机号" />
+                <input v-model="regPhone" type="tel" class="form-input" placeholder="请输入手机号" maxlength="11" />
               </div>
               <div class="form-group">
                 <label class="form-label">验证码</label>
                 <div class="code-row">
-                  <input v-model="regCode" type="text" class="form-input" placeholder="请输入验证码" />
-                  <button class="code-btn" :disabled="codeSending" @click="sendCode">{{ codeSending ? '发送中' : '获取验证码' }}</button>
+                  <input v-model="regCode" type="text" class="form-input" placeholder="请输入验证码" maxlength="6" />
+                  <button class="code-btn" :disabled="codeSending || isCodeCooldown" @click="sendCode('register')">{{ isCodeCooldown ? `${codeCountdown}s` : '获取验证码' }}</button>
                 </div>
+                <div v-if="devCode" class="dev-code-notification">
+                  <span class="dev-code-icon">🔑</span>
+                  <span class="dev-code-text">您的验证码：<strong>{{ devCode }}</strong></span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">邀请码</label>
+                <input v-model="regInviteCode" type="text" class="form-input" placeholder="请输入邀请码（必填）" />
               </div>
               <div class="form-group">
                 <label class="form-label">设置密码</label>
@@ -79,13 +87,17 @@
             <div class="modal-body">
               <div class="form-group">
                 <label class="form-label">手机号</label>
-                <input v-model="forgotPhone" type="text" class="form-input" placeholder="请输入注册手机号" />
+                <input v-model="forgotPhone" type="tel" class="form-input" placeholder="请输入注册手机号" maxlength="11" />
               </div>
               <div class="form-group">
                 <label class="form-label">验证码</label>
                 <div class="code-row">
-                  <input v-model="forgotCode" type="text" class="form-input" placeholder="请输入验证码" />
-                  <button class="code-btn" :disabled="codeSending" @click="sendCode">{{ codeSending ? '发送中' : '获取验证码' }}</button>
+                  <input v-model="forgotCode" type="text" class="form-input" placeholder="请输入验证码" maxlength="6" />
+                  <button class="code-btn" :disabled="codeSending || isCodeCooldown" @click="sendCode('forgot')">{{ isCodeCooldown ? `${codeCountdown}s` : '获取验证码' }}</button>
+                </div>
+                <div v-if="devCode" class="dev-code-notification">
+                  <span class="dev-code-icon">🔑</span>
+                  <span class="dev-code-text">您的验证码：<strong>{{ devCode }}</strong></span>
                 </div>
               </div>
               <div class="form-group">
@@ -102,7 +114,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
@@ -119,10 +131,12 @@ const showForgot = ref(false)
 const regPhone = ref('')
 const regCode = ref('')
 const regPwd = ref('')
+const regInviteCode = ref('')
 const forgotPhone = ref('')
 const forgotCode = ref('')
 const forgotPwd = ref('')
 const codeSending = ref(false)
+const devCode = ref('')
 
 const handleFieldErrors = (error) => {
   if (error.fieldErrors && typeof error.fieldErrors === 'object') {
@@ -179,11 +193,9 @@ const handleLogin = async () => {
           const decoded = decodeURIComponent(redirect)
           const validRoutes = router.getRoutes().map(r => r.path)
           if (!validRoutes.includes(decoded)) {
-            console.warn('无效的重定向路径:', decoded, '，将跳转到首页')
             redirect = '/home'
           }
         } catch (e) {
-          console.warn('重定向路径解码失败:', redirect, '，将跳转到首页')
           redirect = '/home'
         }
       }
@@ -191,9 +203,7 @@ const handleLogin = async () => {
       setTimeout(async () => {
         try {
           await router.push(redirect)
-          console.log('跳转成功:', redirect)
         } catch (error) {
-          console.error('跳转失败:', error)
           await router.push('/home')
         }
       }, 500)
@@ -221,8 +231,22 @@ const handleLogin = async () => {
   }
 }
 
-const sendCode = async () => {
-  const phone = showRegister.value ? regPhone.value : forgotPhone.value
+const codeCountdown = ref(0)
+const isCodeCooldown = computed(() => codeCountdown.value > 0)
+
+const startCountdown = () => {
+  codeCountdown.value = 60
+  const timer = setInterval(() => {
+    codeCountdown.value--
+    if (codeCountdown.value <= 0) {
+      clearInterval(timer)
+      codeSending.value = false
+    }
+  }, 1000)
+}
+
+const sendCode = async (type) => {
+  const phone = type === 'register' ? regPhone.value : forgotPhone.value
   
   if (!phone) {
     toast.warning('请输入手机号')
@@ -235,22 +259,38 @@ const sendCode = async () => {
   }
 
   codeSending.value = true
+  devCode.value = ''
   
   try {
-    const type = showRegister.value ? 'register' : 'reset'
-    const result = await userStore.sendSms(phone, type)
+    const configResult = await userStore.checkSmsConfig()
+    
+    if (!configResult.smsConfigured) {
+      const code = Math.random().toString().substr(2, 6)
+      devCode.value = code
+      if (type === 'register') {
+        regCode.value = code
+      } else {
+        forgotCode.value = code
+      }
+      startCountdown()
+      return
+    }
+    
+    const apiType = type === 'register' ? 'register' : 'reset'
+    const result = await userStore.sendSms(phone, apiType)
     
     if (result.success) {
-      toast.success('验证码已发送')
-      
-      let countdown = 60
-      const timer = setInterval(() => {
-        countdown--
-        if (countdown <= 0) {
-          clearInterval(timer)
-          codeSending.value = false
+      if (result.code) {
+        devCode.value = result.code
+        if (type === 'register') {
+          regCode.value = result.code
+        } else {
+          forgotCode.value = result.code
         }
-      }, 1000)
+      } else {
+        toast.success('验证码已发送')
+      }
+      startCountdown()
     } else {
       toast.error(result.message || '发送失败')
       codeSending.value = false
@@ -265,6 +305,11 @@ const sendCode = async () => {
 const handleRegister = async () => {
   if (!regPhone.value || !regCode.value || !regPwd.value) {
     toast.warning('请填写完整信息')
+    return
+  }
+  
+  if (!regInviteCode.value.trim()) {
+    toast.warning('请输入邀请码')
     return
   }
   
@@ -284,7 +329,7 @@ const handleRegister = async () => {
   }
 
   try {
-    const result = await userStore.register(regPhone.value, regPwd.value, regCode.value)
+    const result = await userStore.register(regPhone.value, regPwd.value, regCode.value, regInviteCode.value.trim())
     
     if (result.success) {
       toast.success('注册成功')
@@ -350,10 +395,10 @@ const handleResetPwd = async () => {
 
 .login-container {
   width: 100%;
-  max-width: 360px;
+  max-width: 560px;
   background-color: var(--bg-primary);
-  border-radius: 10px;
-  padding: 40px 30px;
+  border-radius: 16px;
+  padding: 48px 40px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   box-sizing: border-box;
 }
@@ -400,10 +445,10 @@ const handleResetPwd = async () => {
 
 .form-input {
   width: 100%;
-  height: 48px;
-  padding: 0 15px;
+  height: 52px;
+  padding: 0 16px;
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 15px;
   color: var(--text-primary);
   transition: all 0.3s;
@@ -423,12 +468,12 @@ const handleResetPwd = async () => {
 
 .login-btn {
   width: 100%;
-  height: 50px;
+  height: 54px;
   background: var(--gradient-primary);
   color: #fff;
   border: none;
-  border-radius: 12px;
-  font-size: 16px;
+  border-radius: 14px;
+  font-size: 17px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -483,7 +528,7 @@ const handleResetPwd = async () => {
   background: var(--bg-primary);
   border-radius: 20px;
   width: 100%;
-  max-width: 380px;
+  max-width: 520px;
   overflow: hidden;
   box-shadow: var(--shadow-heavy);
 }
@@ -537,12 +582,12 @@ const handleResetPwd = async () => {
 
 .code-btn {
   flex-shrink: 0;
-  height: 48px;
-  padding: 0 16px;
+  height: 52px;
+  padding: 0 20px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--text-secondary);
   cursor: pointer;
   white-space: nowrap;
@@ -560,12 +605,12 @@ const handleResetPwd = async () => {
 
 .submit-btn {
   width: 100%;
-  height: 48px;
+  height: 52px;
   background: var(--gradient-primary);
   color: #fff;
   border: none;
-  border-radius: 12px;
-  font-size: 16px;
+  border-radius: 14px;
+  font-size: 17px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
@@ -577,6 +622,7 @@ const handleResetPwd = async () => {
   box-shadow: 0 4px 15px rgba(255, 107, 129, 0.3);
 }
 
+/* 模态框过渡动画 */
 .modal-enter-active,
 .modal-leave-active {
   transition: opacity 0.25s ease;
@@ -592,15 +638,50 @@ const handleResetPwd = async () => {
   opacity: 0;
 }
 
-/* PC端登录页面优化 */
+.modal-enter-from .modal-box {
+  transform: scale(0.9);
+}
+
+.modal-leave-to .modal-box {
+  transform: scale(0.9);
+}
+
+/* 开发验证码提示 */
+.dev-code-notification {
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #795548;
+  line-height: 1.5;
+}
+
+.dev-code-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.dev-code-text strong {
+  font-size: 16px;
+  color: #e65100;
+  letter-spacing: 2px;
+  user-select: all;
+}
+
+/* PC端响应式 */
 @media (min-width: 768px) {
   .login-page {
     padding: 40px 20px;
   }
   
   .login-container {
-    max-width: 400px;
-    padding: 36px 32px;
+    max-width: 600px;
+    padding: 52px 48px;
     border-radius: 24px;
   }
   
@@ -633,15 +714,7 @@ const handleResetPwd = async () => {
   }
   
   .modal-box {
-    max-width: 400px;
+    max-width: 460px;
   }
-}
-
-.modal-enter-from .modal-box {
-  transform: scale(0.9);
-}
-
-.modal-leave-to .modal-box {
-  transform: scale(0.9);
 }
 </style>

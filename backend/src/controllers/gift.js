@@ -1,4 +1,5 @@
 const { giftService } = require('../services');
+const { Withdraw } = require('../models');
 const logger = require('../utils/logger');
 const response = require('../utils/response');
 
@@ -64,93 +65,56 @@ const withdraw = async (req, res) => {
   }
 };
 
+const getWithdrawConfig = async (req, res) => {
+  try {
+    const config = require('../config');
+    response.success(res, {
+      minWithdrawAmount: config.platform?.withdrawMinAmount || 10,
+      withdrawFeeRate: config.platform?.withdrawFeeRate || 0.01,
+      minAmount: config.platform?.withdrawMinAmount || 10,
+      feeRate: config.platform?.withdrawFeeRate || 0.01
+    });
+  } catch (error) {
+    logger.error('获取提现配置错误:', error);
+    response.error(res, '操作失败');
+  }
+};
+
 const getWithdrawList = async (req, res) => {
   try {
     const { isCheck, page, pageSize } = req.query;
     
-    const mockWithdraws = [
-      {
-        id: 1,
-        user_id: 1001,
-        nickname: '张三',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=1001',
-        amount: 100,
-        type: 1,
-        account: 'zhangsan@alipay.com',
-        real_name: '张三',
-        status: 0,
-        is_check: 0,
-        create_time: '2024-01-01 10:00:00'
-      },
-      {
-        id: 2,
-        user_id: 1002,
-        nickname: '李四',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=1002',
-        amount: 200,
-        type: 2,
-        account: 'lisi@wechat.com',
-        real_name: '李四',
-        status: 1,
-        is_check: 1,
-        create_time: '2024-01-01 11:00:00'
-      },
-      {
-        id: 3,
-        user_id: 1003,
-        nickname: '王五',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=1003',
-        amount: 150,
-        type: 3,
-        account: '****1234',
-        real_name: '王五',
-        status: 2,
-        is_check: 2,
-        create_time: '2024-01-01 12:00:00'
-      },
-      {
-        id: 4,
-        user_id: 1004,
-        nickname: '赵六',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=1004',
-        amount: 300,
-        type: 1,
-        account: 'zhaoliu@alipay.com',
-        real_name: '赵六',
-        status: 0,
-        is_check: 0,
-        create_time: '2024-01-01 13:00:00'
-      },
-      {
-        id: 5,
-        user_id: 1005,
-        nickname: '孙七',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=1005',
-        amount: 500,
-        type: 2,
-        account: 'sunqi@wechat.com',
-        real_name: '孙七',
-        status: 1,
-        is_check: 1,
-        create_time: '2024-01-01 14:00:00'
-      }
-    ];
-    
-    let filtered = [...mockWithdraws];
-    
-    if (isCheck !== undefined) {
-      filtered = filtered.filter(w => w.is_check === parseInt(isCheck));
+    const where = {};
+    if (isCheck !== undefined && isCheck !== '') {
+      where.is_check = parseInt(isCheck);
     }
     
-    const total = filtered.length;
+    const result = await Withdraw.findAndCountAll({
+      where,
+      order: [['create_time', 'DESC']],
+      limit: parseInt(pageSize) || 20,
+      offset: ((parseInt(page) || 1) - 1) * (parseInt(pageSize) || 20)
+    });
+    
     const pageNum = parseInt(page) || 1;
     const size = parseInt(pageSize) || 20;
-    const start = (pageNum - 1) * size;
-    const end = start + size;
-    const list = filtered.slice(start, end);
+    const list = result.rows || [];
+    const total = result.count || 0;
     
     response.success(res, {
-      list,
+      list: list.map(w => ({
+        id: w.id,
+        user_id: w.user_id,
+        nickname: w.nickname || '',
+        avatar: w.avatar || '',
+        amount: w.amount,
+        type: w.type,
+        account: w.account || '',
+        real_name: w.real_name || '',
+        status: w.status,
+        is_check: w.is_check,
+        create_time: w.create_time
+      })),
       pagination: {
         page: pageNum,
         pageSize: size,
@@ -255,6 +219,7 @@ module.exports = {
   getGiftList,
   sendGift,
   getGiftBag,
+  getWithdrawConfig,
   withdraw,
   getWithdrawList,
   approveWithdraw,

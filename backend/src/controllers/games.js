@@ -185,6 +185,33 @@ const getApplyStatus = async (req, res) => {
   }
 };
 
+const evaluateOrder = async (req, res) => {
+  try {
+    const { orderId, rating, comment = '' } = req.body;
+    
+    if (!orderId || !rating) {
+      return response.badRequest(res, '订单ID和评分不能为空');
+    }
+    
+    const { Order } = require('../models');
+    const order = await Order.findByPk(parseInt(orderId));
+    if (!order) {
+      return response.badRequest(res, '订单不存在');
+    }
+    
+    await order.update({
+      rating: parseInt(rating),
+      comment: comment || '',
+      evaluation_time: Math.floor(Date.now() / 1000)
+    });
+    
+    response.success(res, { orderId, rating, comment }, '评价成功');
+  } catch (error) {
+    logger.error('评价订单错误:', error);
+    response.unprocessableEntity(res, '参数验证失败');
+  }
+};
+
 // 公共：获取首页推荐（仅返回进行中且未过期的用户）
 const getPublicRecommendHome = async (req, res) => {
   try {
@@ -265,6 +292,7 @@ module.exports = {
   getOrders,
   applyAsCompanion,
   getApplyStatus,
+  evaluateOrder,
   getPublicRecommendHome,
   getPublicRecommendSquare
 };

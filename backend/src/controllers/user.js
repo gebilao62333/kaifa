@@ -2,6 +2,7 @@ const { authService, smsService } = require('../services');
 const logger = require('../utils/logger');
 const response = require('../utils/response');
 const { generateToken } = require('../config/jwt');
+const config = require('../config');
 
 const login = async (req, res) => {
   try {
@@ -117,12 +118,23 @@ const sendSms = async (req, res) => {
       return response.badRequest(res, '请输入正确的手机号');
     }
     
-    await smsService.sendSMS(mobile);
-    response.success(res, {}, '发送成功');
+    const result = await smsService.sendSMS(mobile);
+    response.success(res, result, '发送成功');
   } catch (error) {
     logger.error('发送验证码错误:', error);
     logger.error('参数验证失败:', error);
     response.unprocessableEntity(res, '参数验证失败');
+  }
+};
+
+const checkSmsConfig = async (req, res) => {
+  try {
+    const smsConfigured = config.nodeEnv === 'production' && !!config.sms.appId;
+    const thirdPartyLoginEnabled = config.thirdPartyLoginEnabled !== false;
+    response.success(res, { smsConfigured, thirdPartyLoginEnabled }, '获取成功');
+  } catch (error) {
+    logger.error('检查短信配置错误:', error);
+    response.error(res, '获取短信配置失败');
   }
 };
 
@@ -145,6 +157,11 @@ const loginMobile = async (req, res) => {
 
 const loginThird = async (req, res) => {
   try {
+    // 检查第三方登录功能是否启用
+    if (config.thirdPartyLoginEnabled === false) {
+      return response.forbidden(res, '第三方登录功能已关闭');
+    }
+    
     const { type, code, encryptedData, iv } = req.body;
     
     if (!type || !code) {
@@ -287,6 +304,7 @@ module.exports = {
   getUserInfo,
   updateUserInfo,
   sendSms,
+  checkSmsConfig,
   loginMobile,
   loginThird,
   follow,

@@ -1,6 +1,6 @@
 const { User, Gift, GiftLog, GiftBag, RedPacket, RedPacketLog, Withdraw } = require('../models');
 const { getTimestamp, generatePacketNo } = require('../utils/helper');
-const { CURRENCY_UNIT, WITHDRAW_FEE_RATE, calculateWithdrawFee } = require('../utils/currency');
+const { CURRENCY_UNIT, calculateWithdrawFee } = require('../utils/currency');
 const { Op } = require('sequelize');
 const sequelize = require('../config/mysql');
 
@@ -33,7 +33,7 @@ const sendGift = async (senderId, receiverId, giftId, roomId = 0) => {
       transaction
     });
     
-    const commission = totalCost * 0.7;
+    const commission = totalCost * (require('../config').platform.commissionRate || 0.7);
     
     await User.increment('money', {
       by: commission,
@@ -407,6 +407,12 @@ const receiveRedPacket = async (userId, packetNo) => {
       transaction
     });
     
+    await User.increment('gift_money', {
+      by: amount,
+      where: { id: userId },
+      transaction
+    });
+    
     if (packet.remain_num <= 1) {
       await packet.update({
         remain_num: 0,
@@ -430,54 +436,57 @@ const receiveRedPacket = async (userId, packetNo) => {
 };
 
 const getRedPacketHistory = async (userId, type = 'all') => {
-  const results = [];
-  
-  if (type === 'all' || type === 'sent') {
-    const sentPackets = await RedPacket.findAll({
-      where: { sender_id: userId },
-      order: [['create_time', 'DESC']],
-      limit: 50
-    });
+  try {
+    const results = [];
     
-    results.push(...sentPackets.map(packet => ({
-      id: packet.id,
-      type: 'sent',
-      packetNo: packet.packet_no,
-      amount: Number(packet.total_amount),
-      count: packet.total_num,
-      packetType: packet.type === 1 ? 'lucky' : 'normal',
-      status: packet.status,
-      desc: `发送了${packet.type === 1 ? '拼手气' : '普通'}红包 x${packet.total_num}`,
-      createTime: packet.create_time
-    })));
-  }
-  
-  if (type === 'all' || type === 'received') {
-    const receivedLogs = await RedPacketLog.findAll({
-      where: { user_id: userId },
-      order: [['create_time', 'DESC']],
-      limit: 50
-    });
-    
-    for (const log of receivedLogs) {
-      const packet = await RedPacket.findByPk(log.packet_id);
-      results.push({
-        id: log.id,
-        type: 'received',
-        packetNo: packet?.packet_no || '',
-        amount: Number(log.amount),
-        count: 1,
-        packetType: packet?.type === 1 ? 'lucky' : 'normal',
-        status: 1,
-        desc: `领取了红包`,
-        createTime: log.create_time
+    if (type === 'all' || type === 'sent') {
+      const sentPackets = await RedPacket.findAll({
+        where: { sender_id: userId },
+        order: [['create_time', 'DESC']],
+        limit: 50
       });
+      
+      results.push(...sentPackets.map(packet => ({
+        id: packet.id,
+        type: 'sent',
+        packetNo: packet.packet_no,
+        amount: Number(packet.total_amount),
+        count: packet.total_num,
+        packetType: packet.type === 1 ? 'lucky' : 'normal',
+        status: packet.status,
+        desc: `发送了${packet.type === 1 ? '拼手气' : '普通'}红包 x${packet.total_num}`,
+        createTime: packet.create_time
+      })));
     }
+    
+    if (type === 'all' || type === 'received') {
+      const receivedLogs = await RedPacketLog.findAll({
+        where: { user_id: userId },
+        order: [['create_time', 'DESC']],
+        limit: 50
+      });
+      
+      for (const log of receivedLogs) {
+        const packet = await RedPacket.findByPk(log.packet_id);
+        results.push({
+          id: log.id,
+          type: 'received',
+          packetNo: packet?.packet_no || '',
+          amount: Number(log.amount),
+          count: 1,
+          packetType: packet?.type === 1 ? 'lucky' : 'normal',
+          status: 1,
+          desc: `领取了红包`,
+          createTime: log.create_time
+        });
+      }
+    }
+    
+    results.sort((a, b) => b.createTime - a.createTime);
+    return results.slice(0, 50);
+  } catch (error) {
+    return [];
   }
-  
-  results.sort((a, b) => b.createTime - a.createTime);
-  
-  return results.slice(0, 50);
 };
 
 module.exports = {

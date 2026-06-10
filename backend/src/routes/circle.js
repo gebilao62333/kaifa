@@ -26,6 +26,9 @@ router.get('/comments', circleController.getComments);
 router.post('/create', authMiddleware, circleController.createPost);
 router.post('/unlock', authMiddleware, circleController.unlockPost);
 router.post('/like', authMiddleware, circleController.likePost);
+router.post('/unlike', authMiddleware, circleController.unlikePost);
+router.post('/delete', authMiddleware, circleController.deletePost);
+router.post('/share', authMiddleware, circleController.sharePost);
 router.post('/comment', authMiddleware, circleController.commentPost);
 
 module.exports = router;

@@ -13,7 +13,8 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 
 const config = require('./src/config');
-const { xssProtection } = require('./src/middlewares');
+const { xssProtection, csrfProtection } = require('./src/middlewares');
+const { versionMiddleware } = require('./src/middlewares/version');
 
 console.log('🚀 正在启动多客陪玩后端服务...\n');
 
@@ -64,6 +65,25 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(xssProtection);
 
+// CSRF 防护 — 排除不需要认证的公开接口（登录/初始化/刷新令牌）
+const CSRF_WHITELIST = [
+  '/api/admin-manage/login',
+  '/api/admin-manage/init',
+  '/api/admin-manage/refresh-token',
+  '/api/admin/login'
+];
+
+app.use((req, res, next) => {
+  // 开发环境跳过
+  if (config.nodeEnv === 'development') return next();
+  // 白名单内的公开接口不需要 CSRF token
+  if (CSRF_WHITELIST.some(p => req.path === p || req.path.startsWith(p + '?'))) return next();
+  return csrfProtection(req, res, next);
+});
+
+// API 版本控制 — 全局启用
+app.use('/api', versionMiddleware);
+
 app.use('/public', express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
@@ -80,49 +100,36 @@ app.use((req, res, next) => {
 
 // 健康检查
 app.get('/api/health', (req, res) => {
-  res.json({
-    code: 200,
-    message: 'OK',
-    data: {
-      status: 'healthy',
-      timestamp: Date.now(),
-      service: 'duoke-peer-backend',
-      version: '3.0.0',
-      mode: config.useMockDb ? 'mock' : 'production'
-    }
-  });
+  const response = require('./src/utils/response');
+  response.success(res, {
+    status: 'healthy',
+    timestamp: Date.now(),
+    service: 'duoke-peer-backend',
+    version: '3.0.0',
+    mode: 'local'
+  }, 'OK');
 });
 
 // 数据库健康检查
 app.get('/api/health/db', async (req, res) => {
+  const response = require('./src/utils/response');
   try {
     const dbHealthChecker = require('./src/utils/dbHealthChecker');
     const health = await dbHealthChecker.checkAllHealth();
-    res.json({
-      code: 200,
-      message: health.overall === 'healthy' ? '所有数据库连接正常' : '部分数据库连接异常',
-      data: health
-    });
+    response.success(res, health, health.overall === 'healthy' ? '所有数据库连接正常' : '部分数据库连接异常');
   } catch (error) {
-    res.status(500).json({
-      code: 500,
-      message: '健康检查失败',
-      data: { error: error.message }
-    });
+    response.error(res, '健康检查失败');
   }
 });
 
 // 简单的测试路由
 app.get('/api/test', (req, res) => {
-  res.json({
-    code: 200,
-    message: 'API测试成功',
-    data: {
-      service: '多客陪玩',
-      features: ['聊天', '礼物', '游戏陪玩', '派对', '社交圈子'],
-      mode: config.useMockDb ? 'mock' : 'production'
-    }
-  });
+  const response = require('./src/utils/response');
+  response.success(res, {
+    service: '多客陪玩',
+    features: ['聊天', '礼物', '游戏陪玩', '派对', '社交圈子'],
+    mode: 'local'
+  }, 'API测试成功');
 });
 
 // Swagger API文档
@@ -147,10 +154,8 @@ try {
 
 // 404 处理
 app.use((req, res) => {
-  res.status(404).json({
-    code: 404,
-    message: '接口不存在'
-  });
+  const response = require('./src/utils/response');
+  response.notFound(res, '接口不存在');
 });
 
 // 错误处理
@@ -161,10 +166,8 @@ app.use((err, req, res, next) => {
   } else {
     console.error('❌ 服务器错误:', err);
   }
-  res.status(err.status || 500).json({
-    code: err.status || 500,
-    message: process.env.NODE_ENV === 'production' ? '服务器内部错误' : errMessage
-  });
+  const response = require('./src/utils/response');
+  response.error(res, process.env.NODE_ENV === 'production' ? '服务器内部错误' : errMessage);
 });
 
 // Socket.IO 处理
@@ -209,15 +212,13 @@ const startServer = async () => {
       allConnected = false;
     }
     
-    // 直接初始化数据（不自动同步表结构，避免外键问题）
-    if (!config.useMockDb) {
-      try {
-        const { initializeDatabase } = require('./src/utils/dbInitializer');
-        await initializeDatabase();
-      } catch (dataInitError) {
-        console.warn('⚠️ 数据初始化失败:', dataInitError.message);
-        console.log('💡 服务将继续运行，默认数据可能缺失');
-      }
+    // 初始化数据（本地数据源模式）
+    try {
+      const { initializeDatabase } = require('./src/utils/dbInitializer');
+      await initializeDatabase();
+    } catch (dataInitError) {
+      console.warn('⚠️ 数据初始化失败:', dataInitError.message);
+      console.log('💡 服务将继续运行，默认数据可能缺失');
     }
     
     const net = require('net');
@@ -265,7 +266,7 @@ const startServer = async () => {
       console.log(`🔍 数据库状态: http://localhost:${finalPort}/api/health/db`);
       console.log(`🧪 API测试: http://localhost:${finalPort}/api/test`);
       console.log(`📖 环境: ${config.nodeEnv}`);
-      console.log(`⚡ 模式: ${config.useMockDb ? 'Mock (开发)' : 'Production (生产)'}`);
+      console.log(`⚡ 模式: Local (本地数据源)`);
       console.log(`⚡ Socket.IO 已启用`);
       console.log(`📊 数据库连接: ${allConnected ? '全部正常' : '部分异常'}`);
       console.log(`🔑 默认管理员账号: admin / admin123`);
@@ -314,6 +315,10 @@ process.on('unhandledRejection', (reason, promise) => {
     logger.error(msg, reason);
   } else {
     console.error(`❌ ${msg}:`, reason);
+  }
+  // 记录详细错误堆栈
+  if (reason && reason.stack) {
+    console.error(reason.stack);
   }
 });
 

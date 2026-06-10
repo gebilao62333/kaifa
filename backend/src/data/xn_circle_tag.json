@@ -1,0 +1,272 @@
+[
+  {
+    "id": 1,
+    "name": "游戏",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 2,
+    "name": "闲聊",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 3,
+    "name": "技术",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 4,
+    "name": "娱乐",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 5,
+    "name": "情感",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 6,
+    "name": "音乐",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 7,
+    "name": "电影",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 8,
+    "name": "美食",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 9,
+    "name": "旅行",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 10,
+    "name": "宠物",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 11,
+    "name": "运动",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 12,
+    "name": "动漫",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 13,
+    "name": "阅读",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 14,
+    "name": "摄影",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 15,
+    "name": "穿搭",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 16,
+    "name": "美妆",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 17,
+    "name": "健身",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 18,
+    "name": "学习",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 19,
+    "name": "职场",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 20,
+    "name": "校园",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 21,
+    "name": "亲子",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 22,
+    "name": "居家",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 23,
+    "name": "搞笑",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 24,
+    "name": "才艺",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 25,
+    "name": "交友",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 26,
+    "name": "星座",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 27,
+    "name": "数码",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 28,
+    "name": "汽车",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 29,
+    "name": "财经",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  },
+  {
+    "id": 30,
+    "name": "公益",
+    "icon": null,
+    "sortOrder": 0,
+    "status": 1,
+    "createTime": 0,
+    "updateTime": 0
+  }
+]

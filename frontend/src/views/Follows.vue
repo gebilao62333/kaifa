@@ -107,7 +107,7 @@ const viewProfile = (user) => {
   background-color: var(--bg-secondary);
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
-  padding-top: 82px;
+  padding-top: 70px;
 }
 
 .header {
@@ -124,6 +124,7 @@ const viewProfile = (user) => {
   width: 100%;
   max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .back-btn,

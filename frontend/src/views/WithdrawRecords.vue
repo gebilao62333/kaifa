@@ -76,7 +76,7 @@ const goBack = () => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: var(--bg-secondary);
-  padding-top: 82px;
+  padding-top: 70px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -95,6 +95,7 @@ const goBack = () => {
   width: 100%;
   max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .back-btn {
@@ -260,7 +261,7 @@ const goBack = () => {
 }
 
 @media (min-width: 768px) {
-  .withdraw-records-page {
+  .records-page {
     max-width: 650px;
     margin: 0 auto;
   }
@@ -271,7 +272,7 @@ const goBack = () => {
   }
 }
 @media (min-width: 1024px) {
-  .withdraw-records-page {
+  .records-page {
     max-width: 720px;
   }
   .header {

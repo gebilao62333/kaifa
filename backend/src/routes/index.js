@@ -19,15 +19,13 @@ const setupRoutes = (app) => {
 
   const basicRouter = express.Router();
 
+  const response = require('../utils/response');
+
   basicRouter.get('/health', (req, res) => {
-    res.json({
-      code: 200,
-      message: 'OK',
-      data: {
-        status: 'healthy',
-        timestamp: Date.now()
-      }
-    });
+    response.success(res, {
+      status: 'healthy',
+      timestamp: Date.now()
+    }, 'OK');
   });
 
   app.use('/api', basicRouter);
@@ -59,6 +57,7 @@ const setupRoutes = (app) => {
     { path: './customerService', name: '客服', prefix: '/api/customer-service' },
     { path: './map', name: '地图', prefix: '/api/map' },
     { path: './notification', name: '通知', prefix: '/api/notification' },
+    { path: './llm', name: '大模型AI', prefix: '/api/llm' },
   ];
 
   let loadedCount = 0;

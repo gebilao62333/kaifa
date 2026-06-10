@@ -19,10 +19,10 @@
       
       <div class="content-text">{{ postData.content }}</div>
       
-      <div class="images-grid" v-if="postData.images && postData.images.length">
+      <div class="images-grid" v-if="safeImages(postData).length > 0">
         <img 
           class="image" 
-          v-for="(img, index) in postData.images" 
+          v-for="(img, index) in safeImages(postData)" 
           :key="index" 
           :src="img" 
           :alt="'图片' + index"
@@ -161,6 +161,14 @@ const commentList = ref([
 const loading = ref(false)
 const replyingTo = ref(null)
 const commentText = ref('')
+
+const safeImages = (data) => {
+  if (!data || !data.images) return []
+  if (typeof data.images === 'string') {
+    try { return JSON.parse(data.images) } catch { return [] }
+  }
+  return Array.isArray(data.images) ? data.images : []
+}
 
 const formatTime = (timestamp) => {
   if (!timestamp) return ''
@@ -635,6 +643,7 @@ onMounted(() => {
   border-top: 1px solid var(--border-light);
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
 }
 
 .input-wrapper {

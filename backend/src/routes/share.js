@@ -45,14 +45,10 @@ router.get('/invite-code', (req, res) => {
       inviteCodeMap.set(String(userId), inviteCode);
     }
 
-    res.json({
-      code: 200,
-      message: '获取成功',
-      data: {
-        inviteCode,
-        userId: String(userId)
-      }
-    });
+    response.success(res, {
+      inviteCode,
+      userId: String(userId)
+    }, '获取成功');
   } catch (error) {
     logger.error('获取邀请码失败:', error);
     response.error(res, '获取邀请码失败');
@@ -83,14 +79,10 @@ router.get('/invite-info', (req, res) => {
       return response.notFound(res, '邀请码无效');
     }
 
-    res.json({
-      code: 200,
-      message: '查询成功',
-      data: {
-        inviteCode: code.toUpperCase(),
-        userId: foundUserId
-      }
-    });
+    response.success(res, {
+      inviteCode: code.toUpperCase(),
+      userId: foundUserId
+    }, '查询成功');
   } catch (error) {
     logger.error('查询邀请信息失败:', error);
     response.error(res, '查询邀请信息失败');
@@ -102,10 +94,7 @@ router.post('/qrcode', (req, res) => {
     const { text, width = 200, margin = 4 } = req.body;
     
     if (!text) {
-      return res.json({
-        code: 400,
-        message: '缺少必要参数 text'
-      });
+      return response.badRequest(res, '缺少必要参数 text');
     }
 
     const result = generateQRCode(text, {
@@ -118,15 +107,11 @@ router.post('/qrcode', (req, res) => {
     });
 
     if (result.success) {
-      res.json({
-        code: 200,
-        message: '生成成功',
-        data: {
-          svg: result.svg,
-          base64: result.base64,
-          text: result.text
-        }
-      });
+      response.success(res, {
+        svg: result.svg,
+        base64: result.base64,
+        text: result.text
+      }, '生成成功');
     } else {
       response.error(res, '二维码生成失败');
     }
@@ -154,15 +139,11 @@ router.get('/qrcode', (req, res) => {
     });
 
     if (result.success) {
-      res.json({
-        code: 200,
-        message: '生成成功',
-        data: {
-          svg: result.svg,
-          base64: result.base64,
-          text: result.text
-        }
-      });
+      response.success(res, {
+        svg: result.svg,
+        base64: result.base64,
+        text: result.text
+      }, '生成成功');
     } else {
       response.error(res, '二维码生成失败');
     }

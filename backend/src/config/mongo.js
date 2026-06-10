@@ -1,80 +1,47 @@
 const mongoose = require('mongoose');
 const config = require('./index');
 
-const retryConnection = async (fn, retries = 3, delay = 2000) => {
-  for (let i = 0; i < retries; i++) {
-    try {
-      return await fn();
-    } catch (error) {
-      console.warn(`MongoDB 连接失败 (${i + 1}/${retries}):`, error.message);
-      if (i < retries - 1) {
-        await new Promise(resolve => setTimeout(resolve, delay * Math.pow(2, i)));
-      }
-    }
-  }
-  throw new Error('MongoDB 连接重试次数已用完');
-};
+let connectMongoImpl;
 
-const connectMongo = async () => {
-  if (config.useMockDb || config.db.type === 'sqlite') {
-    console.log('📦 Mock MongoDB 模式');
+if (config.useMockDb) {
+  // 本地模式
+  console.log('📦 使用本地 MongoDB 模式（跳过外部连接）');
+  connectMongoImpl = async () => {
     return;
-  }
+  };
+} else {
+  // 真实 MongoDB 模式
+  const mongoUri = config.db.mongo.uri;
+  console.log(`🗄️ 连接 MongoDB: ${mongoUri.replace(/\/\/.*@/, '//***:***@')}`);
   
-  try {
-    mongoose.set('strictQuery', true);
-    
-    const mongoConfig = {
-      maxPoolSize: config.nodeEnv === 'production' ? 20 : 10,
-            minPoolSize: config.nodeEnv === 'production' ? 5 : 1,
-            serverSelectionTimeoutMS: 10000,
-            socketTimeoutMS: 45000,
-            connectTimeoutMS: 10000,
-            heartbeatFrequencyMS: 10000,
-            retryWrites: true,
-            w: 'majority'
-    };
-
-    await retryConnection(() => mongoose.connect(config.db.mongo.uri, mongoConfig));
-    console.log('✅ MongoDB connected successfully');
-  } catch (error) {
-    console.error('⚠️ MongoDB 连接失败，服务器将继续运行:', error.message);
-    console.warn('💡 提示: 如果需要使用 MongoDB 功能，请先启动 MongoDB 服务');
-    // 不要退出进程，让服务器继续运行
-  }
-};
-
-mongoose.connection.on('disconnected', () => {
-  console.warn('🔌 MongoDB disconnected');
-});
-
-mongoose.connection.on('error', (err) => {
-  console.error('❌ MongoDB error:', err);
-});
-
-mongoose.connection.on('connected', () => {
-  console.log('✅ MongoDB connection established');
-});
-
-mongoose.connection.on('reconnected', () => {
-  console.log('✅ MongoDB reconnected');
-});
-
-mongoose.connection.on('close', () => {
-  console.warn('🔌 MongoDB connection closed');
-});
+  connectMongoImpl = async () => {
+    try {
+      await mongoose.connect(mongoUri, {
+        serverSelectionTimeoutMS: 10000,
+        connectTimeoutMS: 10000,
+        socketTimeoutMS: 45000
+      });
+      console.log('✅ MongoDB 连接成功');
+    } catch (error) {
+      console.error('❌ MongoDB 连接失败:', error.message);
+      console.log('💡 将以本地模式继续运行');
+    }
+  };
+}
 
 const disconnectMongo = async () => {
-  try {
-    await mongoose.disconnect();
-    console.log('✅ MongoDB disconnected gracefully');
-  } catch (error) {
-    console.error('Error disconnecting MongoDB:', error);
+  if (!config.useMockDb && mongoose.connection.readyState !== 0) {
+    try {
+      await mongoose.disconnect();
+      console.log('✅ MongoDB 已断开');
+    } catch (e) {
+      console.warn('⚠️ MongoDB 断开失败:', e.message);
+    }
   }
 };
 
 module.exports = {
-  connectMongo,
+  connectMongo: connectMongoImpl,
   disconnectMongo,
   mongoose
 };

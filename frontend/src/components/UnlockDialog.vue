@@ -106,7 +106,7 @@ const props = defineProps({
       author: {
         id: '',
         name: '未知用户',
-        avatar: ''
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
       }
     })
   },

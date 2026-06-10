@@ -35,7 +35,7 @@
             <span></span><span></span><span></span><span></span><span></span>
           </div>
         </div>
-        <div v-show="modelValue.audioUrl" class="audio-preview">
+        <div v-if="modelValue.audioUrl" class="audio-preview">
           <audio :src="modelValue.audioUrl" controls class="audio-player"></audio>
           <button class="delete-audio-btn" @click="emit('deleteAudio')">删除重录</button>
         </div>
@@ -150,20 +150,9 @@ const showSourceMenu = ref(false)
 const showPermissionGuide = ref(false)
 const permissionError = ref({ type: 'camera', errorType: 'denied', message: '' })
 
-const cityOptions = [
-  { value: 'beijing', label: '北京市' },
-  { value: 'shanghai', label: '上海市' },
-  { value: 'guangzhou', label: '广州市' },
-  { value: 'shenzhen', label: '深圳市' },
-  { value: 'chengdu', label: '成都市' },
-  { value: 'hangzhou', label: '杭州市' },
-  { value: 'wuhan', label: '武汉市' },
-  { value: 'xian', label: '西安市' }
-]
-
+// 城市值现在直接存储为路径字符串如 "广东省-广州市-天河区"
 const getCityLabel = (value) => {
-  const item = cityOptions.find(opt => opt.value === value)
-  return item ? item.label : ''
+  return value || ''
 }
 
 const onImageChange = (e) => {
@@ -686,21 +675,13 @@ const handlePermissionContinue = () => {
 }
 
 @media (min-width: 768px) {
-  .offline-apply-page {
+  .apply-body {
     max-width: 650px;
     margin: 0 auto;
   }
-  .header {
-    max-width: 650px;
-    left: 50%;
-    transform: translateX(-50%);
-  }
 }
 @media (min-width: 1024px) {
-  .offline-apply-page {
-    max-width: 720px;
-  }
-  .header {
+  .apply-body {
     max-width: 720px;
   }
 }

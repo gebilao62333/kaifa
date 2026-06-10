@@ -16,5 +16,7 @@ router.post('/cancel', authMiddleware, gamesController.cancelOrder);
 router.get('/orders', authMiddleware, gamesController.getOrders);
 router.post('/apply', authMiddleware, gamesController.applyAsCompanion);
 router.get('/apply', authMiddleware, gamesController.getApplyStatus);
+router.get('/apply/status', authMiddleware, gamesController.getApplyStatus);
+router.post('/evaluate', authMiddleware, gamesController.evaluateOrder);
 
 module.exports = router;

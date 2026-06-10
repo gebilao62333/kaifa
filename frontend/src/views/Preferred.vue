@@ -1,6 +1,7 @@
 <template>
   <div class="preferred-page">
     <div class="header">
+      <span class="back-btn" @click="$router.back()">←</span>
       <div class="title">消息</div>
     </div>
 
@@ -45,7 +46,7 @@
             :key="index" 
             @click="goChat(item)">
             <div class="avatar-wrap">
-              <img class="avatar" :src="item.avatar" alt="" />
+              <img class="avatar" :src="item.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=default&backgroundColor=d1d4f9'" alt="" />
               <div class="online-dot" v-if="item.isOnline"></div>
             </div>
             <div class="chat-info">
@@ -158,7 +159,7 @@ const loadChatList = async () => {
         id: 1,
         toId: 2,
         nickName: '小雪',
-        avatar: '',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=xiaoxue&backgroundColor=d1d4f9',
         content: '你好呀，今晚一起开黑吗？',
         sendTime: Date.now() - 1800000,
         unreadCount: 2,
@@ -168,7 +169,7 @@ const loadChatList = async () => {
         id: 2,
         toId: 3,
         nickName: '阿杰',
-        avatar: '',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ajie&backgroundColor=b6e3f4',
         content: '好的，那晚上8点见！',
         sendTime: Date.now() - 7200000,
         unreadCount: 0,
@@ -178,7 +179,7 @@ const loadChatList = async () => {
         id: 3,
         toId: 4,
         nickName: '小美',
-        avatar: '',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=xiaomei&backgroundColor=ffd5dc',
         content: '谢谢你的礼物~',
         sendTime: Date.now() - 86400000,
         unreadCount: 1,
@@ -188,7 +189,7 @@ const loadChatList = async () => {
         id: 4,
         toId: 5,
         nickName: '大飞',
-        avatar: '',
+        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=dafei&backgroundColor=d1d4f9',
         content: '收到，你的预约已确认',
         sendTime: Date.now() - 172800000,
         unreadCount: 0,
@@ -215,6 +216,7 @@ const loadNoticeList = async () => {
       { id: 5, type: 'gift', title: '收到礼物', content: '小美 送给你一份礼物', createTime: Date.now() - 259200000, isRead: true }
     ]
     noticeUnread.value = noticeList.value.filter(item => !item.isRead).length
+    chatStore.setNoticeUnread(noticeUnread.value)
   } catch (error) {
     console.error('加载通知列表失败:', error)
   } finally {
@@ -245,6 +247,7 @@ const readNotice = (item) => {
   if (item.isRead) return
   item.isRead = true
   noticeUnread.value = noticeList.value.filter(item => !item.isRead).length
+  chatStore.setNoticeUnread(noticeUnread.value)
   handleNoticeClick(item)
 }
 
@@ -278,17 +281,20 @@ const deleteNotice = (item, index, event) => {
   noticeList.value.splice(index, 1)
   if (!item.isRead) {
     noticeUnread.value = Math.max(0, noticeUnread.value - 1)
+    chatStore.setNoticeUnread(noticeUnread.value)
   }
 }
 
 const clearAllNotices = () => {
   noticeList.value = []
   noticeUnread.value = 0
+  chatStore.setNoticeUnread(0)
 }
 
 const markAllRead = () => {
   noticeList.value.forEach(item => item.isRead = true)
   noticeUnread.value = 0
+  chatStore.setNoticeUnread(0)
 }
 
 const getNoticeIcon = (type) => {
@@ -325,7 +331,7 @@ onUnmounted(() => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: #f5f5f5;
-  padding-bottom: 0;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   padding-top: 0;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
@@ -333,15 +339,14 @@ onUnmounted(() => {
 
 .content-container {
   background: #fff;
-  margin: 80px auto 12px;
+  margin: 80px 0 12px;
   border-radius: 3px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   height: 900px;
-  width: 650px;
+  width: 100%;
   max-width: 650px;
-  margin-left: -15px;
-  padding: 0 12px;
+  box-sizing: border-box;
 }
 
 .header {
@@ -352,23 +357,39 @@ onUnmounted(() => {
   height: 70px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  max-width: 650px;
+  box-sizing: border-box;
   position: fixed;
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 100%;
-  max-width: 650px;
   z-index: 100;
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
-  border-bottom-left-radius: 3px;
-  border-bottom-right-radius: 3px;
+}
+
+.back-btn {
+  font-size: 22px;
+  cursor: pointer;
+  color: #fff;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+.back-btn:hover {
+  background: rgba(255,255,255,0.2);
 }
 
 .title {
   font-size: 22px;
   font-weight: bold;
+  flex: 1;
+  text-align: center;
   color: #fff;
   letter-spacing: 2px;
 }
@@ -415,13 +436,12 @@ onUnmounted(() => {
 
 .badge {
   position: absolute;
-  top: 8px;
-  right: 50%;
-  transform: translateX(25px);
+  top: 6px;
+  right: calc(50% - 35px);
   background-color: #ff4757;
   color: #fff;
   font-size: 11px;
-  padding: 2px 0;
+  padding: 2px 6px;
   border-radius: 10px;
   min-width: 20px;
   height: 20px;
@@ -429,7 +449,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 4px -15px;
+  box-sizing: border-box;
 }
 
 .content {
@@ -515,7 +535,7 @@ onUnmounted(() => {
 
 .chat-preview {
   font-size: 13px;
-  color: #999;
+  color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -525,7 +545,7 @@ onUnmounted(() => {
 
 .chat-time {
   font-size: 12px;
-  color: #bbb;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -558,10 +578,26 @@ onUnmounted(() => {
   color: #666;
 }
 
+.notice-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
 .mark-all-read {
   font-size: 14px;
   color: #FF6B81;
   cursor: pointer;
+}
+
+.clear-all {
+  font-size: 14px;
+  color: #999;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.clear-all:hover {
+  color: #ff4757;
 }
 
 .notice-item {
@@ -645,6 +681,29 @@ onUnmounted(() => {
   font-size: 11px;
   padding: 2px 6px;
   border-radius: 10px;
+  display: inline-block;
+}
+
+.notice-actions-wrap {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+}
+
+.delete-btn {
+  font-size: 12px;
+  color: #ccc;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.2s;
+}
+
+.delete-btn:hover {
+  color: #ff4757;
 }
 
 .loading-state {
@@ -691,25 +750,17 @@ onUnmounted(() => {
 
 @media (min-width: 768px) {
   .preferred-page {
-    padding-top: 60px;
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-top: 0;
     max-width: 650px;
     margin: 0 auto;
   }
   
   .content-container {
-    margin: 0;
-    margin-top: 12px;
-    width: 650px;
-    max-width: 650px;
-    margin-left: -15px;
+    margin: 80px 0 12px;
+    width: 100%;
   }
   
   .header {
-    max-width: 650px;
-    left: 50%;
-    transform: translateX(-50%);
     border-radius: 10px 10px 3px 3px;
     padding: 0 24px;
     height: 70px;
@@ -717,10 +768,6 @@ onUnmounted(() => {
   
   .title {
     font-size: 18px;
-  }
-  
-  .category-tabs {
-    top: 50px;
   }
 }
 
@@ -734,9 +781,7 @@ onUnmounted(() => {
   }
   
   .content-container {
-    width: 720px;
     max-width: 720px;
-    margin-left: calc(50% - 360px);
   }
 }
 </style>

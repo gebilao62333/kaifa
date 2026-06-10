@@ -144,6 +144,8 @@
             <div class="empty-icon">📭</div>
             <div class="empty-text">暂无动态</div>
           </div>
+          <!-- 滚动加载哨兵 -->
+          <div ref="loadSentinel" class="load-sentinel" />
         </div>
       </div>
 
@@ -178,7 +180,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import ReserveModal from '@/components/ReserveModal.vue'
 import circleService from '../services/circleService'
@@ -231,14 +233,43 @@ const previewIndex = ref(0)
 const touchStartX = ref(0)
 const touchEndX = ref(0)
 
+// 滚动加载哨兵
+const loadSentinel = ref(null)
+let observer = null
+
 // 预约弹窗
 const showReserveModal = ref(false)
 const currentCompanion = ref({
   id: '',
   name: '',
-  avatar: '',
+  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default&backgroundColor=b6e3f4',
   game: ''
 })
+
+/**
+ * 安全解析 images 字段（兼容 JSON 字符串、逗号分隔串、数组）
+ * 并清洗每个 URL 中可能的引号/方括号等异常字符
+ */
+const safeImages = (images) => {
+  if (!images) return []
+  
+  let arr = []
+  if (Array.isArray(images)) {
+    arr = images
+  } else if (typeof images === 'string') {
+    try {
+      const parsed = JSON.parse(images)
+      arr = Array.isArray(parsed) ? parsed : [parsed]
+    } catch {
+      // 逗号分隔回退
+      arr = images.split(',').filter(Boolean)
+    }
+  }
+  
+  return arr
+    .map(url => String(url).replace(/^["'[\]\s]+|["'[\]\s]+$/g, '').trim())
+    .filter(Boolean)
+}
 
 const formatTime = (timestamp) => {
   if (!timestamp) return ''
@@ -310,7 +341,15 @@ const loadFeedList = async (reset = false) => {
     const res = await circleService.getPosts(params)
     
     if (res && res.code === 200 && res.data) {
-      const newPosts = res.data.list || res.data
+      let newPosts = res.data.list || res.data
+      // 确保 images 是数组 + avatar 兜底
+      if (Array.isArray(newPosts)) {
+        newPosts = newPosts.map(post => ({
+          ...post,
+          avatar: post.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + (post.userId || 'user'),
+          images: safeImages(post.images)
+        }))
+      }
       
       if (reset) {
         feedList.value = newPosts
@@ -412,7 +451,13 @@ const loadComments = async (postId) => {
   try {
     const res = await circleService.getComments(postId)
     if (res && res.code === 200 && res.data) {
-      commentsMap.value[postId] = res.data.list || res.data
+      const list = res.data.list || res.data
+      commentsMap.value[postId] = Array.isArray(list)
+        ? list.map(c => ({
+            ...c,
+            avatar: c.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=comment' + (c.id || Math.random())
+          }))
+        : list
     } else {
       commentsMap.value[postId] = generateMockComments()
     }
@@ -428,21 +473,21 @@ const generateMockComments = () => {
     {
       id: 1,
       nickName: '玩家小明',
-      avatar: 'https://neeko-copilot.bytedance.net/api/text_to_image?prompt=cute%20anime%20avatar%20boy&image_size=square',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=comment1&backgroundColor=b6e3f4',
       content: '这个游戏真的很好玩！',
       createTime: Date.now() - 300000
     },
     {
       id: 2,
       nickName: '游戏达人',
-      avatar: 'https://neeko-copilot.bytedance.net/api/text_to_image?prompt=cute%20anime%20avatar%20girl&image_size=square',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=comment2&backgroundColor=c0aede',
       content: '同意楼上的观点',
       createTime: Date.now() - 600000
     },
     {
       id: 3,
       nickName: '新手玩家',
-      avatar: 'https://neeko-copilot.bytedance.net/api/text_to_image?prompt=cute%20cartoon%20avatar&image_size=square',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=comment3&backgroundColor=d1d4f9',
       content: '请问怎么升级比较快？',
       createTime: Date.now() - 900000
     }
@@ -564,6 +609,23 @@ onMounted(() => {
   loadFeedList()
   // 初始加载时也加载推荐用户（默认"推荐"tab）
   loadRecommendSquare()
+  
+  // 无限滚动：哨兵可见时自动加载更多
+  observer = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && hasMore.value && !loading.value) {
+      loadFeedList()
+    }
+  }, { threshold: 0.1 })
+  if (loadSentinel.value) {
+    observer.observe(loadSentinel.value)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (observer) {
+    observer.disconnect()
+    observer = null
+  }
 })
 </script>
 
@@ -579,10 +641,10 @@ onMounted(() => {
 
 /* --- 页面容器 --- */
 .activity-page {
-  min-height: calc(100vh - 70px);
+  min-height: calc(100vh - 50px);
   min-height: -webkit-fill-available;
   background: var(--bg-secondary);
-  padding-top: 70px;
+  padding-top: 50px;
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
 }
 
@@ -596,7 +658,7 @@ onMounted(() => {
   background: var(--gradient-primary);
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 8px 16px;
   height: 50px;
   box-sizing: border-box;
 }
@@ -1130,6 +1192,10 @@ onMounted(() => {
   padding: 20px;
   color: var(--text-tertiary);
   font-size: 14px;
+}
+
+.load-sentinel {
+  height: 1px;
 }
 
 .empty-icon {

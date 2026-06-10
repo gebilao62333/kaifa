@@ -11,9 +11,25 @@ const Report = sequelize.define('xn_report', {
     type: DataTypes.INTEGER,
     allowNull: false
   },
+  reporter_nickname: {
+    type: DataTypes.STRING(50),
+    allowNull: true
+  },
+  reporter_avatar: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
   target_user_id: {
     type: DataTypes.INTEGER,
     allowNull: false
+  },
+  target_user_nickname: {
+    type: DataTypes.STRING(50),
+    allowNull: true
+  },
+  target_user_avatar: {
+    type: DataTypes.STRING(255),
+    allowNull: true
   },
   target_type: {
     type: DataTypes.TINYINT(1),
@@ -22,6 +38,10 @@ const Report = sequelize.define('xn_report', {
   target_id: {
     type: DataTypes.INTEGER,
     allowNull: false
+  },
+  target_content: {
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   reason: {
     type: DataTypes.STRING(255),
@@ -32,16 +52,28 @@ const Report = sequelize.define('xn_report', {
     allowNull: true
   },
   status: {
-    type: DataTypes.TINYINT(1),
-    defaultValue: 0
+    type: DataTypes.STRING(20),
+    defaultValue: 'pending'
   },
   handle_result: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  reject_reason: {
     type: DataTypes.STRING(255),
     allowNull: true
   },
   handle_time: {
     type: DataTypes.INTEGER(10),
     defaultValue: 0
+  },
+  handler_id: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  handler_name: {
+    type: DataTypes.STRING(50),
+    allowNull: true
   },
   create_time: {
     type: DataTypes.INTEGER(10),

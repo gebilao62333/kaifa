@@ -33,11 +33,7 @@ import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
-const bannerList = ref([
-  { id: 1, title: 'Banner 1', image: 'https://api.dicebear.com/7.x/bottts/svg?seed=banner1', link: '' },
-  { id: 2, title: 'Banner 2', image: 'https://api.dicebear.com/7.x/bottts/svg?seed=banner2', link: '' },
-  { id: 3, title: 'Banner 3', image: 'https://api.dicebear.com/7.x/bottts/svg?seed=banner3', link: '' }
-])
+const bannerList = ref([])
 
 const recommendList = ref([])
 const loadingMore = ref(false)
@@ -97,131 +93,6 @@ const loadBanners = async () => {
   } catch (error) {
     console.error('加载Banner失败:', error)
   }
-}
-
-const getMockCompanions = () => {
-  return [
-    {
-      userId: 1001,
-      nickName: '王者大神小明',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player1',
-      location: '北京',
-      level: 8,
-      fansCount: 2580,
-      gameId: 1,
-      price: 88,
-      tags: ['技术流', '幽默', '上分快'],
-      voiceIntro: '',
-      voiceDuration: 0,
-      totalOrders: 1256,
-      rating: 4.9,
-      ratingCount: 328,
-      online: true,
-      serviceType: 'online',
-      vip: true,
-      vipLevel: 3
-    },
-    {
-      userId: 1002,
-      nickName: '萌妹陪玩小雪',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player2',
-      location: '上海',
-      level: 6,
-      fansCount: 1890,
-      gameId: 2,
-      price: 66,
-      tags: ['声音甜美', '可爱', '娱乐'],
-      voiceIntro: '',
-      voiceDuration: 0,
-      totalOrders: 892,
-      rating: 4.8,
-      ratingCount: 256,
-      online: true,
-      serviceType: 'both',
-      vip: true,
-      vipLevel: 2
-    },
-    {
-      userId: 1003,
-      nickName: '战神阿杰',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player3',
-      location: '广州',
-      level: 9,
-      fansCount: 5620,
-      gameId: 1,
-      price: 128,
-      tags: ['职业选手', '带飞', '高效'],
-      voiceIntro: '',
-      voiceDuration: 0,
-      totalOrders: 3421,
-      rating: 4.95,
-      ratingCount: 892,
-      online: true,
-      serviceType: 'online',
-      vip: true,
-      vipLevel: 5
-    },
-    {
-      userId: 1004,
-      nickName: '电竞少女柚子',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player4',
-      location: '成都',
-      level: 7,
-      fansCount: 3200,
-      gameId: 3,
-      price: 78,
-      tags: ['全能', '颜值高', '互动好'],
-      voiceIntro: '',
-      voiceDuration: 0,
-      totalOrders: 1856,
-      rating: 4.85,
-      ratingCount: 445,
-      online: true,
-      serviceType: 'both',
-      vip: true,
-      vipLevel: 3
-    },
-    {
-      userId: 1005,
-      nickName: '打野小王子',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player5',
-      location: '深圳',
-      level: 8,
-      fansCount: 4100,
-      gameId: 1,
-      price: 99,
-      tags: ['野王', '节奏大师', '意识流'],
-      voiceIntro: '',
-      voiceDuration: 0,
-      totalOrders: 2134,
-      rating: 4.9,
-      ratingCount: 567,
-      online: true,
-      serviceType: 'online',
-      vip: true,
-      vipLevel: 4
-    },
-    {
-      userId: 1006,
-      nickName: '软萌小甜心',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player6',
-      location: '杭州',
-      level: 5,
-      fansCount: 1560,
-      gameId: 4,
-      price: 58,
-      tags: ['温柔', '聊天', '陪伴'],
-      voiceIntro: '',
-      voiceDuration: 0,
-      totalOrders: 678,
-      rating: 4.7,
-      ratingCount: 189,
-      online: true,
-      serviceType: 'offline',
-      vip: false,
-      vipLevel: 0
-    }
-  ]
 }
 
 const loadRecommendCompanions = async (reset = false) => {
@@ -316,23 +187,6 @@ onMounted(async () => {
     await refreshHomeData()
   } catch (error) {
     console.error('加载首页数据失败:', error)
-    
-    const adminUsers = (await getAdminRecommendUsers()).map(u => ({
-      ...u,
-      onlineService: u.onlineService !== undefined ? u.onlineService : (u.serviceType === 'online' || u.serviceType === 'both'),
-      offlineService: u.offlineService !== undefined ? u.offlineService : (u.serviceType === 'offline' || u.serviceType === 'both')
-    }))
-    const fallbackUsers = adminUsers.length ? adminUsers : [
-      { userId: 1, nickName: '小雪', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=xiaoxue', level: 28, tags: ['温柔', '甜音', '技术好'], price: 58, online: true, location: '北京', onlineService: true, offlineService: true, vip: true, vipLevel: 2 },
-      { userId: 2, nickName: '阿杰', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ajie', level: 35, tags: ['打野', '带飞', '幽默'], price: 65, online: true, location: '上海', onlineService: true, offlineService: false, vip: true, vipLevel: 3 },
-      { userId: 3, nickName: '小美', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=xiaomei', level: 22, tags: ['娱乐', '聊天', '唱歌'], price: 45, online: false, location: '广州', onlineService: false, offlineService: true, vip: false },
-      { userId: 4, nickName: '大飞', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=dafei', level: 42, tags: ['技术陪', '上分', '教学'], price: 78, online: true, location: '深圳', onlineService: true, offlineService: true, vip: true, vipLevel: 4 }
-    ].map(u => ({
-      ...u,
-      onlineService: u.onlineService !== undefined ? u.onlineService : (u.serviceType === 'online' || u.serviceType === 'both'),
-      offlineService: u.offlineService !== undefined ? u.offlineService : (u.serviceType === 'offline' || u.serviceType === 'both')
-    }))
-    recommendList.value = fallbackUsers
     loadingCompanions.value = false
   }
 })

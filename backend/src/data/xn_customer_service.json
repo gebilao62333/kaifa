@@ -1,0 +1,25 @@
+[
+  {
+    "id": 2,
+    "user_id": 0,
+    "name": "客服小明",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=mock_9002",
+    "role": "normal",
+    "online": 1,
+    "status": 1,
+    "create_time": 1780992502,
+    "update_time": 1780997232
+  },
+  {
+    "user_id": 20012,
+    "name": "甜达人",
+    "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=mock_1011",
+    "role": "senior",
+    "description": "",
+    "online": 1,
+    "status": 1,
+    "create_time": 1780997209,
+    "update_time": 1780997234,
+    "id": 3
+  }
+]

@@ -66,9 +66,13 @@ const {
   updateCardStatus,
   batchUpdateCardStatus,
   batchDeleteCards,
+  batchUpdateCardTag,
   getCardStats,
   importCards,
   deleteCard,
+  clearAllCards,
+  recordExport,
+  getExportLogs,
   getGameList,
   getGameDetail,
   createGame,
@@ -200,7 +204,11 @@ router.put('/cards/:id', adminAuth, updateCard);
 router.put('/cards/:id/status', adminAuth, updateCardStatus);
 router.post('/cards/batch-status', adminAuth, batchUpdateCardStatus);
 router.post('/cards/batch-delete', adminAuth, batchDeleteCards);
+router.post('/cards/batch-tag', adminAuth, batchUpdateCardTag);
+router.post('/cards/record-export', adminAuth, recordExport);
+router.get('/cards/export-logs', adminAuth, getExportLogs);
 router.post('/cards/import', adminAuth, importCards);
+router.post('/cards/clear-by-face', adminAuth, clearAllCards);
 router.delete('/cards/:id', adminAuth, deleteCard);
 
 // 游戏/服务管理

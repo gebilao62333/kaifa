@@ -72,7 +72,7 @@ const gamesService = {
   },
 
   async getApplyStatus() {
-    return request('/api/games/apply/status', 'GET')
+    return request('/api/games/apply', 'GET')
   },
 
   async getCompanionDetail(companionId) {

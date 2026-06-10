@@ -25,11 +25,19 @@
         </div>
         <div class="content">
           <div class="time" v-if="shouldShowTime(index)">{{ formatTime(msg.createTime) }}</div>
-          <div 
+          <div
             class="bubble" 
             @click="handleMessageClick(msg)"
             @contextmenu.prevent="showMessageMenu(msg, $event)"
+            @mouseenter="hoveredMsgId = msg.id"
+            @mouseleave="hoveredMsgId = null"
           >
+            <!-- 添加表情按钮（悬浮显示） -->
+            <button
+              v-if="hoveredMsgId === msg.id && msg.status !== 'recalled'"
+              class="add-reaction-btn"
+              @click.stop="toggleReactionPicker(msg)"
+            >😊</button>
             <template v-if="msg.type === 'text'">
               {{ msg.content }}
             </template>
@@ -89,6 +97,21 @@
               <span class="recalled-text">消息已撤回</span>
             </template>
           </div>
+          <!-- 表情选择器 -->
+          <div v-if="msg.showReactionPicker" class="reaction-picker" @click.stop>
+            <button
+              v-for="emoji in reactionEmojis"
+              :key="emoji"
+              class="reaction-option"
+              @click="addReaction(msg, emoji)"
+            >{{ emoji }}</button>
+          </div>
+          <!-- 快捷表情回复 -->
+          <div class="quick-reactions" v-if="msg.reactions && msg.reactions.length > 0">
+            <span v-for="(reaction, ri) in msg.reactions" :key="ri" class="reaction-badge" @click.stop="toggleReaction(msg, reaction.emoji)">
+              {{ reaction.emoji }} <span class="reaction-count">{{ reaction.count }}</span>
+            </span>
+          </div>
           <div class="status">
             <span v-if="msg.isOwn" class="send-status">
               <span v-if="msg.status === 'sending'">发送中...</span>
@@ -96,6 +119,8 @@
               <span v-else-if="msg.status === 'sent'">✓</span>
               <span v-else-if="msg.status === 'read'" class="read-icon">已读</span>
             </span>
+            <!-- 对方已读回执 -->
+            <span v-else-if="msg.readReceipt" class="read-receipt">已读</span>
           </div>
         </div>
       </div>
@@ -346,13 +371,13 @@ const loadVipItems = () => {
 const userInfo = ref({
  userId: 1,
  nickName: '小雪',
- avatar: '',
+ avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=xiaoxue',
  isOnline: true
 });
 const myInfo = ref({
  userId: 100001,
  nickName: '我',
- avatar: '',
+ avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=me',
 });
 const messages = ref([]);
 const text = ref('');
@@ -393,6 +418,8 @@ const forwardFriends = ref([
 const typing = ref(false);
 const playingAudioId = ref(null);
 const messagesRef = ref(null);
+const hoveredMsgId = ref(null);
+const reactionEmojis = ['❤️', '😂', '😍', '👍', '🔥', '🎉', '😢', '😡'];
 const activeEmojiTab = ref(0);
 const emojiTabs = ['😊', '🎉', '💯', '❤️'];
 const emojiGroups = [
@@ -967,6 +994,39 @@ const getMessageTypeCode = (type) => {
  };
  return typeMap[type] || 0;
 };
+// 快捷表情回复
+const toggleReactionPicker = (msg) => {
+  if (msg.showReactionPicker) {
+    msg.showReactionPicker = false
+  } else {
+    // 关闭其他消息的选择器
+    messages.value.forEach(m => { m.showReactionPicker = false })
+    msg.showReactionPicker = true
+  }
+}
+
+const addReaction = (msg, emoji) => {
+  if (!msg.reactions) msg.reactions = []
+  const existing = msg.reactions.find(r => r.emoji === emoji)
+  if (existing) {
+    existing.count += 1
+  } else {
+    msg.reactions.push({ emoji, count: 1 })
+  }
+  msg.showReactionPicker = false
+}
+
+const toggleReaction = (msg, emoji) => {
+  if (!msg.reactions) msg.reactions = []
+  const existing = msg.reactions.find(r => r.emoji === emoji)
+  if (existing) {
+    existing.count += 1
+  } else {
+    msg.reactions.push({ emoji, count: 1 })
+  }
+  // 移除被点击的消息上自己的emoji回复
+}
+
 const retrySend = (msg) => {
  const index = messages.value.findIndex(m => m.id === msg.id);
  if (index > -1) {
@@ -1003,23 +1063,12 @@ const loadMessages = async () => {
  createTime: item.sendTime ? item.sendTime * 1000 : Date.now()
  }));
  } else {
- const now = Date.now();
- messages.value = [
- { id: now - 50000, isOwn: true, type: 'text', content: '你好，在吗？', showTime: true, status: 'read', createTime: now - 50000 },
- { id: now - 40000, isOwn: false, type: 'text', content: '在的呢，有什么可以帮你的？', showTime: true, status: 'read', createTime: now - 40000 },
- { id: now - 30000, isOwn: true, type: 'text', content: '我想预约一下陪玩服务', showTime: true, status: 'read', createTime: now - 30000 },
- { id: now - 20000, isOwn: false, type: 'text', content: '好的，请问你想预约什么游戏呢？', showTime: true, status: 'read', createTime: now - 20000 }
- ];
- scrollToBottom();
+ messages.value = [];
  }
  }
  catch (error) {
  console.error('加载消息失败:', error);
- const now = Date.now();
- messages.value = [
- { id: now - 50000, isOwn: true, type: 'text', content: '你好，在吗？', showTime: true, status: 'read', createTime: now - 50000 },
- { id: now - 40000, isOwn: false, type: 'text', content: '在的呢，有什么可以帮你的？', showTime: true, status: 'read', createTime: now - 40000 }
- ];
+ messages.value = [];
  scrollToBottom();
  }
 };
@@ -1064,26 +1113,26 @@ onMounted(async () => {
   if (targetId && targetId !== 'kefu') {
     userInfo.value.userId = parseInt(targetId);
   }
-  // 确保 userId 有效，避免 NaN 导致后续请求报错
   if (!userInfo.value.userId || isNaN(userInfo.value.userId)) {
     userInfo.value.userId = 2;
   }
-  
-  try {
-    const userRes = await authService.getUserInfo();
-    if (userRes && userRes.code === 200 && userRes.data) {
-      userStore.setUserInfo(userRes.data);
+
+  // 有登录态才拉取用户信息，否则直接用默认头像/昵称
+  const token = localStorage.getItem('token')
+  if (token) {
+    try {
+      const userRes = await authService.getUserInfo();
+      if (userRes && userRes.code === 200 && userRes.data) {
+        userStore.setUserInfo(userRes.data);
+        myInfo.value.avatar = userRes.data.avatar || myInfo.value.avatar
+        myInfo.value.nickName = userRes.data.nickName || myInfo.value.nickName
+      }
+    } catch (e) {
+      console.warn('[ChatRoom] 获取用户信息失败，使用默认数据:', e.message);
     }
-  } catch (e) {
-    console.warn('[ChatRoom] 获取用户信息失败，使用默认数据:', e.message);
   }
-  
-  try {
-    await loadMessages();
-  } catch (e) {
-    console.warn('[ChatRoom] 加载消息失败，使用默认数据:', e.message);
-    // loadMessages 内部已有兜底数据
-  }
+
+  await loadMessages();
   scrollToBottom();
   setupSocketListeners();
 });
@@ -1104,8 +1153,8 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-bottom: 70px;
   box-sizing: border-box;
+  padding-bottom: 70px;
   max-width: 650px;
   margin: 0 auto;
 }
@@ -1113,20 +1162,24 @@ onUnmounted(() => {
 .header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  height: 80px;
-  padding: 20px 20px;
+  height: 52px;
+  padding: 0 12px;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border-light);
-  position: sticky;
-  top: 0;
+  flex-shrink: 0;
   z-index: 10;
+  width: 100%;
+  max-width: 650px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .back-btn, .more-btn {
   font-size: 24px;
   cursor: pointer;
   width: 40px;
+  flex-shrink: 0;
   text-align: center;
 }
 
@@ -1135,6 +1188,7 @@ onUnmounted(() => {
   height: 36px;
   border-radius: 10px;
   overflow: hidden;
+  flex-shrink: 0;
   margin-right: 10px;
   cursor: pointer;
 }
@@ -1161,32 +1215,11 @@ onUnmounted(() => {
   gap: 2px;
   margin-right: 8px;
   line-height: 1.4;
+  flex-shrink: 0;
 }
 
 .badge-icon {
   font-size: 11px;
-}
-
-.avatar-wrap-frame {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.avatar-wrap-frame .avatar {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-}
-
-.avatar-mini img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .nickname {
@@ -1195,12 +1228,17 @@ onUnmounted(() => {
   color: var(--text-primary);
   flex: 1;
   text-align: left;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .online-status {
   font-size: 12px;
   color: var(--success-color);
   margin-right: 10px;
+  flex-shrink: 0;
 }
 
 .messages {
@@ -1274,18 +1312,90 @@ onUnmounted(() => {
   line-height: 1.5;
   word-break: break-word;
   position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.add-reaction-btn {
+  position: absolute;
+  bottom: -14px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  z-index: 5;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  padding: 0;
+  line-height: 1;
+}
+
+.add-reaction-btn:hover {
+  transform: scale(1.15);
+  box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+}
+
+.message.own .add-reaction-btn {
+  right: auto;
+  left: 8px;
+}
+
+.reaction-picker {
+  display: flex;
+  gap: 2px;
+  padding: 4px 6px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.12);
+  margin-top: 4px;
+  flex-wrap: wrap;
+  width: fit-content;
+  animation: pickerIn 0.2s ease;
+}
+
+@keyframes pickerIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reaction-option {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: transform 0.15s ease, background 0.15s ease;
+  line-height: 1;
+}
+
+.reaction-option:hover {
+  transform: scale(1.3);
+  background: #f0f2ff;
+}
+
+.bubble:hover {
+  transform: translateY(-1px);
 }
 
 .message.other .bubble {
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  background: #ffffff;
+  color: #333;
   border-top-left-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .message.own .bubble {
-  background: var(--gradient-primary);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border-top-right-radius: 4px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.25), 0 4px 16px rgba(118, 75, 162, 0.15);
 }
 
 .system-text {
@@ -1341,6 +1451,51 @@ onUnmounted(() => {
   font-size: 13px;
 }
 
+.quick-reactions {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
+.reaction-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  background: rgba(102, 126, 234, 0.1);
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 12px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.reaction-badge:hover {
+  background: rgba(102, 126, 234, 0.2);
+  transform: scale(1.05);
+}
+
+.reaction-count {
+  font-size: 11px;
+  color: #666;
+  font-weight: 600;
+}
+
+.message.own .reaction-badge {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.message.own .reaction-badge:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.message.own .reaction-count {
+  color: rgba(255, 255, 255, 0.8);
+}
+
 .status {
   margin-top: 4px;
 }
@@ -1356,7 +1511,17 @@ onUnmounted(() => {
 }
 
 .read-icon {
-  color: var(--primary-color);
+  color: #667eea;
+  font-weight: 600;
+  letter-spacing: -1px;
+}
+
+.read-receipt {
+  font-size: 10px;
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
 }
 
 .typing-indicator {
@@ -1404,6 +1569,7 @@ onUnmounted(() => {
   z-index: 20;
   transform: translateY(0);
   height: 58px;
+  box-sizing: border-box;
 }
 
 .voice-btn, .emoji-btn, .add-btn {
@@ -1960,8 +2126,11 @@ onUnmounted(() => {
   }
   .header {
     max-width: 650px;
+  }
+  .bottom-bar {
     left: 50%;
     transform: translateX(-50%);
+    max-width: 650px;
   }
 }
 @media (min-width: 1024px) {
@@ -1969,6 +2138,9 @@ onUnmounted(() => {
     max-width: 720px;
   }
   .header {
+    max-width: 720px;
+  }
+  .bottom-bar {
     max-width: 720px;
   }
 }

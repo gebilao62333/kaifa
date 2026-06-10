@@ -18,6 +18,13 @@ app.use(pinia)
 app.use(router)
 
 const userStore = useUserStore()
+
+// Dev mode auto-auth: 开发/预览环境下自动注入 token 跳过登录
+if (!localStorage.getItem('token')) {
+  localStorage.setItem('token', 'dev-preview-token')
+  console.log('[Dev] 自动注入预览 token，无需登录即可访问所有页面')
+}
+
 userStore.initFromStorage()
 
 app.directive('lazy', lazyLoadDirective)

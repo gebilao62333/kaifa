@@ -16,6 +16,7 @@
       :visible="loginModalVisible" 
       @close="hideLoginModal"
       @login-success="handleLoginSuccess"
+      @navigate="handleNavigate"
     />
   </div>
 </template>
@@ -32,12 +33,13 @@ import { useLoginManager } from './composables/useLoginManager'
 import { socketService } from './services/socketService'
 import { useUserStore } from './store/user-info'
 import { onMounted, ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const toast = useToast()
 const userStore = useUserStore()
 const incomingCallRef = ref(null)
 const route = useRoute()
+const router = useRouter()
 
 const {
   loginModalVisible,
@@ -46,9 +48,14 @@ const {
   initAutoLogin
 } = useLoginManager()
 
+const handleNavigate = (path) => {
+  hideLoginModal()
+  router.push(path)
+}
+
 // 不显示底部导航的页面
 const NO_NAV_ROUTES = ['/login']
-const NO_NAV_PREFIXES = ['/admin', '/chat-room', '/call/']
+const NO_NAV_PREFIXES = ['/chat-room', '/call/']
 
 const shouldShowNav = computed(() => {
   const path = route.path

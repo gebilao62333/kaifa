@@ -236,7 +236,9 @@ const completeOrder = async (userId, orderId) => {
   const transaction = await sequelize.transaction();
   
   try {
-    const commission = Number(order.total_price) * 0.7;
+    const config = require('../config');
+    const commissionRate = (config.platform && config.platform.commissionRate) || 0.7;
+    const commission = Number(order.total_price) * commissionRate;
     
     await User.increment('money', {
       by: commission,

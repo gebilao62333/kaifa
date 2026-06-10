@@ -141,8 +141,10 @@ import { useRouter } from 'vue-router'
 import { albumService } from '@/services/albumService'
 import { isLoggedIn } from '../common/common'
 import { toast } from '../composables/useToast'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
+const { requireLogin } = useLoginManager()
 
 const isLoading = ref(false)
 const isUploading = ref(false)
@@ -166,18 +168,15 @@ const goBack = () => {
   router.back()
 }
 
-const checkLogin = () => {
+const handleAddClick = async () => {
   if (!isLoggedIn()) {
-    router.push('/login')
-    return false
+    try {
+      await requireLogin()
+    } catch {
+      return
+    }
   }
-  return true
-}
-
-const handleAddClick = () => {
-  if (checkLogin()) {
-    showAdd.value = true
-  }
+  showAdd.value = true
 }
 
 const loadPhotos = async (page = 1, append = false) => {
@@ -215,7 +214,7 @@ const closeViewer = () => {
 }
 
 const toggleLike = async (photo) => {
-  if (!checkLogin()) return
+  if (!isLoggedIn()) return
   const result = await albumService.likePhoto(photo.id)
   if (result.code === 0) {
     const updatedPhoto = result.data
@@ -325,7 +324,7 @@ const formatDate = (dateStr) => {
 }
 
 onMounted(() => {
-  if (checkLogin()) {
+  if (isLoggedIn()) {
     loadPhotos()
   }
 })
@@ -336,7 +335,7 @@ onMounted(() => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: var(--bg-secondary);
-  padding-top: 82px;
+  padding-top: 70px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -354,6 +353,7 @@ onMounted(() => {
   transform: translateX(-50%);
   width: 100%;
   max-width: 650px;
+  box-sizing: border-box;
   z-index: 100;
 }
 

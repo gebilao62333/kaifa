@@ -57,7 +57,7 @@ const viewProfile = (user) => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: var(--bg-secondary);
-  padding-top: 82px;
+  padding-top: 70px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -76,6 +76,7 @@ const viewProfile = (user) => {
   width: 100%;
   max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .back-btn {
@@ -166,7 +167,7 @@ const viewProfile = (user) => {
 }
 
 @media (min-width: 768px) {
-  .likes-records-page {
+  .likes-page {
     max-width: 650px;
     margin: 0 auto;
   }
@@ -177,7 +178,7 @@ const viewProfile = (user) => {
   }
 }
 @media (min-width: 1024px) {
-  .likes-records-page {
+  .likes-page {
     max-width: 720px;
   }
   .header {

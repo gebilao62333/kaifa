@@ -120,7 +120,7 @@ const closeModal = () => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: var(--bg-secondary);
-  padding-top: 82px;
+  padding-top: 70px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -138,6 +138,7 @@ const closeModal = () => {
   transform: translateX(-50%);
   width: 100%;
   max-width: 650px;
+  box-sizing: border-box;
   z-index: 100;
 }
 

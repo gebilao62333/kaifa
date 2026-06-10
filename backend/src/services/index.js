@@ -20,6 +20,7 @@ const demandService = require('./demandService');
 const projectService = require('./projectService');
 const regionService = require('./regionService');
 const mapService = require('./mapService');
+const llmService = require('./llmService');
 
 module.exports = {
   authService,
@@ -43,5 +44,6 @@ module.exports = {
   demandService,
   projectService,
   regionService,
-  mapService
+  mapService,
+  llmService
 };

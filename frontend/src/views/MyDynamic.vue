@@ -30,13 +30,13 @@
         </div>
         <div class="post-body">
           <p class="post-content">{{ post.content }}</p>
-          <div class="post-images" v-if="post.images.length > 0">
+          <div class="post-images" v-if="safeImages(post).length > 0">
             <img
-              v-for="(img, idx) in post.images.slice(0, 3)"
+              v-for="(img, idx) in safeImages(post).slice(0, 3)"
               :key="idx"
               :src="img"
               class="post-img"
-              :class="{ single: post.images.length === 1 }"
+              :class="{ single: safeImages(post).length === 1 }"
             />
           </div>
         </div>
@@ -151,6 +151,14 @@ const emptyText = computed(() => {
   return map[activeTab.value] || ''
 })
 
+const safeImages = (post) => {
+  if (!post || !post.images) return []
+  if (typeof post.images === 'string') {
+    try { return JSON.parse(post.images) } catch { return [] }
+  }
+  return Array.isArray(post.images) ? post.images : []
+}
+
 const getStatusText = (status) => {
   const map = { published: '已发布', review: '审核中', rejected: '未通过' }
   return map[status] || ''
@@ -192,7 +200,7 @@ const updateTabCounts = () => {
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-  padding-top: 82px;
+  padding-top: 70px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -211,6 +219,7 @@ const updateTabCounts = () => {
   width: 100%;
   max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .back-btn {
@@ -430,7 +439,7 @@ const updateTabCounts = () => {
 }
 
 @media (min-width: 768px) {
-  .my-dynamic-page {
+  .mydynamic-page {
     max-width: 650px;
     margin: 0 auto;
   }
@@ -441,7 +450,7 @@ const updateTabCounts = () => {
   }
 }
 @media (min-width: 1024px) {
-  .my-dynamic-page {
+  .mydynamic-page {
     max-width: 720px;
   }
   .header {

@@ -119,6 +119,69 @@ const likePost = async (req, res) => {
   }
 };
 
+const unlikePost = async (req, res) => {
+  try {
+    const { postId } = req.body;
+    
+    if (!postId) {
+      return response.badRequest(res, '帖子ID不能为空');
+    }
+    
+    const result = await circleService.likePost(req.userId, parseInt(postId));
+    response.success(res, result, '取消点赞成功');
+  } catch (error) {
+    logger.error('取消点赞错误:', error);
+    response.unprocessableEntity(res, '参数验证失败');
+  }
+};
+
+const deletePost = async (req, res) => {
+  try {
+    const { postId } = req.body;
+    
+    if (!postId) {
+      return response.badRequest(res, '帖子ID不能为空');
+    }
+    
+    const { Post } = require('../models');
+    const post = await Post.findByPk(parseInt(postId));
+    if (!post) {
+      return response.badRequest(res, '帖子不存在');
+    }
+    if (post.user_id !== req.userId) {
+      return response.badRequest(res, '无权删除他人帖子');
+    }
+    
+    await post.destroy();
+    response.success(res, {}, '删除成功');
+  } catch (error) {
+    logger.error('删除帖子错误:', error);
+    response.unprocessableEntity(res, '参数验证失败');
+  }
+};
+
+const sharePost = async (req, res) => {
+  try {
+    const { postId } = req.body;
+    
+    if (!postId) {
+      return response.badRequest(res, '帖子ID不能为空');
+    }
+    
+    const { Post } = require('../models');
+    const post = await Post.findByPk(parseInt(postId));
+    if (!post) {
+      return response.badRequest(res, '帖子不存在');
+    }
+    
+    await post.increment('share_num');
+    response.success(res, { shareCount: post.share_num + 1 }, '分享成功');
+  } catch (error) {
+    logger.error('分享帖子错误:', error);
+    response.unprocessableEntity(res, '参数验证失败');
+  }
+};
+
 const commentPost = async (req, res) => {
   try {
     const { postId, content, replyId } = req.body;
@@ -257,6 +320,9 @@ module.exports = {
   unlockPost,
   getMyPosts,
   likePost,
+  unlikePost,
+  deletePost,
+  sharePost,
   commentPost,
   getComments,
   getTags,

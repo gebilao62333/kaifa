@@ -1,0 +1,18 @@
+[
+  {
+    "id": 1,
+    "username": "admin",
+    "password": "$2a$10$Xiu3GJu4mJq773ejyfhGq.wD2ysxHhu/FVSkNNXRf8SqnQvsDJ1i6",
+    "nickname": "系统管理员",
+    "avatar": null,
+    "email": "admin@duoke.com",
+    "phone": "13800000000",
+    "role_id": 1,
+    "permissions": "[\"*\"]",
+    "status": 1,
+    "last_login_time": 1780992502,
+    "last_login_ip": "127.0.0.1",
+    "create_time": 1780992502,
+    "create_admin_id": 0
+  }
+]

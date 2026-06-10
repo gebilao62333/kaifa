@@ -1,0 +1,112 @@
+[
+  {
+    "id": 1,
+    "title": "爱心",
+    "image": "gift_heart.png",
+    "money": 1,
+    "type": 0,
+    "is_vip": 0,
+    "tian": 0,
+    "status": 1,
+    "sort": 1
+  },
+  {
+    "id": 2,
+    "title": "玫瑰花",
+    "image": "gift_rose.png",
+    "money": 10,
+    "type": 0,
+    "is_vip": 0,
+    "tian": 0,
+    "status": 1,
+    "sort": 2
+  },
+  {
+    "id": 3,
+    "title": "蛋糕",
+    "image": "gift_cake.png",
+    "money": 50,
+    "type": 0,
+    "is_vip": 0,
+    "tian": 0,
+    "status": 1,
+    "sort": 3
+  },
+  {
+    "id": 4,
+    "title": "钻戒",
+    "image": "gift_ring.png",
+    "money": 999,
+    "type": 0,
+    "is_vip": 1,
+    "tian": 0,
+    "status": 1,
+    "sort": 4
+  },
+  {
+    "id": 5,
+    "title": "跑车",
+    "image": "gift_car.png",
+    "money": 1500,
+    "type": 0,
+    "is_vip": 1,
+    "tian": 0,
+    "status": 1,
+    "sort": 5
+  },
+  {
+    "id": 6,
+    "title": "火箭",
+    "image": "gift_rocket.png",
+    "money": 500,
+    "type": 0,
+    "is_vip": 0,
+    "tian": 0,
+    "status": 1,
+    "sort": 6
+  },
+  {
+    "id": 7,
+    "title": "皇冠",
+    "image": "gift_crown.png",
+    "money": 2000,
+    "type": 1,
+    "is_vip": 1,
+    "tian": 0,
+    "status": 1,
+    "sort": 7
+  },
+  {
+    "id": 8,
+    "title": "城堡",
+    "image": "gift_castle.png",
+    "money": 5000,
+    "type": 1,
+    "is_vip": 1,
+    "tian": 0,
+    "status": 1,
+    "sort": 8
+  },
+  {
+    "id": 9,
+    "title": "飞机",
+    "image": "gift_plane.png",
+    "money": 300,
+    "type": 0,
+    "is_vip": 0,
+    "tian": 0,
+    "status": 1,
+    "sort": 9
+  },
+  {
+    "id": 10,
+    "title": "游艇",
+    "image": "gift_yacht.png",
+    "money": 3000,
+    "type": 1,
+    "is_vip": 1,
+    "tian": 0,
+    "status": 1,
+    "sort": 10
+  }
+]

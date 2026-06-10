@@ -12,5 +12,7 @@ router.delete('/:id', authMiddleware, projectController.deleteProject);
 router.post('/:id/start', authMiddleware, projectController.start);
 router.post('/:id/stop', authMiddleware, projectController.stop);
 router.post('/:id/restart', authMiddleware, projectController.restart);
+router.post('/:id/toggle-status', authMiddleware, projectController.toggleStatus);
+router.get('/:id/orders', authMiddleware, projectController.getOrders);
 
 module.exports = router;

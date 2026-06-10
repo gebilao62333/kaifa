@@ -141,9 +141,11 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
 const userStore = useUserStore()
+const { requireLogin } = useLoginManager()
 
 const activeTab = ref('all')
 const loading = ref(false)
@@ -229,7 +231,7 @@ const loadOrders = async () => {
   orderList.value = [
     {
       id: 1,
-      avatar: '',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
       nickname: '玩家小李',
       level: 18,
       title: '王者荣耀排位上分',
@@ -243,7 +245,7 @@ const loadOrders = async () => {
     },
     {
       id: 2,
-      avatar: '',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
       nickname: '菜鸟玩家',
       level: 12,
       title: '和平精英娱乐局',
@@ -257,7 +259,7 @@ const loadOrders = async () => {
     },
     {
       id: 3,
-      avatar: '',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
       nickname: '原神玩家',
       level: 30,
       title: '原神刷本组队',
@@ -271,7 +273,7 @@ const loadOrders = async () => {
     },
     {
       id: 4,
-      avatar: '',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=player4&backgroundColor=d1d4f9',
       nickname: '电竞小王子',
       level: 45,
       title: 'LOL灵活组排',
@@ -306,7 +308,7 @@ const goUserProfile = (item) => {
 }
 
 const applyOrder = async (item) => {
-  if (!userStore.isLogin) { toast.warning('请先登录'); router.push('/login'); return }
+  if (!userStore.isLogin) { try { await requireLogin() } catch { return } }
 
   item.status = 'closed'
   item.applyCount++
@@ -331,7 +333,7 @@ onMounted(() => {
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-  padding-top: 82px;
+  padding-top: 70px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -350,6 +352,7 @@ onMounted(() => {
   width: 100%;
   max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .header-back {

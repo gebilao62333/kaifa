@@ -180,9 +180,11 @@ import { toast } from '../composables/useToast'
 import { getWithdrawMethods } from '../common/payMethods'
 import walletService from '../services/walletService'
 import { formatBalance } from '../common/common'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
 const userStore = useUserStore()
+const { requireLogin } = useLoginManager()
 
 const loadBalance = () => {
   try {
@@ -331,7 +333,7 @@ const doWithdraw = async () => {
     return
   }
 
-  if (!userStore.isLogin) { toast.warning('请先登录'); router.push('/login'); return }
+  if (!userStore.isLogin) { try { await requireLogin() } catch { return } }
 
   submitting.value = true
 
@@ -670,7 +672,6 @@ const doWithdraw = async () => {
   font-size: 16px;
   color: var(--text-primary);
   background: transparent;
-  box-sizing: border-box;
 }
 
 .receiver-input::placeholder {

@@ -10,11 +10,13 @@ const VirtualChatHistory = sequelize.define('virtual_chat_history', {
   virtualUserId: {
     type: DataTypes.BIGINT,
     allowNull: false,
+    field: 'virtual_user_id',
     comment: '虚拟用户ID'
   },
   userId: {
     type: DataTypes.BIGINT,
     allowNull: false,
+    field: 'user_id',
     comment: '真实用户ID'
   },
   message: {
@@ -30,20 +32,23 @@ const VirtualChatHistory = sequelize.define('virtual_chat_history', {
   contextId: {
     type: DataTypes.STRING(64),
     allowNull: false,
+    field: 'context_id',
     comment: '上下文会话ID'
   },
   createTime: {
     type: DataTypes.INTEGER(10),
+    field: 'create_time',
     defaultValue: 0
   }
 }, {
   tableName: 'virtual_chat_history',
   timestamps: false,
+  underscored: false,
   indexes: [
-    { fields: ['virtualUserId'] },
-    { fields: ['userId'] },
-    { fields: ['contextId'] },
-    { fields: ['createTime'] }
+    { fields: ['virtual_user_id'] },
+    { fields: ['user_id'] },
+    { fields: ['context_id'] },
+    { fields: ['create_time'] }
   ]
 });
 

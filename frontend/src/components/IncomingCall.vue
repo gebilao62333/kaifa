@@ -45,7 +45,7 @@ const ringDuration = ref(0)
 const callerInfo = ref({
   callerId: null,
   nickname: '',
-  avatar: '',
+  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
   callType: 1,
   callId: null
 })

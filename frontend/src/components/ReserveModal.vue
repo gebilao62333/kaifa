@@ -290,7 +290,7 @@ const props = defineProps({
     default: () => ({
       id: '',
       name: '',
-      avatar: '',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default&backgroundColor=b6e3f4',
       game: '',
       offlineService: false,
       offlineLocation: '',

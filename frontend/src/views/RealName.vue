@@ -90,9 +90,11 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
 const userStore = useUserStore()
+const { requireLogin } = useLoginManager()
 
 const isVerified = ref(false)
 const realName = ref('')
@@ -135,7 +137,7 @@ const handleFileChange = (e) => {
 }
 
 const submitForm = async () => {
-  if (!userStore.isLogin) { toast.warning('请先登录'); router.push('/login'); return }
+  if (!userStore.isLogin) { try { await requireLogin() } catch { return } }
 
   if (!realName.value.trim()) {
     toast.warning('请输入真实姓名');
@@ -164,7 +166,7 @@ const submitForm = async () => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: var(--bg-secondary);
-  padding-top: 82px;
+  padding-top: 70px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -183,6 +185,7 @@ const submitForm = async () => {
   width: 100%;
   max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .back-btn,
@@ -430,7 +433,7 @@ const submitForm = async () => {
 }
 
 @media (min-width: 768px) {
-  .real-name-page {
+  .realname-page {
     max-width: 650px;
     margin: 0 auto;
   }
@@ -441,7 +444,7 @@ const submitForm = async () => {
   }
 }
 @media (min-width: 1024px) {
-  .real-name-page {
+  .realname-page {
     max-width: 720px;
   }
   .header {

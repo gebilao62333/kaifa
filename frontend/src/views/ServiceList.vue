@@ -848,7 +848,7 @@ onMounted(() => {
 }
 
 @media (min-width: 768px) {
-  .service-list-page {
+  .service-list-container {
     max-width: 650px;
     margin: 0 auto;
   }
@@ -859,7 +859,7 @@ onMounted(() => {
   }
 }
 @media (min-width: 1024px) {
-  .service-list-page {
+  .service-list-container {
     max-width: 720px;
   }
   .header {

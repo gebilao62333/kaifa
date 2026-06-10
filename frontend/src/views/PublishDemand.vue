@@ -825,6 +825,7 @@ onMounted(() => {
   width: 100%;
   max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;

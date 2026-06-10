@@ -14,6 +14,8 @@
     "test:verbose": "jest --verbose",
     "test:load": "artillery run tests/load-tests/api-load-test.yml",
     "test:load:report": "artillery run tests/load-tests/api-load-test.yml --output test-results/load-test-report.json && artillery report test-results/load-test-report.json",
+    "mock:gen": "node scripts/generateMockData.js",
+    "mock:preview": "node scripts/generateMockData.js --dry-run",
     "lint": "eslint src/"
   },
   "keywords": [

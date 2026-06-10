@@ -32,7 +32,7 @@
       </div>
 
       <!-- 陪玩师列表区域 -->
-      <div class="companion-section">
+      <div class="companion-section" v-if="!props.hideCompanionList">
         <div class="section-title">
           陪玩师列表
           <span class="count-hint" v-if="filteredCompanions.length > 0">
@@ -95,7 +95,12 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import gamesService from '../services/gamesService'
-import { generateMockOfflineCompanions } from '../common/mockData'
+const props = defineProps({
+  hideCompanionList: {
+    type: Boolean,
+    default: false
+  }
+})
 
 const router = useRouter()
 
@@ -171,12 +176,10 @@ const loadCompanions = async () => {
         price: item.price || 0
       }))
     } else {
-      console.warn('获取线下陪玩师数据为空，使用Mock数据')
-      companions.value = generateMockOfflineCompanions(50)
+      console.warn('获取线下陪玩师数据为空')
     }
   } catch (error) {
-    console.warn('加载线下陪玩师失败，使用Mock数据:', error.message)
-    companions.value = generateMockOfflineCompanions(50)
+    console.warn('加载线下陪玩师失败:', error.message)
   } finally {
     loading.value = false
   }
@@ -215,6 +218,7 @@ onMounted(() => {
   width: 100%;
   max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .header-back {
@@ -483,7 +487,6 @@ onMounted(() => {
   text-align: left;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
-  box-sizing: border-box;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.2s;
 }
@@ -641,7 +644,7 @@ onMounted(() => {
   align-items: center;
   gap: 2px;
   font-size: 11px;
-  color: #999;
+  color: var(--text-muted);
   margin-bottom: 0;
 }
 

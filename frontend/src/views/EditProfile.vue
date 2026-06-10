@@ -63,7 +63,7 @@
 
         <div class="form-item">
           <span class="label">所在地区</span>
-          <div class="region-display" @click="showRegionPicker = true">
+          <div class="region-display" @click="openRegionPicker">
             {{ form.region || '请选择地区' }}
             <span class="arrow">›</span>
           </div>
@@ -208,9 +208,8 @@
 
       </div>
 
-    <div class="region-picker" v-if="showRegionPicker">
-      <div class="picker-mask" @click="showRegionPicker = false"></div>
-      <div class="picker-content">
+    <div class="region-picker" v-if="showRegionPicker" @click.self="showRegionPicker = false">
+      <div class="picker-content" @click.stop>
         <div class="picker-header">
           <span class="picker-cancel" @click="showRegionPicker = false">取消</span>
           <span class="picker-title">选择地区</span>
@@ -222,15 +221,24 @@
               {{ province.name }}
             </div>
           </div>
-          <div class="picker-column" v-if="regionStep === 'city' || regionStep === 'district'">
+          <div class="picker-column" v-if="regionStep === 'city' || regionStep === 'district' || regionStep === 'street'">
             <div class="picker-item" :class="{ active: tempRegion.city === city.name }" v-for="city in currentProvince?.cities" :key="city.code" @click="selectCity(city)">
               {{ city.name }}
             </div>
           </div>
-          <div class="picker-column" v-if="regionStep === 'district'">
+          <div class="picker-column" v-if="regionStep === 'district' || regionStep === 'street'">
             <div class="picker-item" :class="{ active: tempRegion.district === district.name }" v-for="district in currentCity?.districts" :key="district.code" @click="selectDistrict(district)">
               {{ district.name }}
             </div>
+          </div>
+          <div class="picker-column picker-column-custom" v-if="regionStep === 'street'">
+            <input
+              class="picker-custom-input"
+              v-model="customStreet"
+              placeholder="请输入街道/乡镇（可选）"
+              @click.stop
+            />
+            <div class="picker-custom-hint">支持自定义输入，也可留空</div>
           </div>
         </div>
       </div>
@@ -443,8 +451,10 @@ const regionStep = ref('province')
 const tempRegion = reactive({
   province: '',
   city: '',
-  district: ''
+  district: '',
+  street: ''
 })
+const customStreet = ref('')
 const newPhone = ref('')
 const verifyCode = ref('')
 const codeCount = ref(0)
@@ -453,6 +463,7 @@ const codeCount = ref(0)
 
 const currentProvince = ref(null)
 const currentCity = ref(null)
+const currentDistrict = ref(null)
 
 const activeServices = computed(() => {
   return form.services?.filter(s => s.status === 'active') || []
@@ -572,22 +583,42 @@ const selectProvince = (province) => {
   tempRegion.province = province.name
   tempRegion.city = ''
   tempRegion.district = ''
+  tempRegion.street = ''
+  customStreet.value = ''
   currentProvince.value = province
+  currentCity.value = null
+  currentDistrict.value = null
   regionStep.value = 'city'
 }
 
 const selectCity = (city) => {
   tempRegion.city = city.name
   tempRegion.district = ''
+  tempRegion.street = ''
+  customStreet.value = ''
   currentCity.value = city
+  currentDistrict.value = null
   regionStep.value = 'district'
 }
 
-const selectDistrict = (district) => { tempRegion.district = district.name }
+const selectDistrict = (district) => {
+  tempRegion.district = district.name
+  tempRegion.street = ''
+  customStreet.value = ''
+  currentDistrict.value = district
+  regionStep.value = 'street'
+}
 
 const confirmRegion = () => {
-  form.region = tempRegion.province + (tempRegion.city || '') + (tempRegion.district || '')
+  tempRegion.street = customStreet.value.trim()
+  form.region = tempRegion.province + (tempRegion.city || '') + (tempRegion.district || '') + (tempRegion.street || '')
   showRegionPicker.value = false
+}
+
+const openRegionPicker = () => {
+  regionStep.value = 'province'
+  customStreet.value = ''
+  showRegionPicker.value = true
 }
 
 const sendCode = () => {
@@ -1094,33 +1125,37 @@ const saveProfile = async () => {
   box-shadow: var(--shadow-medium);
 }
 
-.region-picker, .modal {
+.region-picker {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
   z-index: 1000;
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
 }
 
-.picker-mask, .modal {
-  position: absolute;
+.modal {
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
 }
 
-.picker-content, .modal-content {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
+.picker-content {
+  width: 100%;
+  max-width: 650px;
+  margin: 0 auto;
   background: var(--bg-primary);
   border-radius: 10px 10px 0 0;
+  max-height: 70vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .picker-header, .modal-header {
@@ -1142,6 +1177,40 @@ const saveProfile = async () => {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   border-right: 1px solid var(--border-light);
+}
+
+.picker-column-custom {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.picker-custom-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color, #e5e5e5);
+  border-radius: 8px;
+  font-size: 15px;
+  color: var(--text-primary);
+  background: var(--bg-primary, #fff);
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.2s;
+}
+
+.picker-custom-input:focus {
+  border-color: var(--primary-color);
+}
+
+.picker-custom-input::placeholder {
+  color: var(--text-muted, #bbb);
+}
+
+.picker-custom-hint {
+  font-size: 12px;
+  color: var(--text-muted, #bbb);
+  text-align: center;
 }
 
 .picker-item {

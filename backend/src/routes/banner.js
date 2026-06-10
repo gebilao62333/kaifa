@@ -50,17 +50,13 @@ router.get('/list', (req, res) => {
       filteredBanners = filteredBanners.filter(b => b.status === parseInt(status));
     }
     
-    res.json({
-      code: 200,
-      message: 'success',
-      data: {
-        list: filteredBanners,
-        pagination: {
-          page: 1,
-          pageSize: 20,
-          total: filteredBanners.length,
-          totalPages: 1
-        }
+    response.success(res, {
+      list: filteredBanners,
+      pagination: {
+        page: 1,
+        pageSize: 20,
+        total: filteredBanners.length,
+        totalPages: 1
       }
     });
   } catch (error) {
@@ -78,11 +74,7 @@ router.get('/:id', (req, res) => {
       return response.notFound(res, 'Banner不存在');
     }
     
-    res.json({
-      code: 200,
-      message: 'success',
-      data: banner
-    });
+    response.success(res, banner);
   } catch (error) {
     logger.error('获取Banner详情失败:', error);
     response.error(res, '服务器错误');
@@ -106,11 +98,7 @@ router.post('/', (req, res) => {
     
     mockBanners.push(newBanner);
     
-    res.json({
-      code: 200,
-      message: '创建成功',
-      data: newBanner
-    });
+    response.created(res, newBanner, '创建成功');
   } catch (error) {
     logger.error('创建Banner失败:', error);
     response.error(res, '服务器错误');
@@ -135,11 +123,7 @@ router.put('/:id', (req, res) => {
     if (sort !== undefined) banner.sort = sort;
     if (status !== undefined) banner.status = status;
     
-    res.json({
-      code: 200,
-      message: '更新成功',
-      data: banner
-    });
+    response.success(res, banner, '更新成功');
   } catch (error) {
     logger.error('更新Banner失败:', error);
     response.error(res, '服务器错误');
@@ -157,10 +141,7 @@ router.delete('/:id', (req, res) => {
     
     mockBanners.splice(index, 1);
     
-    res.json({
-      code: 200,
-      message: '删除成功'
-    });
+    response.success(res, {}, '删除成功');
   } catch (error) {
     logger.error('删除Banner失败:', error);
     response.error(res, '服务器错误');
@@ -180,11 +161,7 @@ router.put('/:id/status', (req, res) => {
     
     banner.status = status;
     
-    res.json({
-      code: 200,
-      message: '状态更新成功',
-      data: banner
-    });
+    response.success(res, banner, '状态更新成功');
   } catch (error) {
     logger.error('更新Banner状态失败:', error);
     response.error(res, '服务器错误');

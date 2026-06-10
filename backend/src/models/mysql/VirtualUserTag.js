@@ -87,6 +87,7 @@ const VirtualUserTag = sequelize.define('virtual_user_tag', {
   isDefault: {
     type: DataTypes.TINYINT(1),
     defaultValue: 0,
+    field: 'is_default',
     comment: '是否为默认标签'
   },
   status: {
@@ -115,7 +116,7 @@ const VirtualUserTag = sequelize.define('virtual_user_tag', {
     { fields: ['category'] },
     { fields: ['status'] },
     { fields: ['priority'] },
-    { fields: ['isDefault'] }
+    { fields: ['is_default'] }
   ]
 });
 

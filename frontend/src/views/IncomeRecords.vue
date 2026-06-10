@@ -86,6 +86,7 @@ const goBack = () => {
   width: 100%;
   max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .back-btn {
@@ -231,7 +232,7 @@ const goBack = () => {
 }
 
 @media (min-width: 768px) {
-  .income-records-page {
+  .records-page {
     max-width: 650px;
     margin: 0 auto;
   }
@@ -242,7 +243,7 @@ const goBack = () => {
   }
 }
 @media (min-width: 1024px) {
-  .income-records-page {
+  .records-page {
     max-width: 720px;
   }
   .header {

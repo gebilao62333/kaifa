@@ -1,9 +1,17 @@
 const CURRENCY_UNIT = '金币';
-const MIN_WITHDRAW_AMOUNT = 100;
-const WITHDRAW_FEE_RATE = 0.05;
 const EXCHANGE_RATE = 10;
 
+// 从 config 动态读取（支持管理后台热更新）
+const getConfig = () => {
+  const config = require('../config');
+  return {
+    MIN_WITHDRAW_AMOUNT: (config.platform && config.platform.withdrawMinAmount) || 100,
+    WITHDRAW_FEE_RATE: (config.platform && config.platform.withdrawFeeRate !== undefined) ? config.platform.withdrawFeeRate : 0.05
+  };
+};
+
 const validateGoldCoins = (amount) => {
+  const { MIN_WITHDRAW_AMOUNT } = getConfig();
   const num = parseFloat(amount);
   if (isNaN(num)) {
     return { valid: false, message: '金额必须是数字' };
@@ -40,6 +48,7 @@ const convertToFiat = (coins) => {
 };
 
 const calculateWithdrawFee = (coins) => {
+  const { WITHDRAW_FEE_RATE } = getConfig();
   if (coins === null || coins === undefined || isNaN(coins)) {
     return 0;
   }
@@ -88,9 +97,8 @@ const createCurrencyMiddleware = () => {
 
 module.exports = {
   CURRENCY_UNIT,
-  MIN_WITHDRAW_AMOUNT,
-  WITHDRAW_FEE_RATE,
   EXCHANGE_RATE,
+  getConfig,
   validateGoldCoins,
   formatCurrency,
   convertToCoins,

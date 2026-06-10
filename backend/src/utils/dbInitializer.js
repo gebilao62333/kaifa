@@ -1,175 +1,145 @@
-const {
-  generateMockUsers,
-  generateMockVirtualUsers,
-  generateMockPosts,
-  generateMockGameOrders,
-  generateMockCompanionProfiles,
-  generateMockChatLogs,
-  generateMockCircleTags,
-  generateMockGames,
-  generateMockVirtualUserTags,
-  generateMockGifts,
-  generateMockWithdraws
-} = require('../models/mockDataGenerator');
-
+/**
+ * 数据库初始化器 - 本地数据源版本
+ * 
+ * 使用本地种子数据生成器填充数据，不依赖外部数据库。
+ */
 const models = require('../models/index');
+const { generateAllSeedData } = require('../data/seed');
 
 const initializeDatabase = async () => {
-  console.log('\n📊 正在检查数据库状态...\n');
-  
+  console.log('\n📊 正在检查本地数据源状态...\n');
+
   try {
-    // 检查各个关键表
+    // 检查是否有现有数据
+    let needsInit = false;
     const checks = [];
-    
-    // 用户表
+
     try {
       const userCount = await models.User.count();
-      checks.push({ name: '用户', table: 'User', count: userCount, needsData: userCount === 0 });
+      checks.push({ name: '用户', count: userCount, needsData: userCount === 0 });
       console.log(`👤 用户表现有记录数: ${userCount}`);
+      if (userCount === 0) needsInit = true;
     } catch (e) {
       console.warn(`⚠️ 无法检查用户表: ${e.message}`);
+      needsInit = true;
     }
-    
-    // 游戏表
+
     try {
       const gameCount = await models.Game.count();
-      checks.push({ name: '游戏', table: 'Game', count: gameCount, needsData: gameCount === 0 });
+      checks.push({ name: '游戏', count: gameCount, needsData: gameCount === 0 });
       console.log(`🎮 游戏表现有记录数: ${gameCount}`);
+      if (gameCount === 0) needsInit = true;
     } catch (e) {
-      console.warn(`⚠️ 无法检查表: ${e.message}`);
+      console.warn(`⚠️ 无法检查游戏表: ${e.message}`);
     }
-    
-    // 礼物表
+
     try {
       const giftCount = await models.Gift.count();
-      checks.push({ name: '礼物', table: 'Gift', count: giftCount, needsData: giftCount === 0 });
+      checks.push({ name: '礼物', count: giftCount, needsData: giftCount === 0 });
       console.log(`🎁 礼物表现有记录数: ${giftCount}`);
+      if (giftCount === 0) needsInit = true;
     } catch (e) {
       console.warn(`⚠️ 无法检查礼物表: ${e.message}`);
     }
-    
-    // 标签表
-    try {
-      const tagCount = await models.CircleTag.count();
-      checks.push({ name: '圈子标签', table: 'CircleTag', count: tagCount, needsData: tagCount === 0 });
-      console.log(`🏷️ 圈子标签表现有记录数: ${tagCount}`);
-    } catch (e) {
-      console.warn(`⚠️ 无法检查标签表: ${e.message}`);
-    }
-    
-    // 管理员表
+
     try {
       const adminCount = await models.Admin.count();
-      checks.push({ name: '管理员', table: 'Admin', count: adminCount, needsData: adminCount === 0 });
+      checks.push({ name: '管理员', count: adminCount, needsData: adminCount === 0 });
       console.log(`🔐 管理员表现有记录数: ${adminCount}`);
+      if (adminCount === 0) needsInit = true;
     } catch (e) {
       console.warn(`⚠️ 无法检查管理员表: ${e.message}`);
     }
-    
-    // 检查是否需要初始化数据
-    const needsInit = checks.some(c => c.needsData);
-    
+
     if (needsInit) {
-      console.log('\n🆕 检测到缺失数据，开始补充...\n');
-      await seedTestData();
-      console.log('\n✅ 数据补充完成！\n');
+      console.log('\n🆕 检测到缺失数据，开始生成种子数据...\n');
+      await seedAllData();
+      console.log('\n✅ 种子数据初始化完成！\n');
     } else {
       console.log('\n✅ 所有关键表数据完整，跳过初始化\n');
     }
-    
+
     return { initialized: needsInit, checks };
   } catch (error) {
-    console.error('\n❌ 数据库检查失败:', error.message);
+    console.error('\n❌ 数据检查失败:', error.message);
     return { error: error.message };
   }
 };
 
-const seedTestData = async () => {
-  const count = 50;
-  
+const seedAllData = async () => {
   try {
-    // 1. 初始化标签和基础数据（检查是否已存在）
-    console.log('📝 初始化圈子标签...');
-    const existingTags = await models.CircleTag.count();
-    if (existingTags === 0) {
-      const circleTags = generateMockCircleTags();
-      await models.CircleTag.bulkCreate(circleTags, { ignoreDuplicates: true });
+    console.log('🌱 正在生成所有种子数据...');
+
+    const seedData = await generateAllSeedData();
+
+    // 表名到模型名的映射
+    const tableModelMap = {
+      'xn_admin': models.Admin,
+      'xn_admin_role': models.AdminRole,
+      'xn_user': models.User,
+      'xn_virtual_user': models.VirtualUser,
+      'xn_game': models.Game,
+      'xn_circle_tag': models.CircleTag,
+      'virtual_user_tag': models.VirtualUserTag,
+      'xn_gift': models.Gift,
+      'xn_recharge_package': models.RechargePackage,
+      'xn_vip_package': models.VipPackage,
+      'xn_card': models.Card,
+      'xn_banner': models.Banner,
+      'xn_setting': models.Setting,
+      'xn_game_order': models.GameOrder,
+      'xn_post': models.Post,
+      'xn_post_like': models.PostLike,
+      'xn_post_comment': models.PostComment,
+      'xn_user_follow': models.UserFollow,
+      'xn_reserve': models.Reserve,
+      'xn_gift_log': models.GiftLog,
+      'xn_order_chong': models.OrderChong,
+      'xn_companion_profile': models.CompanionProfile,
+      'xn_virtual_user_tag_relation': models.VirtualUserTagRelation,
+      'xn_report': models.Report,
+      'xn_chat_room': models.ChatRoom,
+      'xn_chat_log': models.ChatLog,
+      'xn_demand': models.Demand,
+      'xn_withdraw': models.Withdraw,
+      'xn_call_record': models.CallRecord,
+      'xn_call_billing': models.CallBilling,
+      'xn_vip_order': models.VipOrder,
+      'xn_album_photo': models.AlbumPhoto,
+      'xn_post_unlock': models.PostUnlock,
+      'xn_red_packet': models.RedPacket,
+      'xn_red_packet_log': models.RedPacketLog,
+      'xn_reserve_slot': models.ReserveSlot,
+      'xn_gift_bag': models.GiftBag,
+      'xn_recommend': models.Recommend,
+      'xn_virtual_chat_history': models.VirtualChatHistory,
+      'xn_customer_service': models.CustomerService
+    };
+
+    let totalSeeded = 0;
+    for (const [tableName, model] of Object.entries(tableModelMap)) {
+      const data = seedData[tableName];
+      if (data && data.length > 0 && model) {
+        try {
+          await model.bulkCreate(data, { ignoreDuplicates: true });
+          console.log(`  ✅ ${tableName}: ${data.length} 条`);
+          totalSeeded += data.length;
+        } catch (e) {
+          console.warn(`  ⚠️  ${tableName} 写入失败: ${e.message}`);
+        }
+      }
     }
-    
-    console.log('🎮 初始化游戏数据...');
-    const existingGames = await models.Game.count();
-    if (existingGames === 0) {
-      const games = generateMockGames();
-      await models.Game.bulkCreate(games, { ignoreDuplicates: true });
-    }
-    
-    console.log('🏷️ 初始化虚拟用户标签...');
-    const existingVirtualTags = await models.VirtualUserTag.count();
-    if (existingVirtualTags === 0) {
-      const virtualTags = generateMockVirtualUserTags();
-      await models.VirtualUserTag.bulkCreate(virtualTags, { ignoreDuplicates: true });
-    }
-    
-    console.log('🎁 初始化礼物数据...');
-    const existingGifts = await models.Gift.count();
-    if (existingGifts === 0) {
-      const gifts = generateMockGifts();
-      await models.Gift.bulkCreate(gifts, { ignoreDuplicates: true });
-    }
-    
-    // 2. 初始化用户数据（检查是否已存在）
-    console.log('👤 初始化用户数据...');
-    const existingUsers = await models.User.count();
-    if (existingUsers === 0) {
-      const users = generateMockUsers(count);
-      await models.User.bulkCreate(users, { ignoreDuplicates: true });
-    }
-    
-    // 3. 初始化虚拟用户（检查是否已存在）
-    console.log('🤖 初始化虚拟用户...');
-    const existingVirtualUsers = await models.VirtualUser.count();
-    if (existingVirtualUsers === 0) {
-      const virtualUsers = generateMockVirtualUsers(count);
-      await models.VirtualUser.bulkCreate(virtualUsers, { ignoreDuplicates: true });
-    }
-    
-    // 9. 初始化默认管理员账号（检查是否已存在）
-    console.log('🔐 初始化管理员账号...');
-    const existingAdmin = await models.Admin.findOne({ where: { username: 'admin' } });
-    if (!existingAdmin) {
-      const bcrypt = require('bcryptjs');
-      const hashedPassword = await bcrypt.hash('admin123', 10);
-      await models.Admin.create({
-        username: 'admin',
-        password: hashedPassword,
-        role_id: 1,
-        status: 1,
-        create_time: Math.floor(Date.now() / 1000),
-        update_time: Math.floor(Date.now() / 1000)
-      });
-    }
-    
-    // 10. 初始化默认角色（检查是否已存在）
-    console.log('👑 初始化角色数据...');
-    const existingRole = await models.AdminRole.findOne({ where: { name: '超级管理员' } });
-    if (!existingRole) {
-      await models.AdminRole.create({
-        name: '超级管理员',
-        permissions: JSON.stringify(['*']),
-        status: 1,
-        create_time: Math.floor(Date.now() / 1000),
-        update_time: Math.floor(Date.now() / 1000)
-      });
-    }
-    
-    console.log(`\n✅ 数据检查和补充完成！`);
+
+    console.log(`\n📊 共生成 ${totalSeeded} 条种子数据`);
+    console.log('💡 测试账号: mock_user_1 ~ mock_user_50, 密码: 123456');
+    console.log('🔑 管理员: admin / admin123');
   } catch (error) {
-    console.error('❌ 生成测试数据时出错:', error);
-    // 不要抛出错误，让服务继续运行
+    console.error('❌ 生成种子数据失败:', error.message);
+    console.error(error.stack);
   }
 };
 
 module.exports = {
   initializeDatabase,
-  seedTestData
+  seedAllData
 };

@@ -19,11 +19,7 @@ router.get('/list', async (req, res) => {
     
     const services = await CustomerService.findAll({ where });
     
-    res.json({
-      code: 200,
-      message: '获取成功',
-      data: services
-    });
+    response.success(res, services, '获取成功');
   } catch (error) {
     logger.error('获取客服列表失败:', error);
     response.error(res, '获取客服列表失败');
@@ -42,11 +38,7 @@ router.get('/:id', async (req, res) => {
       return response.notFound(res, '客服不存在');
     }
     
-    res.json({
-      code: 200,
-      message: '获取成功',
-      data: service
-    });
+    response.success(res, service, '获取成功');
   } catch (error) {
     logger.error('获取客服信息失败:', error);
     response.error(res, '获取客服信息失败');
@@ -71,11 +63,7 @@ router.get('/chat/:customerId', async (req, res) => {
       offset: parseInt(offset)
     });
     
-    res.json({
-      code: 200,
-      message: '获取成功',
-      data: messages.reverse() // 按时间正序返回
-    });
+    response.success(res, messages.reverse(), '获取成功');
   } catch (error) {
     logger.error('获取聊天记录失败:', error);
     response.error(res, '获取聊天记录失败');
@@ -135,11 +123,7 @@ router.post('/message', async (req, res) => {
       });
     }, 3000);
     
-    res.json({
-      code: 200,
-      message: '发送成功',
-      data: newMessage
-    });
+    response.success(res, newMessage, '发送成功');
   } catch (error) {
     logger.error('发送消息失败:', error);
     response.error(res, '发送消息失败');
@@ -159,13 +143,9 @@ router.get('/unread/:userId', async (req, res) => {
       }
     });
     
-    res.json({
-      code: 200,
-      message: '获取成功',
-      data: {
-        unreadCount: messages.length
-      }
-    });
+    response.success(res, {
+      unreadCount: messages.length
+    }, '获取成功');
   } catch (error) {
     logger.error('获取未读消息数失败:', error);
     response.error(res, '获取未读消息数失败');
@@ -190,10 +170,7 @@ router.put('/status/:id', async (req, res) => {
       return response.notFound(res, '客服不存在');
     }
     
-    res.json({
-      code: 200,
-      message: '更新成功'
-    });
+    response.success(res, {}, '更新成功');
   } catch (error) {
     logger.error('更新客服状态失败:', error);
     response.error(res, '更新客服状态失败');
@@ -218,11 +195,7 @@ router.post('/', async (req, res) => {
       status: 1
     });
     
-    res.json({
-      code: 200,
-      message: '创建成功',
-      data: newService
-    });
+    response.created(res, newService, '创建成功');
   } catch (error) {
     logger.error('创建客服失败:', error);
     response.error(res, '创建客服失败');

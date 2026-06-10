@@ -4,12 +4,12 @@ const bcrypt = require('bcryptjs');
 const { getTimestamp } = require('../utils/helper');
 const { Op } = require('sequelize');
 
-const USER_ID_THRESHOLD = 11000
+const USER_ID_THRESHOLD = 20001
 
 const ensureUserIdValid = async (user) => {
   if (user.id < USER_ID_THRESHOLD) {
     await user.destroy()
-    throw new Error('注册失败：当前仅支持 ID 11000 后的用户注册，如有疑问请联系管理员')
+    throw new Error('注册失败：ID 20001-99999 为新用户注册范围，当前ID不合法，如有疑问请联系管理员')
   }
 }
 

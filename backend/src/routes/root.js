@@ -1,15 +1,12 @@
 const express = require('express');
 const router = express.Router();
+const response = require('../utils/response');
 
 router.get('/', (req, res) => {
-  res.json({
-    code: 200,
-    message: '多客陪玩后端API服务',
-    data: {
-      version: '3.0.0',
-      name: 'duoke-peer-backend'
-    }
-  });
+  response.success(res, {
+    version: '3.0.0',
+    name: 'duoke-peer-backend'
+  }, '多客陪玩后端API服务');
 });
 
 module.exports = router;

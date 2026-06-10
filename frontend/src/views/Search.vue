@@ -110,8 +110,8 @@
           <div class="post-list">
             <div v-for="post in searchResults.posts" :key="post.postId" class="post-item" @click="goPostDetail(post.postId)">
               <div class="post-content">{{ post.content }}</div>
-              <div v-if="post.images && post.images.length > 0" class="post-images">
-                <img v-for="(img, idx) in post.images.slice(0, 3)" :key="idx" :src="img" alt="" />
+              <div v-if="safeImages(post.images) && safeImages(post.images).length > 0" class="post-images">
+                <img v-for="(img, idx) in safeImages(post.images).slice(0, 3)" :key="idx" :src="img" alt="" />
               </div>
               <div class="post-meta">
                 <span class="post-author">{{ post.nickName }}</span>
@@ -272,6 +272,14 @@ const goCategory = (type) => {
 
 const goUserProfile = (userId) => {
   router.push({ name: 'UserProfile', params: { id: userId } })
+}
+
+const safeImages = (post) => {
+  if (!post || !post.images) return []
+  if (typeof post.images === 'string') {
+    try { return JSON.parse(post.images) } catch { return [] }
+  }
+  return Array.isArray(post.images) ? post.images : []
 }
 
 const goPostDetail = (postId) => {

@@ -294,6 +294,7 @@ onMounted(async () => {
   transform: translateX(-50%);
   width: 100%;
   max-width: 650px;
+  box-sizing: border-box;
   background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   z-index: 100;
 }

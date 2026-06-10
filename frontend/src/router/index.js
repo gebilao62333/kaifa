@@ -1,4 +1,3 @@
-import adminRoutes from './admin'
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 
@@ -192,6 +191,11 @@ const routes = [
     component: lazyLoad('PaymentGateway')
   },
   {
+    path: '/notification-list',
+    name: 'NotificationList',
+    component: lazyLoad('NotificationList')
+  },
+  {
     path: '/likes-records',
     name: 'LikesRecords',
     component: lazyLoad('LikesRecords')
@@ -201,7 +205,91 @@ const routes = [
     name: 'VisitedRecords',
     component: lazyLoad('VisitedRecords')
   },
-  ...adminRoutes
+  {
+    path: '/edit-profile',
+    name: 'EditProfile',
+    component: lazyLoad('EditProfile')
+  },
+  {
+    path: '/follows',
+    name: 'Follows',
+    component: lazyLoad('Follows')
+  },
+  {
+    path: '/fans',
+    name: 'Fans',
+    component: lazyLoad('Fans')
+  },
+  {
+    path: '/my-album',
+    name: 'MyAlbum',
+    component: lazyLoad('MyAlbum')
+  },
+  {
+    path: '/my-reserve',
+    name: 'MyReserve',
+    component: lazyLoad('MyReserve')
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: lazyLoad('Settings')
+  },
+  {
+    path: '/customer-service',
+    name: 'CustomerService',
+    component: lazyLoad('CustomerService')
+  },
+  {
+    path: '/about-us',
+    name: 'AboutUs',
+    component: lazyLoad('AboutUs')
+  },
+  {
+    path: '/real-name',
+    name: 'RealName',
+    component: lazyLoad('RealName')
+  },
+  {
+    path: '/feedback',
+    name: 'Feedback',
+    component: lazyLoad('Feedback')
+  },
+  {
+    path: '/ai-chat/:id',
+    name: 'AIChat',
+    component: lazyLoad('AIChat')
+  },
+  {
+    path: '/avatar-frame',
+    name: 'AvatarFrame',
+    component: lazyLoad('AvatarFrame')
+  },
+  {
+    path: '/identity-badge',
+    name: 'IdentityBadge',
+    component: lazyLoad('IdentityBadge')
+  },
+  {
+    path: '/stealth-visit',
+    name: 'StealthVisit',
+    component: lazyLoad('StealthVisit')
+  },
+  {
+    path: '/level-acceleration',
+    name: 'LevelAcceleration',
+    component: lazyLoad('LevelAcceleration')
+  },
+  {
+    path: '/priority-matching',
+    name: 'PriorityMatching',
+    component: lazyLoad('PriorityMatching')
+  },
+  {
+    path: '/skin-shop',
+    name: 'SkinShop',
+    component: lazyLoad('SkinShop')
+  }
 ]
 
 const router = createRouter({
@@ -215,12 +303,9 @@ const router = createRouter({
   }
 })
 
-const publicRoutes = ['Login', 'Home', 'Search', 'Activity', 'PostDetail', 'Preferred', 'Mine', 'Friend']
-const publicPaths = ['/', '/login', '/home', '/search', '/activity', '/friend']
-
 router.beforeEach((to, from, next) => {
+  // 管理员路由 — 原有守卫
   if (to.path.startsWith('/admin')) {
-    // 管理员登录页不需要token
     if (to.path === '/admin/login') {
       next()
       return
@@ -234,7 +319,33 @@ router.beforeEach((to, from, next) => {
     next()
     return
   }
-  
+
+  // 登录页始终可访问
+  if (to.path === '/login') {
+    next()
+    return
+  }
+
+  // 公开路径白名单（无需登录即可访问）
+  const publicExactPaths = [
+    '/', '/home', '/search', '/activity', '/preferred',
+    '/friend', '/about-us', '/game-index', '/paidan', '/team-index'
+  ]
+  const publicPrefixes = ['/user/', '/post-detail/', '/project/']
+
+  if (publicExactPaths.includes(to.path) || publicPrefixes.some(p => to.path.startsWith(p))) {
+    next()
+    return
+  }
+
+  // 其余所有页面需要登录
+  const token = localStorage.getItem('token')
+  if (!token) {
+    console.warn('[Router] 未登录，重定向到登录页:', to.path)
+    next('/login')
+    return
+  }
+
   next()
 })
 

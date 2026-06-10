@@ -12,5 +12,6 @@ router.post('/reject', authMiddleware, reserveController.rejectReserve);
 router.post('/cancel', authMiddleware, reserveController.cancelReserve);
 router.post('/complete', authMiddleware, reserveController.completeReserve);
 router.get('/list', authMiddleware, reserveController.getReserveList);
+router.get('/detail', authMiddleware, reserveController.getReserveDetail);
 
 module.exports = router;

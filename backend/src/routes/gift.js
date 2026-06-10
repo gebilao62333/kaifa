@@ -6,6 +6,7 @@ const { authMiddleware } = require('../middlewares');
 router.get('/list', giftController.getGiftList);
 router.post('/send', authMiddleware, giftController.sendGift);
 router.get('/bag', authMiddleware, giftController.getGiftBag);
+router.get('/withdraw', authMiddleware, giftController.getWithdrawConfig);
 router.post('/withdraw', authMiddleware, giftController.withdraw);
 
 router.get('/admin/withdraw/list', authMiddleware, giftController.getWithdrawList);

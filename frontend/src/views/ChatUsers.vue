@@ -63,8 +63,6 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import homeService from '../services/homeService'
 import { toast } from '../composables/useToast'
-import { generateMockChatUsers } from '../common/mockData'
-
 const router = useRouter()
 const activeTab = ref('online')
 const loading = ref(false)
@@ -128,28 +126,11 @@ const loadUsers = async () => {
         return
       }
     } catch (error) {
-      console.warn('加载用户列表失败，使用模拟数据:', error.message)
+      console.warn('加载用户列表失败:', error.message)
     }
   }
   
-  useMockData()
   loading.value = false
-}
-
-const useMockData = () => {
-  allUsers.value = generateMockChatUsers(50).map(user => ({
-    userId: user.userId,
-    nickName: user.nickName,
-    avatar: user.avatar,
-    gender: user.gender,
-    level: user.level,
-    online: user.online,
-    isVip: user.isVip,
-    isNewbie: user.isNewbie,
-    activityScore: user.activityScore,
-    tags: user.tags,
-    region: user.region
-  }))
 }
 
 const switchTab = (tabKey) => {
@@ -178,6 +159,9 @@ onMounted(() => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background: var(--bg-secondary);
+  padding-top: 50px;
+  padding-top: calc(50px + constant(safe-area-inset-top, 0px));
+  padding-top: calc(50px + env(safe-area-inset-top, 0px));
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));

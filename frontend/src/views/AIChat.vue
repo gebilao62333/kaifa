@@ -77,15 +77,17 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
 import { virtualUserService } from '../services/virtualUserService'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const { requireLogin } = useLoginManager()
 
 const chatUser = ref({
   id: route.params.id,
   nickname: 'AI助手',
-  avatar: '',
+  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=aiassistant&backgroundColor=ffdfbf',
   isOnline: true,
   role: 'default',
   dialogueStyle: 'friendly'
@@ -150,7 +152,7 @@ const sendMessage = async () => {
   const text = inputText.value.trim()
   if (!text || sending.value) return
 
-  if (!userStore.isLogin) { toast.warning('请先登录'); router.push('/login'); return }
+  if (!userStore.isLogin) { try { await requireLogin() } catch { return } }
 
   inputText.value = ''
   messages.value.push({

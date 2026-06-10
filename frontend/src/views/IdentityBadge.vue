@@ -159,6 +159,7 @@ const selectBadge = (badge) => {
   max-width: 650px;
   background: linear-gradient(135deg, #FF6B81 0%, #E64C65 100%);
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .back-btn,

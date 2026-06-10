@@ -74,7 +74,11 @@ const authService = {
     return request('/api/user/send-sms', 'POST', { phone, type })
   },
 
-  async register(phone, password, code) {
+  async checkSmsConfig() {
+    return request('/api/user/sms-config', 'GET')
+  },
+
+  async register(phone, password, code, inviteCode) {
     validateParams({ phone, password, code }, {
       phone: {
         required: true,
@@ -97,7 +101,7 @@ const authService = {
         maxLength: 6
       }
     })
-    return request('/api/user/register', 'POST', { phone, password, code })
+    return request('/api/user/register', 'POST', { phone, password, code, inviteCode })
   },
 
   async resetPassword(phone, password, code) {

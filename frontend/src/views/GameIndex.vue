@@ -113,7 +113,7 @@ const loadCompanionList = async () => {
   companionList.value = [
     {
       id: 1,
-      avatar: '',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=xiaoxue&backgroundColor=b6e3f4',
       nickname: '小雪',
       level: 28,
       vip: true,
@@ -126,7 +126,7 @@ const loadCompanionList = async () => {
     },
     {
       id: 2,
-      avatar: '',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=ajie&backgroundColor=c0aede',
       nickname: '阿杰',
       level: 35,
       vip: false,
@@ -139,7 +139,7 @@ const loadCompanionList = async () => {
     },
     {
       id: 3,
-      avatar: '',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
       nickname: '小美',
       level: 22,
       vip: true,
@@ -152,7 +152,7 @@ const loadCompanionList = async () => {
     },
     {
       id: 4,
-      avatar: '',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=default',
       nickname: '大飞',
       level: 42,
       vip: true,
@@ -165,7 +165,7 @@ const loadCompanionList = async () => {
     },
     {
       id: 5,
-      avatar: '',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=xiaomeng&backgroundColor=ffd5dc',
       nickname: '小萌',
       level: 18,
       vip: false,
@@ -188,7 +188,7 @@ const selectCategory = (idx) => {
 
 const goCompanionDetail = (item) => {
   console.log('陪玩师详情:', item.id)
-  toast.info('陪玩师详情功能开发中...');
+  router.push(`/user/${item.id}`)
 }
 
 const followCompanion = (item) => {

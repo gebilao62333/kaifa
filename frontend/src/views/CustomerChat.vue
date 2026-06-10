@@ -217,6 +217,9 @@ onUnmounted(() => {
   border-bottom: 1px solid #eee;
   height: 60px;
   flex-shrink: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .back-btn {

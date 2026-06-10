@@ -812,7 +812,7 @@ onUnmounted(() => {
   padding-bottom: 80px;
   padding-bottom: calc(80px + constant(safe-area-inset-bottom, 0px));
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
-  padding-top: 82px;
+  padding-top: 70px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -831,6 +831,7 @@ onUnmounted(() => {
   transform: translateX(-50%);
   width: 100%;
   max-width: 650px;
+  box-sizing: border-box;
   z-index: 100;
 }
 

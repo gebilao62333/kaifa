@@ -115,10 +115,12 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
 import { generateQRCode } from '../utils/qrcode'
+import { useLoginManager } from '../composables/useLoginManager'
 
 const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
+const { requireLogin } = useLoginManager()
 
 const type = ref(route.query.type || 'recharge')
 const methodId = ref(route.query.method || 'alipay')
@@ -255,9 +257,11 @@ const executePay = () => {
 
 const startPay = async () => {
   if (!userStore.isLogin) {
-    toast.warning('请先登录')
-    router.push('/login')
-    return
+    try {
+      await requireLogin()
+    } catch {
+      return
+    }
   }
 
   // 为了确保可以正常支付，我们先直接执行支付

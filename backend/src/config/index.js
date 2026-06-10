@@ -1,9 +1,10 @@
 const path = require('path');
 
 module.exports = {
+  // 本地数据源模式：不使用外部数据库（通过 .env 的 USE_MOCK_DB 控制）
+  useMockDb: process.env.USE_MOCK_DB === undefined ? true : process.env.USE_MOCK_DB !== 'false',
   port: process.env.PORT || 3001,
   nodeEnv: process.env.NODE_ENV || 'development',
-  useMockDb: process.env.USE_MOCK_DB === 'true',
   
   jwt: {
     secret: process.env.JWT_SECRET || 'default-secret-key',
@@ -102,7 +103,26 @@ module.exports = {
   admin: {
     token: process.env.ADMIN_TOKEN
   },
+
+  // 平台运营参数（可通过管理后台热更新）
+  platform: {
+    commissionRate: parseFloat(process.env.PLATFORM_COMMISSION_RATE) || 0.7,
+    withdrawMinAmount: parseFloat(process.env.PLATFORM_WITHDRAW_MIN) || 100,
+    withdrawFeeRate: parseFloat(process.env.PLATFORM_WITHDRAW_FEE_RATE) || 0.05
+  },
   
+  // 大模型/AI 配置（支持 OpenAI 兼容接口）
+  llm: {
+    enabled: process.env.LLM_ENABLED === 'true' || false,
+    provider: process.env.LLM_PROVIDER || 'openai',
+    apiKey: process.env.LLM_API_KEY || '',
+    apiEndpoint: process.env.LLM_API_ENDPOINT || 'https://api.openai.com/v1',
+    model: process.env.LLM_MODEL || 'gpt-3.5-turbo',
+    maxTokens: parseInt(process.env.LLM_MAX_TOKENS) || 1024,
+    temperature: parseFloat(process.env.LLM_TEMPERATURE) || 0.7,
+    systemPrompt: process.env.LLM_SYSTEM_PROMPT || '你是一个友好、专业的陪玩助手，帮助用户解答问题、提供陪伴和娱乐服务。请用热情亲切的语气回复。'
+  },
+
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
     maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100

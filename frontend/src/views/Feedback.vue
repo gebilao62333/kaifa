@@ -144,7 +144,7 @@ const submitFeedback = () => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: var(--bg-secondary);
-  padding-top: 82px;
+  padding-top: 70px;
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
 }
@@ -163,6 +163,7 @@ const submitFeedback = () => {
   width: 100%;
   max-width: 650px;
   z-index: 100;
+  box-sizing: border-box;
 }
 
 .back-btn,
@@ -269,7 +270,6 @@ const submitFeedback = () => {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   resize: vertical;
-  box-sizing: border-box;
   transition: border-color 0.3s;
   -webkit-transition: border-color 0.3s;
   -webkit-appearance: none;
@@ -289,7 +289,6 @@ const submitFeedback = () => {
   font-size: 15px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  box-sizing: border-box;
   transition: border-color 0.3s;
   -webkit-transition: border-color 0.3s;
   -webkit-appearance: none;

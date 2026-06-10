@@ -1,0 +1,32 @@
+[
+  {
+    "id": 1,
+    "title": "新用户专享优惠",
+    "image": "https://picsum.photos/800/300?random=banner1",
+    "link": "/pages/home/index",
+    "type": 1,
+    "sort": 1,
+    "status": 1,
+    "create_time": 1780992502
+  },
+  {
+    "id": 2,
+    "title": "王者荣耀上分季",
+    "image": "https://picsum.photos/800/300?random=banner2",
+    "link": "/pages/game/detail?id=1",
+    "type": 2,
+    "sort": 2,
+    "status": 1,
+    "create_time": 1780992502
+  },
+  {
+    "id": 3,
+    "title": "VIP会员限时折扣",
+    "image": "https://picsum.photos/800/300?random=banner3",
+    "link": "/pages/vip/index",
+    "type": 1,
+    "sort": 3,
+    "status": 1,
+    "create_time": 1780992502
+  }
+]

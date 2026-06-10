@@ -1,4 +1,4 @@
-const { User, GameOrder, Withdraw, GiftLog, Post, VipPackage, Banner, CompanionProfile, CustomerService, ChatLog, Report, Recommend, Notification } = require('../models');
+const { User, GameOrder, Withdraw, GiftLog, Post, VipPackage, Banner, CompanionProfile, CustomerService, ChatLog, Report, Recommend, Notification, Setting } = require('../models');
 const { signToken } = require('../config/jwt');
 const response = require('../utils/response');
 const { Op } = require('sequelize');
@@ -6,30 +6,6 @@ const logger = require('../utils/logger');
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
-
-// 全局Mock用户数据
-const mockUsers = [
-  { id: 1, nickname: '游戏达人小王', phone: '138****1234', avatar: 'https://picsum.photos/100/100?random=1', gender: 1, status: 0, create_time: Date.now() - 86400000, vip: 1, vip_lv: 2, money: 5000, fans_num: 120, sex: 1, city: '北京', dec: '喜欢玩各种游戏', gift_money: 200 },
-  { id: 2, nickname: '玩家小美', phone: '139****5678', avatar: 'https://picsum.photos/100/100?random=2', gender: 0, status: 0, create_time: Date.now() - 172800000, vip: 0, vip_lv: 0, money: 1200, fans_num: 35, sex: 0, city: '上海', dec: '', gift_money: 50 },
-  { id: 3, nickname: '新手玩家', phone: '137****9012', avatar: 'https://picsum.photos/100/100?random=3', gender: 1, status: 1, create_time: Date.now() - 259200000, vip: 0, vip_lv: 0, money: 0, fans_num: 0, sex: 1, city: '广州', dec: '刚注册的用户', gift_money: 0 },
-  { id: 4, nickname: '游戏爱好者', phone: '136****3456', avatar: 'https://picsum.photos/100/100?random=4', gender: 1, status: 0, create_time: Date.now() - 345600000, vip: 0, vip_lv: 0, money: 800, fans_num: 15, sex: 0, city: '深圳', dec: '新人报道', gift_money: 100 },
-  { id: 5, nickname: '资深玩家', phone: '135****7890', avatar: 'https://picsum.photos/100/100?random=5', gender: 1, status: 0, create_time: Date.now() - 432000000, vip: 1, vip_lv: 3, money: 15000, fans_num: 500, sex: 1, city: '杭州', dec: '资深游戏玩家', gift_money: 500 },
-  { id: 6, nickname: '电竞小白', phone: '134****1111', avatar: 'https://picsum.photos/100/100?random=6', gender: 1, status: 0, create_time: Date.now() - 518400000, vip: 0, vip_lv: 0, money: 500, fans_num: 8, sex: 1, city: '成都', dec: '喜欢打电竞', gift_money: 30 },
-  { id: 7, nickname: '萌妹子玩家', phone: '133****2222', avatar: 'https://picsum.photos/100/100?random=7', gender: 0, status: 0, create_time: Date.now() - 604800000, vip: 1, vip_lv: 1, money: 2000, fans_num: 200, sex: 0, city: '武汉', dec: '声音超好听', gift_money: 300 },
-  { id: 8, nickname: '王者荣耀大神', phone: '132****3333', avatar: 'https://picsum.photos/100/100?random=8', gender: 1, status: 0, create_time: Date.now() - 691200000, vip: 1, vip_lv: 2, money: 8000, fans_num: 350, sex: 1, city: '南京', dec: '王者百星选手', gift_money: 800 },
-  { id: 9, nickname: '和平精英玩家', phone: '131****4444', avatar: 'https://picsum.photos/100/100?random=9', gender: 1, status: 0, create_time: Date.now() - 777600000, vip: 0, vip_lv: 0, money: 300, fans_num: 25, sex: 1, city: '重庆', dec: '和平精英吃鸡', gift_money: 20 },
-  { id: 10, nickname: '原神旅行者', phone: '130****5555', avatar: 'https://picsum.photos/100/100?random=10', gender: 0, status: 0, create_time: Date.now() - 864000000, vip: 1, vip_lv: 3, money: 20000, fans_num: 800, sex: 0, city: '西安', dec: '原神满命玩家', gift_money: 2000 },
-  { id: 11, nickname: '永劫无间高手', phone: '129****6666', avatar: 'https://picsum.photos/100/100?random=11', gender: 1, status: 1, create_time: Date.now() - 950400000, vip: 0, vip_lv: 0, money: 100, fans_num: 5, sex: 1, city: '苏州', dec: '练刀中', gift_money: 10 },
-  { id: 12, nickname: '英雄联盟钻石', phone: '128****7777', avatar: 'https://picsum.photos/100/100?random=12', gender: 1, status: 0, create_time: Date.now() - 1036800000, vip: 1, vip_lv: 2, money: 6000, fans_num: 280, sex: 1, city: '天津', dec: 'LOL钻石段位', gift_money: 600 },
-  { id: 13, nickname: '休闲玩家小雨', phone: '127****8888', avatar: 'https://picsum.photos/100/100?random=13', gender: 0, status: 0, create_time: Date.now() - 1123200000, vip: 0, vip_lv: 0, money: 200, fans_num: 12, sex: 0, city: '长沙', dec: '玩游戏开心就好', gift_money: 40 },
-  { id: 14, nickname: '陪玩师小乐', phone: '126****9999', avatar: 'https://picsum.photos/100/100?random=14', gender: 0, status: 0, create_time: Date.now() - 1209600000, vip: 1, vip_lv: 1, money: 3000, fans_num: 150, sex: 0, city: '青岛', dec: '专业陪玩', gift_money: 400 },
-  { id: 15, nickname: '吃鸡大神', phone: '125****0000', avatar: 'https://picsum.photos/100/100?random=15', gender: 1, status: 0, create_time: Date.now() - 1296000000, vip: 1, vip_lv: 3, money: 12000, fans_num: 450, sex: 1, city: '大连', dec: '场均10杀', gift_money: 1200 },
-  { id: 16, nickname: '游戏小萌新', phone: '124****1212', avatar: 'https://picsum.photos/100/100?random=16', gender: 0, status: 0, create_time: Date.now() - 1382400000, vip: 0, vip_lv: 0, money: 50, fans_num: 2, sex: 0, city: '厦门', dec: '刚玩游戏，求带', gift_money: 5 },
-  { id: 17, nickname: '王者荣耀主播', phone: '123****3434', avatar: 'https://picsum.photos/100/100?random=17', gender: 1, status: 0, create_time: Date.now() - 1468800000, vip: 1, vip_lv: 3, money: 50000, fans_num: 2000, sex: 1, city: '广州', dec: '王者荣耀主播', gift_money: 5000 },
-  { id: 18, nickname: '休闲斗地主', phone: '122****5656', avatar: 'https://picsum.photos/100/100?random=18', gender: 1, status: 1, create_time: Date.now() - 1555200000, vip: 0, vip_lv: 0, money: 0, fans_num: 0, sex: 1, city: '福州', dec: '喜欢玩斗地主', gift_money: 0 },
-  { id: 19, nickname: '原神萌新', phone: '121****7878', avatar: 'https://picsum.photos/100/100?random=19', gender: 0, status: 0, create_time: Date.now() - 1641600000, vip: 0, vip_lv: 0, money: 150, fans_num: 8, sex: 0, city: '东莞', dec: '原神新手玩家', gift_money: 15 },
-  { id: 20, nickname: '电竞少女', phone: '120****9090', avatar: 'https://picsum.photos/100/100?random=20', gender: 0, status: 0, create_time: Date.now() - 1728000000, vip: 1, vip_lv: 2, money: 4000, fans_num: 180, sex: 0, city: '宁波', dec: '电竞少女一枚', gift_money: 400 }
-];
 
 const adminLogin = async (req, res) => {
   try {
@@ -71,58 +47,30 @@ const getUserList = async (req, res) => {
     const searchKeyword = keyword || '';
     const offset = (page - 1) * pageSize;
     
-    let users = [];
-    let total = 0;
-    
-    try {
-      const where = {};
-      if (searchKeyword) {
-        where[Op.or] = [
-          { nickname: { [Op.like]: `%${searchKeyword}%` } },
-          { phone: { [Op.like]: `%${searchKeyword}%` } }
-        ];
-      } else {
-        if (nickname) where.nickname = { [Op.like]: `%${nickname}%` };
-        if (phone) where.phone = { [Op.like]: `%${phone}%` };
-      }
-      if (status !== undefined) where.status = parseInt(status);
-      
-      const result = await User.findAndCountAll({
-        where,
-        offset,
-        limit: parseInt(pageSize),
-        order: [['create_time', 'DESC']]
-      });
-      
-      users = result.rows || [];
-      total = result.count || 0;
-    } catch (dbError) {
-      console.warn('数据库查询失败，使用Mock数据:', dbError.message);
-      let filteredUsers = [...mockUsers];
-      if (searchKeyword) {
-        filteredUsers = filteredUsers.filter(u => 
-          u.nickname.includes(searchKeyword) || u.phone.includes(searchKeyword)
-        );
-      } else {
-        if (nickname) {
-          filteredUsers = filteredUsers.filter(u => u.nickname.includes(nickname));
-        }
-        if (phone) {
-          filteredUsers = filteredUsers.filter(u => u.phone.includes(phone));
-        }
-      }
-      if (status !== undefined && status !== '') {
-        filteredUsers = filteredUsers.filter(u => u.status === parseInt(status));
-      }
-      
-      // 按创建时间倒序排序
-      filteredUsers.sort((a, b) => b.create_time - a.create_time);
-      
-      users = filteredUsers.slice(offset, offset + parseInt(pageSize));
-      total = filteredUsers.length;
+    const where = {};
+    if (searchKeyword) {
+      where[Op.or] = [
+        { nickname: { [Op.like]: `%${searchKeyword}%` } },
+        { phone: { [Op.like]: `%${searchKeyword}%` } }
+      ];
+    } else {
+      if (nickname) where.nickname = { [Op.like]: `%${nickname}%` };
+      if (phone) where.phone = { [Op.like]: `%${phone}%` };
     }
+    if (status !== undefined && status !== '') where.status = parseInt(status);
+    
+    const dbResult = await User.findAndCountAll({
+      where,
+      offset,
+      limit: parseInt(pageSize),
+      order: [['create_time', 'DESC']]
+    });
+    
+    const users = dbResult.rows || [];
+    const total = dbResult.count || 0;
     
     const result = users.map(user => ({
+      id: user.id,
       userId: user.id,
       nickname: user.nickname,
       username: user.username || '',
@@ -165,17 +113,10 @@ const getUserList = async (req, res) => {
 const getUserDetail = async (req, res) => {
   try {
     const { id } = req.params;
-    let user = null;
-    
-    try {
-      user = await User.findByPk(id);
-    } catch (dbError) {
-      console.warn('数据库查询失败，使用Mock数据:', dbError.message);
-      user = mockUsers.find(u => u.id === parseInt(id));
-    }
+    const user = await User.findByPk(id);
     
     if (!user) {
-      return response.error(res, '用户不存在');
+      return response.success(res, null,  '用户不存在 ');
     }
     
     let companionService = null
@@ -196,6 +137,7 @@ const getUserDetail = async (req, res) => {
     }
     
     response.success(res, {
+      id: user.id,
       userId: user.id,
       nickname: user.nickname,
       username: user.username || '',
@@ -227,56 +169,41 @@ const getUserDetail = async (req, res) => {
 const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nickname, phone, sex, city, status, vipLv, money, giftMoney, dec, username, email } = req.body;
-    
-    let user = null;
-    let dbErrorOccurred = false;
-    
-    try {
-      user = await User.findByPk(id);
-    } catch (dbError) {
-      dbErrorOccurred = true;
-      console.warn('数据库查询失败，使用Mock数据:', dbError.message);
-      const userIndex = mockUsers.findIndex(u => u.id === parseInt(id));
-      if (userIndex !== -1) {
-        user = mockUsers[userIndex];
+    const { nickname, phone, sex, city, status, lv, vipLv, money, giftMoney, dec, username, email, id: newId } = req.body;
+
+    const user = await User.findByPk(id);
+
+    if (!user) {
+      return response.success(res, null,  '用户不存在 ');
+    }
+
+    // ID 编辑：检查新 ID 是否被其他用户占用（允许改回自己）
+    if (newId !== undefined) {
+      const idNum = parseInt(newId);
+      const existing = await User.findByPk(idNum);
+      if (existing && String(existing.id) !== String(id)) {
+        return response.success(res, null, `ID ${idNum} 已被其他用户占用，请换一个`);
       }
     }
-    
-    if (!user) {
-      return response.error(res, '用户不存在');
-    }
-    
-    if (dbErrorOccurred) {
-      const userIndex = mockUsers.findIndex(u => u.id === parseInt(id));
-      if (nickname !== undefined) mockUsers[userIndex].nickname = nickname;
-      if (username !== undefined) mockUsers[userIndex].username = username;
-      if (phone !== undefined) mockUsers[userIndex].phone = phone;
-      if (email !== undefined) mockUsers[userIndex].email = email;
-      if (sex !== undefined) mockUsers[userIndex].sex = parseInt(sex);
-      if (city !== undefined) mockUsers[userIndex].city = city;
-      if (status !== undefined) mockUsers[userIndex].status = parseInt(status);
-      if (vipLv !== undefined) mockUsers[userIndex].vip_lv = parseInt(vipLv);
-      if (money !== undefined) mockUsers[userIndex].money = parseFloat(money);
-      if (giftMoney !== undefined) mockUsers[userIndex].gift_money = parseFloat(giftMoney);
-      if (dec !== undefined) mockUsers[userIndex].dec = dec;
-    } else {
-      const updateData = {};
-      if (nickname !== undefined) updateData.nickname = nickname;
-      if (username !== undefined) updateData.username = username;
-      if (phone !== undefined) updateData.phone = phone;
-      if (email !== undefined) updateData.email = email;
-      if (sex !== undefined) updateData.sex = parseInt(sex);
-      if (city !== undefined) updateData.city = city;
-      if (status !== undefined) updateData.status = parseInt(status);
-      if (vipLv !== undefined) updateData.vip_lv = parseInt(vipLv);
-      if (money !== undefined) updateData.money = parseFloat(money);
-      if (giftMoney !== undefined) updateData.gift_money = parseFloat(giftMoney);
-      if (dec !== undefined) updateData.dec = dec;
-      
-      await user.update(updateData);
-    }
-    
+
+    const updateData = {};
+    if (newId !== undefined) updateData.id = parseInt(newId);
+    if (nickname !== undefined) updateData.nickname = nickname;
+    if (username !== undefined) updateData.username = username;
+    if (phone !== undefined) updateData.phone = phone;
+    if (email !== undefined) updateData.email = email;
+    if (sex !== undefined) updateData.sex = parseInt(sex);
+    if (lv !== undefined) updateData.lv = parseInt(lv);
+    if (city !== undefined) updateData.city = city;
+    if (status !== undefined) updateData.status = parseInt(status);
+    if (vipLv !== undefined) updateData.vip_lv = parseInt(vipLv);
+    if (money !== undefined) updateData.money = parseFloat(money);
+    if (giftMoney !== undefined) updateData.gift_money = parseFloat(giftMoney);
+    if (dec !== undefined) updateData.dec = dec;
+
+    // 用 localDb 的静态 update（支持直接修改主键），传入 where 条件
+    await User.update(updateData, { where: { id: parseInt(id) } });
+
     response.success(res, {}, '更新成功');
   } catch (error) {
     logger.error('更新用户信息错误:', error);
@@ -290,32 +217,14 @@ const updateUserStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     
-    let user = null;
-    let dbErrorOccurred = false;
-    
-    try {
-      user = await User.findByPk(id);
-    } catch (dbError) {
-      dbErrorOccurred = true;
-      console.warn('数据库查询失败，使用Mock数据:', dbError.message);
-      const userIndex = mockUsers.findIndex(u => u.id === parseInt(id));
-      if (userIndex !== -1) {
-        user = mockUsers[userIndex];
-      }
-    }
+    const user = await User.findByPk(id);
     
     if (!user) {
-      return response.error(res, '用户不存在');
+      return response.success(res, null,  '用户不存在 ');
     }
     
-    let newStatus = parseInt(status);
-    
-    if (dbErrorOccurred) {
-      const userIndex = mockUsers.findIndex(u => u.id === parseInt(id));
-      mockUsers[userIndex].status = newStatus;
-    } else {
-      await user.update({ status: newStatus });
-    }
+    const newStatus = parseInt(status);
+    await user.update({ status: newStatus });
     
     response.success(res, { status: newStatus }, '状态更新成功');
   } catch (error) {
@@ -328,30 +237,13 @@ const updateUserStatus = async (req, res) => {
 const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
-    let user = null;
-    let dbErrorOccurred = false;
-    
-    try {
-      user = await User.findByPk(id);
-    } catch (dbError) {
-      dbErrorOccurred = true;
-      console.warn('数据库查询失败，使用Mock数据:', dbError.message);
-      const userIndex = mockUsers.findIndex(u => u.id === parseInt(id));
-      if (userIndex !== -1) {
-        user = mockUsers[userIndex];
-      }
-    }
+    const user = await User.findByPk(id);
     
     if (!user) {
-      return response.error(res, '用户不存在');
+      return response.success(res, null,  '用户不存在 ');
     }
     
-    if (dbErrorOccurred) {
-      const userIndex = mockUsers.findIndex(u => u.id === parseInt(id));
-      mockUsers.splice(userIndex, 1);
-    } else {
-      await user.destroy();
-    }
+    await user.destroy();
     
     response.success(res, null, '删除成功');
   } catch (error) {
@@ -363,50 +255,24 @@ const deleteUser = async (req, res) => {
 
 const createUser = async (req, res) => {
   try {
-    const { nickname, phone, sex, city, vipLv, money, giftMoney, dec, username, email } = req.body;
+    const { nickname, phone, sex, city, lv, vipLv, money, giftMoney, dec, username, email } = req.body;
     
-    let newUser = null;
-    
-    try {
-      newUser = await User.create({
-        nickname: nickname || '新用户',
-        username: username || '',
-        phone: phone || '',
-        email: email || '',
-        sex: parseInt(sex) || 0,
-        city: city || '',
-        vip_lv: parseInt(vipLv) || 0,
-        money: parseFloat(money) || 0,
-        gift_money: parseFloat(giftMoney) || 0,
-        dec: dec || ''
-      });
-    } catch (dbError) {
-      console.warn('数据库查询失败，使用Mock数据:', dbError.message);
-      const maxId = mockUsers.length > 0 ? Math.max(...mockUsers.map(u => u.id)) : 0;
-      newUser = {
-        id: maxId + 1,
-        nickname: nickname || '新用户',
-        username: username || '',
-        phone: phone || '',
-        email: email || '',
-        avatar: '',
-        sex: parseInt(sex) || 0,
-        gender: parseInt(sex) || 0,
-        city: city || '',
-        vip_lv: parseInt(vipLv) || 0,
-        vip: parseInt(vipLv) > 0 ? 1 : 0,
-        money: parseFloat(money) || 0,
-        gift_money: parseFloat(giftMoney) || 0,
-        lv: 1,
-        dec: dec || '',
-        status: 0,
-        fans_num: 0,
-        create_time: Date.now()
-      };
-      mockUsers.push(newUser);
-    }
+    const newUser = await User.create({
+      nickname: nickname || '新用户',
+      username: username || '',
+      phone: phone || '',
+      email: email || '',
+      sex: parseInt(sex) || 0,
+      city: city || '',
+      lv: parseInt(lv) || 1,
+      vip_lv: parseInt(vipLv) || 0,
+      money: parseFloat(money) || 0,
+      gift_money: parseFloat(giftMoney) || 0,
+      dec: dec || ''
+    });
     
     response.success(res, {
+      id: newUser.id,
       userId: newUser.id,
       nickname: newUser.nickname,
       username: newUser.username || '',
@@ -440,53 +306,39 @@ const getOrderList = async (req, res) => {
     let orders = [];
     let total = 0;
     
-    try {
-      const where = {};
-      if (orderNo) where.order_no = { [Op.like]: `%${orderNo}%` };
-      if (userId) where.user_id = parseInt(userId);
-      if (status !== undefined && status !== '') where.status = status;
-      
-      const result = await GameOrder.findAndCountAll({
-        where,
-        offset,
-        limit: parseInt(pageSize),
-        order: [['create_time', 'DESC']]
+    const where = {};
+    if (orderNo) where.order_no = { [Op.like]: `%${orderNo}%` };
+    if (userId) where.user_id = parseInt(userId);
+    if (status !== undefined && status !== '') where.status = status;
+    
+    const result = await GameOrder.findAndCountAll({
+      where,
+      offset,
+      limit: parseInt(pageSize),
+      order: [['create_time', 'DESC']]
+    });
+    
+    orders = result.rows || [];
+    total = result.count || 0;
+    
+    // 手动查询用户信息
+    const userIds = new Set();
+    orders.forEach(o => { userIds.add(o.user_id); userIds.add(o.target_user_id); });
+    if (userIds.size > 0) {
+      const users = await User.findAll({ where: { id: { [Op.in]: [...userIds] } }, attributes: ['id', 'nickname'] });
+      const userMap = {};
+      users.forEach(u => { userMap[u.id] = u.nickname; });
+      orders = orders.map(o => {
+        o.dataValues = o.dataValues || o;
+        o.dataValues.buyerName = userMap[o.user_id] || '';
+        o.dataValues.sellerName = userMap[o.target_user_id] || '';
+        return o;
       });
-      
-      orders = result.rows || [];
-      total = result.count || 0;
-      
-      // 手动查询用户信息
-      const userIds = new Set();
-      orders.forEach(o => { userIds.add(o.user_id); userIds.add(o.target_user_id); });
-      if (userIds.size > 0) {
-        const users = await User.findAll({ where: { id: { [Op.in]: [...userIds] } }, attributes: ['id', 'nickname'] });
-        const userMap = {};
-        users.forEach(u => { userMap[u.id] = u.nickname; });
-        orders = orders.map(o => {
-          o.dataValues = o.dataValues || o;
-          o.dataValues.buyerName = userMap[o.user_id] || '';
-          o.dataValues.sellerName = userMap[o.target_user_id] || '';
-          return o;
-        });
-      }
-    } catch (dbError) {
-      console.warn('数据库查询失败，使用Mock数据:', dbError.message);
-      const mockOrders = [
-        { id: 1, order_no: 'ORD202605230001', user_id: 1, target_user_id: 2, game_name: '王者荣耀', price: 50, total_price: 100, num: 2, status: 0, type: 0, create_time: Math.floor(Date.now() / 1000) - 3600 },
-        { id: 2, order_no: 'ORD202605230002', user_id: 2, target_user_id: 3, game_name: '英雄联盟', price: 75, total_price: 150, num: 2, status: 2, type: 0, create_time: Math.floor(Date.now() / 1000) - 7200 },
-        { id: 3, order_no: 'ORD202605230003', user_id: 3, target_user_id: 4, game_name: '王者荣耀', price: 100, total_price: 200, num: 2, status: 3, type: 1, create_time: Math.floor(Date.now() / 1000) - 10800 },
-        { id: 4, order_no: 'ORD202605230004', user_id: 4, target_user_id: 5, game_name: '绝地求生', price: 60, total_price: 120, num: 2, status: 4, type: 2, create_time: Math.floor(Date.now() / 1000) - 14400 },
-        { id: 5, order_no: 'ORD202605230005', user_id: 5, target_user_id: 1, game_name: '英雄联盟', price: 90, total_price: 180, num: 2, status: 0, type: 0, create_time: Math.floor(Date.now() / 1000) - 18000 }
-      ];
-      
-      orders = mockOrders.slice(offset, offset + parseInt(pageSize));
-      total = mockOrders.length;
     }
     
     const typeMap = { 0: '线上服务', 1: '线下服务', 2: '预约服务' };
     
-    const result = orders.map(order => ({
+    const orderList = orders.map(order => ({
       orderId: order.id,
       orderNo: order.order_no,
       userId: order.user_id,
@@ -505,7 +357,7 @@ const getOrderList = async (req, res) => {
     }));
     
     response.success(res, {
-      list: result,
+      list: orderList,
       pagination: {
         page: parseInt(page),
         pageSize: parseInt(pageSize),
@@ -533,7 +385,7 @@ const getOrderDetail = async (req, res) => {
     });
     
     if (!order) {
-      return response.error(res, '订单不存在');
+      return response.success(res, null,  '订单不存在 ');
     }
     
     const typeMap = { 0: '线上服务', 1: '线下服务', 2: '预约服务' };
@@ -577,16 +429,16 @@ const updateOrderStatus = async (req, res) => {
     
     const order = await GameOrder.findByPk(id);
     if (!order) {
-      return response.error(res, '订单不存在');
+      return response.success(res, null,  '订单不存在 ');
     }
     
     const updateData = { status };
     if (status === 'ongoing') {
-      updateData.start_time = Date.now();
+      updateData.start_time = Math.floor(Date.now() / 1000);
     } else if (status === 'completed') {
-      updateData.end_time = Date.now();
+      updateData.end_time = Math.floor(Date.now() / 1000);
     } else if (status === 'cancelled') {
-      updateData.cancel_time = Date.now();
+      updateData.cancel_time = Math.floor(Date.now() / 1000);
     }
     
     await order.update(updateData);
@@ -642,7 +494,7 @@ const deleteOrder = async (req, res) => {
     
     const order = await GameOrder.findByPk(id);
     if (!order) {
-      return response.error(res, '订单不存在');
+      return response.success(res, null,  '订单不存在 ');
     }
     
     await GameOrder.destroy({ where: { id } });
@@ -662,35 +514,21 @@ const getWithdrawList = async (req, res) => {
     let withdraws = [];
     let total = 0;
     
-    try {
-      const where = {};
-      if (userId) where.user_id = parseInt(userId);
-      if (status !== undefined) where.status = status;
-      
-      const result = await Withdraw.findAndCountAll({
-        where,
-        offset,
-        limit: parseInt(pageSize),
-        order: [['create_time', 'DESC']]
-      });
-      
-      withdraws = result.rows || [];
-      total = result.count || 0;
-    } catch (dbError) {
-      console.warn('数据库查询失败，使用Mock数据:', dbError.message);
-      const mockWithdraws = [
-        { id: 1, user_id: 1, amount: 500, type: 'alipay', account: '138****1234', status: 'pending', remark: '', create_time: Date.now() - 3600000, handle_time: null },
-        { id: 2, user_id: 2, amount: 1200, type: 'wechat', account: '139****5678', status: 'pending', remark: '', create_time: Date.now() - 7200000, handle_time: null },
-        { id: 3, user_id: 3, amount: 800, type: 'alipay', account: '137****9012', status: 'approved', remark: '审核通过', create_time: Date.now() - 10800000, handle_time: Date.now() - 3600000 },
-        { id: 4, user_id: 4, amount: 2000, type: 'bank', account: '6222****8888', status: 'pending', remark: '', create_time: Date.now() - 14400000, handle_time: null },
-        { id: 5, user_id: 5, amount: 300, type: 'wechat', account: '135****7890', status: 'rejected', remark: '账户信息错误', create_time: Date.now() - 18000000, handle_time: Date.now() - 7200000 }
-      ];
-      
-      withdraws = mockWithdraws.slice(offset, offset + parseInt(pageSize));
-      total = mockWithdraws.length;
-    }
+    const where = {};
+    if (userId) where.user_id = parseInt(userId);
+    if (status !== undefined) where.status = status;
     
-    const result = withdraws.map(w => ({
+    const result = await Withdraw.findAndCountAll({
+      where,
+      offset,
+      limit: parseInt(pageSize),
+      order: [['create_time', 'DESC']]
+    });
+    
+    withdraws = result.rows || [];
+    total = result.count || 0;
+    
+    const withdrawList = withdraws.map(w => ({
       withdrawId: w.id,
       userId: w.user_id,
       amount: w.amount,
@@ -703,7 +541,7 @@ const getWithdrawList = async (req, res) => {
     }));
     
     response.success(res, {
-      list: result,
+      list: withdrawList,
       pagination: {
         page: parseInt(page),
         pageSize: parseInt(pageSize),
@@ -726,7 +564,7 @@ const approveWithdraw = async (req, res) => {
     const withdraw = await Withdraw.findByPk(id);
     
     if (!withdraw) {
-      return response.error(res, '提现记录不存在');
+      return response.success(res, null,  '提现记录不存在 ');
     }
     
     if (withdraw.status !== 'pending') {
@@ -753,7 +591,7 @@ const rejectWithdraw = async (req, res) => {
     const withdraw = await Withdraw.findByPk(id);
     
     if (!withdraw) {
-      return response.error(res, '提现记录不存在');
+      return response.success(res, null,  '提现记录不存在 ');
     }
     
     if (withdraw.status !== 'pending') {
@@ -780,7 +618,7 @@ const getWithdrawDetail = async (req, res) => {
     const withdraw = await Withdraw.findByPk(id);
     
     if (!withdraw) {
-      return response.error(res, '提现记录不存在');
+      return response.success(res, null,  '提现记录不存在 ');
     }
     
     response.success(res, {
@@ -834,7 +672,7 @@ const deleteWithdraw = async (req, res) => {
     const withdraw = await Withdraw.findByPk(id);
     
     if (!withdraw) {
-      return response.error(res, '提现记录不存在');
+      return response.success(res, null,  '提现记录不存在 ');
     }
     
     await Withdraw.destroy({ where: { id: parseInt(id) } });
@@ -855,109 +693,78 @@ const getPostList = async (req, res) => {
     let total = 0;
     let userMap = {};
     
-    try {
-      const whereClause = {};
-      
-      // 内容关键词搜索
-      if (keyword) {
-        whereClause.content = { [Op.like]: `%${keyword}%` };
-      }
-      // 状态筛选
-      if (status !== undefined && status !== '') {
-        whereClause.status = parseInt(status);
-      }
-      // 类型筛选
-      if (type !== undefined && type !== '') {
-        whereClause.type = parseInt(type);
-      }
-      
-      // 排序
-      const validSortFields = ['id', 'create_time', 'thumb_num', 'comment_num', 'share_num', 'status'];
-      const orderField = validSortFields.includes(sortField) ? sortField : 'create_time';
-      const orderDir = sortOrder === 'asc' ? 'ASC' : 'DESC';
-      
-      const result = await Post.findAndCountAll({
-        where: whereClause,
-        offset,
-        limit: parseInt(pageSize),
-        order: [[orderField, orderDir]]
-      });
-      
-      posts = result.rows || [];
-      total = result.count || 0;
-      
-      // 批量获取用户信息
-      const userIds = [...new Set(posts.map(p => p.user_id).filter(Boolean))];
-      if (userIds.length > 0) {
-        try {
-          const users = await User.findAll({
-            where: { id: { [Op.in]: userIds } },
-            attributes: ['id', 'nickname', 'avatar']
-          });
-          users.forEach(u => { userMap[u.id] = { nickname: u.nickname, avatar: u.avatar }; });
-        } catch (e) {
-          console.warn('获取用户信息失败:', e.message);
-        }
-      }
-      
-      // 用户昵称筛选（需要先查用户，再做关联过滤）
-      if (userKeyword) {
-        try {
-          const matchedUsers = await User.findAll({
-            where: { nickname: { [Op.like]: `%${userKeyword}%` } },
-            attributes: ['id']
-          });
-          const matchedUserIds = matchedUsers.map(u => u.id);
-          posts = posts.filter(p => matchedUserIds.includes(p.user_id));
-          total = matchedUserIds.length > 0 ? await Post.count({
-            where: { ...whereClause, user_id: { [Op.in]: matchedUserIds } }
-          }) : 0;
-        } catch (e) {
-          console.warn('用户搜索失败:', e.message);
-        }
-      }
-      
-      // 日期范围筛选
-      if (dateFrom) {
-        const fromTs = Math.floor(new Date(dateFrom).getTime() / 1000);
-        posts = posts.filter(p => p.create_time >= fromTs);
-      }
-      if (dateTo) {
-        const toTs = Math.floor(new Date(dateTo).getTime() / 1000) + 86400;
-        posts = posts.filter(p => p.create_time <= toTs);
-      }
-      
-    } catch (dbError) {
-      console.warn('数据库查询失败，使用Mock数据:', dbError.message);
-      const mockPosts = [
-        { id: 1, user_id: 1, content: '今天和陪玩师一起打王者荣耀，太开心了！', images: 'https://picsum.photos/400/300?random=1', videos: '', thumb_num: 42, comment_num: 8, share_num: 5, type: 0, status: 1, is_private: 0, tag_id: 1, create_time: Math.floor(Date.now() / 1000) - 3600 },
-        { id: 2, user_id: 2, content: '晒一下今天的游戏成果，吃鸡三连！', images: 'https://picsum.photos/400/300?random=2', videos: '', thumb_num: 28, comment_num: 5, share_num: 3, type: 0, status: 1, is_private: 0, tag_id: 2, create_time: Math.floor(Date.now() / 1000) - 7200 },
-        { id: 3, user_id: 3, content: '有没有一起玩原神的小伙伴？周末可以组队！', images: '', videos: '', thumb_num: 15, comment_num: 12, share_num: 2, type: 0, status: 1, is_private: 0, tag_id: 3, create_time: Math.floor(Date.now() / 1000) - 10800 },
-        { id: 4, user_id: 4, content: '今天又抽到了SSR，欧皇附体！', images: 'https://picsum.photos/400/300?random=4', videos: '', thumb_num: 56, comment_num: 20, share_num: 8, type: 1, status: 1, is_private: 0, tag_id: 1, create_time: Math.floor(Date.now() / 1000) - 14400 },
-        { id: 5, user_id: 5, content: '深夜emo，有没有人聊聊天...', images: '', videos: '', thumb_num: 8, comment_num: 25, share_num: 0, type: 0, status: 0, is_private: 1, tag_id: 4, create_time: Math.floor(Date.now() / 1000) - 18000 },
-      ];
-      posts = mockPosts;
-      total = mockPosts.length;
-      
-      // Mock筛选
-      if (keyword) posts = posts.filter(p => p.content.includes(keyword));
-      if (status !== undefined && status !== '') posts = posts.filter(p => p.status === parseInt(status));
-      if (type !== undefined && type !== '') posts = posts.filter(p => p.type === parseInt(type));
-      
-      const orderDir = sortOrder === 'asc' ? 1 : -1;
-      posts.sort((a, b) => {
-        const f = sortField || 'create_time';
-        return ((a[f] || 0) - (b[f] || 0)) * orderDir;
-      });
-      total = posts.length;
-      posts = posts.slice(offset, offset + parseInt(pageSize));
-      
-      // Mock用户昵称
-      const mockUserMap = { 1: '游戏达人小王', 2: '玩家小美', 3: '新手玩家', 4: '游戏爱好者', 5: '资深玩家' };
-      posts.forEach(p => { userMap[p.user_id] = { nickname: mockUserMap[p.user_id] || `用户${p.user_id}`, avatar: '' }; });
+    const whereClause = {};
+    
+    // 内容关键词搜索
+    if (keyword) {
+      whereClause.content = { [Op.like]: `%${keyword}%` };
+    }
+    // 状态筛选
+    if (status !== undefined && status !== '') {
+      whereClause.status = parseInt(status);
+    }
+    // 类型筛选
+    if (type !== undefined && type !== '') {
+      whereClause.type = parseInt(type);
     }
     
-    const result = posts.map(post => ({
+    // 排序
+    const validSortFields = ['id', 'create_time', 'thumb_num', 'comment_num', 'share_num', 'status'];
+    const orderField = validSortFields.includes(sortField) ? sortField : 'create_time';
+    const orderDir = sortOrder === 'asc' ? 'ASC' : 'DESC';
+    
+    const result = await Post.findAndCountAll({
+      where: whereClause,
+      offset,
+      limit: parseInt(pageSize),
+      order: [[orderField, orderDir]]
+    });
+    
+    posts = result.rows || [];
+    total = result.count || 0;
+    
+    // 批量获取用户信息
+    const userIds = [...new Set(posts.map(p => p.user_id).filter(Boolean))];
+    if (userIds.length > 0) {
+      try {
+        const users = await User.findAll({
+          where: { id: { [Op.in]: userIds } },
+          attributes: ['id', 'nickname', 'avatar']
+        });
+        users.forEach(u => { userMap[u.id] = { nickname: u.nickname, avatar: u.avatar }; });
+      } catch (e) {
+        console.warn('获取用户信息失败:', e.message);
+      }
+    }
+    
+    // 用户昵称筛选（需要先查用户，再做关联过滤）
+    if (userKeyword) {
+      try {
+        const matchedUsers = await User.findAll({
+          where: { nickname: { [Op.like]: `%${userKeyword}%` } },
+          attributes: ['id']
+        });
+        const matchedUserIds = matchedUsers.map(u => u.id);
+        posts = posts.filter(p => matchedUserIds.includes(p.user_id));
+        total = matchedUserIds.length > 0 ? await Post.count({
+          where: { ...whereClause, user_id: { [Op.in]: matchedUserIds } }
+        }) : 0;
+      } catch (e) {
+        console.warn('用户搜索失败:', e.message);
+      }
+    }
+    
+    // 日期范围筛选
+    if (dateFrom) {
+      const fromTs = Math.floor(new Date(dateFrom).getTime() / 1000);
+      posts = posts.filter(p => p.create_time >= fromTs);
+    }
+    if (dateTo) {
+      const toTs = Math.floor(new Date(dateTo).getTime() / 1000) + 86400;
+      posts = posts.filter(p => p.create_time <= toTs);
+    }
+    
+    const postResult = posts.map(post => ({
       id: post.id,
       userId: post.user_id,
       userNickname: userMap[post.user_id]?.nickname || `用户${post.user_id}`,
@@ -976,7 +783,7 @@ const getPostList = async (req, res) => {
     }));
     
     response.success(res, {
-      list: result,
+      list: postResult,
       pagination: {
         page: parseInt(page),
         pageSize: parseInt(pageSize),
@@ -999,7 +806,7 @@ const getPostDetail = async (req, res) => {
     const post = await Post.findByPk(id);
     
     if (!post) {
-      return response.error(res, '帖子不存在');
+      return response.success(res, null,  '帖子不存在 ');
     }
     
     response.success(res, {
@@ -1026,7 +833,7 @@ const deletePost = async (req, res) => {
     const post = await Post.findByPk(id);
     
     if (!post) {
-      return response.error(res, '帖子不存在');
+      return response.success(res, null,  '帖子不存在 ');
     }
     
     await Post.destroy({ where: { id: parseInt(id) } });
@@ -1062,7 +869,7 @@ const updatePostStatus = async (req, res) => {
     
     const post = await Post.findByPk(id);
     if (!post) {
-      return response.error(res, '帖子不存在');
+      return response.success(res, null,  '帖子不存在 ');
     }
     
     await Post.update({ status }, { where: { id: parseInt(id) } });
@@ -1122,124 +929,73 @@ const getPostStats = async (req, res) => {
   }
 };
 
-// ===== 举报Mock数据（模块级缓存，支持状态变更） =====
-const mockReports = [
-  { id: 1, user_id: 101, reporter_nickname: '用户小明', reporter_avatar: '', target_type: 1, target_id: 201, target_user_id: 301, target_user_nickname: '广告发布者', target_user_avatar: '', target_content: '这是一个违规帖子内容，包含广告信息，严重影响社区氛围', reason: '垃圾广告', images: '', status: 'pending', handle_result: '', reject_reason: '', create_time: Math.floor(Date.now() / 1000) - 3600, handle_time: 0, handler_id: 0, handler_name: '' },
-  { id: 2, user_id: 102, reporter_nickname: '用户小红', reporter_avatar: '', target_type: 2, target_id: 301, target_user_id: 302, target_user_nickname: '骚扰用户', target_user_avatar: '', target_content: '该用户频繁骚扰其他玩家，发送大量垃圾私信', reason: '恶意骚扰', images: '', status: 'pending', handle_result: '', reject_reason: '', create_time: Math.floor(Date.now() / 1000) - 7200, handle_time: 0, handler_id: 0, handler_name: '' },
-  { id: 3, user_id: 103, reporter_nickname: '用户小刚', reporter_avatar: '', target_type: 1, target_id: 202, target_user_id: 303, target_user_nickname: '谩骂用户', target_user_avatar: '', target_content: '这是一条违规评论，包含侮辱性词汇，对他人人身攻击', reason: '侮辱谩骂', images: '', status: 'resolved', handle_result: '违规内容已删除', reject_reason: '', create_time: Math.floor(Date.now() / 1000) - 10800, handle_time: Math.floor(Date.now() / 1000) - 3600, handler_id: 1, handler_name: 'admin' },
-  { id: 4, user_id: 104, reporter_nickname: '用户小丽', reporter_avatar: '', target_type: 3, target_id: 401, target_user_id: 304, target_user_nickname: '虚假信息用户', target_user_avatar: '', target_content: '用户个人资料中包含明显虚假的头衔和认证信息', reason: '虚假信息', images: '', status: 'rejected', handle_result: '', reject_reason: '经核实，该用户资料属实，未发现虚假信息，举报不成立', create_time: Math.floor(Date.now() / 1000) - 14400, handle_time: Math.floor(Date.now() / 1000) - 7200, handler_id: 1, handler_name: 'admin' },
-  { id: 5, user_id: 105, reporter_nickname: '用户阿杰', reporter_avatar: '', target_type: 1, target_id: 203, target_user_id: 305, target_user_nickname: '欺诈用户', target_user_avatar: '', target_content: '该帖子内容涉及诱导付费欺诈行为，已有多人上当', reason: '欺诈行为', images: '', status: 'pending', handle_result: '', reject_reason: '', create_time: Math.floor(Date.now() / 1000) - 18000, handle_time: 0, handler_id: 0, handler_name: '' },
-  { id: 6, user_id: 106, reporter_nickname: '用户大鹏', reporter_avatar: '', target_type: 1, target_id: 204, target_user_id: 306, target_user_nickname: '色情内容发布者', target_user_avatar: '', target_content: '帖子内容含有低俗色情图文信息', reason: '色情低俗', images: '', status: 'pending', handle_result: '', reject_reason: '', create_time: Math.floor(Date.now() / 1000) - 21600, handle_time: 0, handler_id: 0, handler_name: '' },
-  { id: 7, user_id: 107, reporter_nickname: '用户小芳', reporter_avatar: '', target_type: 1, target_id: 205, target_user_id: 307, target_user_nickname: '违规用户A', target_user_avatar: '', target_content: '发布涉及政治敏感话题的讨论内容', reason: '政治敏感', images: '', status: 'resolved', handle_result: '帖子已下架，用户警告一次', reject_reason: '', create_time: Math.floor(Date.now() / 1000) - 28800, handle_time: Math.floor(Date.now() / 1000) - 14400, handler_id: 1, handler_name: 'admin' },
-  { id: 8, user_id: 108, reporter_nickname: '用户老刘', reporter_avatar: '', target_type: 2, target_id: 302, target_user_id: 308, target_user_nickname: '恶意差评用户', target_user_avatar: '', target_content: '该用户通过恶意差评敲诈陪玩师索要退款', reason: '恶意差评', images: '', status: 'pending', handle_result: '', reject_reason: '', create_time: Math.floor(Date.now() / 1000) - 36000, handle_time: 0, handler_id: 0, handler_name: '' },
-  { id: 9, user_id: 109, reporter_nickname: '用户小梅', reporter_avatar: '', target_type: 1, target_id: 206, target_user_id: 309, target_user_nickname: '刷屏用户', target_user_avatar: '', target_content: '连续发布多条无意义刷屏内容', reason: '刷屏灌水', images: '', status: 'rejected', handle_result: '', reject_reason: '用户发布的是活动打卡帖，属于正常行为，不予处理', create_time: Math.floor(Date.now() / 1000) - 43200, handle_time: Math.floor(Date.now() / 1000) - 21600, handler_id: 1, handler_name: 'admin' },
-  { id: 10, user_id: 110, reporter_nickname: '用户阿强', reporter_avatar: '', target_type: 1, target_id: 207, target_user_id: 310, target_user_nickname: '侵权用户', target_user_avatar: '', target_content: '发布的图片侵犯他人肖像权', reason: '侵犯隐私', images: '', status: 'pending', handle_result: '', reject_reason: '', create_time: Math.floor(Date.now() / 1000) - 50400, handle_time: 0, handler_id: 0, handler_name: '' }
-];
+// ===== 举报管理（数据库CRUD） =====
+const _formatReport = (r) => ({
+  id: r.id,
+  reporterId: r.user_id,
+  reporterName: r.reporter_nickname,
+  reporterAvatar: r.reporter_avatar,
+  targetType: r.target_type,
+  targetTypeName: r.target_type === 1 ? '帖子' : r.target_type === 2 ? '用户' : '评论',
+  targetId: r.target_id,
+  targetUserId: r.target_user_id,
+  targetUserNickname: r.target_user_nickname,
+  targetUserAvatar: r.target_user_avatar,
+  targetContent: r.target_content,
+  reason: r.reason,
+  images: r.images ? r.images.split(',') : [],
+  status: r.status,
+  handleResult: r.handle_result,
+  rejectReason: r.reject_reason,
+  createTime: (r.create_time || 0) * 1000,
+  handleTime: r.handle_time ? r.handle_time * 1000 : null,
+  handlerName: r.handler_name
+});
 
 const getReportList = async (req, res) => {
   try {
     const { page = 1, pageSize = 20, status, reason, keyword, dateFrom, dateTo } = req.query;
-    const offset = (page - 1) * pageSize;
-
-    let filtered = [...mockReports];
-    
-    // 多维筛选
-    if (status && status !== '') {
-      filtered = filtered.filter(r => r.status === status);
-    }
-    if (reason && reason !== '') {
-      filtered = filtered.filter(r => r.reason === reason);
-    }
+    const where = {};
+    if (status && status !== '') where.status = status;
+    if (reason && reason !== '') where.reason = reason;
     if (keyword && keyword.trim()) {
-      const kw = keyword.trim().toLowerCase();
-      filtered = filtered.filter(r => 
-        r.target_content.toLowerCase().includes(kw) ||
-        r.reason.toLowerCase().includes(kw) ||
-        r.reporter_nickname.toLowerCase().includes(kw) ||
-        r.target_user_nickname.toLowerCase().includes(kw)
-      );
+      const kw = keyword.trim();
+      where[Op.or] = [
+        { target_content: { [Op.like]: `%${kw}%` } },
+        { reason: { [Op.like]: `%${kw}%` } },
+        { reporter_nickname: { [Op.like]: `%${kw}%` } },
+        { target_user_nickname: { [Op.like]: `%${kw}%` } }
+      ];
     }
     if (dateFrom) {
-      const fromTs = Math.floor(new Date(dateFrom).getTime() / 1000);
-      filtered = filtered.filter(r => r.create_time >= fromTs);
+      where.create_time = { ...(where.create_time || {}), [Op.gte]: Math.floor(new Date(dateFrom).getTime() / 1000) };
     }
     if (dateTo) {
-      const toTs = Math.floor(new Date(dateTo + 'T23:59:59').getTime() / 1000);
-      filtered = filtered.filter(r => r.create_time <= toTs);
+      where.create_time = { ...(where.create_time || {}), [Op.lte]: Math.floor(new Date(dateTo + 'T23:59:59').getTime() / 1000) };
     }
 
-    const total = filtered.length;
-    const list = filtered.slice(offset, offset + parseInt(pageSize));
-
-    const result = list.map(r => ({
-      id: r.id,
-      reporterId: r.user_id,
-      reporterName: r.reporter_nickname,
-      reporterAvatar: r.reporter_avatar,
-      targetType: r.target_type,
-      targetTypeName: r.target_type === 1 ? '帖子' : r.target_type === 2 ? '用户' : '评论',
-      targetId: r.target_id,
-      targetUserId: r.target_user_id,
-      targetUserNickname: r.target_user_nickname,
-      targetUserAvatar: r.target_user_avatar,
-      targetContent: r.target_content,
-      reason: r.reason,
-      images: r.images ? r.images.split(',') : [],
-      status: r.status,
-      handleResult: r.handle_result,
-      rejectReason: r.reject_reason,
-      createTime: (r.create_time || 0) * 1000,
-      handleTime: r.handle_time ? r.handle_time * 1000 : null,
-      handlerName: r.handler_name
-    }));
+    const { count, rows } = await Report.findAndCountAll({
+      where,
+      order: [['create_time', 'DESC']],
+      limit: parseInt(pageSize),
+      offset: (parseInt(page) - 1) * parseInt(pageSize)
+    });
 
     response.success(res, {
-      list: result,
-      pagination: {
-        page: parseInt(page),
-        pageSize: parseInt(pageSize),
-        total,
-        totalPages: Math.ceil(total / pageSize)
-      }
+      list: rows.map(_formatReport),
+      pagination: { page: parseInt(page), pageSize: parseInt(pageSize), total: count, totalPages: Math.ceil(count / pageSize) }
     });
   } catch (error) {
     logger.error('获取举报列表错误:', error);
-    response.success(res, {
-      list: [],
-      pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }
-    });
+    response.success(res, { list: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 } });
   }
 };
 
 const getReportDetail = async (req, res) => {
   try {
-    const { id } = req.params;
-    const report = mockReports.find(r => r.id === parseInt(id));
-    if (!report) {
-      return response.error(res, '举报记录不存在');
-    }
-
-    response.success(res, {
-      id: report.id,
-      reporterId: report.user_id,
-      reporterName: report.reporter_nickname,
-      reporterAvatar: report.reporter_avatar,
-      targetType: report.target_type,
-      targetTypeName: report.target_type === 1 ? '帖子' : report.target_type === 2 ? '用户' : '评论',
-      targetId: report.target_id,
-      targetUserId: report.target_user_id,
-      targetUserNickname: report.target_user_nickname,
-      targetUserAvatar: report.target_user_avatar,
-      targetContent: report.target_content,
-      reason: report.reason,
-      images: report.images ? report.images.split(',') : [],
-      status: report.status,
-      handleResult: report.handle_result,
-      rejectReason: report.reject_reason,
-      createTime: (report.create_time || 0) * 1000,
-      handleTime: report.handle_time ? report.handle_time * 1000 : null,
-      handlerName: report.handler_name
-    });
+    const report = await Report.findByPk(req.params.id);
+    if (!report) return response.notFound(res, '举报记录不存在');
+    response.success(res, _formatReport(report));
   } catch (error) {
     logger.error('获取举报详情错误:', error);
     response.error(res, '操作失败');
@@ -1248,39 +1004,33 @@ const getReportDetail = async (req, res) => {
 
 const handleReport = async (req, res) => {
   try {
-    const { id } = req.params;
     const { action, handleResult, rejectReason, status } = req.body;
-    
     const finalStatus = action === 'resolved' || status === 'resolved' ? 'resolved' : 'rejected';
-    
-    const report = mockReports.find(r => r.id === parseInt(id));
-    if (!report) {
-      return response.error(res, '举报记录不存在');
-    }
-    
-    // 更新mock数据
-    report.status = finalStatus;
-    report.handle_time = Math.floor(Date.now() / 1000);
-    report.handler_id = 1;
-    report.handler_name = 'admin';
-    
+    const report = await Report.findByPk(req.params.id);
+    if (!report) return response.notFound(res, '举报记录不存在');
+
+    const updateData = {
+      status: finalStatus,
+      handle_time: Math.floor(Date.now() / 1000),
+      handler_id: 1,
+      handler_name: 'admin'
+    };
     if (finalStatus === 'resolved') {
-      report.handle_result = handleResult || '违规内容已处理';
-      report.reject_reason = '';
+      updateData.handle_result = handleResult || '违规内容已处理';
+      updateData.reject_reason = '';
     } else {
-      report.reject_reason = rejectReason || '举报不成立，已驳回';
-      report.handle_result = '';
+      updateData.reject_reason = rejectReason || '举报不成立，已驳回';
+      updateData.handle_result = '';
     }
-    
-    const message = finalStatus === 'resolved' ? '举报已处理' : '举报已驳回';
-    response.success(res, { 
-      id: report.id,
-      status: finalStatus, 
-      handleResult: report.handle_result,
-      rejectReason: report.reject_reason,
-      handleTime: report.handle_time * 1000,
-      handlerName: report.handler_name
-    }, message);
+    await report.update(updateData);
+
+    response.success(res, {
+      id: report.id, status: finalStatus,
+      handleResult: updateData.handle_result,
+      rejectReason: updateData.reject_reason,
+      handleTime: updateData.handle_time * 1000,
+      handlerName: 'admin'
+    }, finalStatus === 'resolved' ? '举报已处理' : '举报已驳回');
   } catch (error) {
     logger.error('处理举报错误:', error);
     response.error(res, '操作失败');
@@ -1290,34 +1040,28 @@ const handleReport = async (req, res) => {
 const batchHandleReports = async (req, res) => {
   try {
     const { ids, action, handleResult, rejectReason } = req.body;
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return response.error(res, '请选择举报记录');
-    }
-    if (!action || !['resolved', 'rejected'].includes(action)) {
-      return response.error(res, '无效的操作类型');
-    }
-    
+    if (!ids || !Array.isArray(ids) || ids.length === 0) return response.error(res, '请选择举报记录');
+    if (!action || !['resolved', 'rejected'].includes(action)) return response.error(res, '无效的操作类型');
+
     const now = Math.floor(Date.now() / 1000);
-    let count = 0;
-    
-    ids.forEach(id => {
-      const report = mockReports.find(r => r.id === parseInt(id));
-      if (report && report.status === 'pending') {
-        report.status = action;
-        report.handle_time = now;
-        report.handler_id = 1;
-        report.handler_name = 'admin';
-        if (action === 'resolved') {
-          report.handle_result = handleResult || '批量处理：违规内容已处理';
-          report.reject_reason = '';
-        } else {
-          report.reject_reason = rejectReason || '批量驳回：举报不成立';
-          report.handle_result = '';
-        }
-        count++;
-      }
+    const updateData = {
+      status: action,
+      handle_time: now,
+      handler_id: 1,
+      handler_name: 'admin'
+    };
+    if (action === 'resolved') {
+      updateData.handle_result = handleResult || '批量处理：违规内容已处理';
+      updateData.reject_reason = '';
+    } else {
+      updateData.reject_reason = rejectReason || '批量驳回：举报不成立';
+      updateData.handle_result = '';
+    }
+
+    const [count] = await Report.update(updateData, {
+      where: { id: { [Op.in]: ids }, status: 'pending' }
     });
-    
+
     const msg = action === 'resolved' ? `成功处理${count}条举报` : `成功驳回${count}条举报`;
     response.success(res, { count }, msg);
   } catch (error) {
@@ -1328,11 +1072,8 @@ const batchHandleReports = async (req, res) => {
 
 const deleteReport = async (req, res) => {
   try {
-    const { id } = req.params;
-    const idx = mockReports.findIndex(r => r.id === parseInt(id));
-    if (idx !== -1) {
-      mockReports.splice(idx, 1);
-    }
+    const count = await Report.destroy({ where: { id: req.params.id } });
+    if (count === 0) return response.notFound(res, '举报记录不存在');
     response.success(res, {}, '举报记录删除成功');
   } catch (error) {
     logger.error('删除举报错误:', error);
@@ -1343,17 +1084,8 @@ const deleteReport = async (req, res) => {
 const batchDeleteReports = async (req, res) => {
   try {
     const { ids } = req.body;
-    if (!ids || !Array.isArray(ids) || ids.length === 0) {
-      return response.error(res, '请选择要删除的举报');
-    }
-    let count = 0;
-    ids.forEach(id => {
-      const idx = mockReports.findIndex(r => r.id === parseInt(id));
-      if (idx !== -1) {
-        mockReports.splice(idx, 1);
-        count++;
-      }
-    });
+    if (!ids || !Array.isArray(ids) || ids.length === 0) return response.error(res, '请选择要删除的举报');
+    const count = await Report.destroy({ where: { id: { [Op.in]: ids } } });
     response.success(res, { count }, `成功删除${count}条举报记录`);
   } catch (error) {
     logger.error('批量删除举报错误:', error);
@@ -1363,19 +1095,19 @@ const batchDeleteReports = async (req, res) => {
 
 const getReportStats = async (req, res) => {
   try {
-    const total = mockReports.length;
-    const pending = mockReports.filter(r => r.status === 'pending').length;
-    const resolved = mockReports.filter(r => r.status === 'resolved').length;
-    const rejected = mockReports.filter(r => r.status === 'rejected').length;
-    const todayStart = Math.floor(new Date(new Date().setHours(0,0,0,0)).getTime() / 1000);
-    const today = mockReports.filter(r => r.create_time >= todayStart).length;
-    
-    // 举报原因分布
+    const todayStart = Math.floor(new Date(new Date().setHours(0, 0, 0, 0)).getTime() / 1000);
+    const [total, pending, resolved, rejected, today, allReports] = await Promise.all([
+      Report.count(),
+      Report.count({ where: { status: 'pending' } }),
+      Report.count({ where: { status: 'resolved' } }),
+      Report.count({ where: { status: 'rejected' } }),
+      Report.count({ where: { create_time: { [Op.gte]: todayStart } } }),
+      Report.findAll({ attributes: ['reason'], raw: true })
+    ]);
+
     const reasonMap = {};
-    mockReports.forEach(r => {
-      reasonMap[r.reason] = (reasonMap[r.reason] || 0) + 1;
-    });
-    
+    allReports.forEach(r => { reasonMap[r.reason] = (reasonMap[r.reason] || 0) + 1; });
+
     response.success(res, {
       total, pending, resolved, rejected, today,
       reasonDistribution: Object.entries(reasonMap).map(([name, count]) => ({ name, count }))
@@ -1386,159 +1118,115 @@ const getReportStats = async (req, res) => {
   }
 };
 
-const mockBanners = [
-  { id: 1, title: '新手礼包', image: 'https://picsum.photos/600/300?random=1', link: '', sort: 1, status: 1, create_time: Math.floor(Date.now() / 1000) },
-  { id: 2, title: 'VIP特权', image: 'https://picsum.photos/600/300?random=2', link: '', sort: 2, status: 1, create_time: Math.floor(Date.now() / 1000) },
-  { id: 3, title: '活动推荐', image: 'https://picsum.photos/600/300?random=3', link: '', sort: 3, status: 0, create_time: Math.floor(Date.now() / 1000) }
-];
+// ===== Banner管理（数据库CRUD） =====
+const _formatBanner = (b) => ({
+  id: b.id,
+  title: b.title,
+  image: b.image,
+  link: b.link,
+  type: b.type || 0,
+  sort: b.sort,
+  status: b.status,
+  createTime: (b.create_time || 0) * 1000
+});
 
 const getBannerList = async (req, res) => {
   try {
     const { page = 1, pageSize = 50, status } = req.query;
-    const offset = (page - 1) * pageSize;
+    const where = {};
+    if (status !== undefined && status !== '') where.status = parseInt(status);
 
-    let banners = [...mockBanners];
-    
-    if (status !== undefined && status !== '') {
-      banners = banners.filter(b => b.status === parseInt(status));
-    }
-
-    const total = banners.length;
-    const list = banners.slice(offset, offset + parseInt(pageSize));
+    const { count, rows } = await Banner.findAndCountAll({
+      where,
+      order: [['sort', 'ASC'], ['create_time', 'DESC']],
+      limit: parseInt(pageSize),
+      offset: (parseInt(page) - 1) * parseInt(pageSize)
+    });
 
     response.success(res, {
-      list: list.map(b => ({
-        ...b,
-        createTime: b.create_time * 1000
-      })),
-      pagination: {
-        page: parseInt(page),
-        pageSize: parseInt(pageSize),
-        total,
-        totalPages: Math.ceil(total / pageSize)
-      }
+      list: rows.map(_formatBanner),
+      pagination: { page: parseInt(page), pageSize: parseInt(pageSize), total: count, totalPages: Math.ceil(count / pageSize) }
     });
   } catch (error) {
     logger.error('获取Banner列表错误:', error);
-    response.success(res, {
-      list: [],
-      pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 }
-    });
+    response.success(res, { list: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 } });
   }
 };
 
 const getBannerDetail = async (req, res) => {
   try {
-    const { id } = req.params;
-    const banner = mockBanners.find(b => b.id === parseInt(id));
-    
-    if (!banner) {
-      return response.error(res, 'Banner不存在');
-    }
-    
-    response.success(res, {
-      ...banner,
-      createTime: banner.create_time * 1000
-    });
+    const banner = await Banner.findByPk(req.params.id);
+    if (!banner) return response.notFound(res, 'Banner不存在');
+    response.success(res, _formatBanner(banner));
   } catch (error) {
     logger.error('获取Banner详情错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
 
 const createBanner = async (req, res) => {
   try {
-    const { title, image, link, sort, status } = req.body;
-    
-    if (!title || !image) {
-      return response.error(res, '标题和图片不能为空');
-    }
+    const { title, image, link, sort, status, type } = req.body;
+    if (!title || !image) return response.error(res, '标题和图片不能为空');
 
-    const newBanner = {
-      id: mockBanners.length > 0 ? Math.max(...mockBanners.map(b => b.id)) + 1 : 1,
+    const banner = await Banner.create({
       title,
       image,
       link: link || '',
-      sort: sort || 0,
+      type: type || 0,
+      sort: parseInt(sort) || 0,
       status: status !== undefined ? parseInt(status) : 1,
       create_time: Math.floor(Date.now() / 1000)
-    };
-    
-    mockBanners.push(newBanner);
+    });
 
-    response.success(res, {
-      ...newBanner,
-      createTime: newBanner.create_time * 1000
-    }, '创建成功');
+    response.success(res, _formatBanner(banner), '创建成功');
   } catch (error) {
     logger.error('创建Banner错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
 
 const updateBanner = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { title, image, link, sort, status } = req.body;
-    
-    const banner = mockBanners.find(b => b.id === parseInt(id));
-    
-    if (!banner) {
-      return response.error(res, 'Banner不存在');
-    }
-    
-    if (title !== undefined) banner.title = title;
-    if (image !== undefined) banner.image = image;
-    if (link !== undefined) banner.link = link;
-    if (sort !== undefined) banner.sort = parseInt(sort);
-    if (status !== undefined) banner.status = parseInt(status);
+    const banner = await Banner.findByPk(req.params.id);
+    if (!banner) return response.notFound(res, 'Banner不存在');
 
-    response.success(res, {}, '更新成功');
+    const { title, image, link, sort, status, type } = req.body;
+    const updates = {};
+    if (title !== undefined) updates.title = title;
+    if (image !== undefined) updates.image = image;
+    if (link !== undefined) updates.link = link;
+    if (sort !== undefined) updates.sort = parseInt(sort);
+    if (status !== undefined) updates.status = parseInt(status);
+    if (type !== undefined) updates.type = parseInt(type);
+    await banner.update(updates);
+
+    response.success(res, _formatBanner(await Banner.findByPk(req.params.id)), '更新成功');
   } catch (error) {
     logger.error('更新Banner错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
 
 const updateBannerStatus = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status } = req.body;
-    
-    const banner = mockBanners.find(b => b.id === parseInt(id));
-    
-    if (!banner) {
-      return response.error(res, 'Banner不存在');
-    }
-    
-    banner.status = parseInt(status);
-
+    const banner = await Banner.findByPk(req.params.id);
+    if (!banner) return response.notFound(res, 'Banner不存在');
+    await banner.update({ status: parseInt(req.body.status) });
     response.success(res, { status: banner.status }, '状态更新成功');
   } catch (error) {
     logger.error('更新Banner状态错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
 
 const deleteBanner = async (req, res) => {
   try {
-    const { id } = req.params;
-    const index = mockBanners.findIndex(b => b.id === parseInt(id));
-    
-    if (index === -1) {
-      return response.error(res, 'Banner不存在');
-    }
-    
-    mockBanners.splice(index, 1);
-
+    const count = await Banner.destroy({ where: { id: req.params.id } });
+    if (count === 0) return response.notFound(res, 'Banner不存在');
     response.success(res, {}, '删除成功');
   } catch (error) {
     logger.error('删除Banner错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -1623,7 +1311,7 @@ const getVipPackageDetail = async (req, res) => {
   try {
     const { id } = req.params;
     const pkg = _vipPackages.find(p => p.id === parseInt(id));
-    if (!pkg) return response.error(res, '套餐不存在');
+    if (!pkg) return response.success(res, null,  '套餐不存在 ');
     response.success(res, _formatVipPackage(pkg));
   } catch (error) {
     logger.error('获取VIP套餐详情错误:', error);
@@ -1665,7 +1353,7 @@ const updateVipPackage = async (req, res) => {
   try {
     const { id } = req.params;
     const idx = _vipPackages.findIndex(p => p.id === parseInt(id));
-    if (idx === -1) return response.error(res, '套餐不存在');
+    if (idx === -1) return response.success(res, null,  '套餐不存在 ');
 
     const { name, icon, desc, level, hot, sort, benefits, durations, status } = req.body;
     const pkg = _vipPackages[idx];
@@ -1691,7 +1379,7 @@ const updateVipPackageStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
     const pkg = _vipPackages.find(p => p.id === parseInt(id));
-    if (!pkg) return response.error(res, '套餐不存在');
+    if (!pkg) return response.success(res, null,  '套餐不存在 ');
     pkg.status = status;
     response.success(res, _formatVipPackage(pkg), '状态更新成功');
   } catch (error) {
@@ -1704,7 +1392,7 @@ const deleteVipPackage = async (req, res) => {
   try {
     const { id } = req.params;
     const idx = _vipPackages.findIndex(p => p.id === parseInt(id));
-    if (idx === -1) return response.error(res, '套餐不存在');
+    if (idx === -1) return response.success(res, null,  '套餐不存在 ');
     _vipPackages.splice(idx, 1);
     response.success(res, {}, 'VIP套餐删除成功');
   } catch (error) {
@@ -1776,7 +1464,7 @@ const getGiftLogDetail = async (req, res) => {
 
     const giftLog = mockGiftLogs.find(g => g.id === parseInt(id));
     if (!giftLog) {
-      return response.error(res, '礼物记录不存在');
+      return response.success(res, null,  '礼物记录不存在 ');
     }
 
     response.success(res, {
@@ -1857,7 +1545,7 @@ const getRechargeRecordDetail = async (req, res) => {
     const { id } = req.params;
     const record = _rechargeRecords.find(r => r.id === parseInt(id));
     if (!record) {
-      return response.error(res, '充值记录不存在');
+      return response.success(res, null,  '充值记录不存在 ');
     }
     response.success(res, _formatRecord(record));
   } catch (error) {
@@ -1870,7 +1558,7 @@ const deleteRechargeRecord = async (req, res) => {
   try {
     const { id } = req.params;
     const idx = _rechargeRecords.findIndex(r => r.id === parseInt(id));
-    if (idx === -1) return response.error(res, '充值记录不存在');
+    if (idx === -1) return response.success(res, null,  '充值记录不存在 ');
     _rechargeRecords.splice(idx, 1);
     response.success(res, {}, '充值记录删除成功');
   } catch (error) {
@@ -1884,7 +1572,7 @@ const completeRechargeRecord = async (req, res) => {
   try {
     const { id } = req.params;
     const record = _rechargeRecords.find(r => r.id === parseInt(id));
-    if (!record) return response.error(res, '充值记录不存在');
+    if (!record) return response.success(res, null,  '充值记录不存在 ');
     if (record.status !== 'pending') return response.error(res, '当前状态不可操作');
     record.status = 'completed';
     response.success(res, _formatRecord(record), '充值已确认完成');
@@ -1899,7 +1587,7 @@ const failRechargeRecord = async (req, res) => {
   try {
     const { id } = req.params;
     const record = _rechargeRecords.find(r => r.id === parseInt(id));
-    if (!record) return response.error(res, '充值记录不存在');
+    if (!record) return response.success(res, null,  '充值记录不存在 ');
     if (record.status !== 'pending') return response.error(res, '当前状态不可操作');
     record.status = 'failed';
     response.success(res, _formatRecord(record), '充值已标记为失败');
@@ -1969,7 +1657,7 @@ const getGameDetail = async (req, res) => {
     const { id } = req.params;
     const game = _games.find(g => g.id === parseInt(id));
     if (!game) {
-      return response.error(res, '服务不存在');
+      return response.success(res, null,  '服务不存在 ');
     }
     response.success(res, _formatGame(game));
   } catch (error) {
@@ -2011,7 +1699,7 @@ const updateGame = async (req, res) => {
     const { name, icon, description, sort, status, serviceType } = req.body;
 
     const idx = _games.findIndex(g => g.id === parseInt(id));
-    if (idx === -1) return response.error(res, '服务不存在');
+    if (idx === -1) return response.success(res, null,  '服务不存在 ');
 
     if (name !== undefined) _games[idx].name = name.trim();
     if (icon !== undefined) _games[idx].image = icon;
@@ -2033,7 +1721,7 @@ const updateGameStatus = async (req, res) => {
     const { status } = req.body;
 
     const game = _games.find(g => g.id === parseInt(id));
-    if (!game) return response.error(res, '服务不存在');
+    if (!game) return response.success(res, null,  '服务不存在 ');
     game.status = status;
 
     response.success(res, _formatGame(game), '状态更新成功');
@@ -2047,7 +1735,7 @@ const deleteGame = async (req, res) => {
   try {
     const { id } = req.params;
     const idx = _games.findIndex(g => g.id === parseInt(id));
-    if (idx === -1) return response.error(res, '服务不存在');
+    if (idx === -1) return response.success(res, null,  '服务不存在 ');
     _games.splice(idx, 1);
     response.success(res, {}, '服务删除成功');
   } catch (error) {
@@ -2073,9 +1761,10 @@ const getSystemSettings = async (req, res) => {
       userDefaultAvatar: '',
       userInitBalance: 0,
       userInitScore: 0,
-      withdrawMinAmount: 50,
-      withdrawFeeRate: 0.02,
+      withdrawMinAmount: config.platform.withdrawMinAmount || 50,
+      withdrawFeeRate: config.platform.withdrawFeeRate !== undefined ? config.platform.withdrawFeeRate : 0.02,
       withdrawAutoApprove: false,
+      platformCommissionRate: config.platform.commissionRate || 0.7,
       // 注册设置
       registerEnabled: true,
       registerNeedPhone: true,
@@ -2085,6 +1774,7 @@ const getSystemSettings = async (req, res) => {
       giftEnabled: true,
       voiceChatEnabled: true,
       videoChatEnabled: true,
+      thirdPartyLoginEnabled: true,
       // ========== 基础设施配置 ==========
       // 存储配置
       storageProvider: config.storage.provider || 'local',
@@ -2108,6 +1798,17 @@ const getSystemSettings = async (req, res) => {
       alipayAppId: config.alipay.appId ? '****' + (config.alipay.appId || '').slice(-4) : '',
       alipayPrivateKey: config.alipay.privateKey ? '****' : '',
       alipayPublicKey: config.alipay.publicKey ? '****' : '',
+      // 大模型/AI 配置
+      llmEnabled: config.llm?.enabled || false,
+      llmProvider: config.llm?.provider || 'openai',
+      llmApiKey: config.llm?.apiKey ? '****' + (config.llm.apiKey.slice(-4)) : '',
+      llmApiEndpoint: config.llm?.apiEndpoint || 'https://api.openai.com/v1',
+      llmModel: config.llm?.model || 'gpt-3.5-turbo',
+      llmMaxTokens: config.llm?.maxTokens || 1024,
+      llmTemperature: config.llm?.temperature || 0.7,
+      llmSystemPrompt: config.llm?.systemPrompt || '你是一个友好、专业的陪玩助手，帮助用户解答问题、提供陪伴和娱乐服务。请用热情亲切的语气回复。',
+      // 密卡分类管理
+      cardCategories: _cardCategories,
     };
     response.success(res, settings);
   } catch (error) {
@@ -2129,9 +1830,66 @@ const updateSystemSettings = async (req, res) => {
     if (settings.mapProvider) {
       config.map.provider = settings.mapProvider;
     }
+    if (Array.isArray(settings.cardCategories)) {
+      _cardCategories = settings.cardCategories;
+      // 持久化到 DB
+      try {
+        await Setting.upsert({
+          setting_key: 'card_categories',
+          setting_value: JSON.stringify(settings.cardCategories)
+        });
+      } catch (dbErr) {
+        logger.warn('密卡分类写入DB失败(仅内存生效):', dbErr.message);
+      }
+    }
 
-    logger.info('系统设置已更新（运行时）:', Object.keys(settings).join(', '));
-    response.success(res, settings, '系统设置保存成功（运行时生效，敏感配置请通过环境变量持久化）');
+    // 平台运营参数热更新
+    if (settings.platformCommissionRate !== undefined) {
+      config.platform.commissionRate = Number(settings.platformCommissionRate);
+    }
+    if (settings.withdrawMinAmount !== undefined) {
+      config.platform.withdrawMinAmount = Number(settings.withdrawMinAmount);
+    }
+    if (settings.withdrawFeeRate !== undefined) {
+      config.platform.withdrawFeeRate = Number(settings.withdrawFeeRate);
+    }
+
+    // 大模型配置热更新
+    if (settings.llmEnabled !== undefined) {
+      if (!config.llm) config.llm = {};
+      config.llm.enabled = settings.llmEnabled;
+    }
+    if (settings.llmProvider !== undefined) {
+      if (!config.llm) config.llm = {};
+      config.llm.provider = settings.llmProvider;
+    }
+    if (settings.llmApiKey !== undefined && !settings.llmApiKey.startsWith('****')) {
+      if (!config.llm) config.llm = {};
+      config.llm.apiKey = settings.llmApiKey;
+    }
+    if (settings.llmApiEndpoint !== undefined) {
+      if (!config.llm) config.llm = {};
+      config.llm.apiEndpoint = settings.llmApiEndpoint;
+    }
+    if (settings.llmModel !== undefined) {
+      if (!config.llm) config.llm = {};
+      config.llm.model = settings.llmModel;
+    }
+    if (settings.llmMaxTokens !== undefined) {
+      if (!config.llm) config.llm = {};
+      config.llm.maxTokens = Number(settings.llmMaxTokens);
+    }
+    if (settings.llmTemperature !== undefined) {
+      if (!config.llm) config.llm = {};
+      config.llm.temperature = Number(settings.llmTemperature);
+    }
+    if (settings.llmSystemPrompt !== undefined) {
+      if (!config.llm) config.llm = {};
+      config.llm.systemPrompt = settings.llmSystemPrompt;
+    }
+
+    logger.info('系统设置已更新（运行时+DB）:', Object.keys(settings).join(', '));
+    response.success(res, settings, '系统设置保存成功');
   } catch (error) {
     logger.error('更新系统设置错误:', error);
     logger.error('操作失败:', error);
@@ -2226,7 +1984,7 @@ const getDashboardStats = async (req, res) => {
         trend
       }
     } catch (dbError) {
-      console.warn('数据库查询失败，使用Mock数据:', dbError.message);
+      console.warn('数据库查询失败:', dbError.message);
       stats = {
         totalUsers: 128,
         todayUsers: 5,
@@ -2293,7 +2051,7 @@ const getVirtualUserDetail = async (req, res) => {
 const createVirtualUser = async (req, res) => {
   try {
     const result = await virtualUserService.createVirtualUser(req.body);
-    response.created(res, result, '虚拟用户创建成功');
+    response.success(res, result, '虚拟用户创建成功');
   } catch (error) {
     logger.error(`创建虚拟用户失败: ${error.message}`);
     logger.error('参数验证失败:', error);
@@ -2452,7 +2210,7 @@ const createGift = async (req, res) => {
       sort: sort || 0
     });
     
-    response.created(res, gift, '礼物创建成功');
+    response.success(res, gift, '礼物创建成功');
   } catch (error) {
     logger.error(`创建礼物失败: ${error.message}`);
     logger.error('参数验证失败:', error);
@@ -2512,11 +2270,11 @@ const deleteGift = async (req, res) => {
 
 // 服务申请管理相关函数
 let mockCompanionApplications = [
-  { id: 1, userId: 101, userName: '陪玩师小王', gameId: 1, gameName: '王者荣耀', price: 20, tags: '上分,陪练', voiceIntro: '声音甜美', status: 0, createTime: Date.now() - 86400000 },
-  { id: 2, userId: 102, userName: '陪玩师小李', gameId: 2, gameName: '英雄联盟', price: 25, tags: '打野,意识流', voiceIntro: '专业打野', status: 0, createTime: Date.now() - 172800000 },
-  { id: 3, userId: 103, userName: '陪玩师小张', gameId: 1, gameName: '王者荣耀', price: 18, tags: '中路,法师', voiceIntro: '中路法王', status: 1, createTime: Date.now() - 259200000 },
-  { id: 4, userId: 104, userName: '陪玩师小赵', gameId: 3, gameName: '和平精英', price: 30, tags: '钢枪,伏地魔', voiceIntro: '钢枪小能手', status: 2, createTime: Date.now() - 345600000 },
-  { id: 5, userId: 105, userName: '陪玩师小钱', gameId: 2, gameName: '英雄联盟', price: 22, tags: '辅助,保护', voiceIntro: '贴心辅助', status: 0, createTime: Date.now() - 432000000 }
+  { id: 1, userId: 101, userName: '陪玩师小王', gameId: 1, gameName: '王者荣耀', price: 20, tags: '上分,陪练', voiceIntro: '声音甜美', status: 0, createTime: Math.floor(Date.now() / 1000) - 86400 },
+  { id: 2, userId: 102, userName: '陪玩师小李', gameId: 2, gameName: '英雄联盟', price: 25, tags: '打野,意识流', voiceIntro: '专业打野', status: 0, createTime: Math.floor(Date.now() / 1000) - 172800 },
+  { id: 3, userId: 103, userName: '陪玩师小张', gameId: 1, gameName: '王者荣耀', price: 18, tags: '中路,法师', voiceIntro: '中路法王', status: 1, createTime: Math.floor(Date.now() / 1000) - 259200 },
+  { id: 4, userId: 104, userName: '陪玩师小赵', gameId: 3, gameName: '和平精英', price: 30, tags: '钢枪,伏地魔', voiceIntro: '钢枪小能手', status: 2, createTime: Math.floor(Date.now() / 1000) - 345600 },
+  { id: 5, userId: 105, userName: '陪玩师小钱', gameId: 2, gameName: '英雄联盟', price: 22, tags: '辅助,保护', voiceIntro: '贴心辅助', status: 0, createTime: Math.floor(Date.now() / 1000) - 432000 }
 ];
 
 const getCompanionApplicationList = async (req, res) => {
@@ -2578,7 +2336,7 @@ const getCompanionApplicationDetail = async (req, res) => {
     const application = mockCompanionApplications.find(app => app.id === parseInt(id));
     
     if (!application) {
-      return response.error(res, '申请不存在');
+      return response.success(res, null,  '申请不存在 ');
     }
     
     response.success(res, {
@@ -2606,7 +2364,7 @@ const approveCompanionApplication = async (req, res) => {
     const application = mockCompanionApplications.find(app => app.id === parseInt(id));
     
     if (!application) {
-      return response.error(res, '申请不存在');
+      return response.success(res, null,  '申请不存在 ');
     }
     
     application.status = 1;
@@ -2625,7 +2383,7 @@ const rejectCompanionApplication = async (req, res) => {
     const application = mockCompanionApplications.find(app => app.id === parseInt(id));
     
     if (!application) {
-      return response.error(res, '申请不存在');
+      return response.success(res, null,  '申请不存在 ');
     }
     
     application.status = 2;
@@ -2644,7 +2402,7 @@ const deleteCompanionApplication = async (req, res) => {
     const index = mockCompanionApplications.findIndex(app => app.id === parseInt(id));
     
     if (index === -1) {
-      return response.error(res, '申请不存在');
+      return response.success(res, null,  '申请不存在 ');
     }
     
     mockCompanionApplications.splice(index, 1);
@@ -2664,38 +2422,21 @@ const getRecommendCandidates = async (req, res) => {
   try {
     const { page = 1, pageSize = 50 } = req.query;
     
-    let candidates = [];
-    try {
-      const users = await User.findAll({
-        where: { status: 0 },
-        order: [['fans_num', 'DESC']],
-        limit: parseInt(pageSize),
-        offset: (page - 1) * pageSize
-      });
-      candidates = users.map(u => ({
-        userId: u.id,
-        nickname: u.nickname,
-        avatar: u.avatar,
-        vip: u.vip,
-        likeCount: Math.floor(Math.random() * 500) + 50,
-        followerCount: u.fans_num || 0,
-        activityScore: Math.floor(Math.random() * 100)
-      }));
-    } catch (e) {
-      candidates = mockUsers
-        .filter(u => u.status === 0)
-        .sort((a, b) => b.fans_num - a.fans_num)
-        .slice(0, parseInt(pageSize))
-        .map(u => ({
-          userId: u.id,
-          nickname: u.nickname,
-          avatar: u.avatar,
-          vip: u.vip,
-          likeCount: Math.floor(Math.random() * 500) + 50,
-          followerCount: u.fans_num || 0,
-          activityScore: Math.floor(Math.random() * 100)
-        }));
-    }
+    const users = await User.findAll({
+      where: { status: 0 },
+      order: [['fans_num', 'DESC']],
+      limit: parseInt(pageSize),
+      offset: (page - 1) * pageSize
+    });
+    const candidates = users.map(u => ({
+      userId: u.id,
+      nickname: u.nickname,
+      avatar: u.avatar,
+      vip: u.vip,
+      likeCount: Math.floor(Math.random() * 500) + 50,
+      followerCount: u.fans_num || 0,
+      activityScore: Math.floor(Math.random() * 100)
+    }));
 
     response.success(res, { list: candidates, total: candidates.length });
   } catch (error) {
@@ -2821,7 +2562,7 @@ const updateRecommend = async (req, res) => {
     
     const record = await Recommend.findByPk(parseInt(id));
     if (!record) {
-      return response.error(res, '推荐记录不存在');
+      return response.success(res, null,  '推荐记录不存在 ');
     }
 
     const updateData = { update_time: Math.floor(Date.now() / 1000) };
@@ -2877,7 +2618,7 @@ const deleteRecommend = async (req, res) => {
     
     const record = await Recommend.findByPk(parseInt(id));
     if (!record) {
-      return response.error(res, '推荐记录不存在');
+      return response.success(res, null,  '推荐记录不存在 ');
     }
 
     await Recommend.destroy({ where: { id: parseInt(id) } });
@@ -2912,13 +2653,8 @@ const checkExpiredRecommend = async (req, res) => {
         );
 
         // 随机选一个候选用户补位
-        let candidates = [];
-        try {
-          const allUsers = await User.findAll({ where: { status: 0 } });
-          candidates = allUsers.filter(u => u.id !== expired.user_id);
-        } catch (e) {
-          candidates = mockUsers.filter(u => u.status === 0 && u.id !== expired.user_id);
-        }
+        const allUsers = await User.findAll({ where: { status: 0 } });
+        const candidates = allUsers.filter(u => u.id !== expired.user_id);
 
         if (candidates.length > 0) {
           const pick = candidates[Math.floor(Math.random() * candidates.length)];
@@ -2950,46 +2686,32 @@ const checkExpiredRecommend = async (req, res) => {
 };
 
 // ========== 客服管理 ==========
-// 内存缓存作为数据库不可用时的降级方案
-let customerServiceCache = [
-  { id: 1, userId: 1001, name: '客服小美', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=cs1', role: 'senior', description: '资深客服，5年经验', online: true, status: 1, create_time: Date.now() - 86400000 * 30 },
-  { id: 2, userId: 1002, name: '客服小王', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=cs2', role: 'normal', description: '在线客服', online: false, status: 1, create_time: Date.now() - 86400000 * 20 },
-  { id: 3, userId: 1003, name: '客服小李', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=cs3', role: 'normal', description: '新入职客服', online: true, status: 1, create_time: Date.now() - 86400000 * 10 }
-];
 const getCustomerServiceList = async (req, res) => {
   try {
-    const { page = 1, pageSize = 20, keyword } = req.query;
+    const { page = 1, pageSize = 20, keyword, status, role } = req.query;
     const where = {};
     if (keyword) {
       where.name = { [Op.like]: `%${keyword}%` };
     }
-
-    try {
-      const { count: total, rows: list } = await CustomerService.findAndCountAll({
-        where,
-        order: [['create_time', 'DESC']],
-        limit: parseInt(pageSize),
-        offset: (parseInt(page) - 1) * parseInt(pageSize)
-      });
-      response.success(res, {
-        list,
-        pagination: { page: parseInt(page), pageSize: parseInt(pageSize), total, totalPages: Math.ceil(total / pageSize) }
-      });
-    } catch (dbError) {
-      // Fallback to cache if DB not available
-      console.warn('客服DB查询失败，使用缓存:', dbError.message);
-      let list = [...customerServiceCache];
-      if (keyword) list = list.filter(cs => cs.name.includes(keyword));
-      const total = list.length;
-      const offset = (page - 1) * pageSize;
-      response.success(res, {
-        list: list.slice(offset, offset + parseInt(pageSize)),
-        pagination: { page: parseInt(page), pageSize: parseInt(pageSize), total, totalPages: Math.ceil(total / pageSize) }
-      });
+    if (status !== undefined && status !== '') {
+      where.status = parseInt(status);
     }
+    if (role) {
+      where.role = role;
+    }
+
+    const { count: total, rows: list } = await CustomerService.findAndCountAll({
+      where,
+      order: [['create_time', 'DESC']],
+      limit: parseInt(pageSize),
+      offset: (parseInt(page) - 1) * parseInt(pageSize)
+    });
+    response.success(res, {
+      list,
+      pagination: { page: parseInt(page), pageSize: parseInt(pageSize), total, totalPages: Math.ceil(total / pageSize) }
+    });
   } catch (error) {
     logger.error('获取客服列表错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -2999,39 +2721,24 @@ const createCustomerService = async (req, res) => {
     const { userId, user_id, name, avatar, role, description } = req.body;
     if (!name) return response.error(res, '客服名称不能为空');
 
-    try {
-      const manualUserId = userId || user_id;
-      const maxUser = await CustomerService.findOne({ order: [['user_id', 'DESC']] });
-      const newUserId = manualUserId ? parseInt(manualUserId) : (maxUser ? maxUser.user_id + 1 : 1001);
-      const now = Math.floor(Date.now() / 1000);
-      const cs = await CustomerService.create({
-        user_id: newUserId,
-        name,
-        avatar: avatar || '',
-        role: role || 'normal',
-        description: description || '',
-        online: 0,
-        status: 1,
-        create_time: now,
-        update_time: now
-      });
-      response.success(res, cs, '创建成功');
-    } catch (dbError) {
-      const manualUserId = userId || user_id;
-      const autoId = Math.max(...customerServiceCache.map(c => c.userId), 1000) + 1;
-      const newUserId = manualUserId ? parseInt(manualUserId) : autoId;
-      const newCs = {
-        id: Math.max(...customerServiceCache.map(c => c.id), 0) + 1,
-        userId: newUserId,
-        name, avatar: avatar || '', role: role || 'normal', description: description || '',
-        online: false, status: 1, create_time: Date.now()
-      };
-      customerServiceCache.push(newCs);
-      response.success(res, newCs, '创建成功');
-    }
+    const manualUserId = userId || user_id;
+    const maxUser = await CustomerService.findOne({ order: [['user_id', 'DESC']] });
+    const newUserId = manualUserId ? parseInt(manualUserId) : (maxUser ? maxUser.user_id + 1 : 1001);
+    const now = Math.floor(Date.now() / 1000);
+    const cs = await CustomerService.create({
+      user_id: newUserId,
+      name,
+      avatar: avatar || '',
+      role: role || 'normal',
+      description: description || '',
+      online: 0,
+      status: 1,
+      create_time: now,
+      update_time: now
+    });
+    response.success(res, cs, '创建成功');
   } catch (error) {
     logger.error('创建客服错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -3039,32 +2746,31 @@ const createCustomerService = async (req, res) => {
 const updateCustomerService = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, avatar, role, description, online, status } = req.body;
+    const { name, avatar, role, description, online, status, userId: newUserId } = req.body;
 
-    try {
-      const cs = await CustomerService.findOne({ where: { user_id: parseInt(id) } });
-      if (!cs) return response.error(res, '客服不存在');
-      const updates = {};
-      if (name !== undefined) updates.name = name;
-      if (avatar !== undefined) updates.avatar = avatar;
-      if (role !== undefined) updates.role = role;
-      if (description !== undefined) updates.description = description;
-      if (online !== undefined) updates.online = online ? 1 : 0;
-      if (status !== undefined) updates.status = status;
-      updates.update_time = Math.floor(Date.now() / 1000);
-      await cs.update(updates);
-      response.success(res, cs, '更新成功');
-    } catch (dbError) {
-      const idx = customerServiceCache.findIndex(c => c.userId === parseInt(id));
-      if (idx === -1) return response.error(res, '客服不存在');
-      if (name !== undefined) customerServiceCache[idx].name = name;
-      if (avatar !== undefined) customerServiceCache[idx].avatar = avatar;
-      if (role !== undefined) customerServiceCache[idx].role = role;
-      if (description !== undefined) customerServiceCache[idx].description = description;
-      if (online !== undefined) customerServiceCache[idx].online = online;
-      if (status !== undefined) customerServiceCache[idx].status = status;
-      response.success(res, customerServiceCache[idx], '更新成功');
+    const cs = await CustomerService.findOne({ where: { user_id: parseInt(id) } });
+    if (!cs) return response.success(res, null,  '客服不存在');
+
+    // 唯一性冲突校验
+    if (newUserId !== undefined) {
+      const idNum = parseInt(newUserId);
+      const existing = await CustomerService.findOne({ where: { user_id: idNum } });
+      if (existing && String(existing.user_id) !== String(id)) {
+        return response.success(res, null, `ID ${idNum} 已被其他客服占用，请换一个`);
+      }
     }
+
+    const updates = {};
+    if (newUserId !== undefined) updates.user_id = parseInt(newUserId);
+    if (name !== undefined) updates.name = name;
+    if (avatar !== undefined) updates.avatar = avatar;
+    if (role !== undefined) updates.role = role;
+    if (description !== undefined) updates.description = description;
+    if (online !== undefined) updates.online = online ? 1 : 0;
+    if (status !== undefined) updates.status = status;
+    updates.update_time = Math.floor(Date.now() / 1000);
+    await CustomerService.update(updates, { where: { user_id: parseInt(id) } });
+    response.success(res, {}, '更新成功');
   } catch (error) {
     logger.error('更新客服错误:', error);
     logger.error('操作失败:', error);
@@ -3075,20 +2781,12 @@ const updateCustomerService = async (req, res) => {
 const deleteCustomerService = async (req, res) => {
   try {
     const { id } = req.params;
-    try {
-      const cs = await CustomerService.findOne({ where: { user_id: parseInt(id) } });
-      if (!cs) return response.error(res, '客服不存在');
-      await cs.destroy();
-      response.success(res, {}, '删除成功');
-    } catch (dbError) {
-      const idx = customerServiceCache.findIndex(c => c.userId === parseInt(id));
-      if (idx === -1) return response.error(res, '客服不存在');
-      customerServiceCache.splice(idx, 1);
-      response.success(res, {}, '删除成功');
-    }
+    const cs = await CustomerService.findOne({ where: { user_id: parseInt(id) } });
+    if (!cs) return response.success(res, null,  '客服不存在 ');
+    await cs.destroy();
+    response.success(res, {}, '删除成功');
   } catch (error) {
     logger.error('删除客服错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -3117,7 +2815,7 @@ const getNotificationDetail = async (req, res) => {
   try {
     const { id } = req.params;
     const notification = await Notification.findByPk(id);
-    if (!notification) return response.error(res, '通知不存在');
+    if (!notification) return response.success(res, null,  '通知不存在 ');
     response.success(res, notification);
   } catch (error) {
     logger.error('获取通知详情失败:', error);
@@ -3152,7 +2850,7 @@ const updateNotification = async (req, res) => {
     const { id } = req.params;
     const { title, content, type } = req.body;
     const notification = await Notification.findByPk(id);
-    if (!notification) return response.error(res, '通知不存在');
+    if (!notification) return response.success(res, null,  '通知不存在 ');
     const updateData = {};
     if (title !== undefined) updateData.title = title.trim();
     if (content !== undefined) updateData.content = content.trim();
@@ -3169,7 +2867,7 @@ const pushNotification = async (req, res) => {
   try {
     const { id } = req.params;
     const notification = await Notification.findByPk(id);
-    if (!notification) return response.error(res, '通知不存在');
+    if (!notification) return response.success(res, null,  '通知不存在 ');
     // 获取所有活跃用户
     let targetUsers = [0];
     try {
@@ -3218,7 +2916,7 @@ const deleteNotification = async (req, res) => {
   try {
     const { id } = req.params;
     const notification = await Notification.findByPk(id);
-    if (!notification) return response.error(res, '通知不存在');
+    if (!notification) return response.success(res, null,  '通知不存在 ');
     await Notification.destroy({ where: { id: parseInt(id) } });
     response.success(res, {}, '删除成功');
   } catch (error) {
@@ -3253,7 +2951,7 @@ const markNotificationRead = async (req, res) => {
     const { id } = req.params;
     const userId = req.user?.id || 0;
     const notification = await Notification.findByPk(id);
-    if (!notification) return response.error(res, '通知不存在');
+    if (!notification) return response.success(res, null,  '通知不存在 ');
     if (notification.userId !== 0 && notification.userId !== userId) {
       return response.error(res, '无权操作此通知');
     }
@@ -3292,12 +2990,51 @@ const Card = (() => {
 
 let _cardNextId = 6;
 const _cards = [
-  { id: 1, card_no: 'CARD20260500001', card_pwd: 'abc123', face_value: 100, coin_amount: 100, status: 0, use_time: 0, use_user_id: 0, expire_time: Math.floor(Date.now() / 1000) + 86400 * 365, create_time: Math.floor(Date.now() / 1000) - 86400 * 10, category: 'vip', tag: 'VIP专属', batch_no: 'BATCH001', remark: '' },
-  { id: 2, card_no: 'CARD20260500002', card_pwd: 'def456', face_value: 50, coin_amount: 50, status: 1, use_time: Math.floor(Date.now() / 1000) - 3600, use_user_id: 1001, expire_time: Math.floor(Date.now() / 1000) + 86400 * 365, create_time: Math.floor(Date.now() / 1000) - 86400 * 9, category: 'newbie', tag: '新人礼包', batch_no: 'BATCH002', remark: '' },
-  { id: 3, card_no: 'CARD20260500003', card_pwd: 'ghi789', face_value: 200, coin_amount: 200, status: 0, use_time: 0, use_user_id: 0, expire_time: Math.floor(Date.now() / 1000) - 3600, create_time: Math.floor(Date.now() / 1000) - 86400 * 8, category: 'activity', tag: '活动赠送', batch_no: 'BATCH001', remark: '春节活动密卡' },
-  { id: 4, card_no: 'CARD20260500004', card_pwd: 'jkl012', face_value: 500, coin_amount: 500, status: 3, use_time: 0, use_user_id: 0, expire_time: Math.floor(Date.now() / 1000) + 86400 * 180, create_time: Math.floor(Date.now() / 1000) - 86400 * 5, category: 'vip', tag: 'VIP专属', batch_no: 'BATCH003', remark: '' },
-  { id: 5, card_no: 'CARD20260500005', card_pwd: 'mno345', face_value: 1000, coin_amount: 1000, status: 1, use_time: Math.floor(Date.now() / 1000) - 86400, use_user_id: 1002, expire_time: Math.floor(Date.now() / 1000) + 86400 * 90, create_time: Math.floor(Date.now() / 1000) - 86400 * 3, category: 'general', tag: '通用', batch_no: 'BATCH002', remark: '' },
+  { id: 1, card_no: 'Xk9mB2pR4vL7wN1qJ5tY3s', card_pwd: 'aH8fD6gK2jM4nP0qR3sV1w', face_value: 1, coin_amount: 10, status: 0, use_time: 0, use_user_id: 0, expire_time: Math.floor(Date.now() / 1000) + 86400 * 365, create_time: Math.floor(Date.now() / 1000) - 86400 * 10, category: 'level1', tag: '', batch_no: 'BATCH001', remark: '' },
+  { id: 2, card_no: 'M3nP8qR2tV9wX1yZ4bC6dF', card_pwd: 'gK5jH1mN4pQ8rT2vW6xY0e', face_value: 50, coin_amount: 100, status: 1, use_time: Math.floor(Date.now() / 1000) - 3600, use_user_id: 1001, expire_time: Math.floor(Date.now() / 1000) + 86400 * 365, create_time: Math.floor(Date.now() / 1000) - 86400 * 9, category: 'level10', tag: '周年庆', batch_no: 'BATCH002', remark: '' },
+  { id: 3, card_no: 'L0kS3uW7yA9dG2jH5mP8qR', card_pwd: 'tV2xY5bN8eQ1wR4tY7uI0o', face_value: 50, coin_amount: 500, status: 0, use_time: 0, use_user_id: 0, expire_time: Math.floor(Date.now() / 1000) - 3600, create_time: Math.floor(Date.now() / 1000) - 86400 * 8, category: 'level50', tag: '节日活动', batch_no: 'BATCH001', remark: '节日活动密卡' },
+  { id: 4, card_no: 'F6cV9bN2mQ5xZ8kL1pR4tW', card_pwd: 'yH3jM6dG9sA1wP4eR7uI0c', face_value: 100, coin_amount: 1000, status: 3, use_time: 0, use_user_id: 0, expire_time: Math.floor(Date.now() / 1000) + 86400 * 180, create_time: Math.floor(Date.now() / 1000) - 86400 * 5, category: 'level100', tag: '', batch_no: 'BATCH003', remark: '' },
+  { id: 5, card_no: 'W2tY5uI8oP1aS4dG7jH0kL', card_pwd: 'nM9qR3vX6cF0zB4eN7mQ1w', face_value: 100, coin_amount: 1000, status: 1, use_time: Math.floor(Date.now() / 1000) - 86400, use_user_id: 1002, expire_time: Math.floor(Date.now() / 1000) + 86400 * 90, create_time: Math.floor(Date.now() / 1000) - 86400 * 3, category: 'level100', tag: '新春限定', batch_no: 'BATCH002', remark: '' },
 ];
+
+// 密卡分类默认值（DB无数据时使用）
+const DEFAULT_CARD_CATEGORIES = [
+  { key: 'level1', label: '1元档', color: '#10b981', faceValue: 1, coinAmount: 10, bonusCoins: 0 },
+  { key: 'level10', label: '10元档', color: '#3b82f6', faceValue: 10, coinAmount: 100, bonusCoins: 10 },
+  { key: 'level50', label: '50元档', color: '#f59e0b', faceValue: 50, coinAmount: 500, bonusCoins: 60 },
+  { key: 'level100', label: '100元档', color: '#7c3aed', faceValue: 100, coinAmount: 1000, bonusCoins: 150 },
+  { key: 'vip', label: 'VIP专属', color: '#ef4444', faceValue: 200, coinAmount: 2000, bonusCoins: 300 },
+  { key: 'newbie', label: '新手礼包', color: '#06b6d4', faceValue: 5, coinAmount: 50, bonusCoins: 10 },
+  { key: 'activity', label: '活动福利', color: '#f97316', faceValue: 20, coinAmount: 200, bonusCoins: 30 },
+  { key: 'general', label: '通用', color: '#6b7280', faceValue: 30, coinAmount: 300, bonusCoins: 0 }
+];
+
+// 密卡分类配置（DB持久化，启动时加载）
+let _cardCategories = [...DEFAULT_CARD_CATEGORIES];
+
+// 启动时从 DB 加载分类，失败则使用默认值
+(async () => {
+  try {
+    const row = await Setting.findByPk('card_categories');
+    if (row && row.setting_value) {
+      const parsed = JSON.parse(row.setting_value);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        _cardCategories = parsed;
+        logger.info(`已从 DB 加载 ${_cardCategories.length} 个密卡分类`);
+      }
+    }
+  } catch (err) {
+    logger.warn('从 DB 加载密卡分类失败，使用默认值:', err.message);
+  }
+})();
+
+// 生成21位随机字母数字组合（卡号/密码）
+const genCardCode = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let s = '';
+  for (let i = 0; i < 21; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+};
 
 const _getCardStatusName = (c) => {
   if (c.status === 1) return '已使用';
@@ -3319,7 +3056,7 @@ const _formatCard = (c) => ({
   useTime: c.use_time || 0,
   useUserId: c.use_user_id || 0,
   expireTime: c.expire_time || 0,
-  createTime: (c.create_time || 0) * 1000,
+  createTime: c.create_time || 0,
   category: c.category || '',
   tag: c.tag || '',
   batchNo: c.batch_no || '',
@@ -3328,7 +3065,7 @@ const _formatCard = (c) => ({
 
 const getCardList = async (req, res) => {
   try {
-    const { page = 1, pageSize = 20, keyword, status, category, batchNo } = req.query;
+    const { page = 1, pageSize = 20, keyword, status, category, categories, batchNo } = req.query;
     const offset = (page - 1) * parseInt(pageSize);
     const limit = parseInt(pageSize);
 
@@ -3354,7 +3091,11 @@ const getCardList = async (req, res) => {
             where.status = st;
           }
         }
-        if (category) where.category = category;
+        if (categories) {
+          where.category = { [require('sequelize').Op.in]: categories.split(',') };
+        } else if (category) {
+          where.category = category;
+        }
         if (batchNo) where.batch_no = batchNo;
         const { rows, count } = await Card.findAndCountAll({ where, offset, limit, order: [['id', 'DESC']] });
         return response.success(res, {
@@ -3376,8 +3117,8 @@ const getCardList = async (req, res) => {
       }
     }
 
-    // Mock 回退
-    let filtered = [..._cards];
+    // Mock 回退：按 id 降序排列（新创建的卡片优先展示）
+    let filtered = [..._cards].sort((a, b) => b.id - a.id);
     if (keyword) filtered = filtered.filter(c => c.card_no.includes(keyword));
     if (status !== undefined && status !== '') {
       const st = parseInt(status);
@@ -3389,7 +3130,12 @@ const getCardList = async (req, res) => {
         filtered = filtered.filter(c => c.status === st);
       }
     }
-    if (category) filtered = filtered.filter(c => (c.category || '') === category);
+    if (categories) {
+      const catArr = categories.split(',');
+      filtered = filtered.filter(c => catArr.includes(c.category || ''));
+    } else if (category) {
+      filtered = filtered.filter(c => (c.category || '') === category);
+    }
     if (batchNo) filtered = filtered.filter(c => (c.batch_no || '') === batchNo);
     const total = filtered.length;
     const list = filtered.slice(offset, offset + limit);
@@ -3411,7 +3157,7 @@ const getCardDetail = async (req, res) => {
       try { record = await Card.findByPk(parseInt(id)); } catch (e) { /* fallback */ }
     }
     if (!record) record = _cards.find(c => c.id === parseInt(id));
-    if (!record) return response.error(res, '密卡不存在');
+    if (!record) return response.success(res, null,  '密卡不存在 ');
     response.success(res, {
       id: record.id, cardNo: record.card_no,
       cardPwd: record.card_pwd || '',
@@ -3443,15 +3189,16 @@ const createCard = async (req, res) => {
     const batchNoVal = 'BATCH' + Date.now() + Math.random().toString(36).slice(2, 6).toUpperCase();
     const categoryVal = req.body.category || '';
     const tagVal = req.body.tag || '';
+    const remarkVal = req.body.remark || '';
 
     for (let i = 0; i < Math.min(count, 1000); i++) {
-      const no = cardNo || ('CARD' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + String(_cardNextId + i).padStart(5, '0'));
-      const pwd = cardPwd || Math.random().toString(36).slice(2, 10);
+      const no = cardNo || genCardCode();
+      const pwd = cardPwd || genCardCode();
 
       if (Card) {
         try {
           const card = await Card.create({
-            card_no: no + (count > 1 ? '_' + (i + 1) : ''),
+            card_no: no,
             card_pwd: pwd,
             face_value: faceValue,
             coin_amount: coinAmount,
@@ -3460,21 +3207,23 @@ const createCard = async (req, res) => {
             create_time: now,
             category: categoryVal,
             tag: tagVal,
-            batch_no: batchNoVal
+            batch_no: batchNoVal,
+            remark: remarkVal
           });
           created.push(_formatCard(card));
         } catch (dbErr) {
-          const mockCard = { id: _cardNextId + created.length, card_no: no, card_pwd: pwd, face_value: faceValue, coin_amount: coinAmount, status: 0, use_time: 0, use_user_id: 0, expire_time: expireTime, create_time: now, category: categoryVal, tag: tagVal, batch_no: batchNoVal, remark: '' };
+          const mockCard = { id: _cardNextId + created.length, card_no: no, card_pwd: pwd, face_value: faceValue, coin_amount: coinAmount, status: 0, use_time: 0, use_user_id: 0, expire_time: expireTime, create_time: now, category: categoryVal, tag: tagVal, batch_no: batchNoVal, remark: remarkVal };
           _cards.push(mockCard);
           created.push(_formatCard(mockCard));
         }
       } else {
-        const mockCard = { id: _cardNextId + created.length, card_no: no, card_pwd: pwd, face_value: faceValue, coin_amount: coinAmount, status: 0, use_time: 0, use_user_id: 0, expire_time: expireTime, create_time: now, category: categoryVal, tag: tagVal, batch_no: batchNoVal, remark: '' };
+        const mockCard = { id: _cardNextId + created.length, card_no: no, card_pwd: pwd, face_value: faceValue, coin_amount: coinAmount, status: 0, use_time: 0, use_user_id: 0, expire_time: expireTime, create_time: now, category: categoryVal, tag: tagVal, batch_no: batchNoVal, remark: remarkVal };
         _cards.push(mockCard);
         created.push(_formatCard(mockCard));
       }
     }
 
+    if (!Card) _cardNextId += created.length;
     response.success(res, { cards: created, count: created.length }, `成功生成 ${created.length} 张密卡`);
   } catch (error) {
     logger.error('创建密卡错误:', error.message);
@@ -3488,23 +3237,33 @@ const deleteCard = async (req, res) => {
     if (Card) {
       try {
         const card = await Card.findByPk(parseInt(id));
-        if (card && card.status === 0) {
+        if (card) {
           await card.destroy();
           return response.success(res, {}, '密卡删除成功');
-        } else if (card) {
-          return response.error(res, '只能删除未使用的密卡');
         }
       } catch (e) { /* fallback */ }
     }
     const idx = _cards.findIndex(c => c.id === parseInt(id));
-    if (idx === -1) return response.error(res, '密卡不存在');
-    if (_cards[idx].status !== 0) return response.error(res, '只能删除未使用的密卡');
+    if (idx === -1) return response.success(res, null,  '密卡不存在 ');
     _cards.splice(idx, 1);
     response.success(res, {}, '密卡删除成功');
   } catch (error) {
     logger.error('删除密卡错误:', error.message);
     response.error(res, '操作失败');
   }
+};
+
+// 按面值清空密卡
+const clearAllCards = async (req, res) => {
+  const { faceValues } = req.body;
+  if (!Array.isArray(faceValues) || faceValues.length === 0) {
+    return response.success(res, null, '请指定要清空的面值');
+  }
+  const before = _cards.length;
+  _cards = _cards.filter(c => !faceValues.includes(c.face_value));
+  const after = _cards.length;
+  const count = before - after;
+  response.success(res, { deletedCount: count }, `成功清空 ${count} 张密卡`);
 };
 
 // 更新密卡信息
@@ -3515,7 +3274,7 @@ const updateCard = async (req, res) => {
     if (Card) {
       try {
         const card = await Card.findByPk(parseInt(id));
-        if (!card) return response.error(res, '密卡不存在');
+        if (!card) return response.success(res, null,  '密卡不存在 ');
         const updateData = {};
         if (cardPwd !== undefined) updateData.card_pwd = cardPwd;
         if (faceValue !== undefined) updateData.face_value = faceValue;
@@ -3529,7 +3288,7 @@ const updateCard = async (req, res) => {
       } catch (e) { /* fallback */ }
     }
     const idx = _cards.findIndex(c => c.id === parseInt(id));
-    if (idx === -1) return response.error(res, '密卡不存在');
+    if (idx === -1) return response.success(res, null,  '密卡不存在 ');
     if (cardPwd !== undefined) _cards[idx].card_pwd = cardPwd;
     if (faceValue !== undefined) _cards[idx].face_value = faceValue;
     if (coinAmount !== undefined) _cards[idx].coin_amount = coinAmount;
@@ -3553,14 +3312,14 @@ const updateCardStatus = async (req, res) => {
     if (Card) {
       try {
         const card = await Card.findByPk(parseInt(id));
-        if (!card) return response.error(res, '密卡不存在');
+        if (!card) return response.success(res, null,  '密卡不存在 ');
         if (card.status === 1) return response.error(res, '已使用的密卡无法修改状态');
         await card.update({ status });
         return response.success(res, {}, status === 3 ? '密卡已禁用' : '密卡已启用');
       } catch (e) { /* fallback */ }
     }
     const idx = _cards.findIndex(c => c.id === parseInt(id));
-    if (idx === -1) return response.error(res, '密卡不存在');
+    if (idx === -1) return response.success(res, null,  '密卡不存在 ');
     if (_cards[idx].status === 1) return response.error(res, '已使用的密卡无法修改状态');
     _cards[idx].status = status;
     response.success(res, {}, status === 3 ? '密卡已禁用' : '密卡已启用');
@@ -3610,14 +3369,14 @@ const batchDeleteCards = async (req, res) => {
     let successCount = 0;
     if (Card) {
       try {
-        const destroyed = await Card.destroy({ where: { id: ids, status: 0 } });
+        const destroyed = await Card.destroy({ where: { id: ids } });
         successCount = destroyed;
       } catch (e) { /* fallback */ }
     }
     // Mock fallback
     for (const id of ids) {
       const idx = _cards.findIndex(c => c.id === parseInt(id));
-      if (idx !== -1 && _cards[idx].status === 0) {
+      if (idx !== -1) {
         _cards.splice(idx, 1);
         successCount++;
       }
@@ -3625,6 +3384,40 @@ const batchDeleteCards = async (req, res) => {
     response.success(res, { count: successCount }, `成功删除 ${successCount} 张密卡`);
   } catch (error) {
     logger.error('批量删除密卡错误:', error.message);
+    response.error(res, '操作失败');
+  }
+};
+
+// 批量更新密卡标签（用于记录导出时间到标签字段）
+const batchUpdateCardTag = async (req, res) => {
+  try {
+    const { ids, tag } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) return response.badRequest(res, '请选择密卡');
+    if (!tag) return response.badRequest(res, '请提供标签内容');
+    let successCount = 0;
+    if (Card) {
+      try {
+        // 逐个更新标签（覆盖写入，用于记录导出时间）
+        for (const id of ids) {
+          const card = await Card.findByPk(parseInt(id));
+          if (card) {
+            await card.update({ tag });
+            successCount++;
+          }
+        }
+      } catch (e) { /* fallback to mock */ }
+    }
+    // Mock fallback
+    for (const id of ids) {
+      const idx = _cards.findIndex(c => c.id === parseInt(id));
+      if (idx !== -1) {
+        _cards[idx].tag = tag;
+        successCount++;
+      }
+    }
+    response.success(res, { count: successCount }, `成功更新 ${successCount} 张密卡备注`);
+  } catch (error) {
+    logger.error('批量更新密卡备注错误:', error.message);
     response.error(res, '操作失败');
   }
 };
@@ -3703,10 +3496,60 @@ const getCardStats = async (req, res) => {
   }
 };
 
+// 导出日志存储（内存）
+const _exportLogs = [];
+
+// 记录密卡导出日志
+const recordExport = async (req, res) => {
+  try {
+    const { count, category, scope } = req.body;
+    const entry = {
+      id: _exportLogs.length + 1,
+      time: Math.floor(Date.now() / 1000),
+      count: count || 0,
+      category: category || '全部',
+      scope: scope || '全部',
+      operator: req.user?.username || 'admin'
+    };
+    _exportLogs.unshift(entry);
+    // 最多保留 200 条
+    if (_exportLogs.length > 200) _exportLogs.length = 200;
+    response.success(res, entry, '导出记录已保存');
+  } catch (error) {
+    logger.error('记录导出日志错误:', error.message);
+    response.error(res, '操作失败');
+  }
+};
+
+// 获取导出日志列表
+const getExportLogs = async (req, res) => {
+  try {
+    const { page = 1, pageSize = 50 } = req.query;
+    const offset = (page - 1) * parseInt(pageSize);
+    const limit = parseInt(pageSize);
+    const list = _exportLogs.slice(offset, offset + limit);
+    response.success(res, {
+      list: list.map(e => ({
+        ...e,
+        timeLabel: e.time ? new Date(e.time * 1000).toLocaleString('zh-CN') : ''
+      })),
+      pagination: {
+        page: parseInt(page),
+        pageSize: limit,
+        total: _exportLogs.length,
+        totalPages: Math.ceil(_exportLogs.length / limit)
+      }
+    });
+  } catch (error) {
+    logger.error('获取导出日志错误:', error.message);
+    response.error(res, '操作失败');
+  }
+};
+
 // 批量导入密卡
 const importCards = async (req, res) => {
   try {
-    const { cards } = req.body; // [{ cardNo, cardPwd, faceValue, coinAmount, expireDays, category, tag }]
+    const { cards } = req.body; // [{ cardNo, cardPwd, faceValue, coinAmount, expireDays, category, tag, remark }]
     if (!Array.isArray(cards) || cards.length === 0) return response.badRequest(res, '请提供密卡数据');
     if (cards.length > 5000) return response.badRequest(res, '单次最多导入5000张');
     const now = Math.floor(Date.now() / 1000);
@@ -3715,13 +3558,14 @@ const importCards = async (req, res) => {
 
     for (const item of cards) {
       try {
-        const no = item.cardNo || ('CARD' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + String(_cardNextId + successCount).padStart(5, '0'));
+        const no = item.cardNo || genCardCode();
         const expireDays = item.expireDays || 365;
+        const remarkVal = item.remark || '';
         if (Card) {
           try {
             await Card.create({
               card_no: no,
-              card_pwd: item.cardPwd || Math.random().toString(36).slice(2, 10),
+              card_pwd: item.cardPwd || genCardCode(),
               face_value: item.faceValue || 100,
               coin_amount: item.coinAmount || 100,
               status: 0,
@@ -3729,7 +3573,8 @@ const importCards = async (req, res) => {
               create_time: now,
               category: item.category || '',
               tag: item.tag || '',
-              batch_no: batchNo
+              batch_no: batchNo,
+              remark: remarkVal
             });
             successCount++;
           } catch (dbErr) {
@@ -3738,11 +3583,12 @@ const importCards = async (req, res) => {
         } else {
           _cards.push({
             id: _cardNextId + successCount,
-            card_no: no, card_pwd: item.cardPwd || Math.random().toString(36).slice(2, 10),
+            card_no: no, card_pwd: item.cardPwd || genCardCode(),
             face_value: item.faceValue || 100, coin_amount: item.coinAmount || 100,
             status: 0, use_time: 0, use_user_id: 0,
             expire_time: expireDays > 0 ? now + expireDays * 86400 : 0, create_time: now,
-            category: item.category || '', tag: item.tag || '', batch_no: batchNo
+            category: item.category || '', tag: item.tag || '', batch_no: batchNo,
+            remark: remarkVal
           });
           successCount++;
         }
@@ -3851,9 +3697,13 @@ module.exports = {
   updateCardStatus,
   batchUpdateCardStatus,
   batchDeleteCards,
+  batchUpdateCardTag,
   getCardStats,
+  recordExport,
+  getExportLogs,
   importCards,
   deleteCard,
+  clearAllCards,
   // 客服管理
   getCustomerServiceList,
   createCustomerService,

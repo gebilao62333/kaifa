@@ -90,6 +90,11 @@
             <span class="vip-badge" v-if="!userInfo.vip">开通</span>
             <span class="menu-arrow">›</span>
           </div>
+          <div class="menu-item" @click="goNotifications">
+            <span class="menu-icon">🔔</span>
+            <span class="menu-text">消息通知</span>
+            <span class="menu-arrow">›</span>
+          </div>
           <div class="menu-item" @click="goSettings">
             <span class="menu-icon">⚙️</span>
             <span class="menu-text">设置</span>
@@ -356,6 +361,10 @@ const goVip = () => {
   router.push('/vip-center')
 }
 
+const goNotifications = () => {
+  router.push('/notification-list')
+}
+
 const goSettings = () => {
   router.push('/settings')
 }
@@ -415,14 +424,17 @@ const generateShareLink = async () => {
   shareQRCode.value = ''
   try {
     const data = await shareService.generateQRCode(shareLink.value, 200)
-    shareQRCode.value = data.data?.base64 || ''
-  } catch (error) {
-    console.error('生成二维码失败:', error)
-    const result = generateQRCode(shareLink.value, { width: 200 })
-    shareQRCode.value = result.base64
-  } finally {
-    isGeneratingQR.value = false
+    if (data?.data?.base64) {
+      shareQRCode.value = data.data.base64
+      isGeneratingQR.value = false
+      return
+    }
+  } catch (_) {
+    // 后端不可用时使用本地生成
   }
+  const result = generateQRCode(shareLink.value, { width: 200 })
+  shareQRCode.value = result.base64
+  isGeneratingQR.value = false
 }
 
 const copyInviteCode = async () => {
@@ -519,7 +531,7 @@ onMounted(() => {
   min-height: 100vh;
   min-height: -webkit-fill-available;
   background-color: var(--bg-secondary);
-  padding-top: 80px;
+  padding-top: 70px;
   padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   -webkit-overflow-scrolling: touch;
   overflow-x: hidden;
@@ -541,7 +553,7 @@ onMounted(() => {
 .header {
   background: var(--gradient-primary);
   padding: 0 20px;
-  height: 80px;
+  height: 70px;
   display: flex;
   align-items: center;
   position: fixed;
@@ -566,8 +578,8 @@ onMounted(() => {
 }
 
 .avatar-frame {
-  width: 80px;
-  height: 80px;
+  width: 60px;
+  height: 60px;
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -578,8 +590,8 @@ onMounted(() => {
 }
 
 .avatar-frame .avatar {
-  width: 74px;
-  height: 74px;
+  width: 56px;
+  height: 56px;
   border-radius: 8px;
   margin-right: 0;
   border: none;
@@ -709,50 +721,7 @@ onMounted(() => {
   background-color: var(--border-light);
 }
 
-.wallet-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin: 10px 0px;
-  padding: 10px 0px;
-  background: var(--gradient-primary);
-  border-radius: 10px;
-  box-shadow: var(--shadow-medium);
-  cursor: pointer;
-  height: 70px;
-}
 
-.wallet-icon {
-  font-size: 40px;
-}
-
-.wallet-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.wallet-label {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.wallet-balance {
-  font-size: 28px;
-  font-weight: bold;
-  color: #fff;
-}
-
-.wallet-unit {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.wallet-arrow {
-  font-size: 24px;
-  color: rgba(255, 255, 255, 0.5);
-}
 
 .menu-section {
   padding: 0 16px;
@@ -953,13 +922,13 @@ onMounted(() => {
   }
   
   .avatar-frame {
-    width: 72px;
-    height: 72px;
+    width: 56px;
+    height: 56px;
   }
   
   .avatar-frame .avatar {
-    width: 66px;
-    height: 66px;
+    width: 52px;
+    height: 52px;
   }
   
   .nickname {
@@ -984,18 +953,6 @@ onMounted(() => {
   
   .stat-label {
     font-size: 12px;
-  }
-  
-  .wallet-card {
-    margin: 0;
-    padding: 16px 20px;
-    margin-top: 16px;
-    height: auto;
-    min-height: 70px;
-  }
-  
-  .wallet-balance {
-    font-size: 24px;
   }
   
   .menu-section {

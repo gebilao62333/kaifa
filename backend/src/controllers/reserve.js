@@ -166,6 +166,37 @@ const completeReserve = async (req, res) => {
   }
 };
 
+const getReserveDetail = async (req, res) => {
+  try {
+    const { reserveId } = req.query;
+
+    if (!reserveId) {
+      return response.badRequest(res, '预约ID不能为空');
+    }
+
+    const { Reserve } = require('../models');
+    const reserve = await Reserve.findByPk(parseInt(reserveId));
+    if (!reserve) {
+      return response.badRequest(res, '预约不存在');
+    }
+
+    response.success(res, {
+      id: reserve.id,
+      userId: reserve.user_id,
+      companionId: reserve.companion_id,
+      gameId: reserve.game_id,
+      date: reserve.date,
+      time: reserve.time,
+      status: reserve.status,
+      remark: reserve.remark || '',
+      createTime: reserve.create_time
+    });
+  } catch (error) {
+    logger.error('获取预约详情错误:', error);
+    response.unprocessableEntity(res, '参数验证失败');
+  }
+};
+
 module.exports = {
   getSlots,
   batchCreateSlots,
@@ -175,5 +206,6 @@ module.exports = {
   rejectReserve,
   cancelReserve,
   completeReserve,
-  getReserveList
+  getReserveList,
+  getReserveDetail
 };
