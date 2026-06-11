@@ -2,8 +2,10 @@ const express = require('express');
 const router = express.Router();
 const response = require('../utils/response');
 const logger = require('../utils/logger');
+const { Banner } = require('../models');
 
-const mockBanners = [
+// 兜底 mock 数据（仅在数据库不可用时使用）
+const fallbackBanners = [
   {
     id: 1,
     title: '新用户专享',
@@ -36,16 +38,42 @@ const mockBanners = [
   }
 ];
 
-router.get('/list', (req, res) => {
+// 获取 Banner 列表
+router.get('/list', async (req, res) => {
   try {
     const { position, status } = req.query;
     
-    let filteredBanners = [...mockBanners];
+    // 优先从数据库获取
+    try {
+      const where = {};
+      if (position) where.position = position;
+      if (status !== undefined && status !== '') where.status = parseInt(status);
+      
+      const banners = await Banner.findAll({
+        where,
+        order: [['sort', 'ASC'], ['id', 'DESC']]
+      });
+      
+      if (banners && banners.length > 0) {
+        return response.success(res, {
+          list: banners,
+          pagination: {
+            page: 1,
+            pageSize: 20,
+            total: banners.length,
+            totalPages: 1
+          }
+        });
+      }
+    } catch (dbError) {
+      logger.warn('Banner数据库查询失败，使用Mock:', dbError.message);
+    }
     
+    // Mock fallback
+    let filteredBanners = [...fallbackBanners];
     if (position) {
       filteredBanners = filteredBanners.filter(b => b.position === position);
     }
-    
     if (status !== undefined && status !== '') {
       filteredBanners = filteredBanners.filter(b => b.status === parseInt(status));
     }
@@ -65,15 +93,24 @@ router.get('/list', (req, res) => {
   }
 });
 
-router.get('/:id', (req, res) => {
+// 获取单个 Banner
+router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const banner = mockBanners.find(b => b.id === parseInt(id));
     
+    try {
+      const banner = await Banner.findByPk(parseInt(id));
+      if (banner) {
+        return response.success(res, banner);
+      }
+    } catch (dbError) {
+      logger.warn('Banner详情数据库查询失败:', dbError.message);
+    }
+    
+    const banner = fallbackBanners.find(b => b.id === parseInt(id));
     if (!banner) {
       return response.notFound(res, 'Banner不存在');
     }
-    
     response.success(res, banner);
   } catch (error) {
     logger.error('获取Banner详情失败:', error);
@@ -81,12 +118,28 @@ router.get('/:id', (req, res) => {
   }
 });
 
-router.post('/', (req, res) => {
+// 创建 Banner
+router.post('/', async (req, res) => {
   try {
     const { title, image, link, position, sort, status } = req.body;
     
+    try {
+      const newBanner = await Banner.create({
+        title,
+        image,
+        link,
+        position: position || 'home',
+        sort: sort || 0,
+        status: status !== undefined ? status : 1
+      });
+      return response.created(res, newBanner, '创建成功');
+    } catch (dbError) {
+      logger.warn('Banner数据库创建失败:', dbError.message);
+    }
+    
+    // Mock fallback
     const newBanner = {
-      id: mockBanners.length + 1,
+      id: fallbackBanners.length + 1,
       title,
       image,
       link,
@@ -95,9 +148,7 @@ router.post('/', (req, res) => {
       status: status !== undefined ? status : 1,
       create_time: new Date().toISOString().replace('T', ' ').substring(0, 19)
     };
-    
-    mockBanners.push(newBanner);
-    
+    fallbackBanners.push(newBanner);
     response.created(res, newBanner, '创建成功');
   } catch (error) {
     logger.error('创建Banner失败:', error);
@@ -105,24 +156,40 @@ router.post('/', (req, res) => {
   }
 });
 
-router.put('/:id', (req, res) => {
+// 更新 Banner
+router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { title, image, link, position, sort, status } = req.body;
     
-    const banner = mockBanners.find(b => b.id === parseInt(id));
+    try {
+      const updateData = {};
+      if (title !== undefined) updateData.title = title;
+      if (image !== undefined) updateData.image = image;
+      if (link !== undefined) updateData.link = link;
+      if (position !== undefined) updateData.position = position;
+      if (sort !== undefined) updateData.sort = sort;
+      if (status !== undefined) updateData.status = status;
+      
+      const result = await Banner.update(updateData, { where: { id: parseInt(id) } });
+      if (result[0] > 0) {
+        const updated = await Banner.findByPk(parseInt(id));
+        return response.success(res, updated, '更新成功');
+      }
+    } catch (dbError) {
+      logger.warn('Banner数据库更新失败:', dbError.message);
+    }
     
+    const banner = fallbackBanners.find(b => b.id === parseInt(id));
     if (!banner) {
       return response.notFound(res, 'Banner不存在');
     }
-    
     if (title !== undefined) banner.title = title;
     if (image !== undefined) banner.image = image;
     if (link !== undefined) banner.link = link;
     if (position !== undefined) banner.position = position;
     if (sort !== undefined) banner.sort = sort;
     if (status !== undefined) banner.status = status;
-    
     response.success(res, banner, '更新成功');
   } catch (error) {
     logger.error('更新Banner失败:', error);
@@ -130,17 +197,25 @@ router.put('/:id', (req, res) => {
   }
 });
 
-router.delete('/:id', (req, res) => {
+// 删除 Banner
+router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const index = mockBanners.findIndex(b => b.id === parseInt(id));
     
+    try {
+      const result = await Banner.destroy({ where: { id: parseInt(id) } });
+      if (result > 0) {
+        return response.success(res, {}, '删除成功');
+      }
+    } catch (dbError) {
+      logger.warn('Banner数据库删除失败:', dbError.message);
+    }
+    
+    const index = fallbackBanners.findIndex(b => b.id === parseInt(id));
     if (index === -1) {
       return response.notFound(res, 'Banner不存在');
     }
-    
-    mockBanners.splice(index, 1);
-    
+    fallbackBanners.splice(index, 1);
     response.success(res, {}, '删除成功');
   } catch (error) {
     logger.error('删除Banner失败:', error);
@@ -148,19 +223,27 @@ router.delete('/:id', (req, res) => {
   }
 });
 
-router.put('/:id/status', (req, res) => {
+// 更新 Banner 状态
+router.put('/:id/status', async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
     
-    const banner = mockBanners.find(b => b.id === parseInt(id));
+    try {
+      const result = await Banner.update({ status }, { where: { id: parseInt(id) } });
+      if (result[0] > 0) {
+        const updated = await Banner.findByPk(parseInt(id));
+        return response.success(res, updated, '状态更新成功');
+      }
+    } catch (dbError) {
+      logger.warn('Banner状态数据库更新失败:', dbError.message);
+    }
     
+    const banner = fallbackBanners.find(b => b.id === parseInt(id));
     if (!banner) {
       return response.notFound(res, 'Banner不存在');
     }
-    
     banner.status = status;
-    
     response.success(res, banner, '状态更新成功');
   } catch (error) {
     logger.error('更新Banner状态失败:', error);

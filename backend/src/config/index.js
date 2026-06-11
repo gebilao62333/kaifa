@@ -7,7 +7,8 @@ module.exports = {
   nodeEnv: process.env.NODE_ENV || 'development',
   
   jwt: {
-    secret: process.env.JWT_SECRET || 'default-secret-key',
+    // 生产环境必须设置 JWT_SECRET 环境变量，否则启动时会警告
+    secret: process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? '' : 'dev-secret-key-do-not-use-in-production'),
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
     refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d'
   },
@@ -114,11 +115,11 @@ module.exports = {
   // 大模型/AI 配置（支持 OpenAI 兼容接口）
   llm: {
     enabled: process.env.LLM_ENABLED === 'true' || false,
-    provider: process.env.LLM_PROVIDER || 'openai',
+    provider: process.env.LLM_PROVIDER || 'deepseek',
     apiKey: process.env.LLM_API_KEY || '',
-    apiEndpoint: process.env.LLM_API_ENDPOINT || 'https://api.openai.com/v1',
-    model: process.env.LLM_MODEL || 'gpt-3.5-turbo',
-    maxTokens: parseInt(process.env.LLM_MAX_TOKENS) || 1024,
+    apiEndpoint: process.env.LLM_API_ENDPOINT || 'https://api.deepseek.com/v1',
+    model: process.env.LLM_MODEL || 'deepseek-v4-flash',
+    maxTokens: parseInt(process.env.LLM_MAX_TOKENS) || 8192,
     temperature: parseFloat(process.env.LLM_TEMPERATURE) || 0.7,
     systemPrompt: process.env.LLM_SYSTEM_PROMPT || '你是一个友好、专业的陪玩助手，帮助用户解答问题、提供陪伴和娱乐服务。请用热情亲切的语气回复。'
   },

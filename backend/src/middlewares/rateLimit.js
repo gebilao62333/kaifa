@@ -1,7 +1,8 @@
 const rateLimit = require('express-rate-limit');
 const config = require('../config');
 
-const skipInDev = (req, res) => config.nodeEnv === 'development';
+// 仅在 development + mock 模式下跳过限流，生产环境或使用真实数据库时启用
+const skipInDevMock = (req, res) => config.nodeEnv === 'development' && config.useMockDb === true;
 
 const apiLimiter = rateLimit({
   windowMs: config.rateLimit.windowMs,
@@ -12,7 +13,7 @@ const apiLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  skip: skipInDev
+  skip: skipInDevMock
 });
 
 const loginLimiter = rateLimit({
@@ -22,7 +23,7 @@ const loginLimiter = rateLimit({
     code: 429,
     message: '登录尝试次数过多，请15分钟后再试'
   },
-  skip: skipInDev
+  skip: skipInDevMock
 });
 
 const smsLimiter = rateLimit({
@@ -32,7 +33,7 @@ const smsLimiter = rateLimit({
     code: 429,
     message: '验证码发送过于频繁，请60秒后再试'
   },
-  skip: skipInDev
+  skip: skipInDevMock
 });
 
 const uploadLimiter = rateLimit({
@@ -42,7 +43,7 @@ const uploadLimiter = rateLimit({
     code: 429,
     message: '上传过于频繁，请稍后再试'
   },
-  skip: skipInDev
+  skip: skipInDevMock
 });
 
 module.exports = {

@@ -3,7 +3,8 @@ const config = require('./index');
 
 const generateToken = (payload, type = 'access') => {
   const expiresIn = type === 'access' ? config.jwt.expiresIn : config.jwt.refreshExpiresIn;
-  return jwt.sign(payload, config.jwt.secret, { expiresIn });
+  const tokenPayload = { ...payload, tokenType: type };
+  return jwt.sign(tokenPayload, config.jwt.secret, { expiresIn });
 };
 
 const generateTokenPair = (payload) => {
@@ -19,8 +20,10 @@ const generateTokenPair = (payload) => {
 
 const verifyToken = (token) => {
   try {
-    return jwt.verify(token, config.jwt.secret);
+    const decoded = jwt.verify(token, config.jwt.secret);
+    return decoded;
   } catch (error) {
+    // 返回 null 而非抛出异常，但保留错误类型用于调试
     return null;
   }
 };
@@ -31,7 +34,12 @@ const refreshAccessToken = (refreshToken) => {
     throw new Error('无效的refresh token');
   }
   
-  const { userId, exp, iat, ...payload } = decoded;
+  // 验证 token 类型：只接受 refresh token 来刷新
+  if (decoded.tokenType && decoded.tokenType !== 'refresh') {
+    throw new Error('只能使用refresh token来刷新');
+  }
+  
+  const { userId } = decoded;
   const newAccessToken = generateToken({ userId }, 'access');
   const newRefreshToken = generateToken({ userId }, 'refresh');
   

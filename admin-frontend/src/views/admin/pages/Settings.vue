@@ -390,7 +390,7 @@
             <thead><tr><th>提供商</th><th>API地址</th><th>推荐模型</th></tr></thead>
             <tbody>
               <tr><td>OpenAI</td><td>https://api.openai.com/v1</td><td>gpt-4o-mini / gpt-3.5-turbo</td></tr>
-              <tr><td>DeepSeek</td><td>https://api.deepseek.com/v1</td><td>deepseek-chat</td></tr>
+              <tr><td>DeepSeek</td><td>https://api.deepseek.com/v1</td><td>deepseek-v4-pro / deepseek-v4-flash</td></tr>
               <tr><td>Moonshot</td><td>https://api.moonshot.cn/v1</td><td>moonshot-v1-8k</td></tr>
               <tr><td>智谱GLM</td><td>https://open.bigmodel.cn/api/paas/v4</td><td>glm-4-flash</td></tr>
               <tr><td>通义千问</td><td>https://dashscope.aliyuncs.com/compatible-mode/v1</td><td>qwen-turbo</td></tr>
@@ -480,11 +480,11 @@ const defaults = {
   alipayPublicKey: '',
   // 大模型AI
   llmEnabled: false,
-  llmProvider: 'openai',
+  llmProvider: 'deepseek',
   llmApiKey: '',
-  llmApiEndpoint: 'https://api.openai.com/v1',
-  llmModel: 'gpt-3.5-turbo',
-  llmMaxTokens: 1024,
+  llmApiEndpoint: 'https://api.deepseek.com/v1',
+  llmModel: 'deepseek-v4-flash',
+  llmMaxTokens: 8192,
   llmTemperature: 0.7,
   llmSystemPrompt: '你是一个友好、专业的陪玩助手，帮助用户解答问题、提供陪伴和娱乐服务。请用热情亲切的语气回复。',
 }

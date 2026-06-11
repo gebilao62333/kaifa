@@ -36,7 +36,6 @@ const adminLogin = async (req, res) => {
     }
   } catch (error) {
     logger.error('管理员登录错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -161,7 +160,6 @@ const getUserDetail = async (req, res) => {
     });
   } catch (error) {
     logger.error('获取用户详情错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -207,7 +205,6 @@ const updateUser = async (req, res) => {
     response.success(res, {}, '更新成功');
   } catch (error) {
     logger.error('更新用户信息错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -229,7 +226,6 @@ const updateUserStatus = async (req, res) => {
     response.success(res, { status: newStatus }, '状态更新成功');
   } catch (error) {
     logger.error('更新用户状态错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -248,7 +244,6 @@ const deleteUser = async (req, res) => {
     response.success(res, null, '删除成功');
   } catch (error) {
     logger.error('删除用户错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -293,7 +288,6 @@ const createUser = async (req, res) => {
     }, '用户创建成功');
   } catch (error) {
     logger.error('创建用户错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -417,7 +411,6 @@ const getOrderDetail = async (req, res) => {
     });
   } catch (error) {
     logger.error('获取订单详情错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -445,7 +438,6 @@ const updateOrderStatus = async (req, res) => {
     response.success(res, { status: order.status }, '状态更新成功');
   } catch (error) {
     logger.error('更新订单状态错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -483,7 +475,6 @@ const createOrder = async (req, res) => {
     }, '订单创建成功');
   } catch (error) {
     logger.error('创建订单错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -501,7 +492,6 @@ const deleteOrder = async (req, res) => {
     response.success(res, {}, '订单删除成功');
   } catch (error) {
     logger.error('删除订单错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -579,7 +569,6 @@ const approveWithdraw = async (req, res) => {
     response.success(res, { status: 'approved' }, '审核通过');
   } catch (error) {
     logger.error('审核提现错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -607,7 +596,6 @@ const rejectWithdraw = async (req, res) => {
     response.success(res, { status: 'rejected' }, '已拒绝');
   } catch (error) {
     logger.error('拒绝提现错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -634,7 +622,6 @@ const getWithdrawDetail = async (req, res) => {
     });
   } catch (error) {
     logger.error('获取提现详情错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -661,7 +648,6 @@ const createWithdraw = async (req, res) => {
     }, '提现记录创建成功');
   } catch (error) {
     logger.error('创建提现记录错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -679,7 +665,6 @@ const deleteWithdraw = async (req, res) => {
     response.success(res, {}, '提现记录删除成功');
   } catch (error) {
     logger.error('删除提现记录错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -822,7 +807,6 @@ const getPostDetail = async (req, res) => {
     });
   } catch (error) {
     logger.error('获取帖子详情错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -1480,7 +1464,6 @@ const getGiftLogDetail = async (req, res) => {
     });
   } catch (error) {
     logger.error('获取礼物记录详情错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -1800,11 +1783,11 @@ const getSystemSettings = async (req, res) => {
       alipayPublicKey: config.alipay.publicKey ? '****' : '',
       // 大模型/AI 配置
       llmEnabled: config.llm?.enabled || false,
-      llmProvider: config.llm?.provider || 'openai',
+      llmProvider: config.llm?.provider || 'deepseek',
       llmApiKey: config.llm?.apiKey ? '****' + (config.llm.apiKey.slice(-4)) : '',
-      llmApiEndpoint: config.llm?.apiEndpoint || 'https://api.openai.com/v1',
-      llmModel: config.llm?.model || 'gpt-3.5-turbo',
-      llmMaxTokens: config.llm?.maxTokens || 1024,
+      llmApiEndpoint: config.llm?.apiEndpoint || 'https://api.deepseek.com/v1',
+      llmModel: config.llm?.model || 'deepseek-v4-flash',
+      llmMaxTokens: config.llm?.maxTokens || 8192,
       llmTemperature: config.llm?.temperature || 0.7,
       llmSystemPrompt: config.llm?.systemPrompt || '你是一个友好、专业的陪玩助手，帮助用户解答问题、提供陪伴和娱乐服务。请用热情亲切的语气回复。',
       // 密卡分类管理
@@ -1813,7 +1796,6 @@ const getSystemSettings = async (req, res) => {
     response.success(res, settings);
   } catch (error) {
     logger.error('获取系统设置错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -1892,7 +1874,6 @@ const updateSystemSettings = async (req, res) => {
     response.success(res, settings, '系统设置保存成功');
   } catch (error) {
     logger.error('更新系统设置错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -2030,7 +2011,6 @@ const getVirtualUserList = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error(`获取虚拟用户列表失败: ${error.message}`);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -2042,7 +2022,6 @@ const getVirtualUserDetail = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error(`获取虚拟用户详情失败: ${error.message}`);
-    logger.error('资源不存在:', error);
     logger.error('资源不存在:', error);
     response.notFound(res, '资源不存在');
   }
@@ -2079,7 +2058,6 @@ const deleteVirtualUser = async (req, res) => {
   } catch (error) {
     logger.error(`删除虚拟用户失败: ${error.message}`);
     logger.error('资源不存在:', error);
-    logger.error('资源不存在:', error);
     response.notFound(res, '资源不存在');
   }
 };
@@ -2092,7 +2070,6 @@ const toggleVirtualUserStatus = async (req, res) => {
     response.success(res, result, `虚拟用户已${status === 1 ? '启用' : '禁用'}`);
   } catch (error) {
     logger.error(`更新虚拟用户状态失败: ${error.message}`);
-    logger.error('资源不存在:', error);
     logger.error('资源不存在:', error);
     response.notFound(res, '资源不存在');
   }
@@ -2128,7 +2105,6 @@ const getVirtualUserChatHistory = async (req, res) => {
     });
   } catch (error) {
     logger.error(`获取虚拟用户聊天记录失败: ${error.message}`);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -2168,7 +2144,6 @@ const getGiftList = async (req, res) => {
     });
   } catch (error) {
     logger.error(`获取礼物列表失败: ${error.message}`);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -2185,7 +2160,6 @@ const getGiftDetail = async (req, res) => {
     response.success(res, gift);
   } catch (error) {
     logger.error(`获取礼物详情失败: ${error.message}`);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -2263,7 +2237,6 @@ const deleteGift = async (req, res) => {
     response.success(res, {}, '礼物删除成功');
   } catch (error) {
     logger.error(`删除礼物失败: ${error.message}`);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -2353,7 +2326,6 @@ const getCompanionApplicationDetail = async (req, res) => {
     });
   } catch (error) {
     logger.error('获取服务申请详情错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -2372,7 +2344,6 @@ const approveCompanionApplication = async (req, res) => {
     response.success(res, {}, '审核通过成功');
   } catch (error) {
     logger.error('审核通过错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -2391,7 +2362,6 @@ const rejectCompanionApplication = async (req, res) => {
     response.success(res, {}, '审核拒绝成功');
   } catch (error) {
     logger.error('审核拒绝错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -2410,7 +2380,6 @@ const deleteCompanionApplication = async (req, res) => {
     response.success(res, {}, '删除成功');
   } catch (error) {
     logger.error('删除服务申请错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -2773,7 +2742,6 @@ const updateCustomerService = async (req, res) => {
     response.success(res, {}, '更新成功');
   } catch (error) {
     logger.error('更新客服错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };

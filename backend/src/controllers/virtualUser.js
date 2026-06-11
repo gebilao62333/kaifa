@@ -39,8 +39,7 @@ const createVirtualUser = async (req, res) => {
     response.created(res, result, '虚拟用户创建成功');
   } catch (error) {
     logger.error(`创建虚拟用户失败: ${error.message}`);
-    logger.error('参数验证失败:', error);
-    response.unprocessableEntity(res, '参数验证失败');
+    response.unprocessableEntity(res, error.message || '参数验证失败');
   }
 };
 
@@ -51,9 +50,7 @@ const getVirtualUser = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error(`获取虚拟用户失败: ${error.message}`);
-    logger.error('资源不存在:', error);
-    logger.error('资源不存在:', error);
-    response.notFound(res, '资源不存在');
+    response.notFound(res, error.message || '资源不存在');
   }
 };
 
@@ -63,8 +60,7 @@ const getAllVirtualUsers = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error(`获取虚拟用户列表失败: ${error.message}`);
-    logger.error('操作失败:', error);
-    response.error(res, '操作失败');
+    response.error(res, error.message || '操作失败');
   }
 };
 
@@ -75,8 +71,7 @@ const updateVirtualUser = async (req, res) => {
     response.success(res, result, '虚拟用户更新成功');
   } catch (error) {
     logger.error(`更新虚拟用户失败: ${error.message}`);
-    logger.error('参数验证失败:', error);
-    response.unprocessableEntity(res, '参数验证失败');
+    response.unprocessableEntity(res, error.message || '参数验证失败');
   }
 };
 
@@ -87,9 +82,7 @@ const deleteVirtualUser = async (req, res) => {
     response.success(res, {}, '虚拟用户删除成功');
   } catch (error) {
     logger.error(`删除虚拟用户失败: ${error.message}`);
-    logger.error('资源不存在:', error);
-    logger.error('资源不存在:', error);
-    response.notFound(res, '资源不存在');
+    response.notFound(res, error.message || '资源不存在');
   }
 };
 
@@ -101,9 +94,7 @@ const toggleOnlineStatus = async (req, res) => {
     response.success(res, result, isOnline ? '虚拟用户已上线' : '虚拟用户已下线');
   } catch (error) {
     logger.error(`更新虚拟用户状态失败: ${error.message}`);
-    logger.error('资源不存在:', error);
-    logger.error('资源不存在:', error);
-    response.notFound(res, '资源不存在');
+    response.notFound(res, error.message || '资源不存在');
   }
 };
 
@@ -127,8 +118,7 @@ const chatWithVirtualUser = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error(`虚拟用户聊天失败: ${error.message}`);
-    logger.error('参数验证失败:', error);
-    response.unprocessableEntity(res, '参数验证失败');
+    response.unprocessableEntity(res, error.message || '参数验证失败');
   }
 };
 
@@ -147,8 +137,7 @@ const getChatHistory = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error(`获取聊天记录失败: ${error.message}`);
-    logger.error('操作失败:', error);
-    response.error(res, '操作失败');
+    response.error(res, error.message || '操作失败');
   }
 };
 
@@ -167,8 +156,7 @@ const clearContext = async (req, res) => {
     response.success(res, {}, '上下文已清除');
   } catch (error) {
     logger.error(`清除上下文失败: ${error.message}`);
-    logger.error('操作失败:', error);
-    response.error(res, '操作失败');
+    response.error(res, error.message || '操作失败');
   }
 };
 

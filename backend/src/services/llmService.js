@@ -8,11 +8,11 @@ const { URL } = require('url');
  */
 
 const DEFAULT_CONFIG = {
-  provider: 'openai',
+  provider: 'deepseek',
   apiKey: '',
-  apiEndpoint: 'https://api.openai.com/v1',
-  model: 'gpt-3.5-turbo',
-  maxTokens: 1024,
+  apiEndpoint: 'https://api.deepseek.com/v1',
+  model: 'deepseek-v4-flash',
+  maxTokens: 8192,
   temperature: 0.7,
   systemPrompt: '你是一个友好、专业的陪玩助手，帮助用户解答问题、提供陪伴和娱乐服务。请用热情亲切的语气回复。'
 };

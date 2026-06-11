@@ -74,8 +74,9 @@ const CSRF_WHITELIST = [
 ];
 
 app.use((req, res, next) => {
-  // 开发环境跳过
-  if (config.nodeEnv === 'development') return next();
+  // 仅在 development + mock 模式下跳过 CSRF，生产环境或使用真实数据库时强制启用
+  const isDevMockMode = config.nodeEnv === 'development' && config.useMockDb === true;
+  if (isDevMockMode) return next();
   // 白名单内的公开接口不需要 CSRF token
   if (CSRF_WHITELIST.some(p => req.path === p || req.path.startsWith(p + '?'))) return next();
   return csrfProtection(req, res, next);
@@ -198,6 +199,17 @@ try {
 
 const startServer = async () => {
   try {
+    // 生产环境安全检查：JWT Secret 必须显式配置
+    if (config.nodeEnv === 'production') {
+      if (!process.env.JWT_SECRET) {
+        console.error('❌ 生产环境必须设置 JWT_SECRET 环境变量！');
+        process.exit(1);
+      }
+      if (!process.env.ADMIN_TOKEN) {
+        console.warn('⚠️  生产环境建议设置 ADMIN_TOKEN 环境变量');
+      }
+    }
+
     console.log('\n🔄 正在初始化数据库连接...');
     
     // 初始化数据库连接（带容错处理）
@@ -269,7 +281,9 @@ const startServer = async () => {
       console.log(`⚡ 模式: Local (本地数据源)`);
       console.log(`⚡ Socket.IO 已启用`);
       console.log(`📊 数据库连接: ${allConnected ? '全部正常' : '部分异常'}`);
-      console.log(`🔑 默认管理员账号: admin / admin123`);
+      if (config.nodeEnv === 'development') {
+        console.log(`🔑 默认管理员账号已就绪（开发环境）`);
+      }
       console.log('========================================\n');
     });
 

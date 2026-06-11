@@ -8,7 +8,6 @@ const getPackages = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取充值套餐错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -95,7 +94,6 @@ const queryWxOrder = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('查询微信订单错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -112,24 +110,37 @@ const closeWxOrder = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('关闭微信订单错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
 
 const wxCallback = async (req, res) => {
   try {
-    const { payNo, transactionId } = req.body;
+    const { payNo, transactionId, sign, timestamp } = req.body;
     
     if (!payNo) {
       return response.badRequest(res, '订单号不能为空');
+    }
+
+    // 基本防伪造：验证必要字段存在
+    if (!transactionId) {
+      return response.badRequest(res, '交易流水号不能为空');
+    }
+
+    // 时间戳验证（5分钟内的请求才有效）
+    if (timestamp) {
+      const now = Date.now();
+      const reqTime = parseInt(timestamp);
+      if (Math.abs(now - reqTime) > 5 * 60 * 1000) {
+        logger.warn('wxCallback: 请求时间戳过期', { payNo, timestamp });
+        return response.badRequest(res, '请求已过期');
+      }
     }
     
     await payService.wxPayCallback(payNo, transactionId);
     response.success(res, {}, '支付成功');
   } catch (error) {
     logger.error('微信支付回调错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -146,7 +157,6 @@ const getOrderStatus = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('查询订单状态错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -206,7 +216,6 @@ const getWalletBalance = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取钱包余额错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -243,7 +252,6 @@ const getPaymentHistory = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取支付记录错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };
@@ -286,7 +294,6 @@ const handlePaymentNotify = async (req, res) => {
     }
   } catch (error) {
     logger.error('支付回调处理错误:', error);
-    logger.error('操作失败:', error);
     response.error(res, '操作失败');
   }
 };

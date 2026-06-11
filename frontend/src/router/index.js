@@ -289,6 +289,11 @@ const routes = [
     path: '/skin-shop',
     name: 'SkinShop',
     component: lazyLoad('SkinShop')
+  },
+  {
+    path: '/virtual-users',
+    name: 'VirtualUsers',
+    component: lazyLoad('VirtualUserList')
   }
 ]
 
@@ -304,22 +309,6 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  // 管理员路由 — 原有守卫
-  if (to.path.startsWith('/admin')) {
-    if (to.path === '/admin/login') {
-      next()
-      return
-    }
-    const adminToken = localStorage.getItem('admin_token')
-    if (!adminToken) {
-      console.warn('[Router] 管理员未登录，跳转到登录页')
-      next('/admin/login')
-      return
-    }
-    next()
-    return
-  }
-
   // 登录页始终可访问
   if (to.path === '/login') {
     next()

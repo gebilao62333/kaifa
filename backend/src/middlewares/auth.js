@@ -9,8 +9,11 @@ const authMiddleware = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     
-    // Dev mode auto-auth: 开发环境下没有有效 token 时自动创建/使用 mock 用户
-    if (config.nodeEnv === 'development') {
+    // Dev mode auto-auth: 仅当 NODE_ENV 显式为 development 且 USE_MOCK_DB=true 时启用
+    // 生产环境或使用真实数据库时，此功能自动禁用
+    const isDevMockMode = config.nodeEnv === 'development' && config.useMockDb === true;
+    
+    if (isDevMockMode) {
       let userId = null;
       
       if (token) {
@@ -60,6 +63,7 @@ const authMiddleware = async (req, res, next) => {
       return next();
     }
     
+    // 生产环境：严格的认证流程
     if (!token) {
       return response.unauthorized(res, '未提供认证令牌');
     }
@@ -132,8 +136,11 @@ const optionalAuth = async (req, res, next) => {
 const adminAuth = (req, res, next) => {
   let isValidAdmin = false;
   
-  // Dev mode: 允许 dev-preview-token 或任意有效 admin token 通过
-  if (config.nodeEnv === 'development') {
+  // Dev mode: 仅当 NODE_ENV=development 且 USE_MOCK_DB=true 时允许便捷认证
+  // 生产环境或使用真实数据库时，必须通过正规认证流程
+  const isDevMockMode = config.nodeEnv === 'development' && config.useMockDb === true;
+  
+  if (isDevMockMode) {
     const adminToken = req.headers['x-admin-token'];
     if (adminToken && adminToken === 'dev-preview-token') {
       isValidAdmin = true;
@@ -146,7 +153,7 @@ const adminAuth = (req, res, next) => {
         try {
           const decoded = verifyToken(bearerToken);
           if (decoded) {
-            isValidAdmin = true; // dev 模式下任何合法 JWT 都放行
+            isValidAdmin = true; // dev+mock 模式下任何合法 JWT 都放行
           }
         } catch (err) {
           // token verification failed
@@ -159,6 +166,7 @@ const adminAuth = (req, res, next) => {
     return next();
   }
   
+  // 生产环境：严格的管理员认证
   const adminToken = req.headers['x-admin-token'];
   if (adminToken && adminToken === config.admin.token) {
     isValidAdmin = true;

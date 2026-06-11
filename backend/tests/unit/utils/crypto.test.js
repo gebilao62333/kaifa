@@ -3,23 +3,40 @@ const crypto = require('crypto');
 
 describe('Utils - Crypto Functions', () => {
   describe('hashPassword', () => {
-    it('should hash password using SHA256', () => {
+    it('should hash password using PBKDF2 with salt', () => {
       const password = 'testpassword123';
       const result = cryptoUtil.hashPassword(password);
       
       expect(typeof result).toBe('string');
-      expect(result).toHaveLength(64);
-      
-      const expectedHash = crypto.createHash('sha256').update(password).digest('hex');
-      expect(result).toEqual(expectedHash);
+      // PBKDF2 格式: salt:hash，salt 128 hex + ":" + hash 128 hex = 257 字符
+      expect(result).toContain(':');
+      const [salt, hash] = result.split(':');
+      expect(salt).toHaveLength(32);  // 16 bytes hex = 32 chars
+      expect(hash).toHaveLength(128); // 64 bytes hex = 128 chars
     });
 
-    it('should produce consistent hash for same password', () => {
+    it('should produce different hashes for same password (different salts)', () => {
       const password = 'mypassword';
       const hash1 = cryptoUtil.hashPassword(password);
       const hash2 = cryptoUtil.hashPassword(password);
       
-      expect(hash1).toEqual(hash2);
+      expect(hash1).not.toEqual(hash2);
+    });
+
+    it('should verify password correctly', () => {
+      const password = 'mypassword';
+      const hash = cryptoUtil.hashPassword(password);
+      
+      expect(cryptoUtil.verifyPassword(password, hash)).toBe(true);
+      expect(cryptoUtil.verifyPassword('wrong', hash)).toBe(false);
+    });
+
+    it('should verify legacy SHA256 passwords', () => {
+      const password = 'oldpassword';
+      const legacyHash = crypto.createHash('sha256').update(password).digest('hex');
+      
+      expect(cryptoUtil.verifyPassword(password, legacyHash)).toBe(true);
+      expect(cryptoUtil.verifyPassword('wrong', legacyHash)).toBe(false);
     });
   });
 

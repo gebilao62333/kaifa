@@ -1,6 +1,7 @@
 const { verifyToken } = require('../config/jwt');
 const response = require('../utils/response');
 const logger = require('../utils/logger');
+const config = require('../config');
 
 let Admin, AdminRole;
 
@@ -21,7 +22,8 @@ const DEFAULT_PERMISSIONS = [
 /**
  * 管理员认证中间件
  * - 验证 Bearer token 的有效性
- * - 优先从数据库查询管理员信息，DB不可用时使用 Mock
+ * - 优先从数据库查询管理员信息
+ * - Mock 回退仅在 development + useMockDb 模式下允许
  * - 注入 req.admin
  */
 const adminAuth = async (req, res, next) => {
@@ -85,9 +87,13 @@ const adminAuth = async (req, res, next) => {
       }
     }
 
-    // DB 不可用或无数据时使用 Mock（仅在 token payload 包含有效的 admin 标识时）
+    // Mock 回退：仅在 development + useMockDb 模式下允许
+    const isDevMockMode = config.nodeEnv === 'development' && config.useMockDb === true;
     if (!admin) {
-      // 验证 payload 是否包含管理员标识
+      if (!isDevMockMode) {
+        return response.unauthorized(res, '令牌无效：管理员不存在');
+      }
+      // Mock 模式下验证 payload 是否包含管理员标识
       const hasValidAdminPayload = decoded.role_id >= 1 || decoded.id >= 1;
       if (!hasValidAdminPayload) {
         return response.unauthorized(res, '令牌无效：缺少管理员标识');

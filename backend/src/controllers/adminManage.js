@@ -1,4 +1,4 @@
-const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
 const logger = require('../utils/logger');
 const { signToken, verifyToken } = require('../config/jwt');
 const config = require('../config');
@@ -15,6 +15,8 @@ try {
   logger.warn('Admin/Role models not available, using mock data only');
 }
 
+const BCRYPT_ROUNDS = 10;
+
 const getNowTime = () => Math.floor(Date.now() / 1000);
 
 const getClientIp = (req) => {
@@ -23,10 +25,6 @@ const getClientIp = (req) => {
          req.connection?.socket?.remoteAddress ||
          req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
          '127.0.0.1';
-};
-
-const md5 = (str) => {
-  return crypto.createHash('md5').update(str).digest('hex');
 };
 
 // ========== 登录频率限制 (内存) ==========
@@ -152,13 +150,31 @@ const adminLogin = async (req, res) => {
     let authenticated = false;
     let adminData = null;
 
-    // 1. 优先从数据库验证
+    // 1. 优先从数据库验证（使用bcrypt）
     if (Admin) {
       try {
         const admin = await Admin.findOne({ where: { username, status: 1 } });
         if (admin && admin.password) {
-          const inputHash = md5(password);
-          if (inputHash === admin.password) {
+          // 兼容旧MD5密码：先尝试bcrypt，失败再尝试MD5
+          let passwordMatch = false;
+          try {
+            passwordMatch = await bcrypt.compare(password, admin.password);
+          } catch (bcryptErr) {
+            // bcrypt比较失败，可能密码格式不是bcrypt
+          }
+          // 向后兼容：如果bcrypt不匹配，检查是否为旧版MD5密码
+          if (!passwordMatch && admin.password.length === 32 && /^[a-f0-9]{32}$/i.test(admin.password)) {
+            const crypto = require('crypto');
+            const md5Hash = crypto.createHash('md5').update(password).digest('hex');
+            if (md5Hash === admin.password) {
+              passwordMatch = true;
+              // 自动升级为bcrypt
+              const newHash = await bcrypt.hash(password, BCRYPT_ROUNDS);
+              await Admin.update({ password: newHash }, { where: { id: admin.id } });
+              logger.info(`Admin password upgraded to bcrypt for: ${username}`);
+            }
+          }
+          if (passwordMatch) {
             authenticated = true;
             adminData = {
               id: admin.id,
@@ -387,15 +403,60 @@ const createAdmin = async (req, res) => {
       return response.badRequest(res, '用户名和密码不能为空');
     }
     
+    // 尝试写入数据库（使用bcrypt）
+    if (Admin) {
+      try {
+        const existing = await Admin.findOne({ where: { username } });
+        if (existing) {
+          return response.badRequest(res, '用户名已存在');
+        }
+        
+        const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
+        const newAdmin = await Admin.create({
+          username,
+          password: hashedPassword,
+          nickname: nickname || username,
+          email: email || '',
+          phone: phone || '',
+          role_id: role_id || 1,
+          permissions: JSON.stringify(permissions || []),
+          status: status !== undefined ? status : 1,
+          last_login_time: null,
+          last_login_ip: null,
+          create_time: getNowTime(),
+          create_admin_id: req.admin?.id || 0
+        });
+        
+        return response.success(res, {
+          id: newAdmin.id,
+          username: newAdmin.username,
+          nickname: newAdmin.nickname,
+          email: newAdmin.email,
+          phone: newAdmin.phone,
+          role_id: newAdmin.role_id,
+          permissions: permissions || [],
+          status: newAdmin.status,
+          last_login_time: null,
+          last_login_ip: null,
+          create_time: newAdmin.create_time
+        }, '创建成功');
+      } catch (dbError) {
+        logger.warn('数据库创建管理员失败，使用Mock:', dbError.message);
+      }
+    }
+    
+    // Mock fallback
     const existingAdmin = mockAdmins.find(a => a.username === username);
     if (existingAdmin) {
       return response.badRequest(res, '用户名已存在');
     }
     
+    const hashedPassword = await bcrypt.hash(password, BCRYPT_ROUNDS);
     const newId = Math.max(...mockAdmins.map(a => a.id), 0) + 1;
     const newAdmin = {
       id: newId,
       username,
+      password: hashedPassword,
       nickname: nickname || username,
       email,
       phone,
@@ -409,7 +470,7 @@ const createAdmin = async (req, res) => {
     };
     mockAdmins.push(newAdmin);
     
-    response.success(res, newAdmin, '创建成功');
+    response.success(res, { ...newAdmin, password: undefined }, '创建成功');
   } catch (error) {
     logger.error('Create admin error:', error);
     response.error(res, '服务器错误');
@@ -454,12 +515,55 @@ const updateAdmin = async (req, res) => {
 const updateAdminPassword = async (req, res) => {
   try {
     const { id } = req.params;
-    
+    const { oldPassword, newPassword } = req.body;
+
+    if (!newPassword) {
+      return response.badRequest(res, '新密码不能为空');
+    }
+    if (newPassword.length < 6) {
+      return response.badRequest(res, '密码长度不能少于6位');
+    }
+
+    // 尝试从数据库更新
+    if (Admin) {
+      try {
+        const admin = await Admin.findByPk(parseInt(id));
+        if (!admin) {
+          return response.notFound(res, '管理员不存在');
+        }
+        
+        // 如果提供了旧密码，验证
+        if (oldPassword && admin.password) {
+          let passwordMatch = false;
+          try {
+            passwordMatch = await bcrypt.compare(oldPassword, admin.password);
+          } catch (e) { /* bcrypt比较失败 */ }
+          if (!passwordMatch && admin.password.length === 32 && /^[a-f0-9]{32}$/i.test(admin.password)) {
+            const crypto = require('crypto');
+            const md5Hash = crypto.createHash('md5').update(oldPassword).digest('hex');
+            passwordMatch = md5Hash === admin.password;
+          }
+          if (!passwordMatch) {
+            return response.badRequest(res, '原密码错误');
+          }
+        }
+
+        const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+        await Admin.update({ password: hashedPassword }, { where: { id: parseInt(id) } });
+        return response.success(res, {}, '密码修改成功');
+      } catch (dbError) {
+        logger.warn('数据库更新密码失败，使用Mock:', dbError.message);
+      }
+    }
+
+    // Mock fallback
     const adminIndex = mockAdmins.findIndex(a => a.id === parseInt(id));
-    
     if (adminIndex === -1) {
       return response.notFound(res, '管理员不存在');
     }
+    
+    const hashedPassword = await bcrypt.hash(newPassword, BCRYPT_ROUNDS);
+    mockAdmins[adminIndex].password = hashedPassword;
     
     response.success(res, {}, '密码修改成功');
   } catch (error) {

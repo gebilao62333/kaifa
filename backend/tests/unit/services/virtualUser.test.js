@@ -1,7 +1,40 @@
-const { VirtualUser, VirtualChatHistory, VirtualUserTag, VirtualUserTagRelation } = require('../../../src/models');
 const virtualUserService = require('../../../src/services/virtualUserService');
 
-jest.mock('../../../src/models');
+// 手动 mock models，确保 mock 行为可控
+jest.mock('../../../src/models', () => {
+  const mockFindOne = jest.fn();
+  const mockCreate = jest.fn();
+  const mockFindByPk = jest.fn();
+  const mockFindAndCountAll = jest.fn();
+  const mockFindAll = jest.fn();
+  const mockDestroy = jest.fn();
+  const mockIncrement = jest.fn();
+
+  return {
+    VirtualUser: {
+      findOne: mockFindOne,
+      create: mockCreate,
+      findByPk: mockFindByPk,
+      findAndCountAll: mockFindAndCountAll,
+      findAll: mockFindAll,
+      destroy: mockDestroy
+    },
+    VirtualChatHistory: {
+      destroy: jest.fn()
+    },
+    VirtualUserTag: {
+      increment: mockIncrement,
+      findAll: jest.fn().mockResolvedValue([])
+    },
+    VirtualUserTagRelation: {
+      create: jest.fn(),
+      findAll: jest.fn().mockResolvedValue([])
+    }
+  };
+});
+
+const models = require('../../../src/models');
+const { VirtualUser, VirtualChatHistory, VirtualUserTag, VirtualUserTagRelation } = models;
 
 describe('Service - Virtual User Service', () => {
   beforeEach(() => {

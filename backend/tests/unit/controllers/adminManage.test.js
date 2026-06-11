@@ -152,12 +152,14 @@ describe('Controller - adminManage', () => {
   describe('updateAdminPassword', () => {
     it('应拒绝修改不存在管理员的密码', async () => {
       req.params = { id: '9999' };
+      req.body = { newPassword: 'newpass123' };
       await controller.updateAdminPassword(req, res);
       expect(res.status).toHaveBeenCalledWith(404);
     });
 
     it('应成功修改密码', async () => {
       req.params = { id: '1' };
+      req.body = { newPassword: 'newpass123' };
       await controller.updateAdminPassword(req, res);
       expect(res.status).toHaveBeenCalledWith(200);
     });

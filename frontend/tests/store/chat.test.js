@@ -16,19 +16,20 @@ describe('Chat Store', () => {
     expect(chatStore.totalUnread).toBe(0)
   })
 
-  it('should set current room correctly', () => {
+  it('should set current chat correctly', () => {
     const chatStore = useChatStore()
-    const roomId = 'room_123'
+    const user = { userId: 'user_123', roomId: 'room_123', nickname: 'TestUser' }
     
-    chatStore.setCurrentRoom(roomId)
+    chatStore.setCurrentChat(user)
     
-    expect(chatStore.currentRoomId).toBe(roomId)
+    expect(chatStore.currentRoomId).toBe('room_123')
+    expect(chatStore.currentChatUser).toEqual(user)
   })
 
   it('should add message to message list', () => {
     const chatStore = useChatStore()
     const message = {
-      id: 1,
+      messageId: 1,
       content: 'Hello',
       sender: 'user1'
     }
@@ -90,9 +91,9 @@ describe('Chat Store', () => {
   it('should handle multiple message additions', () => {
     const chatStore = useChatStore()
     
-    chatStore.addMessage({ id: 1, content: 'First' })
-    chatStore.addMessage({ id: 2, content: 'Second' })
-    chatStore.addMessage({ id: 3, content: 'Third' })
+    chatStore.addMessage({ messageId: 1, content: 'First' })
+    chatStore.addMessage({ messageId: 2, content: 'Second' })
+    chatStore.addMessage({ messageId: 3, content: 'Third' })
     
     expect(chatStore.messageList.length).toBe(3)
     expect(chatStore.messageList[0].content).toBe('First')

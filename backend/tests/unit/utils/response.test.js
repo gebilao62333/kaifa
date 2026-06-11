@@ -112,7 +112,8 @@ describe('Utils - Response Helper', () => {
       expect(mockRes.status).toHaveBeenCalledWith(422);
       expect(mockRes.json).toHaveBeenCalledWith({
         code: 422,
-        message
+        message,
+        errors: {}
       });
     });
   });

@@ -2,6 +2,27 @@ const { Post, PostLike, PostComment, PostUnlock, User, UserFollow, CircleTag } =
 const { getTimestamp, parseQuery } = require('../utils/helper');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
+const bcrypt = require('bcryptjs');
+
+// 帖子密码哈希函数（使用PBKDF2 + salt，比纯SHA256更安全）
+const hashPostPassword = (password) => {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+};
+
+const verifyPostPassword = (password, storedHash) => {
+  if (!storedHash) return false;
+  // 兼容旧版纯SHA256密码（无冒号分隔符）
+  if (!storedHash.includes(':')) {
+    const legacyHash = crypto.createHash('sha256').update(password).digest('hex');
+    return legacyHash === storedHash;
+  }
+  // 新版加盐PBKDF2密码
+  const [salt, hash] = storedHash.split(':');
+  const computedHash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+  return computedHash === hash;
+};
 
 const createPost = async (userId, content, images, videos, tagIds, location, visibility, password, price) => {
   const post = await Post.create({
@@ -13,9 +34,9 @@ const createPost = async (userId, content, images, videos, tagIds, location, vis
     tag_ids: tagIds ? JSON.stringify(tagIds) : null,
     location: location || '',
     visibility: visibility || 0,
-    password: password ? crypto.createHash('sha256').update(password).digest('hex') : null,
+    password: password ? hashPostPassword(password) : null,
     is_private: visibility === 2 ? 1 : 0,
-    private_password: visibility === 3 ? crypto.createHash('sha256').update(password).digest('hex') : null,
+    private_password: visibility === 3 ? hashPostPassword(password) : null,
     private_price: visibility === 4 ? price : 0,
     create_time: getTimestamp()
   });
@@ -155,8 +176,7 @@ const unlockPost = async (userId, postId, unlockType, password) => {
   }
   
   if (post.is_private === 1) {
-    const hashedPassword = crypto.createHash('sha256').update(password).digest('hex');
-    if (hashedPassword !== post.private_password) {
+    if (!verifyPostPassword(password, post.private_password)) {
       throw new Error('密码错误');
     }
   }

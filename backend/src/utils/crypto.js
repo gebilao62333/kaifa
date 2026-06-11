@@ -43,14 +43,40 @@ const decrypt = (encryptedData, password) => {
   return decrypted;
 };
 
+/**
+ * @deprecated 使用 bcrypt 或 PBKDF2 代替。此函数仅用于向后兼容。
+ */
 const hashPassword = (password) => {
-  return crypto.createHash('sha256').update(password).digest('hex');
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
 };
 
+/**
+ * 验证由 hashPassword 生成的密码
+ */
+const verifyPassword = (password, storedHash) => {
+  if (!storedHash) return false;
+  // 兼容旧版无盐SHA256
+  if (!storedHash.includes(':')) {
+    const legacyHash = crypto.createHash('sha256').update(password).digest('hex');
+    return legacyHash === storedHash;
+  }
+  const [salt, hash] = storedHash.split(':');
+  const computedHash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+  return computedHash === hash;
+};
+
+/**
+ * @deprecated MD5 不应用于安全场景。仅用于生成非安全哈希（如缓存键）。
+ */
 const md5 = (text) => {
   return crypto.createHash('md5').update(text).digest('hex');
 };
 
+/**
+ * @deprecated SHA1 不应用于安全场景。仅用于生成非安全哈希。
+ */
 const sha1 = (text) => {
   return crypto.createHash('sha1').update(text).digest('hex');
 };
@@ -63,6 +89,7 @@ module.exports = {
   encrypt,
   decrypt,
   hashPassword,
+  verifyPassword,
   md5,
   sha1,
   generateRandomString

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const payController = require('../controllers/pay');
 const { authMiddleware } = require('../middlewares');
+const { apiLimiter } = require('../middlewares/rateLimit');
 
 // 套餐列表
 router.get('/packages', payController.getPackages);
@@ -23,8 +24,8 @@ router.post('/alipay-close', authMiddleware, payController.closeAlipayOrder);
 // 订单
 router.get('/order-status', authMiddleware, payController.getOrderStatus);
 
-// 密卡充值
-router.post('/validate-card', payController.validateCard);
+// 密卡充值 — validate-card 添加限流防护防止暴力枚举
+router.post('/validate-card', apiLimiter, payController.validateCard);
 router.post('/use-card', authMiddleware, payController.useCard);
 router.get('/recharge/list', payController.getRechargeRecords);
 

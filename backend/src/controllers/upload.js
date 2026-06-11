@@ -13,8 +13,7 @@ const uploadImage = async (req, res) => {
     response.success(res, result, '上传成功');
   } catch (error) {
     logger.error('上传图片错误:', error);
-    logger.error('请求参数错误:', error);
-    response.badRequest(res, '请求参数错误');
+    response.badRequest(res, error.message || '图片上传失败');
   }
 };
 
@@ -28,8 +27,7 @@ const uploadAudio = async (req, res) => {
     response.success(res, result, '上传成功');
   } catch (error) {
     logger.error('上传音频错误:', error);
-    logger.error('请求参数错误:', error);
-    response.badRequest(res, '请求参数错误');
+    response.badRequest(res, error.message || '音频上传失败');
   }
 };
 
@@ -43,8 +41,7 @@ const uploadVideo = async (req, res) => {
     response.success(res, result, '上传成功');
   } catch (error) {
     logger.error('上传视频错误:', error);
-    logger.error('请求参数错误:', error);
-    response.badRequest(res, '请求参数错误');
+    response.badRequest(res, error.message || '视频上传失败');
   }
 };
 

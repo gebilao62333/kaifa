@@ -122,6 +122,10 @@ const createVirtualUser = async (data) => {
     logger.info(`虚拟用户创建成功: ${username} (ID: ${virtualUser.id})`);
     return getVirtualUserById(virtualUser.id);
   } catch (dbError) {
+    // 如果是业务逻辑错误（如用户名已存在），直接向上抛出
+    if (dbError.message === '用户名已存在' || dbError.message === '用户名和昵称不能为空') {
+      throw dbError;
+    }
     logger.warn('虚拟用户数据库操作失败，使用Mock数据:', dbError.message);
     
     const existing = mockVirtualUsers.find(u => u.username === username);

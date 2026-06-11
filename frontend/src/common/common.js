@@ -305,6 +305,8 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
       localStorage.removeItem('pinia-app-state')
       if (!isRedirecting) {
         isRedirecting = true
+        // 3秒后重置锁，防止永久锁定（如用户在登录页重新登录后）
+        setTimeout(() => { isRedirecting = false }, 3000)
         window.location.href = '/login'
       }
       throw new RequestError('登录失效，请重新登录', -1, 401)

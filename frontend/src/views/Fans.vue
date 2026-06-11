@@ -8,7 +8,7 @@
 
     <div class="content">
       <div class="user-list" v-if="fans.length > 0">
-        <div class="user-card" v-for="(user, index) in fans" :key="index" @click="viewProfile(user)">
+        <div class="user-card" v-for="user in fans" :key="user.id" @click="viewProfile(user)">
           <img class="user-avatar" :src="user.avatar" alt="" />
           <div class="user-info">
             <div class="user-name">{{ user.name }}</div>
