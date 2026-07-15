@@ -32,7 +32,6 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/server.js ./server.js
 COPY --from=builder /app/src ./src
-COPY --from=builder /app/public ./public
 
 # 创建日志目录
 RUN mkdir -p /var/log/duoke && chown -R nodejs:nodejs /app /var/log/duoke

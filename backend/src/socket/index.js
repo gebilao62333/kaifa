@@ -171,17 +171,19 @@ const initializeSocket = (socketIO) => {
     
     socket.on('call_invite', async (data) => {
       try {
-        const { toId, callType, trtcRoomId } = data;
+        const { toId, callType, trtcRoomId, callId, useWebRTC } = data;
         
         io.to(`user:${toId}`).emit('call_invite', {
           fromId: socket.userId,
           fromName: socket.user.nickname,
           fromAvatar: socket.user.avatar,
           callType,
-          trtcRoomId
+          trtcRoomId: trtcRoomId || '',
+          callId: callId || 0,
+          useWebRTC: !!useWebRTC
         });
         
-        logger.info(`通话邀请: ${socket.userId} -> ${toId}`);
+        logger.info(`通话邀请: ${socket.userId} -> ${toId} (TRTC:${!useWebRTC}, WebRTC:${!!useWebRTC})`);
       } catch (error) {
         logger.error('发送通话邀请错误:', error);
         socket.emit('error', { message: '发送通话邀请失败' });
@@ -235,6 +237,45 @@ const initializeSocket = (socketIO) => {
         });
       } catch (error) {
         logger.error('结束通话错误:', error);
+      }
+    });
+    
+    // ============ WebRTC 信令 ============
+    socket.on('webrtc_offer', async (data) => {
+      try {
+        const { toId, sdp } = data;
+        io.to(`user:${toId}`).emit('webrtc_offer', {
+          fromId: socket.userId,
+          sdp
+        });
+        logger.info(`WebRTC Offer: ${socket.userId} -> ${toId}`);
+      } catch (error) {
+        logger.error('WebRTC Offer错误:', error);
+      }
+    });
+    
+    socket.on('webrtc_answer', async (data) => {
+      try {
+        const { toId, sdp } = data;
+        io.to(`user:${toId}`).emit('webrtc_answer', {
+          fromId: socket.userId,
+          sdp
+        });
+        logger.info(`WebRTC Answer: ${socket.userId} -> ${toId}`);
+      } catch (error) {
+        logger.error('WebRTC Answer错误:', error);
+      }
+    });
+    
+    socket.on('webrtc_ice_candidate', async (data) => {
+      try {
+        const { toId, candidate } = data;
+        io.to(`user:${toId}`).emit('webrtc_ice_candidate', {
+          fromId: socket.userId,
+          candidate
+        });
+      } catch (error) {
+        logger.error('WebRTC ICE错误:', error);
       }
     });
     

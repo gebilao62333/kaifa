@@ -5,18 +5,19 @@ const { Op } = require('sequelize');
 const getChatList = async (userId, page, pageSize) => {
   const { offset, limit } = parseQuery({ page, pageSize });
   
-  const sessions = await UserSession.findAndCountAll({
-    where: { userId },
-    offset,
-    limit,
-    order: [['updateTime', 'DESC']]
-  });
+  const filter = { userId };
+  const total = await UserSession.countDocuments(filter);
+  const sessions = await UserSession.find(filter)
+    .sort({ updateTime: -1 })
+    .skip(offset)
+    .limit(limit)
+    .lean();
   
-  const list = await Promise.all(sessions.rows.map(async (session) => {
+  const list = await Promise.all(sessions.map(async (session) => {
     const peerUser = await User.findByPk(session.peerId);
     
     return {
-      id: session.id,
+      id: session._id,
       fromId: session.peerId,
       toId: userId,
       nickname: session.peerName || peerUser?.nickname || '',
@@ -30,7 +31,7 @@ const getChatList = async (userId, page, pageSize) => {
   }));
   
   return {
-    total: sessions.count,
+    total,
     list
   };
 };
@@ -101,40 +102,57 @@ const sendMessage = async (fromId, toId, content, type = 0, mediaUrl, duration) 
     is_revoked: 0
   });
   
-  await UserSession.findOrCreate({
-    where: { userId: fromId, peerId: toId },
-    defaults: {
+  // Update sender's session
+  let senderSession = await UserSession.findOne({ userId: fromId, peerId: toId });
+  if (!senderSession) {
+    await UserSession.create({
+      userId: fromId,
+      peerId: toId,
       peerName: toUser.nickname,
       peerAvatar: toUser.avatar,
       lastMessage: content,
       lastMessageType: type,
       lastMessageTime: getTimestamp(),
       unreadCount: 0
-    }
-  });
+    });
+  } else {
+    await UserSession.updateOne(
+      { userId: fromId, peerId: toId },
+      {
+        peerName: toUser.nickname,
+        peerAvatar: toUser.avatar,
+        lastMessage: content,
+        lastMessageType: type,
+        lastMessageTime: getTimestamp()
+      }
+    );
+  }
   
-  await UserSession.update({
-    lastMessage: content,
-    lastMessageType: type,
-    lastMessageTime: getTimestamp()
-  }, {
-    where: { userId: toId, peerId: fromId }
-  });
-  
-  const [session] = await UserSession.findOrCreate({
-    where: { userId: toId, peerId: fromId },
-    defaults: {
+  // Update receiver's session
+  let receiverSession = await UserSession.findOne({ userId: toId, peerId: fromId });
+  if (!receiverSession) {
+    await UserSession.create({
+      userId: toId,
+      peerId: fromId,
       peerName: fromUser.nickname,
       peerAvatar: fromUser.avatar,
       lastMessage: content,
       lastMessageType: type,
       lastMessageTime: getTimestamp(),
       unreadCount: 1
-    }
-  });
-  
-  if (session) {
-    await session.increment('unreadCount');
+    });
+  } else {
+    await UserSession.updateOne(
+      { userId: toId, peerId: fromId },
+      {
+        $inc: { unreadCount: 1 },
+        peerName: fromUser.nickname,
+        peerAvatar: fromUser.avatar,
+        lastMessage: content,
+        lastMessageType: type,
+        lastMessageTime: getTimestamp()
+      }
+    );
   }
   
   return {
@@ -247,14 +265,9 @@ const markAsRead = async (userId, peerId) => {
     }
   );
 
-  await UserSession.update(
-    { unreadCount: 0 },
-    {
-      where: {
-        userId: userId,
-        peerId: peerId
-      }
-    }
+  await UserSession.updateOne(
+    { userId: userId, peerId: peerId },
+    { unreadCount: 0 }
   );
 
   return true;

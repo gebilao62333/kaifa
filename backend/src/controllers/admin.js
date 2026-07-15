@@ -641,7 +641,7 @@ const getWithdrawList = async (req, res) => {
     try {
       const where = {};
       if (userId) where.user_id = parseInt(userId);
-      if (status !== undefined) where.status = status;
+      if (status !== undefined) where.is_check = (status === 'pending' ? 0 : 1);
       
       const result = await Withdraw.findAndCountAll({
         where,
@@ -669,7 +669,7 @@ const getWithdrawList = async (req, res) => {
     const result = withdraws.map(w => ({
       withdrawId: w.id,
       userId: w.user_id,
-      amount: w.amount,
+      amount: parseFloat(w.money) || parseFloat(w.amount) || 0,
       type: w.type || 'alipay',
       account: w.account || '',
       status: w.status || 'pending',
@@ -760,7 +760,7 @@ const getWithdrawDetail = async (req, res) => {
     response.success(res, {
       withdrawId: withdraw.id,
       userId: withdraw.user_id,
-      amount: withdraw.amount,
+      amount: parseFloat(withdraw.money) || parseFloat(withdraw.amount) || 0,
       type: withdraw.type || 'alipay',
       account: withdraw.account || '',
       status: withdraw.status || 'pending',
@@ -780,7 +780,7 @@ const createWithdraw = async (req, res) => {
     
     const newWithdraw = await Withdraw.create({
       user_id: userId,
-      amount: parseFloat(amount),
+      money: parseFloat(amount),
       type: type || 'alipay',
       account: account || ''
     });
@@ -788,7 +788,7 @@ const createWithdraw = async (req, res) => {
     response.success(res, {
       withdrawId: newWithdraw.id,
       userId: newWithdraw.user_id,
-      amount: newWithdraw.amount,
+      amount: parseFloat(newWithdraw.money) || parseFloat(newWithdraw.amount) || 0,
       type: newWithdraw.type,
       account: newWithdraw.account,
       status: newWithdraw.status,
@@ -1677,10 +1677,10 @@ const getDashboardStats = async (req, res) => {
       const totalOrders = await GameOrder.count();
       const todayOrders = await GameOrder.count({ where: { create_time: { [Op.gte]: todayStart } } });
       
-      const totalWithdraws = await Withdraw.sum('amount') || 0;
-      const pendingWithdraws = await Withdraw.count({ where: { status: 'pending' } });
+      const totalWithdraws = await Withdraw.sum('money') || 0;
+      const pendingWithdraws = await Withdraw.count({ where: { is_check: 0 } });
       
-      const totalGifts = await GiftLog.sum('amount') || 0;
+      const totalGifts = await GiftLog.sum('totalmoney') || 0;
       const totalPosts = await Post.count();
       
       stats = {
@@ -2098,6 +2098,140 @@ const deleteCompanionApplication = async (req, res) => {
   }
 };
 
+// ==================== 卡密管理 ====================
+
+const { Card } = require('../models');
+
+const mockCards = [];
+
+const getCardList = async (req, res) => {
+  try {
+    const { page = 1, pageSize = 20 } = req.query;
+
+    try {
+      const { count, rows } = await Card.findAndCountAll({
+        offset: (parseInt(page) - 1) * parseInt(pageSize),
+        limit: parseInt(pageSize),
+        order: [['create_time', 'DESC']]
+      });
+      return response.success(res, {
+        list: rows.map(c => ({
+          id: c.id,
+          cardNo: c.card_no,
+          cardPwd: c.card_pwd,
+          faceValue: parseFloat(c.face_value) || 0,
+          coinAmount: c.coin_amount,
+          status: c.status,
+          useTime: c.use_time || 0,
+          useUserId: c.use_user_id || 0,
+          expireTime: c.expire_time || 0,
+          createTime: c.create_time || 0
+        })),
+        pagination: { page: parseInt(page), pageSize: parseInt(pageSize), total: count }
+      });
+    } catch {
+      // Mock fallback
+      const offset = (parseInt(page) - 1) * parseInt(pageSize);
+      response.success(res, {
+        list: mockCards.slice(offset, offset + parseInt(pageSize)),
+        pagination: { page: parseInt(page), pageSize: parseInt(pageSize), total: mockCards.length }
+      });
+    }
+  } catch (error) {
+    console.error('获取卡密列表错误:', error);
+    response.error(res, error.message);
+  }
+};
+
+const createCard = async (req, res) => {
+  try {
+    const { faceValue, coinAmount, count = 1 } = req.body;
+    if (!faceValue || faceValue <= 0) return response.error(res, '请输入有效面值');
+    const genCount = Math.min(parseInt(count) || 1, 100);
+
+    const generateCardNo = () => {
+      const ts = Date.now().toString(36).toUpperCase();
+      const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
+      return `DK${ts}${rand}`;
+    };
+    const generateCardPwd = () => {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let pwd = '';
+      for (let i = 0; i < 12; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+      return pwd;
+    };
+
+    const createdCards = [];
+    const now = Math.floor(Date.now() / 1000);
+
+    try {
+      for (let i = 0; i < genCount; i++) {
+        const card = await Card.create({
+          card_no: generateCardNo(),
+          card_pwd: generateCardPwd(),
+          face_value: parseFloat(faceValue),
+          coin_amount: parseInt(coinAmount) || parseInt(faceValue),
+          status: 0,
+          create_time: now
+        });
+        createdCards.push({
+          id: card.id,
+          cardNo: card.card_no,
+          cardPwd: card.card_pwd,
+          faceValue: parseFloat(card.face_value) || parseFloat(faceValue),
+          coinAmount: card.coin_amount
+        });
+      }
+    } catch {
+      // Mock fallback
+      for (let i = 0; i < genCount; i++) {
+        const card = {
+          id: mockCards.length + 1 + i,
+          cardNo: generateCardNo(),
+          cardPwd: generateCardPwd(),
+          faceValue: parseFloat(faceValue),
+          coinAmount: parseInt(coinAmount) || parseInt(faceValue),
+          status: 0,
+          useTime: 0,
+          useUserId: 0,
+          expireTime: 0,
+          createTime: now
+        };
+        mockCards.push(card);
+        createdCards.push({ id: card.id, cardNo: card.cardNo, cardPwd: card.cardPwd, faceValue: card.faceValue, coinAmount: card.coinAmount });
+      }
+    }
+
+    response.success(res, { list: createdCards }, `成功生成 ${genCount} 张卡密`);
+  } catch (error) {
+    console.error('生成卡密错误:', error);
+    response.error(res, error.message);
+  }
+};
+
+const deleteCard = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    try {
+      const card = await Card.findByPk(parseInt(id));
+      if (!card) return response.error(res, '卡密不存在');
+      if (card.status !== 0) return response.error(res, '只能删除未使用的卡密');
+      await card.destroy();
+    } catch {
+      const idx = mockCards.findIndex(c => c.id === parseInt(id));
+      if (idx === -1) return response.error(res, '卡密不存在');
+      if (mockCards[idx].status !== 0) return response.error(res, '只能删除未使用的卡密');
+      mockCards.splice(idx, 1);
+    }
+
+    response.success(res, {}, '删除成功');
+  } catch (error) {
+    console.error('删除卡密错误:', error);
+    response.error(res, error.message);
+  }
+};
+
 module.exports = {
   adminLogin,
   getUserList,
@@ -2166,5 +2300,8 @@ module.exports = {
   updateVirtualUser,
   deleteVirtualUser,
   toggleVirtualUserStatus,
-  getVirtualUserChatHistory
+  getVirtualUserChatHistory,
+  getCardList,
+  createCard,
+  deleteCard
 };

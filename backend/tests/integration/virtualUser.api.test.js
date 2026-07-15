@@ -3,12 +3,16 @@ const express = require('express');
 const setupRoutes = require('../../src/routes');
 const { authMiddleware } = require('../../src/middlewares');
 
-jest.mock('../../src/middlewares', () => ({
-  authMiddleware: (req, res, next) => {
-    req.userId = 1;
-    next();
-  }
-}));
+jest.mock('../../src/middlewares', () => {
+  const actual = jest.requireActual('../../src/middlewares');
+  return {
+    ...actual,
+    authMiddleware: (req, res, next) => {
+      req.userId = 1;
+      next();
+    }
+  };
+});
 
 jest.mock('../../src/services/virtualUserService', () => ({
   createVirtualUser: jest.fn().mockResolvedValue({ id: 1, username: 'test-virtual' }),

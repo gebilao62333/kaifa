@@ -11,10 +11,10 @@
       </div>
       <div 
         class="nav-item" 
-        :class="{ active: currentRoute === '/activity' }"
-        @click="goTo('/activity')"
+        :class="{ active: currentRoute === '/square' }"
+        @click="goTo('/square')"
       >
-        <div class="nav-icon">{{ currentRoute === '/activity' ? '🎭' : '🎪' }}</div>
+        <div class="nav-icon">{{ currentRoute === '/square' ? '🎭' : '🎪' }}</div>
         <div class="nav-text">广场</div>
       </div>
       <div 

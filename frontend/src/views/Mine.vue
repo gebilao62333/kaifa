@@ -255,7 +255,8 @@ onMounted(() => {
 .mine-page {
   min-height: calc(100vh - 80px);
   background-color: #f5f5f5;
-  padding-bottom: env(safe-area-inset-bottom, 0);
+  padding-top: 120px;  /* 固定头部高度（头像+信息区域） */
+  padding-bottom: 80px;   /* 底部导航栏高度 + 安全距离 */
 }
 
 .content-container {
@@ -268,13 +269,14 @@ onMounted(() => {
 
 .header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 12px 20px;
+  padding: 16px 20px;
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   z-index: 100;
   border-radius: 0 0 16px 16px;
+  min-height: 110px;  /* 确保头部高度一致 */
 }
 
 .user-info {
@@ -616,20 +618,21 @@ onMounted(() => {
 /* PC端我的页面优化 */
 @media (min-width: 768px) {
   .mine-page {
-    padding-top: 60px;
+    padding-top: 130px;
     padding-left: 16px;
     padding-right: 16px;
-    padding-bottom: 16px;
+    padding-bottom: 20px;
     max-width: 650px;
     margin: 0 auto;
   }
-  
+
   .header {
     max-width: 620px;
     left: 50%;
     transform: translateX(-50%);
     border-radius: 0 0 16px 16px;
-    padding: 12px 24px;
+    padding: 16px 24px;
+    min-height: 100px;
   }
   
   .content-container {

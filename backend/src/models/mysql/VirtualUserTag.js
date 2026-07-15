@@ -115,7 +115,7 @@ const VirtualUserTag = sequelize.define('virtual_user_tag', {
     { fields: ['category'] },
     { fields: ['status'] },
     { fields: ['priority'] },
-    { fields: ['isDefault'] }
+    { fields: ['is_default'] }
   ]
 });
 

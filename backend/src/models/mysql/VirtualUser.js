@@ -84,8 +84,8 @@ const VirtualUser = sequelize.define('virtual_user', {
   indexes: [
     { fields: ['username'] },
     { fields: ['status'] },
-    { fields: ['isOnline'] },
-    { fields: ['createTime'] }
+    { fields: ['is_online'] },
+    { fields: ['create_time'] }
   ]
 });
 

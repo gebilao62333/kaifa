@@ -153,12 +153,30 @@ const handleFieldErrors = (error) => {
 }
 
 const handleLogin = async () => {
-  if (!username.value || !password.value) {
-    toast.warning('请输入用户名和密码')
+  // 增强表单验证
+  if (!username.value.trim()) {
+    toast.warning('请输入用户名')
     return
   }
+
+  // 用户名格式验证（支持手机号、邮箱、字母数字组合）
+  if (!/^[\w\u4e00-\u9fa5@.-]{2,20}$/.test(username.value.trim())) {
+    toast.warning('用户名格式不正确（2-20位字符）')
+    return
+  }
+
+  if (!password.value) {
+    toast.warning('请输入密码')
+    return
+  }
+
   if (password.value.length < 6) {
     toast.warning('密码至少6位')
+    return
+  }
+
+  if (password.value.length > 16) {
+    toast.warning('密码最多16位')
     return
   }
 
@@ -166,14 +184,14 @@ const handleLogin = async () => {
 
   try {
     const result = await userStore.login({
-      username: username.value,
+      username: username.value.trim(),
       password: password.value
     })
 
     if (result.success) {
       toast.success('登录成功')
       let redirect = router.currentRoute.value.query.redirect || '/home'
-      
+
       if (redirect) {
         try {
           const decoded = decodeURIComponent(redirect)
@@ -187,16 +205,16 @@ const handleLogin = async () => {
           redirect = '/home'
         }
       }
-      
-      setTimeout(async () => {
-        try {
-          await router.push(redirect)
-          console.log('跳转成功:', redirect)
-        } catch (error) {
-          console.error('跳转失败:', error)
-          await router.push('/home')
-        }
-      }, 500)
+
+      // 使用 nextTick 替代 setTimeout，确保 DOM 更新后立即跳转
+      await nextTick()
+      try {
+        await router.push(redirect)
+        console.log('跳转成功:', redirect)
+      } catch (error) {
+        console.error('跳转失败:', error)
+        await router.push('/home')
+      }
     } else {
       if (result.error && result.error.fieldErrors) {
         handleFieldErrors(result.error)
@@ -263,24 +281,47 @@ const sendCode = async () => {
 }
 
 const handleRegister = async () => {
-  if (!regPhone.value || !regCode.value || !regPwd.value) {
-    toast.warning('请填写完整信息')
+  // 增强注册表单验证
+  if (!regPhone.value.trim()) {
+    toast.warning('请输入手机号')
     return
   }
-  
-  if (!/^1[3-9]\d{9}$/.test(regPhone.value)) {
+
+  if (!/^1[3-9]\d{9}$/.test(regPhone.value.trim())) {
     toast.warning('手机号格式不正确')
     return
   }
-  
+
+  if (!regCode.value.trim()) {
+    toast.warning('请输入验证码')
+    return
+  }
+
+  if (regCode.value.length < 4 || regCode.value.length > 6) {
+    toast.warning('验证码格式不正确（4-6位）')
+    return
+  }
+
+  if (!regPwd.value) {
+    toast.warning('请设置密码')
+    return
+  }
+
   if (regPwd.value.length < 6) {
     toast.warning('密码至少6位')
     return
   }
-  
-  if (regCode.value.length < 4) {
-    toast.warning('验证码格式不正确')
+
+  if (regPwd.value.length > 16) {
+    toast.warning('密码最多16位')
     return
+  }
+
+  // 密码强度提示（可选）
+  const hasNumber = /\d/.test(regPwd.value)
+  const hasLetter = /[a-zA-Z]/.test(regPwd.value)
+  if (!(hasNumber && hasLetter)) {
+    toast.info('建议使用字母+数字组合的密码更安全')
   }
 
   try {
@@ -302,18 +343,39 @@ const handleRegister = async () => {
 }
 
 const handleResetPwd = async () => {
-  if (!forgotPhone.value || !forgotCode.value || !forgotPwd.value) {
-    toast.warning('请填写完整信息')
+  // 增强重置密码表单验证
+  if (!forgotPhone.value.trim()) {
+    toast.warning('请输入手机号')
     return
   }
-  
-  if (!/^1[3-9]\d{9}$/.test(forgotPhone.value)) {
+
+  if (!/^1[3-9]\d{9}$/.test(forgotPhone.value.trim())) {
     toast.warning('手机号格式不正确')
     return
   }
-  
+
+  if (!forgotCode.value.trim()) {
+    toast.warning('请输入验证码')
+    return
+  }
+
+  if (forgotCode.value.length < 4 || forgotCode.value.length > 6) {
+    toast.warning('验证码格式不正确（4-6位）')
+    return
+  }
+
+  if (!forgotPwd.value) {
+    toast.warning('请设置新密码')
+    return
+  }
+
   if (forgotPwd.value.length < 6) {
     toast.warning('密码至少6位')
+    return
+  }
+
+  if (forgotPwd.value.length > 16) {
+    toast.warning('密码最多16位')
     return
   }
 

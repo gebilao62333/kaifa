@@ -72,7 +72,7 @@
             <div class="location-detail">
               <div class="detail-label">详细地址</div>
               <div class="detail-input-wrapper" :class="{ active: isCustomLocation }">
-                <input
+                <input name="customLocation"
                   type="text"
                   v-model="customLocation"
                   placeholder="输入详细地址..."
@@ -212,7 +212,7 @@
             <div class="custom-field">
               <label class="field-label">服务时长</label>
               <div class="input-wrapper">
-                <input
+                <input name="customDuration"
                   type="number"
                   class="custom-input"
                   v-model.number="customDuration"
@@ -230,7 +230,7 @@
               <label class="field-label">服务金额</label>
               <div class="input-wrapper price-input-wrapper">
                 <span class="input-prefix">¥</span>
-                <input
+                <input name="customPrice"
                   type="number"
                   class="custom-input"
                   v-model.number="customPrice"
@@ -250,7 +250,7 @@
             <div class="section-title">备注信息</div>
             <div class="section-subtitle">选填，最多200字</div>
           </div>
-          <textarea
+          <textarea name="remark"
             class="remark-input"
             v-model="formData.remark"
             placeholder="请输入备注信息..."
@@ -262,7 +262,7 @@
       <div class="modal-footer">
         <div class="terms-checkbox" v-if="formData.serviceType === 'offline'">
           <label class="checkbox-label">
-            <input type="checkbox" v-model="agreeTerms" />
+            <input name="agreeTerms" type="checkbox" v-model="agreeTerms" />
             <span class="checkbox-check"></span>
             <span class="checkbox-text">我已阅读并同意<a href="#" class="terms-link">服务条款</a>和<a href="#" class="terms-link">隐私政策</a></span>
           </label>

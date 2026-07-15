@@ -8,7 +8,7 @@ const CompanionProfile = sequelize.define('xn_companion_profile', {
     autoIncrement: true
   },
   user_id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     allowNull: false,
     unique: true
   },
@@ -69,5 +69,8 @@ const CompanionProfile = sequelize.define('xn_companion_profile', {
     { fields: ['price'] }
   ]
 });
+
+const User = require('./User');
+CompanionProfile.belongsTo(User, { as: 'user', foreignKey: 'user_id' });
 
 module.exports = CompanionProfile;

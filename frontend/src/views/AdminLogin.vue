@@ -8,20 +8,26 @@
       
       <form @submit.prevent="handleLogin" class="login-form">
         <div class="form-group">
-          <label>用户名</label>
+          <label for="username">用户名</label>
           <input 
+            id="username"
+            name="username"
             v-model="form.username" 
             type="text" 
+            autocomplete="username"
             placeholder="请输入用户名"
             class="form-input"
           />
         </div>
         
         <div class="form-group">
-          <label>密码</label>
+          <label for="password">密码</label>
           <input 
+            id="password"
+            name="password"
             v-model="form.password" 
             type="password" 
+            autocomplete="current-password"
             placeholder="请输入密码"
             class="form-input"
           />

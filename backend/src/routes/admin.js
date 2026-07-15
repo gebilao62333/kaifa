@@ -68,7 +68,10 @@ const {
   updateVirtualUser,
   deleteVirtualUser,
   toggleVirtualUserStatus,
-  getVirtualUserChatHistory
+  getVirtualUserChatHistory,
+  getCardList,
+  createCard,
+  deleteCard
 } = require('../controllers/admin');
 const { adminAuth } = require('../middlewares');
 
@@ -165,6 +168,11 @@ router.put('/virtual-users/:id', adminAuth, updateVirtualUser);
 router.delete('/virtual-users/:id', adminAuth, deleteVirtualUser);
 router.put('/virtual-users/:id/status', adminAuth, toggleVirtualUserStatus);
 router.get('/virtual-users/:id/chat-history', adminAuth, getVirtualUserChatHistory);
+
+// 卡密管理
+router.get('/cards', adminAuth, getCardList);
+router.post('/cards', adminAuth, createCard);
+router.delete('/cards/:id', adminAuth, deleteCard);
 
 // 系统设置
 router.get('/settings', adminAuth, getSystemSettings);

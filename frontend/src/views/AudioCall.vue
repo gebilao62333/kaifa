@@ -3,6 +3,7 @@
     <div class="call-header">
       <span class="caller-info">{{ callerName }}</span>
       <span class="call-status">{{ callStatus }}</span>
+      <span class="call-mode" v-if="callMode">{{ callMode === 'webrtc' ? 'WebRTC' : 'TRTC' }}</span>
     </div>
     
     <div class="call-visual">
@@ -19,6 +20,8 @@
       <div class="audio-wave" v-if="isConnected">
         <span v-for="i in 8" :key="i" class="wave-bar" :style="{ animationDelay: `${i * 0.15}s` }"></span>
       </div>
+      <!-- WebRTC 远程音频流 -->
+      <audio ref="remoteAudioRef" autoplay playsinline></audio>
     </div>
     
     <div class="call-actions">
@@ -36,9 +39,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { trtcService } from '../services/trtcService';
+import { callService } from '../services/callService';
+import { webrtcCallService } from '../services/webrtcCallService';
+import { socketService } from '../services/socketService';
 
 const route = useRoute();
 const router = useRouter();
@@ -46,11 +51,13 @@ const router = useRouter();
 const callerId = ref('');
 const callerName = ref('对方');
 const callStatus = ref('正在连接...');
+const callMode = ref(null); // 'trtc' | 'webrtc'
 const isConnected = ref(false);
 const callId = ref(null);
 const isConnecting = ref(true);
 
 const localStream = ref(null);
+const remoteAudioRef = ref(null);
 const audioEnabled = ref(true);
 const speakerEnabled = ref(true);
 const voicePrice = ref(0);
@@ -58,6 +65,9 @@ const callDuration = ref(0);
 const formattedDuration = ref('00:00');
 const totalCost = ref(0);
 let durationTimer = null;
+
+// 是否是来电接听方
+const isIncoming = ref(false);
 
 const initCall = async () => {
   callerId.value = route.params.id;
@@ -69,37 +79,99 @@ const initCall = async () => {
     voicePrice.value = settings.voicePrice || 0;
   }
 
-  try {
-    const authRes = await trtcService.getAuth();
-    if (!authRes.data) {
-      throw new Error('获取通话权限失败');
-    }
+  // 获取路由参数判断是主叫还是被叫
+  isIncoming.value = route.query.incoming === '1';
 
-    localStream.value = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: true,
-        noiseSuppression: true,
-        autoGainControl: true
+  // 设置 WebRTC 回调
+  webrtcCallService.setCallbacks({
+    onRemoteStream: (stream) => {
+      if (remoteAudioRef.value) {
+        remoteAudioRef.value.srcObject = stream;
       }
-    });
-
-    const startRes = await trtcService.startCall(callerId.value, 1, false, 0);
-    if (startRes.data) {
-      callId.value = startRes.data.callId;
-    }
-
-    callStatus.value = '等待对方接听...';
-    isConnecting.value = true;
-
-    setTimeout(() => {
-      if (isConnecting.value) {
+    },
+    onLocalStream: (stream) => {
+      localStream.value = stream;
+    },
+    onCallStateChange: (state) => {
+      if (state === 'connected') {
         isConnected.value = true;
         isConnecting.value = false;
         callStatus.value = '已连接';
         startDurationTimer();
+      } else if (state === 'disconnected' || state === 'failed') {
+        callStatus.value = state === 'failed' ? '连接失败' : '对方已挂断';
+        setTimeout(() => hangup(), 1500);
       }
-    }, 2000);
+    }
+  });
 
+  // 设置 callService 回调
+  callService.setCallbacks({
+    onDurationTick: (duration) => {
+      callDuration.value = duration;
+      const m = Math.floor(duration / 60).toString().padStart(2, '0');
+      const s = (duration % 60).toString().padStart(2, '0');
+      formattedDuration.value = `${m}:${s}`;
+      totalCost.value = Math.ceil(duration / 60) * voicePrice.value;
+    },
+    onCallEnd: (duration) => {
+      if (durationTimer) {
+        clearInterval(durationTimer);
+        durationTimer = null;
+      }
+    }
+  });
+
+  try {
+    if (isIncoming.value) {
+      // 被叫方：WebRTC 已经在 handleIncomingCall 中初始化
+      // TRTC 模式需要本地获取 media
+      const useWebRTC = localStorage.getItem('_pendingCallMode') === 'webrtc';
+      callMode.value = useWebRTC ? 'webrtc' : 'trtc';
+
+      if (!useWebRTC) {
+        localStream.value = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
+        });
+      }
+
+      callStatus.value = '正在连接...';
+      isConnecting.value = true;
+
+    } else {
+      // 主叫方：使用 callService 发起
+      const result = await callService.startCall(callerId.value, 1);
+      callMode.value = result.mode;
+      callId.value = result.callId;
+
+      if (result.mode === 'webrtc') {
+        localStream.value = webrtcCallService.localStream;
+        // 监听对方接听事件以发送offer
+        socketService.on('call_accept', () => {
+          webrtcCallService.sendDelayedOffer();
+        });
+      }
+
+      callStatus.value = '等待对方接听...';
+      isConnecting.value = true;
+
+      // 监听对方接听（WebRTC模式）
+      socketService.on('webrtc_offer', (data) => {
+        webrtcCallService.handleOffer(data.fromId, data.sdp);
+      });
+      socketService.on('webrtc_answer', (data) => {
+        webrtcCallService.handleAnswer(data.fromId, data.sdp);
+      });
+      socketService.on('webrtc_ice_candidate', (data) => {
+        webrtcCallService.handleIceCandidate(data.fromId, data.candidate);
+      });
+
+      // 对方挂断
+      socketService.on('call_end', () => {
+        callStatus.value = '对方已挂断';
+        setTimeout(() => hangup(), 1500);
+      });
+    }
   } catch (error) {
     console.error('初始化通话失败:', error);
     callStatus.value = '连接失败';
@@ -108,26 +180,24 @@ const initCall = async () => {
 };
 
 const startDurationTimer = () => {
-  durationTimer = setInterval(() => {
-    callDuration.value++;
-    const m = Math.floor(callDuration.value / 60).toString().padStart(2, '0');
-    const s = (callDuration.value % 60).toString().padStart(2, '0');
-    formattedDuration.value = `${m}:${s}`;
-    totalCost.value = Math.ceil(callDuration.value / 60) * voicePrice.value;
-  }, 1000);
+  callService.startDurationTimer();
 };
 
 const toggleAudio = () => {
-  if (localStream.value) {
-    localStream.value.getAudioTracks().forEach(track => {
-      track.enabled = !track.enabled;
-    });
-    audioEnabled.value = !audioEnabled.value;
+  audioEnabled.value = !audioEnabled.value;
+  callService.toggleAudio(audioEnabled.value);
+  if (!callMode.value || callMode.value === 'trtc') {
+    if (localStream.value) {
+      localStream.value.getAudioTracks().forEach(track => {
+        track.enabled = audioEnabled.value;
+      });
+    }
   }
 };
 
 const toggleSpeaker = () => {
   speakerEnabled.value = !speakerEnabled.value;
+  // WebRTC 模式下不需要额外处理，浏览器自动使用扬声器
 };
 
 const hangup = async () => {
@@ -136,18 +206,19 @@ const hangup = async () => {
     durationTimer = null;
   }
 
-  if (callId.value) {
-    try {
-      await trtcService.endCall(callId.value);
-    } catch (error) {
-      console.error('结束通话请求失败:', error);
-    }
-  }
+  await callService.endCall(callDuration.value);
 
-  if (localStream.value) {
+  if (localStream.value && callMode.value !== 'webrtc') {
     localStream.value.getTracks().forEach(track => track.stop());
     localStream.value = null;
   }
+
+  // 清理 WebRTC 监听
+  socketService.off('webrtc_offer');
+  socketService.off('webrtc_answer');
+  socketService.off('webrtc_ice_candidate');
+  socketService.off('call_accept');
+  socketService.off('call_end');
 
   router.back();
 };
@@ -161,9 +232,12 @@ onUnmounted(() => {
     clearInterval(durationTimer);
     durationTimer = null;
   }
-  if (localStream.value) {
-    localStream.value.getTracks().forEach(track => track.stop());
-  }
+  callService.cleanup();
+  socketService.off('webrtc_offer');
+  socketService.off('webrtc_answer');
+  socketService.off('webrtc_ice_candidate');
+  socketService.off('call_accept');
+  socketService.off('call_end');
 });
 </script>
 
@@ -192,6 +266,16 @@ onUnmounted(() => {
   display: block;
   font-size: 14px;
   color: rgba(255,255,255,0.7);
+}
+
+.call-mode {
+  display: inline-block;
+  font-size: 11px;
+  color: rgba(255,255,255,0.5);
+  background: rgba(255,255,255,0.1);
+  padding: 2px 8px;
+  border-radius: 8px;
+  margin-top: 6px;
 }
 
 .call-visual {

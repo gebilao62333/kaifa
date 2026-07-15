@@ -19,7 +19,7 @@ const routes = [
     path: '/home',
     name: 'Home',
     component: lazyLoad('Home'),
-    meta: { preload: ['Login', 'Search', 'Activity'] }
+    meta: { preload: ['Login', 'Search'] }
   },
   {
     path: '/search',
@@ -27,9 +27,10 @@ const routes = [
     component: lazyLoad('Search')
   },
   {
-    path: '/activity',
-    name: 'Activity',
-    component: lazyLoad('Activity')
+    path: '/square',
+    name: 'Square',
+    component: lazyLoad('Square'),
+    meta: { title: '广场' }
   },
   {
     path: '/preferred',
@@ -103,14 +104,15 @@ const routes = [
     component: lazyLoad('Wallet')
   },
   {
+    path: '/card-recharge',
+    name: 'CardRecharge',
+    component: lazyLoad('CardRecharge'),
+    meta: { title: '卡密充值' }
+  },
+  {
     path: '/my-order',
     name: 'MyOrder',
     component: lazyLoad('MyOrder')
-  },
-  {
-    path: '/team-index',
-    name: 'TeamIndex',
-    component: lazyLoad('TeamIndex')
   },
   {
     path: '/project/dashboard',
@@ -184,107 +186,31 @@ const routes = [
   },
   {
     path: '/admin',
-    redirect: '/admin/dashboard'
-  },
-  {
-    path: '/admin/dashboard',
-    name: 'AdminDashboard',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/users',
-    name: 'AdminUsers',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/orders',
-    name: 'AdminOrders',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/withdraws',
-    name: 'AdminWithdraws',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/withdraw',
-    name: 'AdminWithdraw',
-    component: lazyLoad('AdminWithdraw')
-  },
-  {
-    path: '/admin/posts',
-    name: 'AdminPosts',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/reports',
-    name: 'AdminReports',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/banners',
-    name: 'AdminBanners',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/vip-packages',
-    name: 'AdminVipPackages',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/gift-management',
-    name: 'AdminGiftManagement',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/gifts',
-    name: 'AdminGifts',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/recharges',
-    name: 'AdminRecharges',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/games',
-    name: 'AdminGames',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/recommend',
-    name: 'AdminRecommend',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/companion-applications',
-    name: 'AdminCompanionApplications',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/virtual-users',
-    name: 'AdminVirtualUsers',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/admins',
-    name: 'AdminAdmins',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/roles',
-    name: 'AdminRoles',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/settings',
-    name: 'AdminSettings',
-    component: lazyLoad('AdminDashboard')
-  },
-  {
-    path: '/admin/api',
-    name: 'AdminApi',
-    component: lazyLoad('AdminDashboard')
+    component: () => import('../components/AdminLayout.vue'),
+    children: [
+      { path: '', redirect: '/admin/dashboard' },
+      { path: 'dashboard', name: 'AdminDashboard', component: () => import('../views/admin/AdminDashboard.vue') },
+      { path: 'users', name: 'AdminUsers', component: () => import('../views/admin/AdminUsers.vue') },
+      { path: 'orders', name: 'AdminOrders', component: () => import('../views/admin/AdminOrders.vue') },
+      { path: 'withdraws', name: 'AdminWithdraws', component: () => import('../views/admin/AdminWithdraws.vue') },
+      { path: 'withdraw', name: 'AdminWithdraw', component: lazyLoad('AdminWithdraw') },
+      { path: 'posts', name: 'AdminPosts', component: () => import('../views/admin/AdminPosts.vue') },
+      { path: 'reports', name: 'AdminReports', component: () => import('../views/admin/AdminReports.vue') },
+      { path: 'banners', name: 'AdminBanners', component: () => import('../views/admin/AdminBanners.vue') },
+      { path: 'vip-packages', name: 'AdminVipPackages', component: () => import('../views/admin/AdminVipPackages.vue') },
+      { path: 'gift-management', name: 'AdminGiftManagement', component: () => import('../views/admin/AdminGifts.vue') },
+      { path: 'gifts', name: 'AdminGifts', component: () => import('../views/admin/AdminGiftLogs.vue') },
+      { path: 'recharges', name: 'AdminRecharges', component: () => import('../views/admin/AdminRecharges.vue') },
+      { path: 'cards', name: 'AdminCards', component: () => import('../views/admin/AdminCards.vue') },
+      { path: 'games', name: 'AdminGames', component: () => import('../views/admin/AdminGames.vue') },
+      { path: 'recommend', name: 'AdminRecommend', component: () => import('../views/admin/AdminRecommend.vue') },
+      { path: 'companion-applications', name: 'AdminCompanionApplications', component: () => import('../views/admin/AdminCompanionApps.vue') },
+      { path: 'virtual-users', name: 'AdminVirtualUsers', component: () => import('../views/admin/AdminVirtualUsers.vue') },
+      { path: 'admins', name: 'AdminAdmins', component: () => import('../views/admin/AdminAdmins.vue') },
+      { path: 'roles', name: 'AdminRoles', component: () => import('../views/admin/AdminRoles.vue') },
+      { path: 'settings', name: 'AdminSettings', component: () => import('../views/admin/AdminSettings.vue') },
+      { path: 'api', name: 'AdminApi', component: () => import('../views/admin/AdminApi.vue') },
+    ]
   },
   {
     path: '/edit-profile',
@@ -431,8 +357,8 @@ const router = createRouter({
   }
 })
 
-const publicRoutes = ['Login', 'Home', 'Search', 'Activity', 'PostDetail', 'Preferred', 'Mine', 'Friend', 'AdminLogin']
-const publicPaths = ['/', '/login', '/home', '/search', '/activity', '/friend']
+const publicRoutes = ['Login', 'Home', 'Search', 'Square', 'PostDetail', 'Preferred', 'Mine', 'Friend', 'AdminLogin']
+const publicPaths = ['/', '/login', '/home', '/search', '/square', '/friend']
 
 router.beforeEach((to, from, next) => {
   if (to.path.startsWith('/admin')) {

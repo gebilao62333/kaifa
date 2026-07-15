@@ -38,7 +38,7 @@
 
         <div class="report-desc-section">
           <div class="section-label">补充说明（选填）</div>
-          <textarea
+          <textarea name="description"
             class="desc-input"
             v-model="description"
             placeholder="请详细描述举报原因，有助于我们更快处理..."

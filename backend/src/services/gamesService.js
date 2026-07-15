@@ -309,9 +309,59 @@ const getApplyStatus = async (userId) => {
   };
 };
 
+const searchCompanions = async (keyword, gameId, page, pageSize) => {
+  const { offset, limit } = parseQuery({ page, pageSize });
+
+  const where = { status: 2 };
+  if (gameId) {
+    where.game_id = gameId;
+  }
+  if (keyword) {
+    where[Op.or] = [
+      { tags: { [Op.like]: `%${keyword}%` } },
+      { '$user.nickname$': { [Op.like]: `%${keyword}%` } }
+    ];
+  }
+
+  const { count, rows } = await CompanionProfile.findAndCountAll({
+    where,
+    include: [{
+      model: User,
+      as: 'user',
+      attributes: ['id', 'nickname', 'avatar', 'city', 'lv', 'fans_num']
+    }],
+    offset,
+    limit,
+    order: [['star', 'DESC'], ['order_num', 'DESC']]
+  });
+
+  const companions = await Promise.all(rows.map(async (profile) => {
+    const user = profile.user || await User.findByPk(profile.user_id);
+    return {
+      userId: profile.user_id,
+      nickname: user?.nickname || '',
+      avatar: user?.avatar || '',
+      city: user?.city || '',
+      level: user?.lv || 1,
+      fansCount: user?.fans_num || 0,
+      gameId: profile.game_id,
+      servicePrice: Number(profile.price),
+      tags: profile.tags ? profile.tags.split(',') : [],
+      voiceIntro: profile.voice_intro,
+      voiceDuration: profile.voice_time,
+      totalOrders: profile.order_num,
+      rating: Number(profile.star),
+      ratingCount: profile.pingjia_num
+    };
+  }));
+
+  return { total: count, list: companions };
+};
+
 module.exports = {
   getCategories,
   getCompanions,
+  searchCompanions,
   createOrder,
   grabOrder,
   startOrder,

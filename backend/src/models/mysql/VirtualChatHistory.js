@@ -40,10 +40,10 @@ const VirtualChatHistory = sequelize.define('virtual_chat_history', {
   tableName: 'virtual_chat_history',
   timestamps: false,
   indexes: [
-    { fields: ['virtualUserId'] },
-    { fields: ['userId'] },
-    { fields: ['contextId'] },
-    { fields: ['createTime'] }
+    { fields: ['virtual_user_id'] },
+    { fields: ['user_id'] },
+    { fields: ['context_id'] },
+    { fields: ['create_time'] }
   ]
 });
 

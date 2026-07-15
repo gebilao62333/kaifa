@@ -35,7 +35,7 @@
 <script setup>
 import { ref, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { trtcService } from '../services/trtcService'
+import { callService } from '../services/callService'
 import { socketService } from '../services/socketService'
 
 const router = useRouter()
@@ -47,7 +47,8 @@ const callerInfo = ref({
   nickname: '',
   avatar: '',
   callType: 1,
-  callId: null
+  callId: null,
+  useWebRTC: false
 })
 
 let ringTimer = null
@@ -60,7 +61,8 @@ const showIncomingCall = (info) => {
     nickname: info.fromName || `用户${info.fromId}`,
     avatar: info.fromAvatar || '',
     callType: info.callType || 1,
-    callId: info.callId
+    callId: info.callId || 0,
+    useWebRTC: info.useWebRTC || false
   }
   visible.value = true
   ringing.value = true
@@ -84,7 +86,8 @@ const hideIncomingCall = () => {
     clearInterval(ringTimer)
     ringTimer = null
   }
-  socketService.off('call:cancelled', handleCallCancelled)
+  socketService.off('call_cancel', handleCallCancelled)
+  socketService.off('call_reject', handleCallCancelled)
 }
 
 const handleCallCancelled = () => {
@@ -92,13 +95,13 @@ const handleCallCancelled = () => {
 }
 
 const handleAccept = async () => {
-  if (!callerInfo.value.callId) {
-    console.error('缺少callId')
-    return
-  }
-
   try {
-    await trtcService.acceptCall(callerInfo.value.callId)
+    await callService.acceptCall({
+      callId: callerInfo.value.callId,
+      callerId: callerInfo.value.callerId,
+      callType: callerInfo.value.callType,
+      useWebRTC: callerInfo.value.useWebRTC
+    })
     hideIncomingCall()
 
     if (callerInfo.value.callType === 2) {
@@ -115,7 +118,7 @@ const handleAccept = async () => {
 const handleReject = async () => {
   if (callerInfo.value.callId) {
     try {
-      await trtcService.rejectCall(callerInfo.value.callId)
+      await callService.rejectCall(callerInfo.value.callId, callerInfo.value.useWebRTC)
     } catch (error) {
       console.error('拒绝失败:', error)
     }

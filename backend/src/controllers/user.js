@@ -10,10 +10,6 @@ const login = async (req, res) => {
       return response.badRequest(res, '用户名和密码不能为空');
     }
 
-    if (password.length < 6) {
-      return response.badRequest(res, '密码至少6位');
-    }
-
     const result = await authService.loginWithPassword(username, password);
     response.success(res, result, '登录成功');
   } catch (error) {

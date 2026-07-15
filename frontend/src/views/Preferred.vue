@@ -45,7 +45,16 @@
             :key="index" 
             @click="goChat(item)">
             <div class="avatar-wrap">
-              <img class="avatar" :src="item.avatar" alt="" />
+              <img 
+                v-if="item.avatar" 
+                class="avatar" 
+                :src="item.avatar" 
+                :alt="item.nickName"
+                @error="handleAvatarError($event, item)"
+              />
+              <div v-else class="avatar-placeholder">
+                {{ (item.nickName || '?').charAt(0) }}
+              </div>
               <div class="online-dot" v-if="item.isOnline"></div>
             </div>
             <div class="chat-info">
@@ -257,6 +266,12 @@ const getNoticeIcon = (type) => {
   return iconMap[type] || '🔔'
 }
 
+const handleAvatarError = (event, item) => {
+  // 图片加载失败时，将 avatar 设置为空以显示占位符
+  console.warn('头像加载失败:', item.nickName)
+  item.avatar = ''
+}
+
 onMounted(() => {
   updateKefuTime()
   loadChatList()
@@ -272,10 +287,10 @@ onUnmounted(() => {
 
 <style scoped>
 .preferred-page {
-  min-height: 100vh;
+  min-height: calc(100vh - 80px);
   background-color: #f5f5f5;
-  padding-bottom: 0;
-  padding-top: 0;
+  padding-bottom: 80px;
+  padding-top: 62px;
 }
 
 .content-container {
@@ -284,7 +299,6 @@ onUnmounted(() => {
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  height: 800px;
 }
 
 .header {
@@ -412,6 +426,19 @@ onUnmounted(() => {
   height: 48px;
   border-radius: 10px;
   object-fit: cover;
+}
+
+.avatar-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
 }
 
 .online-dot {
@@ -625,20 +652,21 @@ onUnmounted(() => {
 
 @media (min-width: 768px) {
   .preferred-page {
-    padding-top: 60px;
+    padding-top: 62px;
+    padding-bottom: 20px;
     padding-left: 16px;
     padding-right: 16px;
     max-width: 650px;
     margin: 0 auto;
   }
-  
+
   .content-container {
     margin: 0;
     margin-top: 12px;
   }
   
   .header {
-    max-width: 650px;
+    max-width: 620px;
     left: 50%;
     transform: translateX(-50%);
     border-radius: 0 0 16px 16px;

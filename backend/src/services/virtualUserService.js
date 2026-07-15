@@ -39,8 +39,9 @@ const createVirtualUser = async (data) => {
     throw new Error('用户名和昵称不能为空');
   }
 
+  let existing = null;
   try {
-    const existing = await VirtualUser.findOne({ where: { username } });
+    existing = await VirtualUser.findOne({ where: { username } });
     if (existing) {
       throw new Error('用户名已存在');
     }
@@ -81,8 +82,7 @@ const createVirtualUser = async (data) => {
   } catch (dbError) {
     console.warn('虚拟用户数据库操作失败，使用Mock数据:', dbError.message);
     
-    const existing = mockVirtualUsers.find(u => u.username === username);
-    if (existing) {
+    if (existing || mockVirtualUsers.find(u => u.username === username)) {
       throw new Error('用户名已存在');
     }
 

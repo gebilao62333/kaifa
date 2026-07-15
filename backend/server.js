@@ -1,4 +1,4 @@
-require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
 const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -30,6 +30,7 @@ try {
 }
 
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -173,8 +174,13 @@ try {
 const startServer = async () => {
   try {
     if (sequelize && sequelize.authenticate) {
-      await sequelize.authenticate();
-      console.log('✅ MySQL 数据库连接成功');
+      try {
+        await sequelize.authenticate();
+        console.log('✅ MySQL 数据库连接成功');
+      } catch (error) {
+        console.log('⚠️  MySQL 数据库连接失败:', error.message);
+        console.log('⚡ 将以 Mock 模式运行（无需数据库）');
+      }
     }
 
     if (connectMongo) {

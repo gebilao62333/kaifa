@@ -101,14 +101,7 @@
 - **请求体**: `{ "userId": 123 }`
 - **响应**: `{ "code": 200, "message": "关注成功" }`
 
-### 2.4 取消关注
-
-- **接口**: `POST /api/user/unfollow`
-- **认证**: 需要
-- **请求体**: `{ "userId": 123 }`
-- **响应**: `{ "code": 200, "message": "取消关注成功" }`
-
-### 2.5 获取粉丝列表
+### 2.4 获取粉丝列表
 
 - **接口**: `GET /api/user/fans`
 - **认证**: 需要
@@ -128,21 +121,21 @@
 }
 ```
 
-### 2.6 获取关注列表
+### 2.5 获取关注列表
 
 - **接口**: `GET /api/user/follows`
 - **认证**: 需要
 - **参数**: `?page=1&pageSize=20`
 - **响应**: 与粉丝列表格式相同
 
-### 2.7 发送短信验证码
+### 2.6 发送短信验证码
 
 - **接口**: `POST /api/user/send-sms`
 - **认证**: 不需要
 - **限流**: `smsLimiter`
 - **请求体**: `{ "mobile": "13800138000" }`
 
-### 2.8 手机号登录
+### 2.7 手机号登录
 
 - **接口**: `POST /api/user/login-mobile`
 - **认证**: 不需要
@@ -160,28 +153,28 @@
 }
 ```
 
-### 2.9 账号密码登录
+### 2.8 账号密码登录
 
 - **接口**: `POST /api/user/login`
 - **认证**: 不需要
 - **限流**: `loginLimiter`
 - **请求体**: `{ "username": "xxx", "password": "xxx" }`
 
-### 2.10 注册
+### 2.9 注册
 
 - **接口**: `POST /api/user/register`
 - **认证**: 不需要
 - **限流**: `loginLimiter`
 - **请求体**: `{ "phone": "13800138000", "password": "xxx", "code": "1234" }`
 
-### 2.11 重置密码
+### 2.10 重置密码
 
 - **接口**: `POST /api/user/reset-password`
 - **认证**: 不需要
 - **限流**: `loginLimiter`
 - **请求体**: `{ "phone": "13800138000", "password": "xxx", "code": "1234" }`
 
-### 2.12 第三方登录
+### 2.11 第三方登录
 
 - **接口**: `POST /api/user/login-third`
 - **认证**: 不需要
@@ -274,7 +267,7 @@
 
 ### 3.5 标记已读
 
-- **接口**: `POST /api/chat/read`
+- **接口**: `POST /api/chat/mark-read`
 - **认证**: 需要
 - **请求体**: `{ "targetUserId": 123 }`
 
@@ -362,8 +355,15 @@
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/api/pay/validate-card` | POST | 验证卡券 |
-| `/api/pay/use-card` | POST | 使用卡券 |
+| `/api/pay/validate-card` | POST | 不需要 | 验证卡券 |
+| `/api/pay/use-card` | POST | 需要 | 使用卡券 |
+| `/api/pay/wx-callback` | POST | 不需要 | 微信支付回调(新版) |
+| `/api/pay/recharge/list` | GET | 不需要 | 充值记录列表 |
+| `/api/pay/wallet/balance` | GET | 需要 | 获取钱包余额 |
+| `/api/pay/wallet/recharge` | POST | 需要 | 钱包充值 |
+| `/api/pay/payment/history` | GET | 需要 | 支付历史记录 |
+| `/api/pay/pay/create` | POST | 需要 | 创建支付订单 |
+| `/api/pay/pay/notify` | POST | 不需要 | 支付回调通知 |
 
 ---
 
@@ -573,6 +573,10 @@
 
 ## 11. 音视频通话模块 (`/api/trtc`)
 
+> **双通道支持**：TRTC（腾讯云）为主通道，WebRTC（浏览器原生）为备选通道。前端通过 `callService` 自动检测和切换。
+
+### 11.1 通话核心接口
+
 | 接口 | 方法 | 认证 | 说明 |
 |------|------|------|------|
 | `/api/trtc/auth` | GET | 需要 | 获取TRTC签名 |
@@ -582,6 +586,22 @@
 | `/api/trtc/accept` | POST | 需要 | 接受通话 |
 | `/api/trtc/end` | POST | 需要 | 结束通话 |
 | `/api/trtc/history` | GET | 需要 | 通话记录 |
+
+### 11.2 TRTC 房间管理
+
+| 接口 | 方法 | 认证 | 说明 |
+|------|------|------|------|
+| `/api/trtc/room/create` | POST | 需要 | 创建TRTC房间 |
+| `/api/trtc/room/enter` | POST | 需要 | 进入TRTC房间 |
+| `/api/trtc/room/leave` | POST | 需要 | 离开TRTC房间 |
+| `/api/trtc/room/:roomId` | GET | 需要 | 获取房间信息 |
+
+### 11.3 通话计费
+
+| 接口 | 方法 | 认证 | 说明 |
+|------|------|------|------|
+| `/api/trtc/billing/start` | POST | 需要 | 开始通话计费 |
+| `/api/trtc/billing/end` | POST | 需要 | 结束通话计费 |
 
 ---
 
@@ -602,12 +622,10 @@
 
 | 接口 | 方法 | 认证 | 说明 |
 |------|------|------|------|
-| `/api/album/list` | GET | 需要 | 获取相册列表 |
-| `/api/album/detail` | GET | 需要 | 获取照片详情 |
+| `/api/album/photos` | GET | 需要 | 获取相册照片列表 |
 | `/api/album/upload` | POST | 需要 | 上传照片 |
 | `/api/album/delete` | POST | 需要 | 删除照片 |
 | `/api/album/like` | POST | 需要 | 点赞照片 |
-| `/api/album/unlock` | POST | 需要 | 解锁付费照片 |
 
 ---
 
@@ -695,6 +713,14 @@
 | 事件 | 说明 | 数据 |
 |------|------|------|
 | `private_message` | 发送私聊消息 | `{ toId, content, type, mediaUrl, duration }` |
+| `call_invite` | 发起通话邀请 | `{ toId, callType, trtcRoomId, callId, useWebRTC }` |
+| `call_cancel` | 取消通话邀请 | `{ toId }` |
+| `call_reject` | 拒绝通话 | `{ toId }` |
+| `call_accept` | 接受通话 | `{ toId }` |
+| `call_end` | 结束通话 | `{ toId, duration }` |
+| `webrtc_offer` | WebRTC Offer | `{ toId, sdp }` |
+| `webrtc_answer` | WebRTC Answer | `{ toId, sdp }` |
+| `webrtc_ice_candidate` | WebRTC ICE候选 | `{ toId, candidate }` |
 
 ### 17.3 服务端事件
 
@@ -704,11 +730,14 @@
 | `private_message_ack` | 消息送达回执 | `{ messageId, status }` |
 | `typing` | 对方正在输入 | `{ userId }` |
 | `message_revoked` | 消息被撤回 | `{ messageId }` |
-| `call_invite` | 通话邀请 | `{ roomId, userId, type }` |
-| `call_cancel` | 通话取消 | `{ roomId }` |
-| `call_reject` | 通话被拒 | `{ roomId }` |
-| `call_accept` | 通话接受 | `{ roomId }` |
-| `call_end` | 通话结束 | `{ roomId, duration }` |
+| `call_invite` | 来电邀请 | `{ fromId, fromName, fromAvatar, callType, trtcRoomId, callId, useWebRTC }` |
+| `call_cancel` | 对方取消通话 | `{ fromId }` |
+| `call_reject` | 通话被拒绝 | `{ fromId }` |
+| `call_accept` | 通话被接受 | `{ fromId }` |
+| `call_end` | 通话结束 | `{ fromId, duration }` |
+| `webrtc_offer` | 收到WebRTC Offer | `{ fromId, sdp }` |
+| `webrtc_answer` | 收到WebRTC Answer | `{ fromId, sdp }` |
+| `webrtc_ice_candidate` | 收到ICE候选 | `{ fromId, candidate }` |
 
 ---
 
@@ -840,6 +869,7 @@ npm run test:coverage
 
 | 版本 | 日期 | 更新内容 | 状态 |
 |------|------|----------|------|
-| v5.7.2 | 2026-05-23 | 添加测试规范、完成一致性测试验证 | ✅ 最新 |
+| v5.8.0 | 2026-07-15 | 新增WebRTC双通道信令事件、TRTC房间管理和计费接口、支付模块扩展接口；移除不存在的接口（unfollow、album/detail、album/unlock、upload/file、upload/token）；修正chat/mark-read路径；更新call_invite数据结构 | ✅ 最新 |
+| v5.7.2 | 2026-05-23 | 添加测试规范、完成一致性测试验证 | ✅ 已完成 |
 | v5.7.1 | 2026-05-23 | 统一字段命名、移除活动/团队模块 | ✅ 已完成 |
 | v5.7.0 | 2026-05-20 | 初始版本 | ✅ 已完成 |

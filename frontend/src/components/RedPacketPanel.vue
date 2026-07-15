@@ -20,7 +20,7 @@
         <div class="amount-card">
           <div class="amount-input-wrap">
             <span class="amount-label">💰</span>
-            <input 
+            <input name="amount" 
               class="amount-input" 
               type="number" 
               v-model="amount" 
@@ -36,7 +36,7 @@
 
       <div class="message-section">
         <span class="section-label">祝福语</span>
-        <input 
+        <input name="message" 
           class="message-input" 
           type="text" 
           v-model="message" 

@@ -8,7 +8,7 @@ const Withdraw = sequelize.define('xn_withdraw', {
     autoIncrement: true
   },
   user_id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     allowNull: false
   },
   money: {
@@ -72,5 +72,8 @@ const Withdraw = sequelize.define('xn_withdraw', {
     { fields: ['create_time'] }
   ]
 });
+
+const User = require('./User');
+Withdraw.belongsTo(User, { as: 'user', foreignKey: 'user_id' });
 
 module.exports = Withdraw;

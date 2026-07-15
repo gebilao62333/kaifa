@@ -304,6 +304,40 @@ const adminService = {
     return request('/api/admin/settings', 'PUT', settings)
   },
 
+  // ==================== Banner 管理 ====================
+
+  async getBanners(params = {}) {
+    const { page = 1, pageSize = 20 } = params
+    return request('/api/admin/banners', 'GET', { page, pageSize })
+  },
+
+  async createBanner(bannerData) {
+    return request('/api/admin/banners', 'POST', bannerData)
+  },
+
+  async updateBanner(bannerId, bannerData) {
+    return request('/api/admin/banners/' + bannerId, 'PUT', bannerData)
+  },
+
+  async deleteBanner(bannerId) {
+    return request('/api/admin/banners/' + bannerId, 'DELETE')
+  },
+
+  // ==================== 卡密管理 ====================
+
+  async getCards(params = {}) {
+    const { page = 1, pageSize = 20 } = params
+    return request('/api/admin/cards', 'GET', { page, pageSize })
+  },
+
+  async createCard(cardData) {
+    return request('/api/admin/cards', 'POST', cardData)
+  },
+
+  async deleteCard(cardId) {
+    return request('/api/admin/cards/' + cardId, 'DELETE')
+  },
+
   async getDashboardStats() {
     return request('/api/admin/dashboard', 'GET')
   }

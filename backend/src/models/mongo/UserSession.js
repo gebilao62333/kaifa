@@ -43,7 +43,6 @@ const userSessionSchema = new mongoose.Schema({
   collection: 'user_sessions'
 });
 
-userSessionSchema.index({ userId: 1 });
 userSessionSchema.index({ updateTime: -1 });
 userSessionSchema.index({ userId: 1, peerId: 1 }, { unique: true });
 

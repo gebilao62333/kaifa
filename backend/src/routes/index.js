@@ -44,6 +44,9 @@ const setupRoutes = (app) => {
     { path: './admin', name: '管理员', prefix: '/api/admin' },
     { path: './adminManage', name: '管理员管理', prefix: '/api/admin-manage' },
     { path: './banner', name: 'Banner', prefix: '/api/banner' },
+    { path: './config', name: '配置', prefix: '/api/config' },
+    { path: './search', name: '搜索', prefix: '/api/search' },
+    { path: './notice', name: '公告', prefix: '/api/notice' },
     
     { path: './trtc', name: '音视频', prefix: '/api/trtc' },
     { path: './report', name: '举报', prefix: '/api/report' },

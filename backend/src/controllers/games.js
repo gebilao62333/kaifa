@@ -160,9 +160,26 @@ const getApplyStatus = async (req, res) => {
   }
 };
 
+const searchCompanions = async (req, res) => {
+  try {
+    const { keyword, gameId, page = 1, pageSize = 20 } = req.query;
+    const result = await gamesService.searchCompanions(
+      keyword || null,
+      gameId ? parseInt(gameId) : null,
+      parseInt(page),
+      parseInt(pageSize)
+    );
+    response.success(res, result);
+  } catch (error) {
+    console.error('搜索陪玩师错误:', error);
+    response.error(res, error.message);
+  }
+};
+
 module.exports = {
   getCategories,
   getCompanions,
+  searchCompanions,
   createOrder,
   grabOrder,
   startOrder,

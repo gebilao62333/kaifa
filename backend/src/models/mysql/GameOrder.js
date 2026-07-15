@@ -13,11 +13,11 @@ const GameOrder = sequelize.define('xn_game_order', {
     allowNull: false
   },
   user_id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     allowNull: false
   },
   target_user_id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     allowNull: false
   },
   game_id: {
@@ -106,5 +106,9 @@ const GameOrder = sequelize.define('xn_game_order', {
     { fields: ['status', 'create_time'] }
   ]
 });
+
+const User = require('./User');
+GameOrder.belongsTo(User, { as: 'buyer', foreignKey: 'user_id' });
+GameOrder.belongsTo(User, { as: 'seller', foreignKey: 'target_user_id' });
 
 module.exports = GameOrder;

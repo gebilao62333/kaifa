@@ -208,8 +208,8 @@ defineExpose({
   height: 50px;
   position: fixed;
   top: 0;
-  left: 12px;
-  right: 12px;
+  left: 0;
+  right: 0;
   z-index: 100;
   border-radius: 0 0 16px 16px;
 }
@@ -264,7 +264,7 @@ defineExpose({
 /* PC端导航栏优化 */
 @media (min-width: 768px) {
   .home-page {
-    padding-top: 60px;
+    padding-top: 62px;
     padding-bottom: 20px;
     padding-left: 16px;
     padding-right: 16px;
@@ -279,7 +279,8 @@ defineExpose({
   
   .nav-bar {
     max-width: 620px;
-    margin: 0 auto;
+    left: 50%;
+    transform: translateX(-50%);
     border-radius: 0 0 16px 16px;
     padding: 12px 24px;
     height: 50px;

@@ -196,8 +196,13 @@ export const useChatStore = defineStore('chat', {
       this.hasMoreMessages = true
     },
 
+    setCurrentRoom(roomId) {
+      this.currentRoomId = roomId
+    },
+
     addMessage(message) {
-      const exists = this.messageList.some(m => m.messageId === message.messageId)
+      const msgId = message.messageId ?? message.id
+      const exists = this.messageList.some(m => (m.messageId ?? m.id) === msgId)
       if (!exists) {
         this.messageList.push(message)
       }

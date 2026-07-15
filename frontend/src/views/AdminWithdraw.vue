@@ -95,7 +95,7 @@
           <span class="close-btn" @click="showReject = false">×</span>
         </div>
         <div class="modal-body">
-          <textarea v-model="rejectReason" placeholder="请输入拒绝原因" rows="3"></textarea>
+          <textarea name="rejectReason" v-model="rejectReason" placeholder="请输入拒绝原因" rows="3"></textarea>
         </div>
         <div class="modal-footer">
           <div class="cancel-btn" @click="showReject = false">取消</div>

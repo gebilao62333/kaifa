@@ -144,6 +144,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import homeService from '@/services/homeService'
 
 const router = useRouter()
 const inputRef = ref(null)
@@ -168,12 +169,20 @@ const searchResults = reactive({
   games: []
 })
 
-onMounted(() => {
+onMounted(async () => {
   const history = localStorage.getItem('searchHistory')
   if (history) {
     searchHistory.value = JSON.parse(history)
   }
   inputRef.value?.focus()
+  try {
+    const res = await homeService.getHotSearch()
+    if (res && res.code === 200 && res.data && res.data.list && res.data.list.length) {
+      hotList.value = res.data.list
+    }
+  } catch (e) {
+    // 保留默认热搜词
+  }
 })
 
 const onSearch = () => {
@@ -182,19 +191,32 @@ const onSearch = () => {
   }
 }
 
-const doSearch = () => {
+const doSearch = async () => {
   const keyword = searchKeyword.value.trim()
   if (!keyword) return
 
   loading.value = true
   saveToHistory(keyword)
 
-  setTimeout(() => {
+  try {
+    const res = await homeService.searchCompanions({ keyword, page: 1, pageSize: 20 })
+    const list = (res && res.code === 200 && res.data) ? (res.data.list || []) : []
+    searchResults.users = list.map(c => ({
+      userId: c.userId,
+      nickName: c.nickname || '',
+      avatar: c.avatar || '',
+      level: c.level || 1,
+      isFollow: false
+    }))
+    searchResults.posts = []
+    searchResults.games = []
+  } catch (e) {
     searchResults.users = mockSearchUsers(keyword)
     searchResults.posts = mockSearchPosts(keyword)
     searchResults.games = mockSearchGames(keyword)
+  } finally {
     loading.value = false
-  }, 300)
+  }
 }
 
 const mockSearchUsers = (keyword) => {

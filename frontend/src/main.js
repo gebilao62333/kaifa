@@ -28,6 +28,18 @@ app.config.errorHandler = (err, vm, info) => {
 }
 
 window.addEventListener('error', (event) => {
+  // 过滤浏览器扩展或外部脚本引起的非关键错误
+  const errorMsg = event.message || event.error?.message || ''
+
+  // 忽略 getBoundingClientRect 相关的外部脚本错误（通常是浏览器扩展导致）
+  if (
+    (errorMsg.includes('getBoundingClientRect') && event.error?.message === 'Script error') ||
+    (errorMsg.includes('null') && errorMsg.includes('reading') && !event.filename?.includes('/src/'))
+  ) {
+    console.warn('[Global Error Filter] Ignored external script error:', errorMsg)
+    return true  // 阻止错误传播到控制台
+  }
+
   console.error('Global Error:', event.error)
 })
 

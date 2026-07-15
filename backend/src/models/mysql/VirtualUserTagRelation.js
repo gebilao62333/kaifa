@@ -35,9 +35,9 @@ const VirtualUserTagRelation = sequelize.define('virtual_user_tag_relation', {
   tableName: 'virtual_user_tag_relation',
   timestamps: false,
   indexes: [
-    { fields: ['virtualUserId'] },
-    { fields: ['tagId'] },
-    { fields: ['virtualUserId', 'tagId'], unique: true }
+    { fields: ['virtual_user_id'] },
+    { fields: ['tag_id'] },
+    { fields: ['virtual_user_id', 'tag_id'], unique: true }
   ]
 });
 

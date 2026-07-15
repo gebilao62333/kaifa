@@ -28,6 +28,10 @@
           <span class="action-icon">💎</span>
           <span class="action-text">充值</span>
         </div>
+        <div class="action-btn card" @click="goCardRecharge">
+          <span class="action-icon">🎫</span>
+          <span class="action-text">卡密充值</span>
+        </div>
         <div class="action-btn withdraw" @click="goWithdraw">
           <span class="action-icon">💸</span>
           <span class="action-text">提现</span>
@@ -150,6 +154,10 @@ const goRecharge = () => {
 
 const goWithdraw = () => {
   router.push('/withdraw')
+}
+
+const goCardRecharge = () => {
+  router.push('/card-recharge')
 }
 
 const goIncomeRecords = () => {
