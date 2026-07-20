@@ -27,10 +27,10 @@ defineEmits(['navigate'])
 
 <style scoped>
 .quick-nav {
-  padding: 14px 0px;
-  background-color: #fff;
-  margin: 14px 0px;
-  border-radius: 3px;
+  padding: 16px 0px;
+  background-color: #fafafa;
+  margin: 16px 0px;
+  border-radius: 14px;
   height: 120px;
 }
 
@@ -67,9 +67,9 @@ defineEmits(['navigate'])
 /* PC端快捷导航优化 */
 @media (min-width: 768px) {
   .quick-nav {
-    padding: 12px 0;
-    margin: 12px 0;
-    border-radius: 12px;
+    padding: 16px 0;
+    margin: 16px 0;
+    border-radius: 14px;
     height: auto;
   }
   

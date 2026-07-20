@@ -91,9 +91,8 @@ defineEmits(['load-more', 'user-click', 'retry'])
 
 <style scoped>
 .recommend-section {
-  padding: 20px;
-  margin-top: 10px;
-  margin-bottom: 10px;
+  padding: 0;
+  margin-top: 4px;
   border-radius: 4px;
 }
 
@@ -202,26 +201,33 @@ defineEmits(['load-more', 'user-click', 'retry'])
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 0 16px;
+  padding: 0;
 }
 
 .companion-card {
   width: calc(50% - 6px);
-  background-color: #fff;
-  border-radius: 12px;
-  padding: 10px;
+  background-color: #fafafa;
+  border-radius: 14px;
+  padding: 14px;
   position: relative;
-  text-align: left;
+  text-align: center;
   cursor: pointer;
+  box-sizing: border-box;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.companion-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
 }
 
 .name-and-status {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-size: 20px;
-  width: 200px;
+  width: 100%;
 }
 
 .vip-badge-mini {
@@ -233,8 +239,6 @@ defineEmits(['load-more', 'user-click', 'retry'])
   border-radius: 8px;
   line-height: 1.5;
   flex-shrink: 0;
-  margin-left: 20px;
-  margin-right: 20px;
 }
 
 .admin-recommend-badge {
@@ -250,7 +254,6 @@ defineEmits(['load-more', 'user-click', 'retry'])
 
 .name-and-status .online-status {
   margin-left: auto;
-  margin-right: -5px;
 }
 
 .avatar-wrapper {
@@ -296,10 +299,10 @@ defineEmits(['load-more', 'user-click', 'retry'])
   gap: 4px;
   font-size: 11px;
   margin-bottom: 0;
-  padding: 2px 8px;
+  padding: 2px 10px;
   border-radius: 20px;
-  width: 50px;
   height: 22px;
+  white-space: nowrap;
 }
 
 .online-status.online {
@@ -406,7 +409,7 @@ defineEmits(['load-more', 'user-click', 'retry'])
 /* PC端推荐卡片优化 */
 @media (min-width: 768px) {
   .recommend-section {
-    padding: 16px;
+    padding: 0;
   }
   
   .section-header {
@@ -424,10 +427,10 @@ defineEmits(['load-more', 'user-click', 'retry'])
   
   .companion-card {
     width: calc(50% - 7px);
-    padding: 12px;
+    padding: 14px;
     border-radius: 14px;
-    background: #fff;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    background: #fafafa;
+    box-shadow: none;
   }
   
   .name-and-status {

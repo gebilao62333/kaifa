@@ -253,6 +253,8 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
       'Content-Type': 'application/json',
       ...headers
     },
+    // 禁用缓存，确保每次刷新都能拉取到最新数据
+    cache: 'no-store',
     signal: controller.signal
   }
 
@@ -275,7 +277,8 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
     clearTimeout(timeoutId)
 
     if (response.status === 401) {
-      if (!isRedirecting) {
+      // 仅对“需要登录”的请求才强制跳转登录页，公开页面（如首页）应交给调用方优雅处理
+      if (requireLogin && !isRedirecting) {
         isRedirecting = true
         localStorage.removeItem('token')
         localStorage.removeItem('pinia-app-state')

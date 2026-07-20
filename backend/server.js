@@ -171,34 +171,36 @@ try {
   });
 }
 
+// 超时保护：确保任何外部依赖（DB/Redis）连接挂起都不会阻塞 HTTP 服务启动
+const withTimeout = (promise, ms, label) => {
+  return Promise.race([
+    Promise.resolve(promise).catch((e) => {
+      console.log(`⚠️  ${label} 连接失败:`, e && e.message)
+    }),
+    new Promise((resolve) =>
+      setTimeout(() => {
+        console.log(`⚠️  ${label} 连接超时（${ms}ms），跳过并继续启动`)
+        resolve()
+      }, ms)
+    )
+  ])
+}
+
 const startServer = async () => {
   try {
     if (sequelize && sequelize.authenticate) {
-      try {
-        await sequelize.authenticate();
-        console.log('✅ MySQL 数据库连接成功');
-      } catch (error) {
-        console.log('⚠️  MySQL 数据库连接失败:', error.message);
-        console.log('⚡ 将以 Mock 模式运行（无需数据库）');
-      }
+      await withTimeout(sequelize.authenticate(), 5000, 'MySQL 数据库')
+      console.log('✅ MySQL 数据库检查完成（失败时自动降级 Mock）')
     }
 
     if (connectMongo) {
-      try {
-        await connectMongo();
-        console.log('✅ MongoDB 连接成功');
-      } catch (error) {
-        console.log('⚠️  MongoDB 连接失败:', error.message);
-      }
+      await withTimeout(connectMongo(), 6000, 'MongoDB')
+      console.log('✅ MongoDB 检查完成')
     }
 
     if (connectRedis) {
-      try {
-        await connectRedis();
-        console.log('✅ Redis 连接成功');
-      } catch (error) {
-        console.log('⚠️  Redis 连接失败:', error.message);
-      }
+      await withTimeout(connectRedis(), 6000, 'Redis')
+      console.log('✅ Redis 检查完成')
     }
 
     server.listen(config.port, () => {

@@ -4,7 +4,8 @@ const gamesController = require('../controllers/games');
 const { authMiddleware } = require('../middlewares');
 
 router.get('/categories', gamesController.getCategories);
-router.get('/companions', authMiddleware, gamesController.getCompanions);
+// 首页公开陪玩师列表（不依赖登录态，供未登录用户浏览）
+router.get('/companions', gamesController.getCompanions);
 router.get('/search', authMiddleware, gamesController.searchCompanions);
 router.post('/push', authMiddleware, gamesController.createOrder);
 router.post('/grab', authMiddleware, gamesController.grabOrder);

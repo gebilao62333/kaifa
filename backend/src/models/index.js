@@ -372,7 +372,52 @@ if (config.useMockDb) {
     }
   };
 
-  const CompanionProfile = createMockModel('CompanionProfile');
+  const CompanionProfile = {
+    ...createMockModel('CompanionProfile'),
+    // 种子数据：status=2 表示已认证陪玩师，user_id 关联 User._users（1~5）
+    _profiles: [
+      { id: 1, user_id: 5, game_id: 1, status: 2, price: 30.0, tags: '王者荣耀,国服打野,声音好听', voice_intro: '', voice_time: 12, order_num: 320, star: 4.9, pingjia_num: 210 },
+      { id: 2, user_id: 1, game_id: 1, status: 2, price: 25.0, tags: '王者荣耀,上分快,陪练', voice_intro: '', voice_time: 8, order_num: 180, star: 4.8, pingjia_num: 130 },
+      { id: 3, user_id: 2, game_id: 2, status: 2, price: 20.0, tags: '英雄联盟,温柔,妹子', voice_intro: '', voice_time: 15, order_num: 95, star: 4.7, pingjia_num: 76 },
+      { id: 4, user_id: 4, game_id: 2, status: 2, price: 18.0, tags: '英雄联盟,新人,活泼', voice_intro: '', voice_time: 6, order_num: 40, star: 4.6, pingjia_num: 28 },
+      { id: 5, user_id: 1, game_id: 3, status: 2, price: 22.0, tags: '和平精英,枪法准,带吃鸡', voice_intro: '', voice_time: 10, order_num: 60, star: 4.5, pingjia_num: 45 },
+      { id: 6, user_id: 5, game_id: 3, status: 2, price: 35.0, tags: '和平精英,主播,技术流', voice_intro: '', voice_time: 20, order_num: 150, star: 4.9, pingjia_num: 120 }
+    ],
+    findAndCountAll: async (options = {}) => {
+      let profiles = [...CompanionProfile._profiles];
+      const { where = {}, offset = 0, limit = 20, order = [['star', 'DESC'], ['order_num', 'DESC']] } = options;
+
+      if (where.status !== undefined) {
+        profiles = profiles.filter(p => p.status === where.status);
+      }
+      if (where.game_id !== undefined) {
+        profiles = profiles.filter(p => p.game_id === where.game_id);
+      }
+
+      profiles.sort((a, b) => {
+        for (const [field, dir] of order) {
+          const av = a[field];
+          const bv = b[field];
+          if (av === bv) continue;
+          return dir === 'DESC' ? (bv - av) : (av - bv);
+        }
+        return 0;
+      });
+
+      const count = profiles.length;
+      const rows = profiles.slice(offset, offset + limit);
+      return { count, rows };
+    },
+    findByPk: async (id) => CompanionProfile._profiles.find(p => p.id === parseInt(id)) || null,
+    findOne: async (options = {}) => {
+      const { where = {} } = options;
+      return CompanionProfile._profiles.find(p => {
+        if (where.user_id !== undefined && p.user_id !== where.user_id) return false;
+        if (where.status !== undefined && p.status !== where.status) return false;
+        return true;
+      }) || null;
+    }
+  };
 
   const Post = {
     ...createMockModel('Post'),

@@ -137,6 +137,52 @@ const loadingChat = ref(true)
 const loadingNotice = ref(true)
 let noticeUnsubscribe = null
 
+// ============ 消息已读状态的本地持久化 ============
+// 消息页使用 mock 数据，refresh 时会重新初始化未读状态，导致刷新前用户已做的
+// “已读”操作被抹掉。这里把“已读会话/已读通知”的 id 集合持久化到 localStorage，
+// 刷新后据此把对应条目的未读归零，从而保证刷新前后状态、角标完全一致。
+const MSG_STATE_KEY = 'preferred_message_state'
+
+const loadMsgState = () => {
+  try {
+    const raw = localStorage.getItem(MSG_STATE_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      return {
+        readChatIds: Array.isArray(parsed.readChatIds) ? parsed.readChatIds : [],
+        readNoticeIds: Array.isArray(parsed.readNoticeIds) ? parsed.readNoticeIds : []
+      }
+    }
+  } catch (e) {
+    console.warn('读取消息已读状态失败:', e)
+  }
+  return { readChatIds: [], readNoticeIds: [] }
+}
+
+const saveMsgState = (state) => {
+  try {
+    localStorage.setItem(MSG_STATE_KEY, JSON.stringify(state))
+  } catch (e) {
+    console.warn('保存消息已读状态失败:', e)
+  }
+}
+
+const msgState = loadMsgState()
+
+const markChatRead = (id) => {
+  if (!msgState.readChatIds.includes(id)) {
+    msgState.readChatIds.push(id)
+    saveMsgState(msgState)
+  }
+}
+
+const markNoticeRead = (id) => {
+  if (!msgState.readNoticeIds.includes(id)) {
+    msgState.readNoticeIds.push(id)
+    saveMsgState(msgState)
+  }
+}
+
 const formatTime = (timestamp) => {
   const now = Date.now()
   const diff = now - timestamp
@@ -198,7 +244,16 @@ const loadChatList = async () => {
         isOnline: false
       }
     ]
-    chatUnread.value = chatList.value.reduce((sum, item) => sum + (item.unreadCount || 0), 0)
+
+    // 关键：应用本地持久化的已读状态，使刷新后未读会话数与刷新前完全一致
+    chatList.value.forEach(item => {
+      if (msgState.readChatIds.includes(item.id)) {
+        item.unreadCount = 0
+      }
+    })
+
+    // 角标按“未读会话数”统计，使其与列表中带红点的会话条数一致（而非未读消息总和）
+    chatUnread.value = chatList.value.filter(item => (item.unreadCount || 0) > 0).length
     chatStore.setChatUnread(chatUnread.value)
   } catch (error) {
     console.error('加载聊天列表失败:', error)
@@ -217,7 +272,16 @@ const loadNoticeList = async () => {
       { id: 4, type: 'reserve', title: '预约提醒', content: '明天下午3点有一场预约', createTime: Date.now() - 172800000, isRead: true },
       { id: 5, type: 'gift', title: '收到礼物', content: '小美 送给你一份礼物', createTime: Date.now() - 259200000, isRead: true }
     ]
+
+    // 关键：应用本地持久化的已读状态，使刷新后通知未读数与刷新前完全一致
+    noticeList.value.forEach(item => {
+      if (msgState.readNoticeIds.includes(item.id)) {
+        item.isRead = true
+      }
+    })
+
     noticeUnread.value = noticeList.value.filter(item => !item.isRead).length
+    chatStore.setNoticeUnread(noticeUnread.value)
   } catch (error) {
     console.error('加载通知列表失败:', error)
   } finally {
@@ -239,7 +303,10 @@ const goKefu = () => {
 
 const goChat = (item) => {
   item.unreadCount = 0
-  chatUnread.value = chatList.value.reduce((sum, item) => sum + (item.unreadCount || 0), 0)
+  // 持久化“已读会话”，刷新后仍记为已读
+  markChatRead(item.id)
+  // 按未读会话数统计，与列表中带红点的会话条数保持一致
+  chatUnread.value = chatList.value.filter(c => (c.unreadCount || 0) > 0).length
   chatStore.setChatUnread(chatUnread.value)
   router.push(`/chat-room/${item.toId}`)
 }
@@ -247,12 +314,23 @@ const goChat = (item) => {
 const readNotice = (item) => {
   if (item.isRead) return
   item.isRead = true
+  // 持久化“已读通知”，刷新后仍记为已读
+  markNoticeRead(item.id)
   noticeUnread.value = noticeList.value.filter(item => !item.isRead).length
+  chatStore.setNoticeUnread(noticeUnread.value)
 }
 
 const markAllRead = () => {
-  noticeList.value.forEach(item => item.isRead = true)
+  noticeList.value.forEach(item => {
+    item.isRead = true
+    // 持久化所有通知为已读，刷新后保持一致
+    if (!msgState.readNoticeIds.includes(item.id)) {
+      msgState.readNoticeIds.push(item.id)
+    }
+  })
+  saveMsgState(msgState)
   noticeUnread.value = 0
+  chatStore.setNoticeUnread(0)
 }
 
 const getNoticeIcon = (type) => {
@@ -382,6 +460,9 @@ onUnmounted(() => {
 
 .content {
   padding: 16px;
+  width: 100% !important;
+  height: auto !important;
+  box-sizing: border-box;
 }
 
 .chat-list {

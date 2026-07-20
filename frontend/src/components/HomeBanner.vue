@@ -94,7 +94,7 @@ onUnmounted(() => {
 
 <style scoped>
 .banner-section {
-  margin: 10px 20px 0;
+  margin: 4px 0 0;
 }
 
 .banner-swiper {

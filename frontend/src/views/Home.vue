@@ -121,20 +121,39 @@ const loadRecommendCompanions = async (reset = false) => {
       pageSize: 10
     })
 
-    if (result.code === 200 && result.data) {
-      const list = result.data.list || result.data
-      if (list.length > 0) {
-        const adminUsers = reset ? getAdminRecommendUsers() : []
-        recommendList.value = [...adminUsers, ...recommendList.value, ...list]
-        currentPage.value++
-        hasMore.value = list.length >= 10
-      } else {
-        hasMore.value = false
-      }
+    // 兼容后端成功码 200 / 0，避免仅判断 ===200 漏掉有效数据
+    const isSuccess = result && (result.code === 200 || result.code === 0)
+    if (!isSuccess) {
+      throw new Error(result && result.message ? result.message : '数据加载失败')
+    }
+
+    const list = (result.data && (result.data.list || result.data)) || []
+    const adminUsers = reset ? getAdminRecommendUsers() : []
+
+    if (list.length > 0) {
+      recommendList.value = [...adminUsers, ...recommendList.value, ...list]
+      currentPage.value++
+      hasMore.value = list.length >= 10
+    } else if (reset) {
+      // 接口无数据时用兜底数据，保证页面始终有内容
+      recommendList.value = adminUsers
+      hasMore.value = false
+    } else {
+      hasMore.value = false
     }
   } catch (error) {
     console.error('加载推荐失败:', error)
-    loadError.value = recommendList.value.length === 0
+    if (reset) {
+      // 请求失败（如未登录/网络异常）时回退到兜底数据，避免整页空白
+      const fallback = getAdminRecommendUsers()
+      if (fallback.length > 0) {
+        recommendList.value = fallback
+        hasMore.value = false
+        loadError.value = false
+      } else {
+        loadError.value = recommendList.value.length === 0
+      }
+    }
   } finally {
     loadingCompanions.value = false
     loadingMore.value = false
@@ -201,7 +220,7 @@ defineExpose({
 .content-container {
   background: #fff;
   margin: 12px 0 0;
-  padding: 15px 20px;
+  padding: 20px;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
@@ -282,7 +301,7 @@ defineExpose({
   .content-container {
     width: 100%;
     margin: 12px auto 0;
-    padding: 12px 24px;
+    padding: 20px 24px;
   }
   
   .nav-bar {
