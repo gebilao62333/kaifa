@@ -766,10 +766,8 @@ onMounted(() => {
 }
 
 .header {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
   z-index: 100;
   display: flex;
   align-items: center;
@@ -810,7 +808,7 @@ onMounted(() => {
 
 .content {
   padding: 16px;
-  padding-top: 62px;
+  padding-top: 12px;
   padding-bottom: 40px;
 }
 
@@ -1656,7 +1654,7 @@ onMounted(() => {
 
   .content {
     padding: 12px;
-    padding-top: 62px;
+    padding-top: 12px;
     padding-bottom: 100px;
   }
 

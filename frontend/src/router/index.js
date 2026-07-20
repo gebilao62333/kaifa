@@ -13,7 +13,8 @@ const routes = [
   {
     path: '/login',
     name: 'Login',
-    component: lazyLoad('Login')
+    component: lazyLoad('Login'),
+    meta: { fullscreen: true }
   },
   {
     path: '/home',
@@ -71,7 +72,8 @@ const routes = [
   {
     path: '/chat-room/:id',
     name: 'ChatRoom',
-    component: lazyLoad('ChatRoom')
+    component: lazyLoad('ChatRoom'),
+    meta: { fullscreen: true }
   },
   {
     path: '/recharge',
@@ -117,27 +119,32 @@ const routes = [
   {
     path: '/project/dashboard',
     name: 'ServiceDashboard',
-    component: lazyLoad('ServiceDashboard')
+    component: lazyLoad('ServiceDashboard'),
+    meta: { fullscreen: true }
   },
   {
     path: '/project/list',
     name: 'ServiceList',
-    component: lazyLoad('ServiceList')
+    component: lazyLoad('ServiceList'),
+    meta: { fullscreen: true }
   },
   {
     path: '/project/create',
     name: 'ServiceCreate',
-    component: lazyLoad('ServiceList')
+    component: lazyLoad('ServiceList'),
+    meta: { fullscreen: true }
   },
   {
     path: '/project/:id',
     name: 'ServiceDetail',
-    component: lazyLoad('ServiceDetail')
+    component: lazyLoad('ServiceDetail'),
+    meta: { fullscreen: true }
   },
   {
     path: '/project/edit/:id',
     name: 'ServiceEdit',
-    component: lazyLoad('ServiceDetail')
+    component: lazyLoad('ServiceDetail'),
+    meta: { fullscreen: true }
   },
   {
     path: '/my-dynamic',
@@ -243,19 +250,19 @@ const routes = [
     path: '/call/:id/video',
     name: 'VideoCall',
     component: lazyLoad('VideoCall'),
-    meta: { title: '视频通话' }
+    meta: { title: '视频通话', fullscreen: true }
   },
   {
     path: '/call/:id/audio',
     name: 'AudioCall',
     component: lazyLoad('AudioCall'),
-    meta: { title: '语音通话' }
+    meta: { title: '语音通话', fullscreen: true }
   },
   {
     path: '/customer-service',
     name: 'CustomerService',
     component: lazyLoad('CustomerService'),
-    meta: { title: '在线客服' }
+    meta: { title: '在线客服', fullscreen: true }
   },
   {
     path: '/level-acceleration',
@@ -297,13 +304,13 @@ const routes = [
     path: '/ai-chat',
     name: 'VirtualUserList',
     component: lazyLoad('VirtualUserList'),
-    meta: { title: 'AI陪聊', requiresAuth: true }
+    meta: { title: 'AI陪聊', requiresAuth: true, fullscreen: true }
   },
   {
     path: '/ai-chat/:id',
     name: 'AIChat',
     component: lazyLoad('AIChat'),
-    meta: { title: 'AI聊天', requiresAuth: true }
+    meta: { title: 'AI聊天', requiresAuth: true, fullscreen: true }
   },
   {
     path: '/tag-manager',

@@ -1,8 +1,8 @@
 <template>
-  <div class="preferred-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <div class="title">消息</div>
-    </div>
+    </template>
 
     <div class="content-container">
       <div class="category-tabs">
@@ -114,12 +114,13 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
 import { useChatStore } from '../store/chat'
 import { notificationService } from '../services/notificationService'
 import socketService from '../services/socketService'
@@ -364,13 +365,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.preferred-page {
-  min-height: calc(100dvh - 80px);
-  background-color: #f5f5f5;
-  padding-bottom: 80px;
-  padding-top: 62px;
-}
-
 .content-container {
   background: #fff;
   margin: 12px 0 0;
@@ -380,22 +374,12 @@ onUnmounted(() => {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
-.header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 12px 20px;
-  text-align: center;
-  height: 50px;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-}
-
 .title {
+  flex: 1;
   font-size: 20px;
   font-weight: bold;
   color: #fff;
+  text-align: center;
 }
 
 .category-tabs {
@@ -731,48 +715,17 @@ onUnmounted(() => {
   color: #999;
 }
 
+/* PC 端消息页优化（居中由 PageLayout 统一处理，与首页一致） */
 @media (min-width: 768px) {
-  .preferred-page {
-    padding-top: 62px;
-    padding-bottom: 20px;
-    padding-left: 0;
-    padding-right: 0;
-    max-width: 650px;
-    margin: 0 auto;
-  }
-
   .content-container {
-    width: 100%;
-    margin: 12px auto 0;
     padding: 20px 24px;
   }
-  
-  .header {
-    max-width: 650px;
-    width: 100%;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    padding: 12px 24px;
-    height: 50px;
-  }
-  
+
   .title {
     font-size: 18px;
-  }
-  
-  .category-tabs {
-    top: 50px;
   }
 }
 
 @media (min-width: 1024px) {
-  .preferred-page {
-    max-width: 720px;
-  }
-  
-  .header {
-    max-width: 720px;
-  }
 }
 </style>

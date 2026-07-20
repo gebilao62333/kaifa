@@ -1,11 +1,11 @@
 <template>
-  <div class="game-index-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <div class="search-box">
         <span class="search-icon">🔍</span>
         <span class="search-text">搜索游戏或陪玩师</span>
       </div>
-    </div>
+    </template>
 
     <div class="category-section">
       <div class="category-list">
@@ -79,12 +79,13 @@
     </div>
 
     <div class="bottom-placeholder"></div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
 
@@ -202,17 +203,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.game-index-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-  padding-bottom: 80px;
-}
-
-.header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 50px 20px 20px;
-}
-
 .search-box {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 50px;
@@ -234,9 +224,6 @@ onMounted(() => {
 .category-section {
   background: white;
   padding: 20px 0;
-  margin-top: -20px;
-  position: relative;
-  z-index: 1;
 }
 
 .category-list {
@@ -418,5 +405,21 @@ onMounted(() => {
   font-size: 13px;
 }
 
+.bottom-placeholder {
+  height: 1px;
+}
 
+/* PC 端游戏页优化（居中由 PageLayout 统一处理，与首页/我的页一致） */
+@media (min-width: 768px) {
+  .category-list {
+    padding: 0 24px;
+  }
+
+  .companion-list {
+    padding: 16px 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+}
 </style>

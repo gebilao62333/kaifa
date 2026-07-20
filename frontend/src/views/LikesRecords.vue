@@ -63,7 +63,7 @@ const viewProfile = (user) => {
   align-items: center;
   justify-content: space-between;
   padding: 60px 16px 16px;
-  background-color: #fff;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   position: sticky;
   top: 0;
   z-index: 10;
@@ -71,19 +71,19 @@ const viewProfile = (user) => {
 
 .back-btn {
   font-size: 24px;
-  color: #333;
+  color: #fff;
   cursor: pointer;
 }
 
 .title {
   font-size: 17px;
   font-weight: bold;
-  color: #333;
+  color: #fff;
 }
 
 .total {
   font-size: 14px;
-  color: #999;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 .likes-list {

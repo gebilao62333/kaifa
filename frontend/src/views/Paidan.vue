@@ -1,8 +1,16 @@
 <template>
-  <div class="paidan-page" @touchstart="onTouchStart" @touchmove="onTouchMove" @touchend="onTouchEnd">
-    <div class="header">
+  <PageLayout
+    @touchstart="onTouchStart"
+    @touchmove="onTouchMove"
+    @touchend="onTouchEnd"
+  >
+    <template #nav>
       <div class="header-back" @click="goBack">‹</div>
       <div class="title">派单大厅</div>
+    </template>
+
+    <div class="pull-tip" v-if="pullTipVisible">
+      {{ pullTipText }}
     </div>
 
     <div class="tabs">
@@ -25,10 +33,6 @@
         @click="setTab('hot')">
         热门
       </div>
-    </div>
-
-    <div class="pull-tip" v-if="pullTipVisible">
-      {{ pullTipText }}
     </div>
 
     <div class="order-list">
@@ -133,12 +137,13 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
 
@@ -320,33 +325,23 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.paidan-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-  padding-bottom: 80px;
-}
-
-.header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 50px 20px 20px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  position: relative;
-}
-
 .header-back {
   position: absolute;
   left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
   font-size: 28px;
   color: white;
   cursor: pointer;
+  z-index: 2;
 }
 
 .title {
+  flex: 1;
   font-size: 20px;
   font-weight: bold;
   color: white;
+  text-align: center;
 }
 
 .tabs {
@@ -721,5 +716,29 @@ onMounted(() => {
 .action-btn.primary {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
+}
+
+/* PC 端派单大厅优化（居中由 PageLayout 统一处理，与首页一致） */
+@media (min-width: 768px) {
+  .order-list {
+    padding: 16px 24px;
+  }
+
+  .tabs {
+    padding: 16px 24px;
+  }
+
+  .order-detail-modal {
+    justify-content: center;
+  }
+
+  .modal-content {
+    max-width: 650px;
+    margin: 0 auto;
+    border-radius: 16px;
+  }
+}
+
+@media (min-width: 1024px) {
 }
 </style>

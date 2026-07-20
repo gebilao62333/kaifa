@@ -213,24 +213,28 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: #fff;
-  border-bottom: 1px solid #eee;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .back-btn {
   font-size: 20px;
   cursor: pointer;
   width: 40px;
+  color: #fff;
 }
 
 .title {
   font-size: 17px;
   font-weight: 500;
+  color: #fff;
 }
 
 .add-btn {
   font-size: 24px;
-  color: #007aff;
+  color: #fff;
   cursor: pointer;
   width: 40px;
   text-align: right;

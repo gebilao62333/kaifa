@@ -1,9 +1,9 @@
 <template>
-  <div class="square-page">
-    <div class="square-header">
-      <h2 class="square-title">广场</h2>
+  <PageLayout>
+    <template #nav>
+      <h2 class="nav-title">广场</h2>
       <button class="publish-btn" @click="goPublish">+ 发布</button>
-    </div>
+    </template>
 
     <div class="tag-filter" v-if="tagList.length > 0">
       <div
@@ -70,12 +70,13 @@
 
     <div class="loading-more" v-if="loading">加载中...</div>
     <div class="no-more" v-if="!hasMore && postList.length > 0">没有更多了</div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
 import circleService from '../services/circleService'
 import { genAvatar } from '../utils/placeholder'
 
@@ -192,38 +193,26 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.square-page {
-  min-height: calc(100dvh - 80px);
-  background-color: #f5f5f5;
-  padding-top: 12px;
-  padding-bottom: 80px;
-}
-
-.square-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 20px;
-  background: #fff;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.square-title {
+.nav-title {
+  flex: 1;
   font-size: 20px;
   font-weight: 700;
-  color: #333;
+  color: #fff;
 }
 
 .publish-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
+  background-color: #fff;
+  color: #667eea;
   border: none;
   padding: 8px 20px;
   border-radius: 20px;
   font-size: 14px;
   cursor: pointer;
+  white-space: nowrap;
+}
+
+.publish-btn:active {
+  transform: scale(0.95);
 }
 
 .tag-filter {
@@ -235,6 +224,7 @@ onMounted(async () => {
   white-space: nowrap;
   -ms-overflow-style: none;
   scrollbar-width: none;
+  margin-top: 12px;
 }
 
 .tag-filter::-webkit-scrollbar {
@@ -398,18 +388,5 @@ onMounted(async () => {
   padding: 16px;
   color: #999;
   font-size: 13px;
-}
-
-@media (min-width: 768px) {
-  .square-page {
-    max-width: 650px;
-    margin: 0 auto;
-  }
-}
-
-@media (min-width: 1024px) {
-  .square-page {
-    max-width: 720px;
-  }
 }
 </style>

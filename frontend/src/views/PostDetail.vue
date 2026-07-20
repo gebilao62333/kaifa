@@ -441,10 +441,8 @@ onMounted(() => {
 }
 
 .bottom-bar {
-  position: fixed;
+  position: sticky;
   bottom: 0;
-  left: 0;
-  right: 0;
   background: white;
   padding: 10px 16px;
   border-top: 1px solid #eee;

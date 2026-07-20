@@ -198,10 +198,8 @@ const updateTabCounts = () => {
   justify-content: space-between;
   padding: 12px 16px;
   height: 50px;
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
   z-index: 100;
 }
 

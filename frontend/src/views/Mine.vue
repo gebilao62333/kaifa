@@ -1,6 +1,6 @@
 <template>
-  <div class="mine-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <div class="user-info">
         <div class="avatar-frame" :style="avatarFrameStyle">
           <img class="avatar" :src="userInfo.avatar" alt="头像" @click="goEditProfile" />
@@ -22,7 +22,7 @@
           资料编辑
         </span>
       </div>
-    </div>
+    </template>
 
     <div class="content-container">
       <div class="stats-section">
@@ -109,13 +109,13 @@
         </div>
       </div>
     </div>
-
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
 import { useUserStore } from '../store/user-info'
 
 const router = useRouter()
@@ -252,13 +252,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.mine-page {
-  min-height: calc(100dvh - 80px);
-  background-color: #f5f5f5;
-  padding-top: 120px;  /* 固定头部高度（头像+信息区域） */
-  padding-bottom: 80px;   /* 底部导航栏高度 + 安全距离 */
-}
-
 .content-container {
   background: #fff;
   margin: 12px 0 0;
@@ -266,17 +259,6 @@ onMounted(() => {
   border-radius: 0px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-}
-
-.header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 16px 20px;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  min-height: 110px;  /* 确保头部高度一致 */
 }
 
 .user-info {
@@ -613,77 +595,55 @@ onMounted(() => {
   color: #ccc;
 }
 
-/* PC端我的页面优化 */
+/* PC 端我的页面优化（居中由 PageLayout 统一处理） */
 @media (min-width: 768px) {
-  .mine-page {
-    padding-top: 130px;
-    padding-left: 0;
-    padding-right: 0;
-    padding-bottom: 20px;
-    max-width: 650px;
-    margin: 0 auto;
-  }
-
-  .header {
-    max-width: 650px;
-    width: 100%;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    padding: 16px 24px;
-    min-height: 100px;
-  }
-  
   .content-container {
-    width: 100%;
-    max-width: 650px;
-    margin: 12px auto 0;
     padding: 20px 24px;
   }
-  
+
   .user-info {
     gap: 16px;
   }
-  
+
   .avatar {
     width: 72px;
     height: 72px;
   }
-  
+
   .avatar-frame {
     width: 72px;
     height: 72px;
   }
-  
+
   .avatar-frame .avatar {
     width: 66px;
     height: 66px;
   }
-  
+
   .nickname {
     font-size: 18px;
   }
-  
+
   .edit-btn {
     margin-left: auto;
     margin-right: 0;
     padding: 8px 16px;
     font-size: 13px;
   }
-  
+
   .stats-section {
     padding: 20px 0;
     gap: 16px;
   }
-  
+
   .stat-num {
     font-size: 18px;
   }
-  
+
   .stat-label {
     font-size: 12px;
   }
-  
+
   .wallet-card {
     margin: 0;
     padding: 16px 20px;
@@ -691,49 +651,38 @@ onMounted(() => {
     height: auto;
     min-height: 70px;
   }
-  
+
   .wallet-balance {
     font-size: 24px;
   }
-  
+
   .menu-section {
     padding: 0;
   }
-  
+
   .menu-item {
     padding: 14px 8px;
     min-height: 90px;
   }
-  
+
   .menu-icon {
     font-size: 26px;
   }
-  
+
   .menu-text {
     font-size: 13px;
   }
-  
+
   .service-section {
     padding: 0;
     padding-top: 16px;
   }
-  
+
   .service-item {
     padding: 14px 16px;
   }
 }
 
 @media (min-width: 1024px) {
-  .mine-page {
-    max-width: 720px;
-  }
-  
-  .header {
-    max-width: 720px;
-  }
-  
-  .content-container {
-    max-width: 720px;
-  }
 }
 </style>

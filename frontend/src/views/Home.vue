@@ -1,12 +1,12 @@
 <template>
-  <div class="home-page">
-    <div class="nav-bar">
+  <PageLayout>
+    <template #nav>
       <div class="search-box" @click="goSearch">
         <span class="search-icon">🔍</span>
         <span class="search-text">搜索用户、帖子、游戏</span>
       </div>
       <button class="friend-btn" @click="goFriend">交友</button>
-    </div>
+    </template>
 
     <div class="content-container">
       <HomeBanner :banners="bannerList" @banner-click="onBannerClick" />
@@ -21,12 +21,13 @@
         @retry="refreshHomeData"
       />
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
 import HomeBanner from '../components/HomeBanner.vue'
 import HomeQuickNav from '../components/HomeQuickNav.vue'
 import HomeRecommend from '../components/HomeRecommend.vue'
@@ -210,34 +211,12 @@ defineExpose({
 </script>
 
 <style scoped>
-.home-page {
-  min-height: calc(100dvh - 80px);
-  background-color: #f5f5f5;
-  padding-top: 62px;
-  padding-bottom: 80px;
-}
-
 .content-container {
   background: #fff;
   margin: 12px 0 0;
   padding: 20px;
-  border-radius: 0px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-}
-
-.nav-bar {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 15px 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  height: 50px;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
 }
 
 .search-box {
@@ -287,34 +266,12 @@ defineExpose({
   transform: scale(0.95);
 }
 
-/* PC端导航栏优化 */
+/* PC 端内容卡片与导航栏内元素的微调（居中由 PageLayout 统一处理） */
 @media (min-width: 768px) {
-  .home-page {
-    padding-top: 62px;
-    padding-bottom: 20px;
-    padding-left: 0;
-    padding-right: 0;
-    max-width: 650px;
-    margin: 0 auto;
-  }
-  
   .content-container {
-    width: 100%;
-    margin: 12px auto 0;
     padding: 20px 24px;
   }
-  
-  .nav-bar {
-    max-width: 650px;
-    width: 100%;
-    left: 50%;
-    right: auto;
-    transform: translateX(-50%);
-    border-radius: 0;
-    padding: 12px 24px;
-    height: 50px;
-  }
-  
+
   .search-box {
     width: auto;
     flex: 1;
@@ -322,11 +279,11 @@ defineExpose({
     padding: 8px 18px;
     height: 36px;
   }
-  
+
   .search-text {
     font-size: 13px;
   }
-  
+
   .friend-btn {
     margin-left: 16px;
     margin-right: 0;
@@ -337,14 +294,6 @@ defineExpose({
 }
 
 @media (min-width: 1024px) {
-  .home-page {
-    max-width: 720px;
-  }
-  
-  .nav-bar {
-    max-width: 720px;
-  }
-  
   .search-box {
     max-width: 480px;
   }

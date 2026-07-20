@@ -3,7 +3,9 @@
     <ErrorBoundary>
       <router-view v-slot="{ Component, route }">
         <transition name="page">
-          <component :is="Component" :key="route.path" />
+          <div :key="route.path" :class="['route-shell', { 'route-shell--frame': !isFullscreen }]">
+            <component :is="Component" />
+          </div>
         </transition>
       </router-view>
     </ErrorBoundary>
@@ -32,7 +34,11 @@ const incomingCallRef = ref(null)
 const route = useRoute()
 
 const shouldShowNav = computed(() => {
-  return route.path !== '/login'
+  return !route.meta.fullscreen && route.path !== '/login'
+})
+
+const isFullscreen = computed(() => {
+  return !!route.meta.fullscreen
 })
 
 const initSocket = () => {
@@ -77,6 +83,24 @@ body {
 .app {
   min-height: 100dvh;
   background: #f5f5f7;
+}
+
+/* 路由内容外壳：桌面端对非沉浸式页做 650/720 居中，统一各页面尺寸 */
+.route-shell {
+  min-height: 100dvh;
+  background: #f5f5f7;
+}
+@media (min-width: 768px) {
+  .route-shell--frame {
+    max-width: 650px;
+    margin: 0 auto;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
+  }
+}
+@media (min-width: 1024px) {
+  .route-shell--frame {
+    max-width: 720px;
+  }
 }
 
 /* PC端优化 - 响应式宽度体验 */
