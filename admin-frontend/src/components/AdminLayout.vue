@@ -36,27 +36,27 @@ const route = useRoute()
 const router = useRouter()
 
 const menuItems = [
-  { page: 'dashboard', path: '/admin/dashboard', icon: '📊', label: '控制台' },
-  { page: 'users', path: '/admin/users', icon: '👥', label: '用户管理' },
-  { page: 'recommend', path: '/admin/recommend', icon: '🌟', label: '热门推荐' },
-  { page: 'orders', path: '/admin/orders', icon: '📦', label: '订单管理' },
-  { page: 'withdraw', path: '/admin/withdraw', icon: '💸', label: '提现审核' },
-  { page: 'withdraws', path: '/admin/withdraws', icon: '💰', label: '提现记录' },
-  { page: 'posts', path: '/admin/posts', icon: '📝', label: '帖子管理' },
-  { page: 'reports', path: '/admin/reports', icon: '⚠️', label: '举报管理' },
-  { page: 'banners', path: '/admin/banners', icon: '🎪', label: 'Banner管理' },
-  { page: 'vip-packages', path: '/admin/vip-packages', icon: '⭐', label: 'VIP套餐管理' },
-  { page: 'gift-management', path: '/admin/gift-management', icon: '🎁', label: '礼物管理' },
-  { page: 'gifts', path: '/admin/gifts', icon: '📜', label: '礼物记录' },
-  { page: 'recharges', path: '/admin/recharges', icon: '💳', label: '充值记录' },
-  { page: 'cards', path: '/admin/cards', icon: '🎫', label: '卡密管理' },
-  { page: 'games', path: '/admin/games', icon: '🎮', label: '服务分类' },
-  { page: 'companion-applications', path: '/admin/companion-applications', icon: '📋', label: '服务申请管理' },
-  { page: 'virtual-users', path: '/admin/virtual-users', icon: '🤖', label: '虚拟机器人管理' },
-  { page: 'admins', path: '/admin/admins', icon: '👨‍💼', label: '管理员管理' },
-  { page: 'roles', path: '/admin/roles', icon: '🔑', label: '角色管理' },
-  { page: 'api', path: '/admin/api', icon: '🔌', label: '接口管理' },
-  { page: 'settings', path: '/admin/settings', icon: '⚙️', label: '系统设置' },
+  { page: 'dashboard', path: '/dashboard', icon: '📊', label: '控制台' },
+  { page: 'users', path: '/users', icon: '👥', label: '用户管理' },
+  { page: 'recommend', path: '/recommend', icon: '🌟', label: '热门推荐' },
+  { page: 'orders', path: '/orders', icon: '📦', label: '订单管理' },
+  { page: 'withdraw', path: '/withdraw', icon: '💸', label: '提现审核' },
+  { page: 'withdraws', path: '/withdraws', icon: '💰', label: '提现记录' },
+  { page: 'posts', path: '/posts', icon: '📝', label: '帖子管理' },
+  { page: 'reports', path: '/reports', icon: '⚠️', label: '举报管理' },
+  { page: 'banners', path: '/banners', icon: '🎪', label: 'Banner管理' },
+  { page: 'vip-packages', path: '/vip-packages', icon: '⭐', label: 'VIP套餐管理' },
+  { page: 'gift-management', path: '/gift-management', icon: '🎁', label: '礼物管理' },
+  { page: 'gifts', path: '/gifts', icon: '📜', label: '礼物记录' },
+  { page: 'recharges', path: '/recharges', icon: '💳', label: '充值记录' },
+  { page: 'cards', path: '/cards', icon: '🎫', label: '卡密管理' },
+  { page: 'games', path: '/games', icon: '🎮', label: '服务分类' },
+  { page: 'companion-applications', path: '/companion-applications', icon: '📋', label: '服务申请管理' },
+  { page: 'virtual-users', path: '/virtual-users', icon: '🤖', label: '虚拟机器人管理' },
+  { page: 'admins', path: '/admins', icon: '👨‍💼', label: '管理员管理' },
+  { page: 'roles', path: '/roles', icon: '🔑', label: '角色管理' },
+  { page: 'api', path: '/api', icon: '🔌', label: '接口管理' },
+  { page: 'settings', path: '/settings', icon: '⚙️', label: '系统设置' },
 ]
 
 const pageTitleMap = {
@@ -98,7 +98,7 @@ const pageTitle = computed(() => {
 
 const handleLogout = () => {
   localStorage.removeItem('admin_token')
-  router.push('/admin/login')
+  router.push('/login')
 }
 </script>
 

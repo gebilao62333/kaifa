@@ -274,9 +274,9 @@ const goWithdrawRecords = () => {
   gap: 10px;
   padding: 16px;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 0px;
   cursor: pointer;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   transition: transform 0.2s, box-shadow 0.2s;
 }
 

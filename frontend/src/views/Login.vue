@@ -410,9 +410,9 @@ const handleResetPwd = async () => {
   width: 100%;
   max-width: 360px;
   background-color: #fff;
-  border-radius: 20px;
+  border-radius: 0px;
   padding: 40px 30px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .login-header {

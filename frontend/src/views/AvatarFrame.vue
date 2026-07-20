@@ -143,9 +143,10 @@ const selectFrame = (frame) => {
 
 .preview-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 0px;
   padding: 20px;
-  margin-bottom: 16px;
+  margin: 12px 0 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .preview-label {
@@ -220,13 +221,14 @@ const selectFrame = (frame) => {
 
 .frame-item {
   background: white;
-  border-radius: 12px;
+  border-radius: 0px;
   padding: 16px 12px;
   text-align: center;
   border: 2px solid transparent;
   cursor: pointer;
   position: relative;
   transition: all 0.2s;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .frame-item.active {

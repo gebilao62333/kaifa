@@ -88,7 +88,7 @@ const handleLogin = async () => {
       localStorage.setItem('admin_token', data.data.token);
       localStorage.setItem('admin_refresh_token', data.data.refreshToken);
       localStorage.setItem('admin_user', JSON.stringify(data.data.user));
-      window.location.href = '/admin/dashboard';
+      window.location.href = '/dashboard';
     } else {
       error.value = data.message || '登录失败';
     }

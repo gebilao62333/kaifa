@@ -279,10 +279,11 @@ const closeResult = () => {
 
 .result-content {
   background: #fff;
-  border-radius: 16px;
+  border-radius: 0px;
   padding: 40px 30px;
   text-align: center;
   width: 300px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .result-icon {

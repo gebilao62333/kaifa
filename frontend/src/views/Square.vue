@@ -265,9 +265,11 @@ onMounted(async () => {
 .post-card {
   background: #fff;
   padding: 16px 20px;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   cursor: pointer;
   transition: background 0.2s;
+  border-radius: 0px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .post-card:active {

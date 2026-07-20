@@ -77,11 +77,6 @@
 
       <div class="section">
         <div class="section-title">其他</div>
-        <div class="menu-item" v-if="showAdminEntry" @click="goAdmin">
-          <span class="menu-icon">⚙️</span>
-          <span class="menu-text">管理后台</span>
-          <span class="menu-arrow">›</span>
-        </div>
         <div class="menu-item" @click="goAboutUs">
           <span class="menu-icon">ℹ️</span>
           <span class="menu-text">关于我们</span>
@@ -289,28 +284,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { notificationService } from '../services/notificationService'
 
 const router = useRouter()
 const userStore = useUserStore()
-
-// 解析 JWT 载荷，判断当前用户是否具备管理员角色声明。
-// 仅前端 UX 防护，真正的权限校验由后端 adminAuth 中间件严格执行。
-const isAdminToken = (token) => {
-  try {
-    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
-    const payload = JSON.parse(decodeURIComponent(escape(window.atob(b64))))
-    return !!(payload && (payload.role === 'admin' || payload.role_id === 1))
-  } catch (e) {
-    return false
-  }
-}
-
-// 普通用户端不展示管理后台入口，避免暴露越权路径
-const showAdminEntry = computed(() => isAdminToken(userStore.token))
 
 const darkMode = ref(false)
 const callSettings = ref({
@@ -470,10 +450,6 @@ const goAboutUs = () => {
 
 const goFeedback = () => {
   router.push('/feedback')
-}
-
-const goAdmin = () => {
-  router.push('/admin/login')
 }
 
 const sendCode = () => {

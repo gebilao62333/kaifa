@@ -475,9 +475,10 @@ onUnmounted(() => {
   align-items: center;
   padding: 10px 12px;
   background-color: #fff;
-  border-radius: 12px;
+  border-radius: 0px;
   cursor: pointer;
   transition: background-color 0.2s;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .chat-item:active {
@@ -610,9 +611,10 @@ onUnmounted(() => {
   align-items: center;
   padding: 16px;
   background-color: #fff;
-  border-radius: 12px;
+  border-radius: 0px;
   cursor: pointer;
   transition: background-color 0.2s;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .notice-item.unread {

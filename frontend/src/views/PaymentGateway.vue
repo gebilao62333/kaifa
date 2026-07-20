@@ -372,9 +372,10 @@ const finish = () => {
 
 .card-form {
   background: white;
-  border-radius: 14px;
+  border-radius: 0px;
   padding: 20px;
-  margin-bottom: 16px;
+  margin: 12px 0 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .card-input-group {
@@ -414,9 +415,10 @@ const finish = () => {
 
 .coin-section {
   background: white;
-  border-radius: 14px;
+  border-radius: 0px;
   padding: 20px;
-  margin-bottom: 16px;
+  margin: 12px 0 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .coin-check {

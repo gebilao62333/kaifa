@@ -279,13 +279,14 @@ const doRecharge = async () => {
 
 .amount-item {
   background: white;
-  border-radius: 12px;
+  border-radius: 0px;
   padding: 20px 0;
   text-align: center;
   border: 2px solid transparent;
   position: relative;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .amount-item.active {

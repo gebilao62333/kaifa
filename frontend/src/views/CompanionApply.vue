@@ -771,8 +771,8 @@ onUnmounted(() => {
   padding: 16px;
   background: white;
   border: none;
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-radius: 0px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -884,8 +884,9 @@ onUnmounted(() => {
 .offline-actions {
   padding: 16px;
   background: white;
-  border-radius: 16px;
-  margin-top: 16px;
+  border-radius: 0px;
+  margin: 12px 0 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .confirm-btn {
@@ -1153,13 +1154,14 @@ onUnmounted(() => {
   flex: 1;
   padding: 14px;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  border-radius: 0px;
   background: white;
   font-size: 15px;
   font-weight: 600;
   color: #333;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .action-btn:hover {

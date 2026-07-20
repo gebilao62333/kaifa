@@ -403,12 +403,12 @@ const doWithdraw = async () => {
 }
 
 .balance-card {
-  margin: 10px 20px 20px;
+  margin: 12px 20px 0;
   background: white;
-  border-radius: 16px;
+  border-radius: 0px;
   padding: 30px;
   text-align: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .balance-card .label {
@@ -533,11 +533,12 @@ const doWithdraw = async () => {
   align-items: center;
   background: white;
   padding: 16px 20px;
-  border-radius: 12px;
-  margin-bottom: 12px;
+  border-radius: 0px;
+  margin: 12px 0 0;
   border: 2px solid transparent;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .payment-item.active {
@@ -579,9 +580,10 @@ const doWithdraw = async () => {
 
 .receiver-card {
   background: white;
-  margin: 0 20px 20px;
-  border-radius: 14px;
+  margin: 12px 20px 0;
+  border-radius: 0px;
   padding: 4px 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .receiver-field {
@@ -755,9 +757,10 @@ const doWithdraw = async () => {
 
 .account-card {
   background: white;
-  margin: 0 20px;
-  border-radius: 14px;
+  margin: 12px 20px 0;
+  border-radius: 0px;
   padding: 4px 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .account-row {

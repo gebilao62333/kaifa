@@ -941,9 +941,9 @@ const submit = () => {
   margin-top: 20px;
   padding: 20px;
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 0px;
   border: 1px solid #e8f5e9;
-  box-shadow: 0 2px 12px rgba(82, 196, 26, 0.08);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .location-header {
@@ -1179,12 +1179,12 @@ const submit = () => {
   gap: 8px;
   padding: 16px 8px;
   background: #ffffff;
-  border-radius: 12px;
+  border-radius: 0px;
   border: 2px solid #f0f0f0;
   cursor: pointer;
   transition: all 0.25s ease;
   aspect-ratio: 1;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .game-item:hover {
@@ -1218,9 +1218,9 @@ const submit = () => {
 
 .calendar-container {
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 0px;
   padding: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid #f0f0f0;
 }
 
@@ -1308,9 +1308,9 @@ const submit = () => {
   gap: 16px;
   padding: 20px;
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 0px;
   height: 180px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid #f0f0f0;
 }
 

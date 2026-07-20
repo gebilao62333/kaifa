@@ -245,9 +245,10 @@ onMounted(() => {
 
 .post-content {
   background: white;
-  margin: 16px;
-  border-radius: 12px;
+  margin: 12px 0 0;
+  border-radius: 0px;
   padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .user-info {
@@ -343,9 +344,10 @@ onMounted(() => {
 
 .comments-section {
   background: white;
-  margin: 0 16px;
-  border-radius: 12px;
+  margin: 12px 0 0;
+  border-radius: 0px;
   padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .section-header {

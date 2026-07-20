@@ -250,9 +250,10 @@ watch(settings, saveSettings, { deep: true })
 
 .status-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 0px;
   padding: 20px;
-  margin-bottom: 16px;
+  margin: 12px 0 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .status-header {
@@ -325,8 +326,9 @@ watch(settings, saveSettings, { deep: true })
 
 .setting-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 0px;
   overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .setting-item {
@@ -403,9 +405,10 @@ watch(settings, saveSettings, { deep: true })
 
 .stat-card {
   background: white;
-  border-radius: 14px;
+  border-radius: 0px;
   padding: 20px;
   text-align: center;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .stat-icon {
@@ -431,8 +434,9 @@ watch(settings, saveSettings, { deep: true })
 
 .compare-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 0px;
   overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .compare-item {

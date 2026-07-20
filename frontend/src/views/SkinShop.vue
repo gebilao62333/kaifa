@@ -336,13 +336,14 @@ syncData(themeList.value, 'theme')
 
 .skin-card {
   background: white;
-  border-radius: 14px;
+  border-radius: 0px;
   padding: 16px;
   text-align: center;
   border: 2px solid transparent;
   cursor: pointer;
   position: relative;
   transition: all 0.2s;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .skin-card:active {

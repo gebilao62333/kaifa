@@ -188,12 +188,13 @@ const submitForm = () => {
 
 .tips-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 0px;
   padding: 16px;
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 20px;
+  margin: 12px 0 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .tips-icon {
@@ -325,8 +326,9 @@ const submitForm = () => {
   text-align: center;
   padding: 40px 20px;
   background: white;
-  border-radius: 12px;
-  margin-bottom: 20px;
+  border-radius: 0px;
+  margin: 12px 0 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .success-icon {
@@ -348,9 +350,10 @@ const submitForm = () => {
 
 .info-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 0px;
   padding: 20px;
-  margin-bottom: 20px;
+  margin: 12px 0 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .info-item {

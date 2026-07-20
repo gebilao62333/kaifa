@@ -227,9 +227,10 @@ watch(settings, saveSettings, { deep: true })
 
 .setting-section {
   background: white;
-  border-radius: 16px;
+  border-radius: 0px;
   overflow: hidden;
-  margin-bottom: 16px;
+  margin: 12px 0 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .setting-item {
@@ -302,9 +303,10 @@ watch(settings, saveSettings, { deep: true })
 
 .info-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 0px;
   padding: 20px;
-  margin-bottom: 16px;
+  margin: 12px 0 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .info-title {
@@ -339,9 +341,10 @@ watch(settings, saveSettings, { deep: true })
 
 .vip-level-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 0px;
   padding: 20px;
-  margin-bottom: 16px;
+  margin: 12px 0 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .vip-level-title {

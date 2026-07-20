@@ -426,9 +426,9 @@ const publish = () => {
   min-height: 150px;
   border: none;
   background: white;
-  border-radius: 16px;
+  border-radius: 0px;
   padding: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   font-size: 16px;
   outline: none;
   resize: none;
@@ -519,10 +519,10 @@ const publish = () => {
   gap: 8px;
   padding: 14px 16px;
   background: white;
-  border-radius: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-radius: 0px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   cursor: pointer;
-  margin-bottom: 12px;
+  margin: 12px 0 0;
 }
 
 .location-tag .icon, .topic-tag .icon {
@@ -538,9 +538,9 @@ const publish = () => {
 .visibility-setting {
   margin-top: 12px;
   background: white;
-  border-radius: 16px;
+  border-radius: 0px;
   padding: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .visibility-setting .label {

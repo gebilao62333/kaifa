@@ -816,10 +816,10 @@ onMounted(() => {
 
 .form-section {
   background: white;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-radius: 0px;
+  padding: 20px;
+  margin: 12px 0 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   font-size: 12px;
 }
 
@@ -1103,9 +1103,9 @@ onMounted(() => {
 
 .calendar-container {
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 0px;
   padding: 16px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid #f0f0f0;
 }
 
@@ -1235,9 +1235,9 @@ onMounted(() => {
   gap: 16px;
   padding: 20px;
   background: #ffffff;
-  border-radius: 16px;
+  border-radius: 0px;
   height: 180px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   border: 1px solid #f0f0f0;
 }
 
@@ -1508,8 +1508,8 @@ onMounted(() => {
   padding: 20px;
   padding-bottom: calc(20px + env(safe-area-inset-bottom, 0) + 80px);
   background: white;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border-radius: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border-radius: 0px;
   margin-top: 20px;
 }
 
@@ -1662,7 +1662,7 @@ onMounted(() => {
 
   .form-section {
     padding: 14px;
-    border-radius: 16px;
+    border-radius: 0px;
   }
 
   .type-item {

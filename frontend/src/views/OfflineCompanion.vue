@@ -85,11 +85,11 @@ const handleSelect = (item) => {
 
 .offline-card {
   background: white;
-  border-radius: 16px;
+  border-radius: 0px;
   padding: 16px;
   cursor: pointer;
   transition: all 0.3s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   position: relative;
   border: 2px solid transparent;
   width: 140px;

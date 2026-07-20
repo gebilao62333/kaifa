@@ -426,8 +426,9 @@ const formatTime = (timestamp) => {
 
 .hot-list {
   background: #fff;
-  border-radius: 12px;
+  border-radius: 0px;
   overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .hot-item {
@@ -485,8 +486,9 @@ const formatTime = (timestamp) => {
   align-items: center;
   background: #fff;
   padding: 20px 0;
-  border-radius: 12px;
+  border-radius: 0px;
   cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .category-icon {
@@ -523,9 +525,10 @@ const formatTime = (timestamp) => {
 
 .result-section {
   background: #fff;
-  border-radius: 12px;
+  border-radius: 0px;
   padding: 16px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .result-header {

@@ -218,8 +218,9 @@ const callPhone = () => {
 
 .agent-list {
   background: white;
-  border-radius: 12px;
+  border-radius: 0px;
   overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .agent-item {
@@ -334,8 +335,9 @@ const callPhone = () => {
 
 .contact-list {
   background: white;
-  border-radius: 12px;
+  border-radius: 0px;
   overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .contact-item {
@@ -404,8 +406,9 @@ const callPhone = () => {
 
 .faq-list {
   background: white;
-  border-radius: 12px;
+  border-radius: 0px;
   overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .faq-item {

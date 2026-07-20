@@ -31,12 +31,8 @@ const userStore = useUserStore()
 const incomingCallRef = ref(null)
 const route = useRoute()
 
-const isAdminRoute = computed(() => {
-  return route.path.startsWith('/admin')
-})
-
 const shouldShowNav = computed(() => {
-  return !isAdminRoute.value && route.path !== '/login'
+  return route.path !== '/login'
 })
 
 const initSocket = () => {

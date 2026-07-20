@@ -344,8 +344,9 @@ onMounted(() => {
   padding: 20px 20px;
   background: white;
   margin: 0 20px;
-  border-radius: 12px;
+  border-radius: 0px;
   gap: 16px 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .privilege-item {
@@ -401,11 +402,12 @@ onMounted(() => {
 
 .package-item {
   background: white;
-  border-radius: 16px;
+  border-radius: 0px;
   padding: 20px;
   border: 2px solid transparent;
   cursor: pointer;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .package-item.active {

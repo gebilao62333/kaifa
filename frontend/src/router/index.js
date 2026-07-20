@@ -180,39 +180,6 @@ const routes = [
     component: lazyLoad('VisitedRecords')
   },
   {
-    path: '/admin/login',
-    name: 'AdminLogin',
-    component: lazyLoad('AdminLogin')
-  },
-  {
-    path: '/admin',
-    component: () => import('../components/AdminLayout.vue'),
-    children: [
-      { path: '', redirect: '/admin/dashboard' },
-      { path: 'dashboard', name: 'AdminDashboard', component: () => import('../views/admin/AdminDashboard.vue') },
-      { path: 'users', name: 'AdminUsers', component: () => import('../views/admin/AdminUsers.vue') },
-      { path: 'orders', name: 'AdminOrders', component: () => import('../views/admin/AdminOrders.vue') },
-      { path: 'withdraws', name: 'AdminWithdraws', component: () => import('../views/admin/AdminWithdraws.vue') },
-      { path: 'withdraw', name: 'AdminWithdraw', component: lazyLoad('AdminWithdraw') },
-      { path: 'posts', name: 'AdminPosts', component: () => import('../views/admin/AdminPosts.vue') },
-      { path: 'reports', name: 'AdminReports', component: () => import('../views/admin/AdminReports.vue') },
-      { path: 'banners', name: 'AdminBanners', component: () => import('../views/admin/AdminBanners.vue') },
-      { path: 'vip-packages', name: 'AdminVipPackages', component: () => import('../views/admin/AdminVipPackages.vue') },
-      { path: 'gift-management', name: 'AdminGiftManagement', component: () => import('../views/admin/AdminGifts.vue') },
-      { path: 'gifts', name: 'AdminGifts', component: () => import('../views/admin/AdminGiftLogs.vue') },
-      { path: 'recharges', name: 'AdminRecharges', component: () => import('../views/admin/AdminRecharges.vue') },
-      { path: 'cards', name: 'AdminCards', component: () => import('../views/admin/AdminCards.vue') },
-      { path: 'games', name: 'AdminGames', component: () => import('../views/admin/AdminGames.vue') },
-      { path: 'recommend', name: 'AdminRecommend', component: () => import('../views/admin/AdminRecommend.vue') },
-      { path: 'companion-applications', name: 'AdminCompanionApplications', component: () => import('../views/admin/AdminCompanionApps.vue') },
-      { path: 'virtual-users', name: 'AdminVirtualUsers', component: () => import('../views/admin/AdminVirtualUsers.vue') },
-      { path: 'admins', name: 'AdminAdmins', component: () => import('../views/admin/AdminAdmins.vue') },
-      { path: 'roles', name: 'AdminRoles', component: () => import('../views/admin/AdminRoles.vue') },
-      { path: 'settings', name: 'AdminSettings', component: () => import('../views/admin/AdminSettings.vue') },
-      { path: 'api', name: 'AdminApi', component: () => import('../views/admin/AdminApi.vue') },
-    ]
-  },
-  {
     path: '/edit-profile',
     name: 'EditProfile',
     component: lazyLoad('EditProfile'),
@@ -357,36 +324,10 @@ const router = createRouter({
   }
 })
 
-const publicRoutes = ['Login', 'Home', 'Search', 'Square', 'PostDetail', 'Preferred', 'Mine', 'Friend', 'AdminLogin']
+const publicRoutes = ['Login', 'Home', 'Search', 'Square', 'PostDetail', 'Preferred', 'Mine', 'Friend']
 const publicPaths = ['/', '/login', '/home', '/search', '/square', '/friend']
 
-// 仅前端路由拦截：解析 JWT 载荷，确认其具备管理员角色声明。
-// 注意：真正的权限校验由后端 adminAuth 中间件严格执行，此处仅为 UX 层防护。
-const isAdminToken = (token) => {
-  try {
-    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
-    const payload = JSON.parse(decodeURIComponent(escape(window.atob(b64))))
-    return !!(payload && (payload.role === 'admin' || payload.role_id === 1))
-  } catch (e) {
-    return false
-  }
-}
-
 router.beforeEach((to, from, next) => {
-  if (to.path.startsWith('/admin')) {
-    if (to.path === '/admin/login') {
-      next()
-      return
-    }
-    const adminToken = localStorage.getItem('admin_token')
-    if (!adminToken || !isAdminToken(adminToken)) {
-      next('/admin/login')
-      return
-    }
-    next()
-    return
-  }
-  
   const userStore = useUserStore()
   const isPublicRoute = publicRoutes.includes(to.name) || publicPaths.includes(to.path)
   

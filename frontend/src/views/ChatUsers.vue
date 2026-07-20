@@ -266,11 +266,11 @@ onMounted(() => {
 .user-item {
   display: flex;
   align-items: center;
-  padding: 16px 12px;
+  padding: 16px 20px;
   background: white;
-  border-radius: 16px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-radius: 0px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   cursor: pointer;
   transition: all 0.2s;
 }
