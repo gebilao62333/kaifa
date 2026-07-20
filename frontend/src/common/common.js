@@ -300,12 +300,16 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
     if (response.status === 422) {
       const text = await response.text()
       let fieldErrors = {}
+      let errorMessage = '请求参数验证失败'
       try {
         const result = JSON.parse(text)
         fieldErrors = result.errors || {}
+        if (result.message) {
+          errorMessage = result.message
+        }
       } catch (e) {
       }
-      throw new RequestError('请求参数验证失败', -1, 422, fieldErrors)
+      throw new RequestError(errorMessage, -1, 422, fieldErrors)
     }
 
     if (!response.ok) {

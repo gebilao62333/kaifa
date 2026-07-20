@@ -267,11 +267,12 @@ const updateTabCounts = () => {
 
 .post-card {
   background: white;
-  border-radius: 16px;
-  margin-bottom: 12px;
-  padding: 16px;
+  border-radius: 0px;
+  margin: 12px 20px 0;
+  padding: 16px 20px;
   cursor: pointer;
   transition: transform 0.2s;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .post-card:hover {

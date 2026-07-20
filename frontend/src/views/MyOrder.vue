@@ -444,10 +444,11 @@ const submitRating = () => {
 
 .order-card {
   background: white;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
+  border-radius: 0px;
+  padding: 16px 20px;
+  margin: 12px 20px 0;
   cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .order-header {

@@ -221,7 +221,7 @@ defineExpose({
   background: #fff;
   margin: 12px 0 0;
   padding: 20px;
-  border-radius: 16px;
+  border-radius: 0px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
@@ -306,7 +306,9 @@ defineExpose({
   
   .nav-bar {
     max-width: 650px;
+    width: 100%;
     left: 50%;
+    right: auto;
     transform: translateX(-50%);
     border-radius: 0;
     padding: 12px 24px;

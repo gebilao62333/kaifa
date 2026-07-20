@@ -102,10 +102,10 @@ const goBack = () => {
   display: flex;
   align-items: center;
   background: #fff;
-  margin: 12px;
+  margin: 12px 0 0;
   padding: 20px;
-  border-radius: 14px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border-radius: 0px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
 }
 
 .summary-item {
@@ -145,9 +145,10 @@ const goBack = () => {
   display: flex;
   align-items: center;
   background: #fff;
-  border-radius: 14px;
-  padding: 16px;
-  margin-bottom: 10px;
+  border-radius: 0px;
+  padding: 16px 20px;
+  margin: 12px 20px 0;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
 }
 
 .record-icon-wrap {

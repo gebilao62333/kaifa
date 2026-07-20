@@ -157,10 +157,10 @@ const closeResult = () => {
 }
 
 .card-form {
-  margin: 20px 16px;
+  margin: 12px 0 0;
   background: #fff;
-  border-radius: 16px;
-  padding: 30px 20px;
+  border-radius: 0px;
+  padding: 20px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.04);
 }
 

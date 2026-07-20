@@ -261,8 +261,9 @@ onMounted(() => {
 
 .content-container {
   background: #fff;
-  margin: 12px;
-  border-radius: 16px;
+  margin: 12px 0 0;
+  padding: 20px;
+  border-radius: 0px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
@@ -473,7 +474,6 @@ onMounted(() => {
 }
 
 .menu-section {
-  padding: 0 16px;
   margin-top: -12px;
   margin-bottom: -12px;
 }
@@ -564,7 +564,6 @@ onMounted(() => {
 }
 
 .service-section {
-  padding: 0 16px;
   padding-top: 16px;
 }
 
@@ -618,8 +617,8 @@ onMounted(() => {
 @media (min-width: 768px) {
   .mine-page {
     padding-top: 130px;
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-left: 0;
+    padding-right: 0;
     padding-bottom: 20px;
     max-width: 650px;
     margin: 0 auto;
@@ -627,15 +626,19 @@ onMounted(() => {
 
   .header {
     max-width: 650px;
+    width: 100%;
     left: 50%;
+    right: auto;
     transform: translateX(-50%);
     padding: 16px 24px;
     min-height: 100px;
   }
   
   .content-container {
-    margin: 0;
-    margin-top: 12px;
+    width: 100%;
+    max-width: 650px;
+    margin: 12px auto 0;
+    padding: 20px 24px;
   }
   
   .user-info {
@@ -694,7 +697,7 @@ onMounted(() => {
   }
   
   .menu-section {
-    padding: 0 16px;
+    padding: 0;
   }
   
   .menu-item {
@@ -711,7 +714,7 @@ onMounted(() => {
   }
   
   .service-section {
-    padding: 0 16px;
+    padding: 0;
     padding-top: 16px;
   }
   
@@ -726,6 +729,10 @@ onMounted(() => {
   }
   
   .header {
+    max-width: 720px;
+  }
+  
+  .content-container {
     max-width: 720px;
   }
 }

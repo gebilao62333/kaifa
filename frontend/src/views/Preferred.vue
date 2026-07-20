@@ -373,8 +373,9 @@ onUnmounted(() => {
 
 .content-container {
   background: #fff;
-  margin: 0 12px 12px;
-  border-radius: 16px;
+  margin: 12px 0 0;
+  padding: 20px;
+  border-radius: 0px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
@@ -400,12 +401,10 @@ onUnmounted(() => {
 .category-tabs {
   display: flex;
   background-color: #fff;
-  padding: 0 40px;
+  padding-bottom: 20px;
   border-bottom: 1px solid #f0f0f0;
   position: static;
   z-index: 10;
-  margin-top: -7px;
-  margin-bottom: -7px;
 }
 
 .tab-item {
@@ -459,7 +458,7 @@ onUnmounted(() => {
 }
 
 .content {
-  padding: 16px;
+  padding-top: 20px;
   width: 100% !important;
   height: auto !important;
   box-sizing: border-box;
@@ -734,20 +733,23 @@ onUnmounted(() => {
   .preferred-page {
     padding-top: 62px;
     padding-bottom: 20px;
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-left: 0;
+    padding-right: 0;
     max-width: 650px;
     margin: 0 auto;
   }
 
   .content-container {
-    margin: 0;
-    margin-top: 12px;
+    width: 100%;
+    margin: 12px auto 0;
+    padding: 20px 24px;
   }
   
   .header {
     max-width: 650px;
+    width: 100%;
     left: 50%;
+    right: auto;
     transform: translateX(-50%);
     padding: 12px 24px;
     height: 50px;

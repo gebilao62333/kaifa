@@ -174,9 +174,10 @@ const submitFeedback = () => {
 .form-card,
 .history-card {
   background: white;
-  border-radius: 12px;
+  border-radius: 0px;
   padding: 20px;
-  margin-bottom: 16px;
+  margin: 12px 20px 0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .section-title {

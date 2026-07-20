@@ -300,11 +300,11 @@ onMounted(() => {
 }
 
 .vip-card {
-  margin: 16px 20px 20px;
+  margin: 12px 0 0;
   background: white;
-  border-radius: 16px;
+  border-radius: 0px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
   position: relative;
   z-index: 1;
 }

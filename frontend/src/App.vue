@@ -119,7 +119,6 @@ body {
 /* PC端通用容器优化 */
 @media (min-width: 768px) {
   /* 通用页面容器（.home-page 已自行管理桌面对齐，不参与全局强制 padding） */
-  .mine-page,
   .login-page,
   .search-page,
   .edit-profile-page,

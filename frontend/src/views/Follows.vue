@@ -127,9 +127,11 @@ const viewProfile = (user) => {
   display: flex;
   align-items: center;
   background: white;
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 0px;
+  padding: 16px 20px;
+  margin: 12px 20px 0;
   gap: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .user-avatar {

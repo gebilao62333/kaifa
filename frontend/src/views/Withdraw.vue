@@ -461,9 +461,10 @@ const doWithdraw = async () => {
   display: flex;
   align-items: center;
   background: white;
-  margin: 0 20px;
-  padding: 16px 20px;
-  border-radius: 14px;
+  margin: 12px 20px 0;
+  padding: 20px;
+  border-radius: 0px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .amount-symbol {
