@@ -851,7 +851,6 @@ const publish = () => {
     max-width: 650px;
     left: 50%;
     transform: translateX(-50%);
-    border-radius: 0 0 16px 16px;
     padding: 14px 20px;
   }
 }

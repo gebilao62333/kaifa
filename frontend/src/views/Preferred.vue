@@ -311,7 +311,6 @@ onUnmounted(() => {
   left: 0;
   right: 0;
   z-index: 100;
-  border-radius: 0 0 16px 16px;
 }
 
 .title {
@@ -666,10 +665,9 @@ onUnmounted(() => {
   }
   
   .header {
-    max-width: 620px;
+    max-width: 650px;
     left: 50%;
     transform: translateX(-50%);
-    border-radius: 0 0 16px 16px;
     padding: 12px 24px;
     height: 50px;
   }

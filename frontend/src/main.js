@@ -30,16 +30,23 @@ app.config.errorHandler = (err, vm, info) => {
 }
 
 window.addEventListener('error', (event) => {
-  // 过滤浏览器扩展或外部脚本引起的非关键错误
-  const errorMsg = event.message || event.error?.message || ''
+  const errorMsg = (event.message || event.error?.message || '').toString()
 
-  // 忽略 getBoundingClientRect 相关的外部脚本错误（通常是浏览器扩展导致）
-  if (
-    (errorMsg.includes('getBoundingClientRect') && event.error?.message === 'Script error') ||
-    (errorMsg.includes('null') && errorMsg.includes('reading') && !event.filename?.includes('/src/'))
-  ) {
-    console.warn('[Global Error Filter] Ignored external script error:', errorMsg)
-    return true  // 阻止错误传播到控制台
+  // 浏览器扩展 / 跨域注入脚本产生的 "Script error."：因同源策略被屏蔽、无可用堆栈，
+  // 既不是本项目代码、也无法在业务内修复，直接忽略，避免污染控制台与预览 WebView 报错。
+  const isCrossOriginScriptError = errorMsg === 'Script error.' || errorMsg === 'Script error'
+
+  // 外部脚本读写 DOM 时偶发的 getBoundingClientRect(null) 错误（filename 为空或被屏蔽）
+  const isExternalDomError =
+    errorMsg.includes('getBoundingClientRect') &&
+    (event.filename === '' || event.filename == null || !event.filename.includes('/src/'))
+
+  if (isCrossOriginScriptError || isExternalDomError) {
+    console.warn('[Global Error Filter] Ignored external/extension script error:', errorMsg || event.error)
+    // 阻止该错误继续传播到后续监听器 / 预览 WebView 报错捕获
+    event.preventDefault?.()
+    event.stopImmediatePropagation?.()
+    return
   }
 
   console.error('Global Error:', event.error)

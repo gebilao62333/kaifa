@@ -275,7 +275,6 @@ onMounted(() => {
   left: 0;
   right: 0;
   z-index: 100;
-  border-radius: 0 0 16px 16px;
   min-height: 110px;  /* 确保头部高度一致 */
 }
 
@@ -627,10 +626,9 @@ onMounted(() => {
   }
 
   .header {
-    max-width: 620px;
+    max-width: 650px;
     left: 50%;
     transform: translateX(-50%);
-    border-radius: 0 0 16px 16px;
     padding: 16px 24px;
     min-height: 100px;
   }

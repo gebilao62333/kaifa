@@ -78,8 +78,7 @@ const goTo = (path) => {
   justify-content: space-around;
   align-items: center;
   height: 100%;
-  max-width: 650px;
-  margin: 0 auto;
+  width: 100%;
 }
 
 .nav-item {
@@ -158,7 +157,7 @@ const goTo = (path) => {
     max-width: 650px;
     left: 50%;
     transform: translateX(-50%);
-    border-radius: 20px 20px 0 0;
+    border-radius: 0;
     height: 64px;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
     background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);

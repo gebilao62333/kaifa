@@ -319,8 +319,14 @@ const closeResult = () => {
 
 @media (min-width: 768px) {
   .card-recharge-page {
-    max-width: 500px;
+    max-width: 650px;
     margin: 0 auto;
+  }
+}
+
+@media (min-width: 1024px) {
+  .card-recharge-page {
+    max-width: 720px;
   }
 }
 </style>

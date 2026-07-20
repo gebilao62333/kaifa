@@ -219,7 +219,6 @@ defineExpose({
   left: 0;
   right: 0;
   z-index: 100;
-  border-radius: 0 0 16px 16px;
 }
 
 .search-box {
@@ -276,7 +275,7 @@ defineExpose({
     padding-bottom: 20px;
     padding-left: 0;
     padding-right: 0;
-    max-width: 620px;
+    max-width: 650px;
     margin: 0 auto;
   }
   
@@ -287,7 +286,7 @@ defineExpose({
   }
   
   .nav-bar {
-    max-width: 620px;
+    max-width: 650px;
     left: 50%;
     transform: translateX(-50%);
     border-radius: 0;
