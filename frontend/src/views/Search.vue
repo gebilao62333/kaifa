@@ -325,7 +325,7 @@ const formatTime = (timestamp) => {
 
 <style scoped>
 .search-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: #f5f5f5;
 }
 

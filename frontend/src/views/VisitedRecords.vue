@@ -8,7 +8,7 @@
 
     <div class="visitors-list" v-if="visitorsList.length > 0">
       <div class="visitor-item" v-for="(item, idx) in visitorsList" :key="idx" @click="viewProfile(item)">
-        <img :src="item.avatar" class="item-avatar" />
+        <img :src="item.avatar" class="item-avatar" v-img-fallback="item.nickName" />
         <div class="item-info">
           <span class="item-name">{{ item.nickName }}</span>
           <span class="item-time">{{ item.time }}</span>
@@ -59,7 +59,7 @@ const viewProfile = (user) => {
 
 <style scoped>
 .visitors-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background-color: #f5f5f5;
 }
 

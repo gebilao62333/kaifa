@@ -253,7 +253,7 @@ onMounted(() => {
 
 <style scoped>
 .mine-page {
-  min-height: calc(100vh - 80px);
+  min-height: calc(100dvh - 80px);
   background-color: #f5f5f5;
   padding-top: 120px;  /* 固定头部高度（头像+信息区域） */
   padding-bottom: 80px;   /* 底部导航栏高度 + 安全距离 */

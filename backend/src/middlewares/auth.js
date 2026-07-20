@@ -14,17 +14,13 @@ const authMiddleware = async (req, res, next) => {
       });
     }
     
-    let decoded = verifyToken(token);
-    
+    const decoded = verifyToken(token);
+
     if (!decoded) {
-      if (config.nodeEnv === 'development' && token.startsWith('mock-token-')) {
-        decoded = { userId: parseInt(token.split('-')[2]) || 100001 };
-      } else {
-        return res.status(401).json({
-          code: 401,
-          message: '令牌无效或已过期'
-        });
-      }
+      return res.status(401).json({
+        code: 401,
+        message: '令牌无效或已过期'
+      });
     }
     
     const userId = decoded.userId;
@@ -101,49 +97,35 @@ const optionalAuth = async (req, res, next) => {
 const adminAuth = (req, res, next) => {
   const config = require('../config');
   const { verifyToken } = require('../config/jwt');
-  
-  let isValidAdmin = false;
-  
-  const adminToken = req.headers['x-admin-token'];
-  if (adminToken && adminToken === config.admin.token) {
-    isValidAdmin = true;
-  }
-  
+
+  // 收集所有候选管理员令牌：Authorization: Bearer <token> 或 x-admin-token
   const bearerToken = req.headers.authorization?.replace('Bearer ', '');
-  if (bearerToken) {
-    if (config.nodeEnv === 'development' && bearerToken.startsWith('mock-admin-token-')) {
-      isValidAdmin = true;
+  const adminToken = req.headers['x-admin-token'];
+  const candidates = [bearerToken, adminToken].filter(Boolean);
+
+  for (const token of candidates) {
+    // 应急固定管理员令牌：仅当通过 ADMIN_TOKEN 环境变量显式配置强随机密文时生效
+    if (config.admin && config.admin.token && token === config.admin.token) {
+      req.admin = { id: 0, username: 'admin', role: 'admin', role_id: 1 };
+      return next();
     }
-    else if (bearerToken === config.admin.token) {
-      isValidAdmin = true;
-    }
-    else {
-      try {
-        const decoded = verifyToken(bearerToken);
-        if (decoded && (decoded.role === 'admin' || decoded.username === 'admin' || decoded.id === 0)) {
-          isValidAdmin = true;
-        }
-      } catch (err) {
-        if (config.nodeEnv === 'development') {
-          console.log('Admin auth token verify failed:', err.message);
-        }
+
+    try {
+      const decoded = verifyToken(token);
+      // 严格校验：必须是管理员登录签发、且携带管理员角色声明的合法 JWT
+      if (decoded && (decoded.role === 'admin' || decoded.role_id === 1)) {
+        req.admin = decoded;
+        return next();
       }
+    } catch (err) {
+      // 令牌无效，尝试下一个候选
     }
   }
-  
-  if (config.nodeEnv === 'development' && !isValidAdmin) {
-    isValidAdmin = true;
-    console.log('Dev mode: bypassing admin auth');
-  }
-  
-  if (!isValidAdmin) {
-    return res.status(403).json({
-      code: 403,
-      message: '无管理员权限'
-    });
-  }
-  
-  next();
+
+  return res.status(403).json({
+    code: 403,
+    message: '无管理员权限'
+  });
 };
 
 module.exports = {

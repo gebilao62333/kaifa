@@ -105,7 +105,7 @@ const handleLogout = () => {
 <style scoped>
 .admin-layout {
   display: flex;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: #f0f2f5;
 }
 
@@ -168,7 +168,7 @@ const handleLogout = () => {
 .main-content {
   flex: 1;
   margin-left: 240px;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .top-bar {

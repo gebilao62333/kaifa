@@ -286,7 +286,7 @@ onMounted(() => {
 
 <style scoped>
 .admin-withdraw-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: #f5f5f5;
   padding-bottom: 20px;
 }

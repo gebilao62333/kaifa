@@ -44,7 +44,6 @@
       <div class="login-footer">
       <p>默认用户名: admin</p>
       <p>默认密码: admin123</p>
-      <p class="init-hint" @click="handleInit">首次使用? 点击初始化</p>
     </div>
     </div>
   </div>
@@ -60,7 +59,6 @@ const form = reactive({
 
 const loading = ref(false);
 const error = ref('');
-const showInitBtn = ref(false);
 
 const getHost = () => {
   return window.globalData?.host || 'http://localhost:3000';
@@ -101,28 +99,6 @@ const handleLogin = async () => {
   }
 };
 
-const handleInit = async () => {
-  try {
-    const response = await fetch(`${getHost()}/api/admin-manage/init`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    const data = await response.json();
-    
-    if (data.code === 200) {
-      alert('初始化成功！\n用户名：admin\n密码：admin123');
-      showInitBtn.value = false;
-    } else {
-      alert(data.message || '初始化失败');
-    }
-  } catch (err) {
-    alert('网络错误，请稍后重试');
-  }
-};
-
 onMounted(() => {
   const adminToken = localStorage.getItem('admin_token');
   if (adminToken) {
@@ -133,7 +109,7 @@ onMounted(() => {
 
 <style scoped>
 .admin-login {
-  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
   justify-content: center;

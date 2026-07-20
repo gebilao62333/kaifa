@@ -99,11 +99,12 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import { genAvatar } from '../utils/placeholder'
 
 const router = useRouter()
 
 const userBalance = ref(12800)
-const demoAvatar = ref('https://picsum.photos/200/200')
+const demoAvatar = ref(genAvatar('demo'))
 const activeTab = ref('frame')
 
 const toast = reactive({ show: false, message: '' })
@@ -241,7 +242,7 @@ syncData(themeList.value, 'theme')
 
 <style scoped>
 .skin-shop-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background-color: #f5f5f5;
 }
 

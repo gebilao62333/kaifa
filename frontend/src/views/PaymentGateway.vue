@@ -248,7 +248,7 @@ const finish = () => {
 
 <style scoped>
 .pay-gateway-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: #f5f5f5;
 }
 

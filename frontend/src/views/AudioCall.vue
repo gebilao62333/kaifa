@@ -243,7 +243,7 @@ onUnmounted(() => {
 
 <style scoped>
 .audio-call-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
   display: flex;
   flex-direction: column;

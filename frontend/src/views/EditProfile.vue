@@ -628,7 +628,7 @@ const saveProfile = () => {
 
 <style scoped>
 .edit-profile-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background-color: #f5f5f5;
   padding-bottom: 90px;
   max-width: 650px;

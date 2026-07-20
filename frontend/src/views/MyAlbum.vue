@@ -331,7 +331,7 @@ onMounted(() => {
 
 <style scoped>
 .album-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background-color: #f5f5f5;
 }
 

@@ -9,7 +9,7 @@
     <div class="cover-bg" :style="{ backgroundImage: `url(${user.bgImage})` }">
       <div class="user-info-top">
         <div class="avatar-frame" :style="avatarFrameStyle">
-          <img class="avatar" :src="user.avatar" alt="" />
+          <img class="avatar" :src="user.avatar" alt="" v-img-fallback="user.name" />
         </div>
         <div class="info-right">
           <div class="name-row">
@@ -110,7 +110,7 @@
       <div class="section">
         <div class="section-title">相册</div>
         <div class="photo-grid">
-          <img class="photo" v-for="(photo, i) in user.photos" :key="i" :src="photo" alt="" @click="viewPhoto(photo, i)" />
+          <img class="photo" v-for="(photo, i) in user.photos" :key="i" :src="photo" alt="" v-img-fallback="user.name" @click="viewPhoto(photo, i)" />
         </div>
       </div>
     </div>
@@ -120,6 +120,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { genAvatar, genCover } from '../utils/placeholder'
 
 const router = useRouter()
 const route = useRoute()
@@ -146,8 +147,8 @@ const isFollowed = ref(false)
 const mockUsers = {
   '10001': {
     id: '10001',
-    avatar: 'https://picsum.photos/200/200',
-    bgImage: 'https://picsum.photos/800/400',
+    avatar: genAvatar('游戏大神'),
+    bgImage: genCover('10001'),
     name: '游戏大神',
     level: 28,
     vip: true,
@@ -178,8 +179,8 @@ const mockUsers = {
   },
   '10002': {
     id: '10002',
-    avatar: 'https://picsum.photos/200/200?random=10',
-    bgImage: 'https://picsum.photos/800/400?random=20',
+    avatar: genAvatar('小雪'),
+    bgImage: genCover('10002'),
     name: '小雪',
     level: 28,
     vip: true,
@@ -206,8 +207,8 @@ const mockUsers = {
   },
   '10003': {
     id: '10003',
-    avatar: 'https://picsum.photos/200/200?random=20',
-    bgImage: 'https://picsum.photos/800/400?random=30',
+    avatar: genAvatar('阿杰'),
+    bgImage: genCover('10003'),
     name: '阿杰',
     level: 35,
     vip: true,
@@ -263,7 +264,7 @@ const viewPhoto = (url, index) => {
 
 <style scoped>
 .user-profile-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background-color: #f5f5f5;
 }
 

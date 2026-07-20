@@ -212,7 +212,7 @@ const doRecharge = async () => {
 
 <style scoped>
 .recharge-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: #f5f5f5;
   padding-bottom: 140px;
 }

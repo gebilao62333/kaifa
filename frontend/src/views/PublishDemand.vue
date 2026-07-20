@@ -758,7 +758,7 @@ onMounted(() => {
 
 <style scoped>
 .publish-demand-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: #f5f7fa;
   padding-bottom: 200px;
   -webkit-font-smoothing: antialiased;

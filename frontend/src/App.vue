@@ -71,7 +71,7 @@ onMounted(() => {
   box-sizing: border-box;
 }
 html, body {
-  min-height: 100%;
+  min-height: 100dvh;
   overflow-x: hidden;
 }
 body {
@@ -79,7 +79,7 @@ body {
   background: #f5f5f7;
 }
 .app {
-  min-height: 100%;
+  min-height: 100dvh;
   background: #f5f5f7;
 }
 
@@ -92,7 +92,7 @@ body {
   /* 确保页面组件有最小高度，防止空白 */
   .app .page-enter-active,
   .app .page-leave-active {
-    min-height: 100vh;
+    min-height: 100dvh;
   }
 }
 
@@ -103,7 +103,7 @@ body {
 .page-enter-active,
 .page-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
-  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .page-enter-from {
@@ -118,8 +118,7 @@ body {
 
 /* PC端通用容器优化 */
 @media (min-width: 768px) {
-  /* 通用页面容器 */
-  .home-page,
+  /* 通用页面容器（.home-page 已自行管理桌面对齐，不参与全局强制 padding） */
   .mine-page,
   .login-page,
   .search-page,

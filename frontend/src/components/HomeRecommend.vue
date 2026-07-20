@@ -53,9 +53,14 @@
           </div>
         </div>
       </div>
-      <div v-if="!loadingCompanions && companions.length === 0" class="empty-state">
+      <div v-if="!loadingCompanions && companions.length === 0 && !error" class="empty-state">
         <div class="empty-icon">👥</div>
         <div class="empty-text">暂无推荐陪玩师</div>
+      </div>
+      <div v-if="!loadingCompanions && companions.length === 0 && error" class="error-state">
+        <div class="error-icon">⚠️</div>
+        <div class="error-text">加载失败，请稍后重试</div>
+        <button class="retry-btn" @click="$emit('retry')">重新加载</button>
       </div>
     </div>
   </div>
@@ -74,10 +79,14 @@ defineProps({
   loadingCompanions: {
     type: Boolean,
     default: true
+  },
+  error: {
+    type: Boolean,
+    default: false
   }
 })
 
-defineEmits(['load-more', 'user-click'])
+defineEmits(['load-more', 'user-click', 'retry'])
 </script>
 
 <style scoped>
@@ -156,6 +165,37 @@ defineEmits(['load-more', 'user-click'])
 .empty-text {
   font-size: 14px;
   color: #999;
+}
+
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 0;
+  width: 100%;
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+
+.error-text {
+  font-size: 14px;
+  color: #999;
+  margin-bottom: 16px;
+}
+
+.retry-btn {
+  padding: 8px 24px;
+  border: none;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
 }
 
 .recommend-list {

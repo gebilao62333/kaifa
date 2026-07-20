@@ -4,6 +4,7 @@ import App from './App.vue'
 import router from './router'
 import { useUserStore } from './store/user-info'
 import lazyLoadDirective from './directives/lazyLoad'
+import imgFallback from './directives/imgFallback'
 import { createPersistedState } from './plugins/persistedState'
 
 const app = createApp(App)
@@ -20,6 +21,7 @@ const userStore = useUserStore()
 userStore.initFromStorage()
 
 app.directive('lazy', lazyLoadDirective)
+app.directive('img-fallback', imgFallback)
 
 app.config.errorHandler = (err, vm, info) => {
   console.error('Vue Error:', err)

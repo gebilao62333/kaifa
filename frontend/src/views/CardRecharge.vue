@@ -128,7 +128,7 @@ const closeResult = () => {
 
 <style scoped>
 .card-recharge-page {
-  min-height: calc(100vh - 80px);
+  min-height: calc(100dvh - 80px);
   background: #f5f5f5;
   padding-bottom: 80px;
 }

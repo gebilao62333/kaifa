@@ -1066,7 +1066,7 @@ onUnmounted(() => {
 
 <style scoped>
 .chat-room {
-  height: 100vh;
+  height: 100dvh;
   background: #f5f5f5;
   display: flex;
   flex-direction: column;

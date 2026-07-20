@@ -72,13 +72,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { virtualUserService } from '../services/virtualUserService'
+import { genAvatar } from '../utils/placeholder'
 
 const router = useRouter()
 const activeTab = ref('all')
 const searchKeyword = ref('')
 const loading = ref(false)
 const allUsers = ref([])
-const defaultAvatar = 'https://picsum.photos/200/200'
+const defaultAvatar = genAvatar('default')
 
 const categoryTabs = [
   { key: 'all', label: '全部', icon: '🤖' },
@@ -167,7 +168,7 @@ onMounted(() => {
 
 <style scoped>
 .virtual-user-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: #f5f5f5;
 }
 

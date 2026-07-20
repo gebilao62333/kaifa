@@ -233,7 +233,7 @@ onMounted(() => {
 .ai-chat-page {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100dvh;
   background: #f5f5f5;
 }
 

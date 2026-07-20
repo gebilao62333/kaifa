@@ -28,7 +28,7 @@
         @click="goPostDetail(post)"
       >
         <div class="post-header">
-          <img :src="post.avatar || defaultAvatar" class="post-avatar" />
+          <img :src="post.avatar || defaultAvatar" class="post-avatar" v-img-fallback="post.nickName || '用户'" />
           <div class="post-user-info">
             <span class="post-nickname">{{ post.nickName || post.nickname || '用户' }}</span>
             <span class="post-time">{{ formatTime(post.createTime || post.createdAt) }}</span>
@@ -77,10 +77,11 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import circleService from '../services/circleService'
+import { genAvatar } from '../utils/placeholder'
 
 const router = useRouter()
 
-const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+const defaultAvatar = genAvatar('default')
 const activeTag = ref('')
 const tagList = ref([])
 const postList = ref([])
@@ -192,7 +193,7 @@ onMounted(async () => {
 
 <style scoped>
 .square-page {
-  min-height: calc(100vh - 80px);
+  min-height: calc(100dvh - 80px);
   background-color: #f5f5f5;
   padding-top: 12px;
   padding-bottom: 80px;

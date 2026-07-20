@@ -474,7 +474,7 @@ onMounted(() => {
 
 <style scoped>
 .service-detail-container {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: #f0f2f5;
   padding: 24px;
 }

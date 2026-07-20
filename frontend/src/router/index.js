@@ -360,6 +360,18 @@ const router = createRouter({
 const publicRoutes = ['Login', 'Home', 'Search', 'Square', 'PostDetail', 'Preferred', 'Mine', 'Friend', 'AdminLogin']
 const publicPaths = ['/', '/login', '/home', '/search', '/square', '/friend']
 
+// 仅前端路由拦截：解析 JWT 载荷，确认其具备管理员角色声明。
+// 注意：真正的权限校验由后端 adminAuth 中间件严格执行，此处仅为 UX 层防护。
+const isAdminToken = (token) => {
+  try {
+    const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    const payload = JSON.parse(decodeURIComponent(escape(window.atob(b64))))
+    return !!(payload && (payload.role === 'admin' || payload.role_id === 1))
+  } catch (e) {
+    return false
+  }
+}
+
 router.beforeEach((to, from, next) => {
   if (to.path.startsWith('/admin')) {
     if (to.path === '/admin/login') {
@@ -367,7 +379,7 @@ router.beforeEach((to, from, next) => {
       return
     }
     const adminToken = localStorage.getItem('admin_token')
-    if (!adminToken) {
+    if (!adminToken || !isAdminToken(adminToken)) {
       next('/admin/login')
       return
     }

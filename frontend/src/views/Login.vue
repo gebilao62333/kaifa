@@ -398,7 +398,7 @@ const handleResetPwd = async () => {
 
 <style scoped>
 .login-page {
-  min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
