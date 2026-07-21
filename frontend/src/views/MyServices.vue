@@ -811,6 +811,10 @@ onUnmounted(() => {
 }
 
 .header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 35px 20px 35px;
   display: flex;

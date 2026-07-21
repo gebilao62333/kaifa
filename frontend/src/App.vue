@@ -103,6 +103,22 @@ body {
   }
 }
 
+/* 桌面端把通用弹窗遮罩约束进 650/720 列，与页面内容对齐（仅非全屏页） */
+@media (min-width: 768px) {
+  .route-shell--frame .modal-overlay {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 650px;
+    right: auto;
+  }
+}
+@media (min-width: 1024px) {
+  .route-shell--frame .modal-overlay {
+    max-width: 720px;
+  }
+}
+
 /* PC端优化 - 响应式宽度体验 */
 @media (min-width: 768px) {
   .app {
