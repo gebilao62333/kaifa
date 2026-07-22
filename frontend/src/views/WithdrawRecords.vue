@@ -1,10 +1,10 @@
 <template>
-  <div class="records-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">提现明细</span>
-      <span class="total">累计 {{ formatAmount(totalWithdraw) }}</span>
-    </div>
+      <span class="nav-title">提现明细</span>
+      <span class="total">累计 {{ formatAmount(totalWithdraw) }} 金币</span>
+    </template>
 
     <div class="summary-card">
       <div class="summary-item">
@@ -24,48 +24,111 @@
     </div>
 
     <div class="records-list">
-      <div class="record-card" v-for="(item, idx) in records" :key="idx">
+      <div class="record-card" v-for="item in records" :key="item.id">
         <div class="record-icon-wrap" :style="{ background: item.bgColor }">
           <span class="record-icon">{{ item.icon }}</span>
         </div>
         <div class="record-info">
           <span class="record-title">{{ item.title }}</span>
-          <span class="record-desc">{{ item.desc }} · {{ item.account }}</span>
+          <span class="record-desc">{{ item.desc }}</span>
           <span class="record-time">{{ item.time }}</span>
         </div>
         <div class="record-status-wrap">
-          <span class="record-amount">{{ formatAmount(item.amount) }}</span>
+          <span class="record-amount">-{{ formatAmount(item.amount) }}</span>
           <span :class="['record-status', item.status]">{{ item.status === 'success' ? '已到账' : '处理中' }}</span>
         </div>
       </div>
     </div>
 
-    <div class="empty-state" v-if="records.length === 0">
-      <span class="empty-icon">🏦</span>
-      <span class="empty-text">暂无提现记录</span>
-    </div>
-  </div>
+    <EmptyState v-if="records.length === 0" icon="🏦" text="暂无提现记录" />
+  </PageLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import EmptyState from '../components/EmptyState.vue'
+import walletService from '../services/walletService'
+import { isLoggedIn } from '@/common/common'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
-const totalWithdraw = ref(520.00)
-const balance = ref(128.50)
+const records = ref([])
+const balance = ref(0)
 
-const records = ref([
-  { icon: '🏦', title: '提现到银行卡', desc: '提现', account: '尾号8848', time: '2026-05-15 14:30', amount: 200.00, status: 'success', bgColor: 'linear-gradient(135deg, #43e97b, #38f9d7)' },
-  { icon: '🏦', title: '提现到密卡', desc: '提现', account: '尾号8848', time: '2026-05-15 14:30', amount: 200.00, status: 'success', bgColor: 'linear-gradient(135deg, #43e97b, #38f9d7)' },
-  { icon: '🏦', title: '提现到密卡', desc: '提现', account: '尾号8848', time: '2026-04-28 16:20', amount: 100.00, status: 'success', bgColor: 'linear-gradient(135deg, #43e97b, #38f9d7)' },
-  { icon: '💳', title: '提现到微信', desc: '提现', account: '多客用户', time: '2026-04-15 09:00', amount: 70.00, status: 'pending', bgColor: 'linear-gradient(135deg, #fa709a, #fee140)' }
-])
+// 可提现余额（来自钱包总览的总资产）
+const totalWithdraw = computed(() =>
+  records.value.reduce((sum, r) => sum + Number(r.amount || 0), 0)
+)
+
+// 渠道映射：1 支付宝 / 2 微信 / 3 银行卡
+const CHANNEL_META = {
+  1: { icon: '💰', title: '提现到支付宝', bgColor: 'linear-gradient(135deg, #1677ff, #4096ff)' },
+  2: { icon: '💚', title: '提现到微信', bgColor: 'linear-gradient(135deg, #07c160, #10ad19)' },
+  3: { icon: '🏦', title: '提现到银行卡', bgColor: 'linear-gradient(135deg, #43e97b, #38f9d7)' }
+}
+
+const maskAccount = (acc) => {
+  if (!acc) return ''
+  if (acc.includes('@')) {
+    const [name, domain] = acc.split('@')
+    return `${name.slice(0, 1)}***@${domain}`
+  }
+  return acc.length > 4 ? `尾号${acc.slice(-4)}` : acc
+}
+
+const formatTime = (ts) => {
+  if (!ts) return ''
+  const d = new Date(ts)
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+const mapRecord = (r) => {
+  const meta = CHANNEL_META[r.type] || { icon: '💸', title: '钱包提现', bgColor: 'linear-gradient(135deg, #fa709a, #fee140)' }
+  return {
+    id: r.id,
+    icon: meta.icon,
+    title: meta.title,
+    desc: maskAccount(r.account) || '钱包提现',
+    time: formatTime(r.createTime),
+    amount: Number(r.amount || 0),
+    status: r.status === 'success' || r.status === 'approved' ? 'success' : 'pending',
+    bgColor: meta.bgColor
+  }
+}
 
 const formatAmount = (val) => {
-  return (val || 0).toFixed(2)
+  return Number(val || 0).toFixed(2)
 }
+
+const fetchRecords = async () => {
+  try {
+    const res = await walletService.getWithdrawRecords()
+    const list = res.data || res || []
+    records.value = (Array.isArray(list) ? list : []).map(mapRecord)
+  } catch (err) {
+    console.error('获取提现记录失败:', err)
+  }
+  try {
+    const res = await walletService.getOverview()
+    const data = res.data || res
+    balance.value = data.totalAssets || 0
+  } catch (err) {
+    console.error('获取可提现余额失败:', err)
+  }
+}
+
+onMounted(async () => {
+  if (!isLoggedIn()) {
+    toast.error('请先登录')
+    router.replace('/login')
+    return
+  }
+  await fetchRecords()
+})
 
 const goBack = () => {
   router.back()
@@ -73,37 +136,23 @@ const goBack = () => {
 </script>
 
 <style scoped>
-.records-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 60px 16px 16px;
-  background-color: #fff;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
 .back-btn {
   font-size: 24px;
-  color: #333;
+  color: #fff;
   cursor: pointer;
 }
 
-.title {
-  font-size: 17px;
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
   font-weight: bold;
-  color: #333;
+  color: white;
 }
 
 .total {
   font-size: 15px;
-  color: #333;
+  color: rgba(255, 255, 255, 0.9);
   font-weight: 600;
 }
 
@@ -114,7 +163,7 @@ const goBack = () => {
   margin: 12px 0 0;
   padding: 20px;
   border-radius: 0px;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .summary-item {
@@ -136,7 +185,7 @@ const goBack = () => {
 }
 
 .summary-value.withdraw {
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .summary-divider {
@@ -157,7 +206,7 @@ const goBack = () => {
   border-radius: 0px;
   padding: 16px 20px;
   margin: 12px 20px 0;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .record-icon-wrap {
@@ -223,28 +272,11 @@ const goBack = () => {
 
 .record-status.success {
   color: #10b981;
-  background: rgba(16,185,129,0.1);
+  background: rgba(16, 185, 129, 0.1);
 }
 
 .record-status.pending {
   color: #f59e0b;
-  background: rgba(245,158,11,0.1);
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 100px 0;
-}
-
-.empty-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-}
-
-.empty-text {
-  font-size: 15px;
-  color: #999;
+  background: rgba(245, 158, 11, 0.1);
 }
 </style>

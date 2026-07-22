@@ -1,24 +1,24 @@
 <template>
-  <div class="wallet-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">我的钱包</span>
-    </div>
+      <span class="nav-title">我的钱包</span>
+    </template>
 
     <div class="balance-section">
-      <div class="balance-card">
+      <div class="balance-card" @click="showBreakdown = true">
         <div class="balance-header">
-          <span class="balance-label">总资产</span>
-          <span class="vip-badge" v-if="userInfo.vip">VIP{{ userInfo.vipLevel }}</span>
+          <span class="balance-label">总资产 <span v-if="userInfo.vip" class="vip-badge">VIP{{ userInfo.vipLevel }}</span></span>
+          <span class="asset-detail">查看构成 ›</span>
         </div>
         <div class="balance-main">
           <span class="coin-icon">💰</span>
           <div class="balance-info">
             <div class="balance-row">
-              <span class="balance-num">{{ formatBalance(userInfo.balance) }}</span>
+              <span class="balance-num">{{ formatBalance(totalAssets) }}</span>
               <span class="balance-unit">金币</span>
             </div>
-            <span class="balance-hint">≈ ¥{{ formatBalance(userInfo.balance / 10) }}</span>
+            <span class="balance-hint">≈ ¥{{ formatBalance(totalAssets / 10) }}</span>
           </div>
         </div>
       </div>
@@ -27,10 +27,6 @@
         <div class="action-btn recharge" @click="goRecharge">
           <span class="action-icon">💎</span>
           <span class="action-text">充值</span>
-        </div>
-        <div class="action-btn card" @click="goCardRecharge">
-          <span class="action-icon">🎫</span>
-          <span class="action-text">卡密充值</span>
         </div>
         <div class="action-btn withdraw" @click="goWithdraw">
           <span class="action-icon">💸</span>
@@ -54,7 +50,7 @@
             <span class="stat-icon">📉</span>
             <span class="stat-label">今日支出</span>
           </div>
-          <span class="stat-value expense">-{{ formatBalance(userInfo.todayExpense) }}</span>
+          <span class="stat-value expense">-{{ formatBalance(todayExpense) }}</span>
         </div>
       </div>
       <div class="stats-row">
@@ -63,14 +59,14 @@
             <span class="stat-icon">💳</span>
             <span class="stat-label">累计提现</span>
           </div>
-          <span class="stat-value">{{ formatBalance(userInfo.totalWithdraw) }}</span>
+          <span class="stat-value">{{ formatBalance(totalWithdraw) }}</span>
         </div>
         <div class="stat-card" @click="goIncomeRecords">
           <div class="stat-header">
             <span class="stat-icon">💵</span>
             <span class="stat-label">累计收入</span>
           </div>
-          <span class="stat-value income">+{{ formatBalance(userInfo.totalIncome) }}</span>
+          <span class="stat-value income">+{{ formatBalance(grossIncome) }}</span>
         </div>
       </div>
     </div>
@@ -96,52 +92,96 @@
       </div>
     </div>
 
-  </div>
+    <div class="breakdown-mask" v-if="showBreakdown" @click="showBreakdown = false">
+      <div class="breakdown-sheet" @click.stop>
+        <div class="breakdown-header">
+          <span class="breakdown-title">收入来源构成</span>
+          <span class="breakdown-close" @click="showBreakdown = false">×</span>
+        </div>
+        <div class="breakdown-total">
+          <span class="label">收入合计</span>
+          <span class="num">{{ formatBalance(grossIncome) }} 金币</span>
+        </div>
+        <div class="breakdown-list">
+          <div class="breakdown-item" v-for="item in assetSources" :key="item.name">
+            <span class="item-icon" :style="{ background: item.bgColor }">{{ item.icon }}</span>
+            <div class="item-info">
+              <span class="item-name">{{ item.name }}</span>
+              <span class="item-bar"><i :style="{ width: item.percent + '%' }"></i></span>
+            </div>
+            <div class="item-right">
+              <span class="item-amount">{{ formatBalance(item.amount) }}</span>
+              <span class="item-percent">{{ item.percent }}%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </PageLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '../store/user-info'
+import PageLayout from '../components/PageLayout.vue'
+import walletService from '../services/walletService'
+import { isLoggedIn, devAutoLogin } from '@/common/common'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
-const userStore = useUserStore()
 
-const getHost = () => {
-  return window.globalData?.host || 'http://localhost:3000'
-}
+const totalAssets = ref(0)
+const grossIncome = ref(0)
+const todayIncome = ref(0)
+const todayExpense = ref(0)
+const totalWithdraw = ref(0)
+const assetSources = ref([])
+const userInfo = ref({ vip: false, vipLevel: 0 })
 
-const userInfo = ref({
-  balance: 0,
-  todayIncome: 68.50,
-  todayExpense: 12.00,
-  totalWithdraw: 520.00,
-  totalIncome: 1280.00,
-  vip: false,
-  vipLevel: 0
-})
+const showBreakdown = ref(false)
 
-const fetchBalance = async () => {
+const fetchWallet = async () => {
   try {
-    const token = userStore.token || localStorage.getItem('token')
-    const res = await fetch(`${getHost()}/api/pay/wallet/balance`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-    const result = await res.json()
-    if (result.code === 200 && result.data) {
-      userInfo.value.balance = result.data.balance || 0
-    }
+    const res = await walletService.getOverview()
+    const data = res.data || res
+    totalAssets.value = data.totalAssets || 0
+    grossIncome.value = data.grossIncome || 0
+    todayIncome.value = data.todayIncome || 0
+    todayExpense.value = data.todayExpense || 0
+    totalWithdraw.value = data.totalWithdraw || 0
   } catch (err) {
-    console.error('获取钱包余额失败:', err)
+    console.error('获取钱包总览失败:', err)
+  }
+  try {
+    const res = await walletService.getIncomeBreakdown()
+    const data = res.data || res
+    assetSources.value = data.list || []
+  } catch (err) {
+    console.error('获取收入构成失败:', err)
   }
 }
 
 onMounted(async () => {
-  await fetchBalance()
+  if (!isLoggedIn()) {
+    // 开发/预览模式：无登录态时自动用演示账号登录，便于直接预览钱包页面
+    if (import.meta.env.DEV) {
+      const ok = await devAutoLogin()
+      if (!ok) {
+        toast.error('请先登录')
+        router.replace('/login')
+        return
+      }
+    } else {
+      toast.error('请先登录')
+      router.replace('/login')
+      return
+    }
+  }
+  await fetchWallet()
 })
 
 const formatBalance = (balance) => {
-  return balance?.toFixed(2) || '0.00'
+  return Number(balance || 0).toFixed(2)
 }
 
 const goBack = () => {
@@ -154,10 +194,6 @@ const goRecharge = () => {
 
 const goWithdraw = () => {
   router.push('/withdraw')
-}
-
-const goCardRecharge = () => {
-  router.push('/card-recharge')
 }
 
 const goIncomeRecords = () => {
@@ -174,41 +210,18 @@ const goWithdrawRecords = () => {
 </script>
 
 <style scoped>
-.wallet-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-  padding-bottom: 80px;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 30px 20px 30px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  position: relative;
-}
-
 .back-btn {
   font-size: 24px;
   color: #fff;
   cursor: pointer;
-  position: absolute;
-  left: 20px;
 }
 
-.header .title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
   color: #fff;
-  margin-top: 0;
-  margin-bottom: 0;
-  padding-top: 0;
-  padding-bottom: 0;
 }
 
 .balance-section {
@@ -216,7 +229,7 @@ const goWithdrawRecords = () => {
 }
 
 .balance-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-radius: 10px;
   padding: 10px;
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
@@ -386,13 +399,24 @@ const goWithdrawRecords = () => {
   color: rgba(255, 255, 255, 0.8);
 }
 
+.asset-detail {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.18);
+  padding: 4px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
 .vip-badge {
   background: linear-gradient(135deg, #ffd700, #ff8c00);
   color: #fff;
   font-size: 11px;
-  padding: 4px 10px;
-  border-radius: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
   font-weight: bold;
+  margin-left: 6px;
+  vertical-align: middle;
 }
 
 .balance-hint {
@@ -450,6 +474,140 @@ const goWithdrawRecords = () => {
 .menu-arrow {
   font-size: 20px;
   color: #ccc;
+}
+
+.breakdown-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: flex-end;
+  z-index: 200;
+}
+
+.breakdown-sheet {
+  width: 100%;
+  background: #fff;
+  border-radius: 16px 16px 0 0;
+  padding: 20px 20px 28px;
+  animation: sheet-up 0.25s ease;
+}
+
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.breakdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.breakdown-title {
+  font-size: 17px;
+  font-weight: bold;
+  color: #333;
+}
+
+.breakdown-close {
+  font-size: 26px;
+  line-height: 1;
+  color: #999;
+  cursor: pointer;
+}
+
+.breakdown-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.05));
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.breakdown-total .label {
+  font-size: 14px;
+  color: #666;
+}
+
+.breakdown-total .num {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--color-primary);
+}
+
+.breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.breakdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.item-icon {
+  font-size: 24px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f6ff;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.item-name {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+}
+
+.item-bar {
+  display: block;
+  height: 6px;
+  background: #f0f0f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.item-bar i {
+  display: block;
+  height: 100%;
+  background: var(--gradient-primary);
+  border-radius: 3px;
+}
+
+.item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.item-amount {
+  font-size: 15px;
+  font-weight: bold;
+  color: #333;
+}
+
+.item-percent {
+  font-size: 12px;
+  color: #999;
 }
 
 

@@ -85,6 +85,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { toast } from '../composables/useToast'
 import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
@@ -189,7 +190,7 @@ const selectCategory = (idx) => {
 
 const goCompanionDetail = (item) => {
   console.log('陪玩师详情:', item.id)
-  alert('陪玩师详情功能开发中...')
+  toast.info('陪玩师详情功能开发中...')
 }
 
 const followCompanion = (item) => {
@@ -257,7 +258,7 @@ onMounted(() => {
 }
 
 .category-item.active .category-name {
-  color: #667eea;
+  color: var(--color-primary);
   font-weight: 500;
 }
 
@@ -282,7 +283,7 @@ onMounted(() => {
 }
 
 .filter-tab.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -388,7 +389,7 @@ onMounted(() => {
 }
 
 .follow-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   font-size: 13px;
   padding: 8px 16px;

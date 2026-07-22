@@ -101,7 +101,7 @@ const goTo = (path) => {
 }
 
 .nav-item.active .nav-text {
-  color: #667eea;
+  color: var(--color-primary);
   font-weight: 600;
 }
 

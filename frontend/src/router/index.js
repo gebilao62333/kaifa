@@ -54,6 +54,12 @@ const routes = [
     component: lazyLoad('CompanionApply')
   },
   {
+    path: '/companion-list',
+    name: 'CompanionList',
+    component: lazyLoad('CompanionList'),
+    meta: { title: '陪玩列表' }
+  },
+  {
     path: '/post-detail/:id',
     name: 'PostDetail',
     component: lazyLoad('PostDetail')

@@ -77,7 +77,7 @@ onErrorCaptured((error, instance, info) => {
 }
 
 .retry-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: #fff;
   border: none;
   padding: 12px 32px;

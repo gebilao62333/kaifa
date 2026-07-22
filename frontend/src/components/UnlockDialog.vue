@@ -254,7 +254,7 @@ const handleUnlock = () => {
   flex-direction: column;
   align-items: center;
   padding: 24px 20px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -333,7 +333,7 @@ const handleUnlock = () => {
 }
 
 .option-item.active {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: rgba(102, 126, 234, 0.05);
 }
 
@@ -374,8 +374,8 @@ const handleUnlock = () => {
 }
 
 .check-icon.checked {
-  background: #667eea;
-  border-color: #667eea;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
   color: white;
 }
 
@@ -415,7 +415,7 @@ const handleUnlock = () => {
 }
 
 .mini-gift.active {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: rgba(102, 126, 234, 0.05);
 }
 
@@ -468,7 +468,7 @@ const handleUnlock = () => {
   padding: 14px;
   border: none;
   border-radius: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   font-size: 15px;
   color: white;
   cursor: pointer;
@@ -509,7 +509,7 @@ const handleUnlock = () => {
 .success-text {
   font-size: 20px;
   font-weight: bold;
-  color: #667eea;
+  color: var(--color-primary);
   display: block;
   margin-top: 16px;
 }

@@ -229,6 +229,32 @@ export const isLoggedIn = () => {
   return !!localStorage.getItem('token')
 }
 
+// 开发/预览模式：用演示账号静默登录，自动获取有效 JWT。
+// 解决预览环境无登录态、或残留项目内 mock 假 token（如 ChatRoom 写入的
+// 'mock-token-100001'）导致钱包等真实后端接口返回 401「登录失效」的问题。
+// 仅 import.meta.env.DEV 为 true 时启用，生产构建不受影响。
+const DEV_DEMO_MOBILE = '13800138001'
+export const devAutoLogin = async () => {
+  try {
+    const res = await fetch('/api/user/login-mobile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mobile: DEV_DEMO_MOBILE, code: '000000' })
+    })
+    const text = await res.text()
+    if (!text) return false
+    const result = JSON.parse(text)
+    const token = result?.data?.accessToken || result?.data?.token
+    if (token) {
+      localStorage.setItem('token', token)
+      return true
+    }
+    return false
+  } catch (e) {
+    return false
+  }
+}
+
 export const checkLoginStatus = (requireLogin = false) => {
   if (requireLogin && !isLoggedIn()) {
     throw new RequestError('请先登录', -2, 401)
@@ -236,7 +262,7 @@ export const checkLoginStatus = (requireLogin = false) => {
   return isLoggedIn()
 }
 
-export const request = async (url, method = 'GET', data = {}, headers = {}, timeout = DEFAULT_TIMEOUT, options = {}) => {
+const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout = DEFAULT_TIMEOUT, options = {}, attempt = 0) => {
   const { requireLogin = false, silentAbort = true } = options
   
   if (requireLogin && !isLoggedIn()) {
@@ -277,6 +303,14 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
     clearTimeout(timeoutId)
 
     if (response.status === 401) {
+      // 开发/预览模式：无效或残留假 token 导致 401 时，自动用演示账号登录并重试一次，
+      // 让钱包等真实后端页面在预览中无需手动登录即可查看。
+      if (import.meta.env.DEV && !options.skipAuthRetry && attempt === 0 && url.includes('/api/')) {
+        const ok = await devAutoLogin()
+        if (ok) {
+          return doRequest(url, method, data, headers, timeout, { ...options, skipAuthRetry: true }, 1)
+        }
+      }
       // 仅对“需要登录”的请求才强制跳转登录页，公开页面（如首页）应交给调用方优雅处理
       if (requireLogin && !isRedirecting) {
         isRedirecting = true
@@ -343,3 +377,7 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
     throw new RequestError('网络连接失败，请检查网络', -1, 0)
   }
 }
+
+// 对外导出：默认从 attempt=0 发起请求，401 时由内部 doRequest 自动重试一次（dev 模式）
+export const request = (url, method = 'GET', data = {}, headers = {}, timeout = DEFAULT_TIMEOUT, options = {}) =>
+  doRequest(url, method, data, headers, timeout, options, 0)

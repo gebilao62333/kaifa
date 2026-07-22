@@ -1,10 +1,10 @@
 <template>
-  <div class="publish-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">发布动态</span>
+      <span class="nav-title">发布动态</span>
       <span class="publish-btn" @click="publish">发布</span>
-    </div>
+    </template>
     
     <div class="content">
       <textarea 
@@ -172,12 +172,14 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -256,7 +258,7 @@ const selectLocation = (loc) => {
 
 const getCurrentLocation = () => {
   if (!navigator.geolocation) {
-    alert('您的浏览器不支持定位功能')
+    toast.error('您的浏览器不支持定位功能')
     return
   }
   
@@ -293,16 +295,16 @@ const getCurrentLocation = () => {
       locationLoading.value = false
       switch (error.code) {
         case error.PERMISSION_DENIED:
-          alert('定位权限被拒绝，请在浏览器设置中开启定位权限')
+          toast.error('定位权限被拒绝，请在浏览器设置中开启定位权限')
           break
         case error.POSITION_UNAVAILABLE:
-          alert('无法获取您的位置信息')
+          toast.error('无法获取您的位置信息')
           break
         case error.TIMEOUT:
-          alert('定位请求超时')
+          toast.error('定位请求超时')
           break
         default:
-          alert('定位失败')
+          toast.error('定位失败')
       }
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
@@ -320,15 +322,15 @@ const toggleTopic = (t) => {
 
 const publish = () => {
   if (!content.value.trim() && mediaItems.value.length === 0) {
-    alert('请输入内容或添加图片')
+    toast.error('请输入内容或添加图片')
     return
   }
   if (visibility.value === 'password' && !viewPassword.value.trim()) {
-    alert('请输入查看密码')
+    toast.error('请输入查看密码')
     return
   }
   if (visibility.value === 'pay' && (!viewPrice.value || viewPrice.value <= 0)) {
-    alert('请输入有效的查看金币数')
+    toast.error('请输入有效的查看金币数')
     return
   }
   
@@ -363,30 +365,12 @@ const publish = () => {
     postData.price = parseFloat(viewPrice.value)
   }
   console.log('发布动态:', postData)
-  alert('发布成功')
+  toast.success('发布成功')
   router.back()
 }
 </script>
 
 <style scoped>
-.publish-page {
-  min-height: 100dvh;
-  background: #f5f5f5;
-  padding-bottom: 80px;
-}
-
-.header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  height: 50px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
 .back-btn {
   font-size: 24px;
   color: white;
@@ -398,8 +382,10 @@ const publish = () => {
   justify-content: center;
 }
 
-.title {
-  font-size: 17px;
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
   font-weight: bold;
   color: white;
 }
@@ -566,8 +552,8 @@ const publish = () => {
 }
 
 .visibility-setting .option.active {
-  border-color: #667eea;
-  color: #667eea;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
   background: rgba(102, 126, 234, 0.05);
 }
 
@@ -586,7 +572,7 @@ const publish = () => {
 
 .visibility-setting .visibility-input input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--color-primary);
 }
 
 .topic-modal {
@@ -655,8 +641,8 @@ const publish = () => {
 
 .topic-item.selected {
   background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
-  border-color: #667eea;
+  color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .topic-modal-footer {
@@ -679,7 +665,7 @@ const publish = () => {
 
 .topic-selected-item {
   background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  color: var(--color-primary);
   padding: 4px 12px;
   border-radius: 14px;
   font-size: 13px;
@@ -689,7 +675,7 @@ const publish = () => {
 .topic-confirm-btn {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   border-radius: 24px;
@@ -766,7 +752,7 @@ const publish = () => {
 .location-current-text {
   flex: 1;
   font-size: 15px;
-  color: #667eea;
+  color: var(--color-primary);
   font-weight: 500;
 }
 
@@ -796,7 +782,7 @@ const publish = () => {
 
 .location-search input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--color-primary);
 }
 
 .location-list {
@@ -818,7 +804,7 @@ const publish = () => {
 }
 
 .location-item.selected .location-text {
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .location-icon {
@@ -833,7 +819,7 @@ const publish = () => {
 }
 
 .location-check {
-  color: #667eea;
+  color: var(--color-primary);
   font-size: 16px;
   font-weight: bold;
 }

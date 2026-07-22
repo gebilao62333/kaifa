@@ -1,10 +1,9 @@
 <template>
-  <div class="card-recharge-page">
-    <div class="page-nav">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">← 返回</span>
-      <h2>卡密充值</h2>
-      <span></span>
-    </div>
+      <span class="nav-title">卡密充值</span>
+    </template>
 
     <div class="card-form">
       <div class="form-icon">🎫</div>
@@ -60,13 +59,14 @@
         <button class="result-btn" @click="closeResult">确定</button>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import payService from '../services/payService'
+import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
 const cardNo = ref('')
@@ -86,26 +86,12 @@ const submitRecharge = async () => {
 
   loading.value = true
   try {
-    // First validate the card
-    const validateRes = await payService.validateCard(cardNo.value.trim(), cardPwd.value.trim())
-
-    if (validateRes.code !== 200 && validateRes.code !== 0) {
-      showResultModal(false, validateRes.message || '卡密验证失败')
-      return
-    }
-
-    // Then use the card
-    const useRes = await payService.useCard(cardNo.value.trim(), cardPwd.value.trim())
-
-    if (useRes.code === 200 || useRes.code === 0) {
-      resultAmount.value = useRes.data?.amount || useRes.data?.coinAmount || 0
-      showResultModal(true, '')
-    } else {
-      showResultModal(false, useRes.message || '充值失败，请稍后重试')
-    }
+    const amount = await payService.redeemCard(cardNo.value.trim(), cardPwd.value.trim())
+    resultAmount.value = amount
+    showResultModal(true, '')
   } catch (err) {
     console.error('卡密充值失败:', err)
-    showResultModal(false, '网络错误，请稍后重试')
+    showResultModal(false, err.message || '网络错误，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -127,33 +113,18 @@ const closeResult = () => {
 </script>
 
 <style scoped>
-.card-recharge-page {
-  min-height: calc(100dvh - 80px);
-  background: #f5f5f5;
-  padding-bottom: 80px;
-}
-
-.page-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: #fff;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.page-nav h2 {
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
-}
-
 .back-btn {
   font-size: 15px;
-  color: #667eea;
+  color: #fff;
   cursor: pointer;
+}
+
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: #fff;
 }
 
 .card-form {
@@ -201,7 +172,7 @@ const closeResult = () => {
 }
 
 .form-input:focus {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: #fff;
 }
 
@@ -214,7 +185,7 @@ const closeResult = () => {
   width: 100%;
   padding: 16px;
   margin-top: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: #fff;
   border: none;
   border-radius: 12px;
@@ -243,7 +214,7 @@ const closeResult = () => {
 
 .tips h4 {
   font-size: 14px;
-  color: #667eea;
+  color: var(--color-primary);
   margin-bottom: 8px;
 }
 
@@ -264,7 +235,7 @@ const closeResult = () => {
   content: '•';
   position: absolute;
   left: 0;
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .result-modal {
@@ -304,30 +275,17 @@ const closeResult = () => {
 }
 
 .result-content p strong {
-  color: #667eea;
+  color: var(--color-primary);
   font-size: 18px;
 }
 
 .result-btn {
   padding: 12px 40px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: #fff;
   border: none;
   border-radius: 24px;
   font-size: 15px;
   cursor: pointer;
-}
-
-@media (min-width: 768px) {
-  .card-recharge-page {
-    max-width: 650px;
-    margin: 0 auto;
-  }
-}
-
-@media (min-width: 1024px) {
-  .card-recharge-page {
-    max-width: 720px;
-  }
 }
 </style>

@@ -32,7 +32,7 @@ export const payMethods = {
     name: '余额支付',
     icon: 'Y',
     desc: '余额支付',
-    bg: 'linear-gradient(135deg, #667eea, #764ba2)'
+    bg: 'var(--gradient-primary)'
   }
 }
 

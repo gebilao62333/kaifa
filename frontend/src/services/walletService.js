@@ -1,55 +1,47 @@
-import { request } from '../common/common'
-import { validateParams } from '../common/common'
+import { request, RequestError } from '../common/common'
 
+// 钱包相关接口：收入流水、总资产、提现（与后端 /api/wallet 对应）
 const walletService = {
-  async getBalance() {
-    return request('/api/wallet/balance', 'GET')
+  // 钱包总览：总资产 / 累计收入 / 已提现 / 今日收益
+  async getOverview() {
+    return request('/api/wallet/overview', 'GET')
   },
 
-  async getRecords(params = {}) {
-    const { type, page = 1, pageSize = 20 } = params
-    const data = { page, pageSize }
-    if (type) data.type = type
-    return request('/api/wallet/records', 'GET', data)
+  // 收入明细列表
+  async getIncomeRecords(params = {}) {
+    const { page = 1, pageSize = 50 } = params
+    return request('/api/wallet/income-records', 'GET', { page, pageSize })
   },
 
-  async withdraw(params) {
-    validateParams(params, {
-      amount: {
-        required: true,
-        label: '提现金额',
-        type: 'number',
-        min: 1
-      },
-      method: {
-        required: true,
-        label: '提现方式',
-        type: 'string'
-      }
-    })
-    return request('/api/wallet/withdraw', 'POST', params)
+  // 收入来源构成（按来源聚合）
+  async getIncomeBreakdown() {
+    return request('/api/wallet/income-breakdown', 'GET')
   },
 
+  // 提现记录（钱包渠道）
   async getWithdrawRecords(params = {}) {
-    const { status, page = 1, pageSize = 20 } = params
-    return request('/api/wallet/withdraw-records', 'GET', { status, page, pageSize })
+    const { page = 1, pageSize = 20 } = params
+    return request('/api/wallet/withdraw-records', 'GET', { page, pageSize })
   },
 
-  async getWithdrawConfig() {
-    return request('/api/wallet/withdraw-config', 'GET')
+  // 支出明细列表
+  async getExpenseRecords(params = {}) {
+    const { page = 1, pageSize = 50 } = params
+    return request('/api/wallet/expense-records', 'GET', { page, pageSize })
   },
 
-  async bindBankCard(data) {
-    validateParams(data, {
-      bankName: { required: true, label: '银行名称', type: 'string' },
-      bankAccount: { required: true, label: '银行账号', type: 'string' },
-      accountName: { required: true, label: '开户姓名', type: 'string' }
-    })
-    return request('/api/wallet/bind-bank', 'POST', data)
+  // 支出总览：支出总额 / 今日支出
+  async getExpenseOverview() {
+    return request('/api/wallet/expense-overview', 'GET')
   },
 
-  async getBankCards() {
-    return request('/api/wallet/bank-cards', 'GET')
+  // 从总资产提现
+  async withdraw({ amount, type, account }) {
+    const res = await request('/api/wallet/withdraw', 'POST', { amount, type, account })
+    if (res.code !== 200 && res.code !== 0) {
+      throw new RequestError(res.message || '提现申请失败', res.code, 400)
+    }
+    return res
   }
 }
 

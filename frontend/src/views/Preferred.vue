@@ -406,7 +406,7 @@ onUnmounted(() => {
 }
 
 .tab-item.active span {
-  color: #667eea;
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -418,7 +418,7 @@ onUnmounted(() => {
   transform: translateX(-50%);
   width: 40px;
   height: 3px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-radius: 2px;
 }
 
@@ -478,7 +478,7 @@ onUnmounted(() => {
   width: 48px;
   height: 48px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -496,7 +496,7 @@ onUnmounted(() => {
   width: 48px;
   height: 48px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -586,7 +586,7 @@ onUnmounted(() => {
 
 .mark-all-read {
   font-size: 14px;
-  color: #667eea;
+  color: var(--color-primary);
   cursor: pointer;
 }
 
@@ -684,7 +684,7 @@ onUnmounted(() => {
   width: 40px;
   height: 40px;
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #667eea;
+  border-top: 3px solid var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

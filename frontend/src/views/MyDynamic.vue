@@ -1,10 +1,10 @@
 <template>
-  <div class="mydynamic-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">我的动态</span>
+      <span class="nav-title">我的动态</span>
       <span class="add-btn" @click="goPublish">发动态</span>
-    </div>
+    </template>
 
     <div class="posts-tabs">
       <span
@@ -51,17 +51,15 @@
       </div>
     </div>
 
-    <div class="empty-state" v-else>
-      <span class="empty-icon">📝</span>
-      <span class="empty-text">{{ emptyText }}</span>
-      <button class="empty-btn" @click="goPublish">发第一条动态</button>
-    </div>
-  </div>
+    <EmptyState v-else :text="emptyText" actionText="发第一条动态" @action="goPublish" />
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import EmptyState from '../components/EmptyState.vue'
 
 const router = useRouter()
 
@@ -185,24 +183,6 @@ const updateTabCounts = () => {
 </script>
 
 <style scoped>
-.mydynamic-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-  padding-bottom: 80px;
-}
-
-.header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  height: 50px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
 .back-btn {
   font-size: 24px;
   color: white;
@@ -214,8 +194,10 @@ const updateTabCounts = () => {
   justify-content: center;
 }
 
-.title {
-  font-size: 17px;
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
   font-weight: bold;
   color: white;
 }
@@ -245,7 +227,7 @@ const updateTabCounts = () => {
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   font-weight: 600;
 }
@@ -380,35 +362,6 @@ const updateTabCounts = () => {
 .action-btn {
   font-size: 13px;
   color: #ef4444;
-  cursor: pointer;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 100px 0;
-}
-
-.empty-icon {
-  font-size: 80px;
-  margin-bottom: 16px;
-}
-
-.empty-text {
-  font-size: 15px;
-  color: #999;
-  margin-bottom: 24px;
-}
-
-.empty-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  padding: 12px 32px;
-  border-radius: 24px;
-  font-size: 15px;
   cursor: pointer;
 }
 </style>

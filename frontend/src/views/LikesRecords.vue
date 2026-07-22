@@ -1,10 +1,10 @@
 <template>
-  <div class="likes-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">获赞记录</span>
+      <span class="nav-title">获赞记录</span>
       <span class="total">总计 {{ totalLikes }}</span>
-    </div>
+    </template>
 
     <div class="likes-list" v-if="likesList.length > 0">
       <div class="like-item" v-for="(item, idx) in likesList" :key="idx" @click="viewProfile(item)">
@@ -17,16 +17,15 @@
       </div>
     </div>
 
-    <div class="empty-state" v-else>
-      <span class="empty-icon">❤️</span>
-      <span class="empty-text">还没有人赞过你</span>
-    </div>
-  </div>
+    <EmptyState v-else icon="❤️" text="还没有人赞过你" />
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import EmptyState from '../components/EmptyState.vue'
 
 const router = useRouter()
 
@@ -53,32 +52,18 @@ const viewProfile = (user) => {
 </script>
 
 <style scoped>
-.likes-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 60px 16px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
 .back-btn {
   font-size: 24px;
   color: #fff;
   cursor: pointer;
 }
 
-.title {
-  font-size: 17px;
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
   font-weight: bold;
-  color: #fff;
+  color: white;
 }
 
 .total {
@@ -133,23 +118,5 @@ const viewProfile = (user) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 120px 0;
-}
-
-.empty-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-}
-
-.empty-text {
-  font-size: 15px;
-  color: #999;
 }
 </style>

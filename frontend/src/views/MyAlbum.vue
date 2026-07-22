@@ -1,10 +1,10 @@
 <template>
-  <div class="album-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">我的相册</span>
+      <span class="nav-title">我的相册</span>
       <span class="add-btn" @click="handleAddClick">+</span>
-    </div>
+    </template>
 
     <div class="content">
       <div class="album-info" v-if="!isLoading">
@@ -40,11 +40,7 @@
         </div>
       </div>
 
-      <div class="empty-state" v-else-if="!isLoading">
-        <div class="empty-icon">📷</div>
-        <div class="empty-text">暂无照片</div>
-        <div class="empty-hint">点击右上角添加照片</div>
-      </div>
+      <EmptyState v-else-if="!isLoading" icon="📷" text="暂无照片" hint="点击右上角添加照片" />
 
       <div class="load-more" v-if="hasMore && !isLoading" @click="loadMore">
         加载更多
@@ -132,13 +128,17 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { albumService } from '@/services/albumService'
+import { isLoggedIn } from '@/common/common'
+import PageLayout from '../components/PageLayout.vue'
+import EmptyState from '../components/EmptyState.vue'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -165,7 +165,7 @@ const goBack = () => {
 }
 
 const checkLogin = () => {
-  if (!albumService.isLoggedIn()) {
+  if (!isLoggedIn()) {
     router.push('/login')
     return false
   }
@@ -235,7 +235,7 @@ const deleteCurrentPhoto = async () => {
       photos.value = photos.value.filter(p => p.id !== currentPhoto.value.id)
       currentPhoto.value = null
     } else {
-      alert(result.message || '删除失败')
+      toast.error(result.message || '删除失败')
     }
   }
 }
@@ -306,10 +306,10 @@ const confirmAdd = async () => {
       photos.value.unshift(...uploadResults)
       cancelAdd()
       if (uploadResults.length < previewUrls.value.length) {
-        alert(`部分图片上传成功，成功 ${uploadResults.length} 张，失败 ${previewUrls.value.length - uploadResults.length} 张`)
+        toast.warning(`部分图片上传成功，成功 ${uploadResults.length} 张，失败 ${previewUrls.value.length - uploadResults.length} 张`)
       }
     } else {
-      alert('上传失败')
+      toast.error('上传失败')
     }
   } finally {
     isUploading.value = false
@@ -330,23 +330,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.album-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
 .back-btn,
 .add-btn {
   width: 40px;
@@ -355,7 +338,9 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
   color: white;
@@ -407,7 +392,7 @@ onMounted(() => {
   width: 40px;
   height: 40px;
   border: 3px solid #e0e0e0;
-  border-top-color: #667eea;
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 16px;
@@ -469,32 +454,10 @@ onMounted(() => {
   transform: scale(1.1);
 }
 
-.empty-state {
-  text-align: center;
-  padding: 80px 20px;
-}
-
-.empty-icon {
-  font-size: 80px;
-  margin-bottom: 16px;
-  opacity: 0.3;
-}
-
-.empty-text {
-  font-size: 16px;
-  color: #999;
-  margin-bottom: 8px;
-}
-
-.empty-hint {
-  font-size: 13px;
-  color: #ccc;
-}
-
 .load-more {
   text-align: center;
   padding: 16px;
-  color: #667eea;
+  color: var(--color-primary);
   font-size: 14px;
   cursor: pointer;
 }
@@ -631,12 +594,12 @@ onMounted(() => {
 }
 
 .upload-area:hover {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: rgba(102,126,234,0.08);
 }
 
 .upload-area.dragover {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: rgba(102,126,234,0.12);
   transform: scale(1.02);
 }
@@ -676,7 +639,7 @@ onMounted(() => {
 
 .description-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: #fff;
   box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
 }
@@ -769,12 +732,12 @@ onMounted(() => {
 }
 
 .privacy-option input[type="radio"]:checked + span {
-  color: #667eea;
+  color: var(--color-primary);
   font-weight: 500;
 }
 
 .privacy-option input[type="radio"]:checked {
-  background: #667eea;
+  background: var(--color-primary);
 }
 
 .privacy-option:has(input[type="radio"]:checked) {
@@ -799,7 +762,7 @@ onMounted(() => {
 .password-input:focus,
 .price-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--color-primary);
 }
 
 .modal-footer {
@@ -834,7 +797,7 @@ onMounted(() => {
 
 .modal-btn.confirm {
   color: #fff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(102,126,234,0.35);
 }

@@ -399,7 +399,7 @@ const handleResetPwd = async () => {
 <style scoped>
 .login-page {
   min-height: 100dvh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -468,7 +468,7 @@ const handleResetPwd = async () => {
 
 .form-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -479,7 +479,7 @@ const handleResetPwd = async () => {
 .login-btn {
   width: 100%;
   height: 50px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: #fff;
   border: none;
   border-radius: 12px;
@@ -510,7 +510,7 @@ const handleResetPwd = async () => {
 
 .link {
   font-size: 14px;
-  color: #667eea;
+  color: var(--color-primary);
   cursor: pointer;
 }
 
@@ -613,7 +613,7 @@ const handleResetPwd = async () => {
 .submit-btn {
   width: 100%;
   height: 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: #fff;
   border: none;
   border-radius: 12px;

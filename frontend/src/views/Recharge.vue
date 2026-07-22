@@ -1,9 +1,9 @@
 <template>
-  <div class="recharge-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">充值中心</span>
-    </div>
+      <span class="nav-title">充值中心</span>
+    </template>
 
     <div class="balance-card">
       <div class="label">我的钱包</div>
@@ -43,15 +43,6 @@
       </div>
     </div>
 
-    <div class="card-input-section" v-if="payMethod === 'card'">
-      <div class="section-title">密卡信息</div>
-      <div class="card-inputs">
-        <div class="card-input-group">
-          <input type="text" v-model="cardCode" placeholder="请输入密卡" maxlength="32" />
-        </div>
-      </div>
-    </div>
-
     <div class="bottom-bar">
       <div class="total">
         <span class="label">支付金额</span>
@@ -62,13 +53,15 @@
         {{ submitting ? '处理中...' : '立即支付' }}
       </button>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getRechargeMethods } from '../common/payMethods'
+import PageLayout from '../components/PageLayout.vue'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -99,7 +92,6 @@ onMounted(() => {
 })
 const selectedId = ref(3)
 const payMethod = ref('alipay')
-const cardCode = ref('')
 const submitting = ref(false)
 
 const options = ref([
@@ -118,7 +110,7 @@ const formatAmount = (num) => {
 const payMethodsList = computed(() => {
   return getRechargeMethods().filter(m => m.id !== 'balance').map(m => {
     if (m.id === 'card') {
-      return { ...m, name: '密卡支付' }
+      return { ...m, name: '卡密充值', desc: '前往卡密充值页' }
     }
     return m
   })
@@ -142,45 +134,14 @@ const doRecharge = async () => {
   if (submitting.value) return
 
   if (payMethod.value === 'card') {
-    if (!cardCode.value.trim()) {
-      alert('请输入密卡')
-      return
-    }
-
-    submitting.value = true
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500))
-
-      const validCards = [
-        { code: 'VIP123456', coins: 100 },
-        { code: 'GIFT654321', coins: 200 },
-        { code: 'TEST999999', coins: 500 },
-        { code: 'FREE100000', coins: 100 }
-      ]
-
-      const card = validCards.find(c => c.code === cardCode.value.trim().toUpperCase())
-
-      if (card) {
-        balance.value = Number(balance.value) + card.coins
-        saveBalance()
-        alert(`充值成功！获得 ${card.coins} 金币`)
-        cardCode.value = ''
-      } else {
-        alert('密卡无效，充值失败')
-      }
-    } catch (error) {
-      console.error('密卡充值错误:', error)
-      alert('网络错误，请重试')
-    } finally {
-      submitting.value = false
-    }
+    router.push('/card-recharge')
+    return
   } else if (payMethod.value === 'balance') {
     const selected = options.value.find(o => o.id === selectedId.value)
     const costCoins = parseInt(selected.amount)
 
     if (balance.value < costCoins) {
-      alert('余额不足')
+      toast.warning('余额不足')
       return
     }
 
@@ -191,10 +152,10 @@ const doRecharge = async () => {
 
       balance.value = Number(balance.value) - costCoins + (parseInt(selected.bonus) || 0)
       saveBalance()
-      alert(`充值成功！花费 ${costCoins} 币，获得 ${selected.amount} 币`)
+      toast.success(`充值成功！花费 ${costCoins} 币，获得 ${selected.amount} 币`)
     } catch (error) {
       console.error('余额支付错误:', error)
-      alert('网络错误，请重试')
+      toast.error('网络错误，请重试')
     } finally {
       submitting.value = false
     }
@@ -211,33 +172,17 @@ const doRecharge = async () => {
 </script>
 
 <style scoped>
-.recharge-page {
-  min-height: 100dvh;
-  background: #f5f5f5;
-  padding-bottom: 140px;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  padding: 60px 20px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
 .back-btn {
   font-size: 24px;
   cursor: pointer;
-  margin-right: 20px;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
+  color: white;
 }
 
 .balance-card {
@@ -294,7 +239,7 @@ const doRecharge = async () => {
 }
 
 .amount-item.active {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: rgba(102, 126, 234, 0.05);
 }
 
@@ -351,7 +296,7 @@ const doRecharge = async () => {
 }
 
 .payment-item.active {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: rgba(102, 126, 234, 0.03);
 }
 
@@ -398,7 +343,7 @@ const doRecharge = async () => {
 }
 
 .radio.checked {
-  border-color: #667eea;
+  border-color: var(--color-primary);
 }
 
 .radio.checked::after {
@@ -409,7 +354,7 @@ const doRecharge = async () => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #667eea;
+  background: var(--color-primary);
 }
 
 .card-input-section {
@@ -478,7 +423,7 @@ const doRecharge = async () => {
 }
 
 .recharge-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   padding: 14px 32px;

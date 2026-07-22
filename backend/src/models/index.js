@@ -590,6 +590,7 @@ if (config.useMockDb) {
         amount: data.amount || 0,
         type: data.type || 'alipay',
         account: data.account || '',
+        channel: data.channel || 'gift',
         status: 'pending',
         remark: '',
         create_time: Date.now(),
@@ -688,6 +689,118 @@ if (config.useMockDb) {
 
   const VipOrder = createMockModel('VipOrder');
 
+  // ==================== 收入流水（钱包总资产来源） ====================
+  const _incomeRecords = [
+    { id: 1, user_id: 1, source_type: 'order', source_name: '接单', icon: '🎮', bg_color: 'linear-gradient(135deg, #667eea, #764ba2)', amount: 50.00, rel_id: 1001, remark: '王者荣耀 · 2小时', create_time: Date.now() - 30 * 60 * 1000 },
+    { id: 2, user_id: 1, source_type: 'voice', source_name: '语音聊天', icon: '💬', bg_color: 'linear-gradient(135deg, #4facfe, #00f2fe)', amount: 18.50, rel_id: 0, remark: '语音聊天 · 30分钟', create_time: Date.now() - 50 * 60 * 1000 },
+    { id: 3, user_id: 1, source_type: 'video', source_name: '视频聊天', icon: '📹', bg_color: 'linear-gradient(135deg, #43e97b, #38f9d7)', amount: 12.00, rel_id: 0, remark: '视频聊天 · 20分钟', create_time: Date.now() - 70 * 60 * 1000 },
+    { id: 4, user_id: 1, source_type: 'gift', source_name: '礼物', icon: '🎁', bg_color: 'linear-gradient(135deg, #f093fb, #f5576c)', amount: 8.00, rel_id: 2001, remark: '用户"小可爱"送出礼物', create_time: Date.now() - 90 * 60 * 1000 },
+    { id: 5, user_id: 1, source_type: 'redpacket', source_name: '红包', icon: '🧧', bg_color: 'linear-gradient(135deg, #ff6b6b, #ff8e53)', amount: 6.00, rel_id: 0, remark: '用户"小明"发来红包', create_time: Date.now() - 110 * 60 * 1000 },
+    { id: 6, user_id: 1, source_type: 'invite', source_name: '邀请返现', icon: '🤝', bg_color: 'linear-gradient(135deg, #43e97b, #38f9d7)', amount: 5.00, rel_id: 0, remark: '邀请好友注册返现', create_time: Date.now() - 120 * 60 * 1000 },
+    { id: 7, user_id: 1, source_type: 'album', source_name: '相册付费查看', icon: '📷', bg_color: 'linear-gradient(135deg, #a18cd1, #fbc2eb)', amount: 7.00, rel_id: 3001, remark: '用户付费解锁相册', create_time: Date.now() - 130 * 60 * 1000 }
+  ];
+  let _incomeRecordId = 7;
+
+  const IncomeRecord = {
+    create(data = {}) {
+      const record = {
+        id: data.id || (++_incomeRecordId),
+        user_id: data.user_id,
+        source_type: data.source_type,
+        source_name: data.source_name,
+        icon: data.icon,
+        bg_color: data.bg_color,
+        amount: data.amount || 0,
+        rel_id: data.rel_id || 0,
+        remark: data.remark || '',
+        create_time: data.create_time || Date.now()
+      };
+      _incomeRecords.push(record);
+      return Promise.resolve(record);
+    },
+    findAll(options = {}) {
+      let list = [..._incomeRecords];
+      if (options.where && options.where.user_id) {
+        list = list.filter((r) => r.user_id === options.where.user_id);
+      }
+      if (options.order && options.order[0]) {
+        const [field, dir] = options.order[0];
+        list.sort((a, b) => (dir === 'DESC' ? b[field] - a[field] : a[field] - b[field]));
+      }
+      return Promise.resolve(list);
+    },
+    findByPk(id) {
+      const found = _incomeRecords.find((r) => r.id === id);
+      return Promise.resolve(found || null);
+    },
+    update(id, data) {
+      const idx = _incomeRecords.findIndex((r) => r.id === id);
+      if (idx === -1) return Promise.resolve([0]);
+      _incomeRecords[idx] = { ..._incomeRecords[idx], ...data };
+      return Promise.resolve([1]);
+    },
+    destroy(id) {
+      const idx = _incomeRecords.findIndex((r) => r.id === id);
+      if (idx === -1) return Promise.resolve(0);
+      _incomeRecords.splice(idx, 1);
+      return Promise.resolve(1);
+    }
+  };
+
+  // ==================== 支出流水（钱包支出明细） ====================
+  const _expenseRecords = [
+    { id: 1, user_id: 1, source_type: 'gift', source_name: '购买礼物', icon: '🎁', bg_color: 'linear-gradient(135deg, #fa709a, #fee140)', amount: 6.00, rel_id: 2001, remark: '赠送"小雪"礼物', create_time: Date.now() - 26 * 60 * 1000 },
+    { id: 2, user_id: 1, source_type: 'top', source_name: '置顶帖子', icon: '📢', bg_color: 'linear-gradient(135deg, #a18cd1, #fbc2eb)', amount: 3.00, rel_id: 0, remark: '帖子置顶消耗', create_time: Date.now() - 40 * 60 * 1000 },
+    { id: 3, user_id: 1, source_type: 'medal', source_name: '解锁勋章', icon: '🔒', bg_color: 'linear-gradient(135deg, #ffecd2, #fcb69f)', amount: 3.00, rel_id: 0, remark: '开通月度勋章', create_time: Date.now() - 60 * 60 * 1000 }
+  ];
+  let _expenseRecordId = 3;
+
+  const ExpenseRecord = {
+    create(data = {}) {
+      const record = {
+        id: data.id || (++_expenseRecordId),
+        user_id: data.user_id,
+        source_type: data.source_type,
+        source_name: data.source_name,
+        icon: data.icon,
+        bg_color: data.bg_color,
+        amount: data.amount || 0,
+        rel_id: data.rel_id || 0,
+        remark: data.remark || '',
+        create_time: data.create_time || Date.now()
+      };
+      _expenseRecords.push(record);
+      return Promise.resolve(record);
+    },
+    findAll(options = {}) {
+      let list = [..._expenseRecords];
+      if (options.where && options.where.user_id) {
+        list = list.filter((r) => r.user_id === options.where.user_id);
+      }
+      if (options.order && options.order[0]) {
+        const [field, dir] = options.order[0];
+        list.sort((a, b) => (dir === 'DESC' ? b[field] - a[field] : a[field] - b[field]));
+      }
+      return Promise.resolve(list);
+    },
+    findByPk(id) {
+      const found = _expenseRecords.find((r) => r.id === id);
+      return Promise.resolve(found || null);
+    },
+    update(id, data) {
+      const idx = _expenseRecords.findIndex((r) => r.id === id);
+      if (idx === -1) return Promise.resolve([0]);
+      _expenseRecords[idx] = { ..._expenseRecords[idx], ...data };
+      return Promise.resolve([1]);
+    },
+    destroy(id) {
+      const idx = _expenseRecords.findIndex((r) => r.id === id);
+      if (idx === -1) return Promise.resolve(0);
+      _expenseRecords.splice(idx, 1);
+      return Promise.resolve(1);
+    }
+  };
+
   module.exports = {
     User,
     ChatLog,
@@ -716,6 +829,8 @@ if (config.useMockDb) {
     RechargePackage,
     Card,
     Withdraw,
+    IncomeRecord,
+    ExpenseRecord,
     VirtualUser,
     VirtualChatHistory,
     VirtualUserTag,
@@ -755,6 +870,8 @@ if (config.useMockDb) {
   const RechargePackage = require('./mysql/RechargePackage');
   const Card = require('./mysql/Card');
   const Withdraw = require('./mysql/Withdraw');
+  const IncomeRecord = require('./mysql/IncomeRecord');
+  const ExpenseRecord = require('./mysql/ExpenseRecord');
   const VirtualUser = require('./mysql/VirtualUser');
   const VirtualChatHistory = require('./mysql/VirtualChatHistory');
   const VirtualUserTag = require('./mysql/VirtualUserTag');
@@ -795,6 +912,8 @@ if (config.useMockDb) {
     RechargePackage,
     Card,
     Withdraw,
+    IncomeRecord,
+    ExpenseRecord,
     VirtualUser,
     VirtualChatHistory,
     VirtualUserTag,

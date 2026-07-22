@@ -18,6 +18,7 @@ const albumService = require('./albumService');
 const demandService = require('./demandService');
 const projectService = require('./projectService');
 const regionService = require('./regionService');
+const walletService = require('./walletService');
 
 module.exports = {
   authService,
@@ -39,5 +40,6 @@ module.exports = {
   albumService,
   demandService,
   projectService,
-  regionService
+  regionService,
+  walletService
 };

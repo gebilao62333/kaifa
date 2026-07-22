@@ -1,11 +1,11 @@
 <template>
   <div class="quick-nav">
     <div class="nav-grid">
-      <div class="nav-item" @click="$emit('navigate', 'companion-apply')">
-        <div class="nav-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">🏃</div>
+      <div class="nav-item" @click="$emit('navigate', 'companion-list?type=offline')">
+        <div class="nav-icon" style="background: var(--gradient-primary);">🏃</div>
         <div class="nav-text">线下陪玩</div>
       </div>
-      <div class="nav-item" @click="$emit('navigate', 'companion-apply')">
+      <div class="nav-item" @click="$emit('navigate', 'companion-list?type=online')">
         <div class="nav-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">💻</div>
         <div class="nav-text">线上陪玩</div>
       </div>

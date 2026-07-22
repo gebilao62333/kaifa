@@ -1,10 +1,10 @@
 <template>
-  <div class="fans-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">我的粉丝</span>
+      <span class="nav-title">我的粉丝</span>
       <span class="count">{{ fans.length }}人</span>
-    </div>
+    </template>
 
     <div class="content">
       <div class="user-list" v-if="fans.length > 0">
@@ -23,18 +23,17 @@
         </div>
       </div>
 
-      <div class="empty-state" v-else>
-        <div class="empty-icon">👥</div>
-        <div class="empty-text">暂无粉丝</div>
-        <div class="empty-hint">努力提升自己，粉丝会越来越多哦</div>
-      </div>
+      <EmptyState v-else icon="👥" text="暂无粉丝" hint="努力提升自己，粉丝会越来越多哦" />
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import EmptyState from '../components/EmptyState.vue'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -88,9 +87,9 @@ const goBack = () => {
 const toggleFollow = (user) => {
   user.isFollow = !user.isFollow
   if (user.isFollow) {
-    alert(`已关注 ${user.name}`)
+    toast.success(`已关注 ${user.name}`)
   } else {
-    alert(`已取消关注 ${user.name}`)
+    toast.info(`已取消关注 ${user.name}`)
   }
 }
 
@@ -100,23 +99,6 @@ const viewProfile = (user) => {
 </script>
 
 <style scoped>
-.fans-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
 .back-btn {
   width: 40px;
   font-size: 20px;
@@ -124,7 +106,9 @@ const viewProfile = (user) => {
   cursor: pointer;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
   color: white;
@@ -192,7 +176,7 @@ const viewProfile = (user) => {
 
 .tag {
   font-size: 11px;
-  color: #667eea;
+  color: var(--color-primary);
   background: rgba(102,126,234,0.1);
   padding: 3px 8px;
   border-radius: 10px;
@@ -208,34 +192,12 @@ const viewProfile = (user) => {
 }
 
 .follow-btn.followed {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
 }
 
 .follow-btn:not(.followed) {
   background: #f5f5f5;
   color: #333;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 80px 20px;
-}
-
-.empty-icon {
-  font-size: 80px;
-  margin-bottom: 16px;
-  opacity: 0.3;
-}
-
-.empty-text {
-  font-size: 16px;
-  color: #999;
-  margin-bottom: 8px;
-}
-
-.empty-hint {
-  font-size: 13px;
-  color: #ccc;
 }
 </style>

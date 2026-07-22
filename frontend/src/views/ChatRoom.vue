@@ -300,6 +300,8 @@ import socketService from '../services/socketService';
 import authService from '../services/authService';
 import GiftList from '../components/gift-list/gift-list.vue';
 import RedPacketPanel from '../components/RedPacketPanel.vue';
+import { toast } from '../composables/useToast';
+
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
@@ -487,7 +489,7 @@ const goUserProfile = () => {
 };
 const blockUser = () => {
  if (confirm(`确定要拉黑 ${userInfo.value.nickName} 吗？`)) {
- alert('已拉黑该用户');
+ toast.success('已拉黑该用户');
  showMoreMenu.value = false;
  router.back();
  }
@@ -749,21 +751,21 @@ const onCityChange = () => {
 const useCurrentLocation = () => {
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition((position) => {
-      alert('已获取当前位置');
+      toast.success('已获取当前位置');
       selectedProvince.value = '440000';
       onProvinceChange();
       selectedCity.value = '440300';
       onCityChange();
     }, () => {
-      alert('无法获取位置，请手动选择');
+      toast.error('无法获取位置，请手动选择');
     });
   } else {
-    alert('您的浏览器不支持定位');
+    toast.error('您的浏览器不支持定位');
   }
 };
 const sendLocation = () => {
   if (!selectedProvince.value || !selectedCity.value) {
-    alert('请选择完整地址');
+    toast.error('请选择完整地址');
     return;
   }
   const provinceName = provinces.value.find(p => p.code === selectedProvince.value)?.name || '';
@@ -855,7 +857,7 @@ const makeCall = () => {
   const saved = localStorage.getItem('callSettings')
   const callSettings = saved ? JSON.parse(saved) : { voice: true, voicePrice: 0 }
   if (!callSettings.voice) {
-    alert('对方已关闭语音通话功能')
+    toast.info('对方已关闭语音通话功能')
     showAdd.value = false
     return
   }
@@ -866,7 +868,7 @@ const makeVideoCall = () => {
   const saved = localStorage.getItem('callSettings')
   const callSettings = saved ? JSON.parse(saved) : { video: true, videoPrice: 0 }
   if (!callSettings.video) {
-    alert('对方已关闭视频通话功能')
+    toast.info('对方已关闭视频通话功能')
     showAdd.value = false
     return
   }
@@ -902,7 +904,7 @@ const revokeMessage = (msg) => {
 const copyMessage = (msg) => {
  if (msg.type === 'text') {
  navigator.clipboard.writeText(msg.content).then(() => {
- alert('已复制');
+ toast.success('已复制');
  });
  }
  showMessageContextMenu.value = false;
@@ -926,7 +928,7 @@ const confirmForward = (friend) => {
  selectedMessage.value.content,
  getMessageTypeCode(selectedMessage.value.type)
  ).then(() => {
- alert(`已转发给 ${friend.nickName}`);
+ toast.success(`已转发给 ${friend.nickName}`);
  });
  }
  showForwardPanel.value = false;
@@ -1247,7 +1249,7 @@ onUnmounted(() => {
 }
 
 .message.own .bubble {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border-top-right-radius: 4px;
 }
@@ -1320,7 +1322,7 @@ onUnmounted(() => {
 }
 
 .read-icon {
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .typing-indicator {
@@ -1438,8 +1440,8 @@ onUnmounted(() => {
 }
 
 .emoji-tabs .tab.active {
-  color: #667eea;
-  border-bottom: 2px solid #667eea;
+  color: var(--color-primary);
+  border-bottom: 2px solid var(--color-primary);
 }
 
 .emoji-content {
@@ -1636,7 +1638,7 @@ onUnmounted(() => {
 .location-map {
   width: 60px;
   height: 60px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -1789,7 +1791,7 @@ onUnmounted(() => {
   gap: 8px;
   margin-top: 16px;
   padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border-radius: 8px;
   cursor: pointer;
@@ -1815,7 +1817,7 @@ onUnmounted(() => {
 }
 
 .modal-btn.confirm {
-  color: #667eea;
+  color: var(--color-primary);
   font-weight: 500;
 }
 

@@ -1,9 +1,9 @@
 <template>
-  <div class="vip-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">VIP会员</span>
-    </div>
+      <span class="nav-title">VIP会员</span>
+    </template>
     
     <div class="vip-card">
       <div class="card-background">
@@ -65,7 +65,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
@@ -74,6 +74,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
 import { getVipPackages, getUserVipInfo, createVipOrder, completeVipOrder } from '../services/vipService'
+import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -269,25 +270,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.vip-page {
-  min-height: 100dvh;
-  background: #f5f5f5;
-  padding-bottom: 80px;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  padding: 20px 20px 20px;
-  background: linear-gradient(135deg, #ffd700, #ff8c00);
-  color: white;
-  height: auto;
-}
-
 .back-btn {
   font-size: 24px;
   cursor: pointer;
@@ -295,12 +277,12 @@ onMounted(() => {
   line-height: 1;
 }
 
-.title {
-  font-size: 22px;
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
   font-weight: 700;
   color: #fff;
-  text-align: center;
-  flex: 1;
 }
 
 .vip-card {

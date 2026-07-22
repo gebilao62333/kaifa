@@ -1,10 +1,10 @@
 <template>
-  <div class="edit-profile-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">编辑资料</span>
+      <span class="nav-title">编辑资料</span>
       <span class="save-btn" @click="saveProfile">保存</span>
-    </div>
+    </template>
 
     <div class="content">
       <div class="profile-completeness">
@@ -289,12 +289,14 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -596,16 +598,16 @@ const sendCode = () => {
 
 const bindPhone = () => {
   if (!newPhone.value || newPhone.value.length !== 11) {
-    alert('请输入正确的手机号')
+    toast.error('请输入正确的手机号')
     return
   }
   if (!verifyCode.value) {
-    alert('请输入验证码')
+    toast.error('请输入验证码')
     return
   }
   form.phone = newPhone.value.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
   showPhoneModal.value = false
-  alert('手机号绑定成功！')
+  toast.success('手机号绑定成功！')
 }
 
 const goRealName = () => { router.push('/real-name') }
@@ -613,44 +615,24 @@ const goVip = () => { router.push('/vip-center') }
 
 const saveProfile = () => {
   if (!form.nickname.trim()) {
-    alert('请输入昵称')
+    toast.error('请输入昵称')
     return
   }
   if (form.tags.length < 3) {
-    alert('请至少选择3个标签')
+    toast.error('请至少选择3个标签')
     return
   }
   console.log('保存资料:', { ...form })
-  alert('保存成功！')
+  toast.success('保存成功！')
   router.back()
 }
 </script>
 
 <style scoped>
-.edit-profile-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-  padding-bottom: 90px;
-  max-width: 650px;
-  margin: 0 auto;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 30px 20px;
-  background: white;
-  border-bottom: 1px solid #eee;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.back-btn, .save-btn { font-size: 16px; color: #333; cursor: pointer; background: none; border: none; padding: 0; }
+.back-btn, .save-btn { font-size: 16px; color: white; cursor: pointer; background: none; border: none; padding: 0; }
 .back-btn { font-size: 24px; width: 40px; text-align: center; }
-.title { font-size: 18px; font-weight: bold; color: #333; }
-.save-btn { color: #667eea; font-weight: 500; }
+.nav-title { flex: 1; text-align: center; font-size: 18px; font-weight: bold; color: white; }
+.save-btn { font-weight: 500; }
 
 .content { padding: 16px; }
 
@@ -669,7 +651,7 @@ const saveProfile = () => {
 }
 
 .completeness-title { font-size: 14px; color: #333; }
-.completeness-percent { font-size: 16px; font-weight: bold; color: #667eea; }
+.completeness-percent { font-size: 16px; font-weight: bold; color: var(--color-primary); }
 
 .completeness-bar {
   height: 8px;
@@ -681,7 +663,7 @@ const saveProfile = () => {
 
 .completeness-fill {
   height: 100%;
-  background: linear-gradient(90deg, #667eea, #764ba2);
+  background: var(--gradient-primary-90);
   border-radius: 4px;
   transition: width 0.3s;
 }
@@ -786,7 +768,7 @@ const saveProfile = () => {
   background: #fafafa;
 }
 
-.input:focus, .textarea:focus { border-color: #667eea; background: white; }
+.input:focus, .textarea:focus { border-color: var(--color-primary); background: white; }
 .textarea { resize: none; height: 80px; }
 
 .char-count {
@@ -813,7 +795,7 @@ const saveProfile = () => {
 }
 
 .gender-option.active {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: rgba(102,126,234,0.05);
 }
 
@@ -851,7 +833,7 @@ const saveProfile = () => {
 }
 
 .hobby-tag.active, .game-tag.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -878,7 +860,7 @@ const saveProfile = () => {
 .verify-text, .vip-text { flex: 1; font-size: 14px; color: #666; }
 .verify-btn, .vip-btn {
   font-size: 13px;
-  color: #667eea;
+  color: var(--color-primary);
   cursor: pointer;
 }
 
@@ -887,7 +869,7 @@ const saveProfile = () => {
 
 .phone-display { display: flex; align-items: center; justify-content: space-between; }
 .phone-value { font-size: 14px; color: #666; }
-.phone-btn { font-size: 14px; color: #667eea; cursor: pointer; }
+.phone-btn { font-size: 14px; color: var(--color-primary); cursor: pointer; }
 
 .bg-preview {
   width: 100%;
@@ -932,7 +914,7 @@ const saveProfile = () => {
 }
 
 .tag-item.selected {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -964,7 +946,7 @@ const saveProfile = () => {
 
 .service-game {
   font-size: 11px;
-  color: #667eea;
+  color: var(--color-primary);
   background: rgba(102, 126, 234, 0.1);
   padding: 2px 6px;
   border-radius: 4px;
@@ -985,7 +967,7 @@ const saveProfile = () => {
 }
 
 .service-status.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -998,7 +980,7 @@ const saveProfile = () => {
 .preview-btn {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
   font-size: 15px;
   border: none;
@@ -1046,7 +1028,7 @@ const saveProfile = () => {
 }
 
 .picker-cancel, .modal-btn.cancel { color: #999; cursor: pointer; }
-.picker-confirm, .modal-btn.confirm { color: #667eea; font-weight: 500; cursor: pointer; }
+.picker-confirm, .modal-btn.confirm { color: var(--color-primary); font-weight: 500; cursor: pointer; }
 .picker-title, .modal-title { font-size: 16px; font-weight: bold; color: #333; }
 .modal-close { font-size: 24px; color: #999; cursor: pointer; }
 
@@ -1065,19 +1047,19 @@ const saveProfile = () => {
 }
 
 .picker-item:hover { background: #f9f9f9; }
-.picker-item.active { color: #667eea; font-weight: 500; background: rgba(102,126,234,0.05); }
+.picker-item.active { color: var(--color-primary); font-weight: 500; background: rgba(102,126,234,0.05); }
 
 .modal-content { max-width: 360px; margin: auto; border-radius: 16px; position: relative; top: 50%; transform: translateY(-50%); }
 .modal-body { padding: 20px; display: block; }
 .modal-input { width: 100%; padding: 12px; font-size: 15px; border: 1px solid #e5e5e5; border-radius: 8px; box-sizing: border-box; margin-bottom: 12px; }
 .code-row { display: flex; gap: 10px; }
 .code { flex: 1; margin-bottom: 0; }
-.code-btn { padding: 0 16px; background: #667eea; color: white; font-size: 14px; border: none; border-radius: 8px; white-space: nowrap; }
+.code-btn { padding: 0 16px; background: var(--color-primary); color: white; font-size: 14px; border: none; border-radius: 8px; white-space: nowrap; }
 
 .modal-footer { display: flex; border-top: 1px solid #f0f0f0; }
 .modal-btn { flex: 1; padding: 16px; text-align: center; font-size: 16px; border: none; background: none; cursor: pointer; }
 .modal-btn.cancel { border-right: 1px solid #f0f0f0; color: #666; }
-.modal-btn.confirm { color: #667eea; font-weight: 500; }
+.modal-btn.confirm { color: var(--color-primary); font-weight: 500; }
 
 .preview-modal {
   position: absolute;

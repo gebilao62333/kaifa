@@ -1,10 +1,10 @@
 <template>
-  <div class="reserve-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">我的预约</span>
+      <span class="nav-title">我的预约</span>
       <span class="placeholder"></span>
-    </div>
+    </template>
 
     <div class="tabs">
       <div class="tab-item" :class="{ active: currentTab === 'pending' }" @click="currentTab = 'pending'">待确认</div>
@@ -113,12 +113,14 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -143,7 +145,7 @@ const filteredOrders = computed(() => {
 })
 
 const getTypeColor = (type) => {
-  return type === 'online' ? 'linear-gradient(135deg, #667eea, #764ba2)' : 'linear-gradient(135deg, #f093fb, #f5576c)'
+  return type === 'online' ? 'var(--gradient-primary)' : 'linear-gradient(135deg, #f093fb, #f5576c)'
 }
 
 const formatCountdown = (seconds) => {
@@ -166,7 +168,7 @@ const cancelOrder = (order) => {
   if (confirm('确定要取消这个预约吗？')) {
     const index = findOrderIndex(order)
     if (index > -1) orders.value.splice(index, 1)
-    alert('订单已取消')
+    toast.success('订单已取消')
   }
 }
 
@@ -196,7 +198,7 @@ const confirmOrder = (order) => {
     orderList.unshift(newOrder)
   }
   localStorage.setItem('orderList', JSON.stringify(orderList))
-  alert('预约已确认')
+  toast.success('预约已确认')
 }
 
 const contactUser = (order) => {
@@ -225,24 +227,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.reserve-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-  padding-bottom: 20px;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
 .back-btn,
 .placeholder {
   width: 40px;
@@ -251,7 +235,9 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
   color: white;
@@ -279,7 +265,7 @@ onUnmounted(() => {
 }
 
 .tab-item.active {
-  color: #667eea;
+  color: var(--color-primary);
   font-weight: 500;
 }
 
@@ -291,7 +277,7 @@ onUnmounted(() => {
   transform: translateX(-50%);
   width: 40px;
   height: 3px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   border-radius: 2px;
 }
 
@@ -345,7 +331,7 @@ onUnmounted(() => {
 }
 
 .order-status.confirmed {
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .order-body {
@@ -385,7 +371,7 @@ onUnmounted(() => {
 
 .order-game {
   font-size: 13px;
-  color: #667eea;
+  color: var(--color-primary);
   margin-bottom: 8px;
   display: flex;
   align-items: center;
@@ -455,7 +441,7 @@ onUnmounted(() => {
 }
 
 .action-btn.primary {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -509,7 +495,7 @@ onUnmounted(() => {
 
 .empty-btn {
   padding: 12px 40px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   border-radius: 24px;
@@ -644,7 +630,7 @@ onUnmounted(() => {
 }
 
 .detail-value.confirmed {
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .detail-type {

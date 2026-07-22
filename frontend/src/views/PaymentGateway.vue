@@ -1,9 +1,9 @@
 <template>
-  <div class="pay-gateway-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">{{ pageTitle }}</span>
-    </div>
+      <span class="nav-title">{{ pageTitle }}</span>
+    </template>
 
     <div class="gateway-body">
       <div class="method-banner" :style="{ background: methodBg }">
@@ -31,17 +31,11 @@
       <div class="card-form" v-if="methodId === 'card' && !isProcessing && !isDone">
         <div class="card-input-group">
           <span class="card-input-label">卡号</span>
-          <input type="text" class="card-input" v-model="cardNo" placeholder="请输入密卡卡号" maxlength="19" />
+          <input type="text" class="card-input" v-model="cardNo" placeholder="请输入卡号" maxlength="32" />
         </div>
-        <div class="card-row">
-          <div class="card-input-group half">
-            <span class="card-input-label">有效期</span>
-            <input type="text" class="card-input" v-model="cardExpiry" placeholder="MM/YY" maxlength="5" />
-          </div>
-          <div class="card-input-group half">
-            <span class="card-input-label">安全码</span>
-            <input type="text" class="card-input" v-model="cardCvv" placeholder="CVV" maxlength="4" />
-          </div>
+        <div class="card-input-group">
+          <span class="card-input-label">密码</span>
+          <input type="text" class="card-input" v-model="cardPwd" placeholder="请输入密码" maxlength="32" />
         </div>
       </div>
 
@@ -88,12 +82,15 @@
         </button>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import payService from '../services/payService'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const route = useRoute()
@@ -106,8 +103,7 @@ const isProcessing = ref(false)
 const isDone = ref(false)
 const newBalance = ref(0)
 const cardNo = ref('')
-const cardExpiry = ref('')
-const cardCvv = ref('')
+const cardPwd = ref('')
 
 const saveBalanceToStorage = () => {
   try {
@@ -127,7 +123,7 @@ const methodConfig = {
   alipay: { name: '支付宝', icon: 'Z', bg: 'linear-gradient(135deg, #1677ff, #4096ff)', desc: '安全快捷支付' },
   wechat: { name: '微信支付', icon: 'W', bg: 'linear-gradient(135deg, #07c160, #39d97e)', desc: '推荐使用微信支付' },
   card: { name: '密卡支付', icon: '💳', bg: 'linear-gradient(135deg, #fa8c16, #ffc53d)', desc: '输入密卡信息完成支付' },
-  balance: { name: '余额支付', icon: '💰', bg: 'linear-gradient(135deg, #667eea, #764ba2)', desc: '直接使用余额支付' }
+  balance: { name: '余额支付', icon: '💰', bg: 'var(--gradient-primary)', desc: '直接使用余额支付' }
 }
 
 const config = computed(() => methodConfig[methodId.value] || methodConfig.alipay)
@@ -159,7 +155,7 @@ const qrImage = computed(() => {
 })
 
 const canPay = computed(() => {
-  if (methodId.value === 'card') return cardNo.value.trim().length > 0
+  if (methodId.value === 'card') return cardNo.value.trim().length > 0 && cardPwd.value.trim().length > 0
   if (methodId.value === 'balance') return balance.value >= amount.value
   if (methodId.value === 'coin') return balance.value >= amount.value
   return true
@@ -181,7 +177,36 @@ const goBack = () => {
   router.back()
 }
 
-const startPay = () => {
+const startPay = async () => {
+  if (methodId.value === 'card') {
+    if (!cardNo.value.trim() || !cardPwd.value.trim()) {
+      toast.error('请输入卡号和密码')
+      return
+    }
+    isProcessing.value = true
+    try {
+      const cardAmount = await payService.redeemCard(cardNo.value.trim(), cardPwd.value.trim())
+      if (type.value === 'recharge') {
+        newBalance.value = balance.value + cardAmount
+      } else {
+        // 密卡核销得金币后，再支付订单 / 提现
+        const available = balance.value + cardAmount
+        if (available < amount.value) {
+          toast.error('余额不足，无法完成支付')
+          return
+        }
+        newBalance.value = available - amount.value
+      }
+      isDone.value = true
+    } catch (error) {
+      console.error('密卡支付错误:', error)
+      toast.error(error.message || '网络错误，请重试')
+    } finally {
+      isProcessing.value = false
+    }
+    return
+  }
+
   if (methodId.value === 'coin') {
     isProcessing.value = true
     setTimeout(() => {
@@ -247,32 +272,17 @@ const finish = () => {
 </script>
 
 <style scoped>
-.pay-gateway-page {
-  min-height: 100dvh;
-  background: #f5f5f5;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  padding: 60px 20px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
 .back-btn {
   font-size: 24px;
   cursor: pointer;
-  margin-right: 20px;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
+  color: white;
 }
 
 .gateway-body {
@@ -414,7 +424,7 @@ const finish = () => {
 }
 
 .card-input:focus {
-  border-color: #667eea;
+  border-color: var(--color-primary);
 }
 
 .coin-section {
@@ -500,7 +510,7 @@ const finish = () => {
   width: 48px;
   height: 48px;
   border: 4px solid #e8e8e8;
-  border-top-color: #667eea;
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-bottom: 20px;
@@ -563,7 +573,7 @@ const finish = () => {
 .done-btn {
   width: 280px;
   padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   border-radius: 24px;
@@ -579,7 +589,7 @@ const finish = () => {
 .pay-now-btn {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   border-radius: 24px;

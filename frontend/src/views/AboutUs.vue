@@ -1,10 +1,10 @@
 <template>
-  <div class="about-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">关于我们</span>
+      <span class="nav-title">关于我们</span>
       <span class="placeholder"></span>
-    </div>
+    </template>
 
     <div class="content">
       <div class="logo-card">
@@ -81,12 +81,13 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
 
@@ -116,23 +117,6 @@ const closeModal = () => {
 </script>
 
 <style scoped>
-.about-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
 .back-btn,
 .placeholder {
   width: 40px;
@@ -141,7 +125,9 @@ const closeModal = () => {
   cursor: pointer;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
   color: white;

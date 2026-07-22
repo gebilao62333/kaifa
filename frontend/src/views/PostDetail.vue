@@ -1,10 +1,10 @@
 <template>
-  <div class="post-detail-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">动态详情</span>
+      <span class="nav-title">动态详情</span>
       <span class="more-btn">•••</span>
-    </div>
+    </template>
     
     <div class="post-content">
       <div class="user-info" @click="goUserProfile">
@@ -92,12 +92,13 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
 
@@ -218,24 +219,18 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.post-detail-page {
-  min-height: 100dvh;
-  background: #f5f5f5;
-  padding-bottom: 70px;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 60px 20px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
 .back-btn, .more-btn {
   font-size: 24px;
+  color: white;
   cursor: pointer;
+}
+
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
 }
 
 .title {
@@ -282,7 +277,7 @@ onMounted(() => {
 }
 
 .follow-btn {
-  background: #667eea;
+  background: var(--color-primary);
   color: white;
   padding: 6px 14px;
   border-radius: 16px;
@@ -290,7 +285,7 @@ onMounted(() => {
 }
 
 .follow-btn.not-follow {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
 }
 
 .content-text {
@@ -316,7 +311,7 @@ onMounted(() => {
 }
 
 .post-tag {
-  color: #667eea;
+  color: var(--color-primary);
   font-size: 14px;
   margin-bottom: 16px;
 }
@@ -436,7 +431,7 @@ onMounted(() => {
 }
 
 .reply-nickname {
-  color: #667eea;
+  color: var(--color-primary);
   font-weight: 500;
 }
 
@@ -479,7 +474,7 @@ onMounted(() => {
 }
 
 .send-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   padding: 6px 16px;
   border-radius: 16px;

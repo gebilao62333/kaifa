@@ -1,10 +1,10 @@
 <template>
-  <div class="stealth-visit-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">隐身访问</span>
+      <span class="nav-title">隐身访问</span>
       <span class="placeholder"></span>
-    </div>
+    </template>
 
     <div class="content">
       <div class="intro-card">
@@ -105,12 +105,13 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, reactive, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
 
@@ -162,23 +163,6 @@ watch(settings, saveSettings, { deep: true })
 </script>
 
 <style scoped>
-.stealth-visit-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
 .back-btn,
 .placeholder {
   width: 40px;
@@ -187,7 +171,9 @@ watch(settings, saveSettings, { deep: true })
   cursor: pointer;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
   color: white;
@@ -201,7 +187,7 @@ watch(settings, saveSettings, { deep: true })
   display: flex;
   align-items: center;
   gap: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-radius: 16px;
   padding: 20px;
   margin-bottom: 16px;
@@ -298,7 +284,7 @@ watch(settings, saveSettings, { deep: true })
 }
 
 .switch.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
 }
 
 .switch.active::after {
@@ -404,7 +390,7 @@ watch(settings, saveSettings, { deep: true })
 }
 
 .vip-level-item.achieved .vip-level-tag {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
 }
 

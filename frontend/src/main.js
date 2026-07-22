@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import './styles/variables.css'
 import { useUserStore } from './store/user-info'
 import lazyLoadDirective from './directives/lazyLoad'
 import imgFallback from './directives/imgFallback'
@@ -36,13 +37,15 @@ window.addEventListener('error', (event) => {
   // 既不是本项目代码、也无法在业务内修复，直接忽略，避免污染控制台与预览 WebView 报错。
   const isCrossOriginScriptError = errorMsg === 'Script error.' || errorMsg === 'Script error'
 
-  // 外部脚本读写 DOM 时偶发的 getBoundingClientRect(null) 错误（filename 为空或被屏蔽）
+  // 外部脚本（浏览器扩展 / 注入脚本）读写 DOM 时偶发的 null 引用错误，
+  // 典型为 getBoundingClientRect(null)。这类错误 filename 为空或被屏蔽、不属于本项目代码，
+  // 无论 filename 是否为空均静默吞掉，避免污染控制台与预览 WebView 报错。
   const isExternalDomError =
-    errorMsg.includes('getBoundingClientRect') &&
+    (errorMsg.includes('getBoundingClientRect') ||
+      errorMsg.includes('Cannot read properties of null')) &&
     (event.filename === '' || event.filename == null || !event.filename.includes('/src/'))
 
   if (isCrossOriginScriptError || isExternalDomError) {
-    console.warn('[Global Error Filter] Ignored external/extension script error:', errorMsg || event.error)
     // 阻止该错误继续传播到后续监听器 / 预览 WebView 报错捕获
     event.preventDefault?.()
     event.stopImmediatePropagation?.()
@@ -53,7 +56,19 @@ window.addEventListener('error', (event) => {
 })
 
 window.addEventListener('unhandledrejection', (event) => {
-  console.error('Unhandled Promise Rejection:', event.reason)
+  const reason = event.reason
+  const reasonMsg = (reason?.message || reason?.toString?.() || '').toString()
+  // 同源策略屏蔽的跨域/扩展脚本 rejection，直接忽略
+  if (
+    reasonMsg === 'Script error.' ||
+    reasonMsg.includes('getBoundingClientRect') ||
+    reasonMsg.includes('Cannot read properties of null')
+  ) {
+    event.preventDefault?.()
+    event.stopImmediatePropagation?.()
+    return
+  }
+  console.error('Unhandled Promise Rejection:', reason)
 })
 
 app.mount('#app')

@@ -1,10 +1,10 @@
 <template>
-  <div class="identity-badge-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">身份标识</span>
+      <span class="nav-title">身份标识</span>
       <span class="placeholder"></span>
-    </div>
+    </template>
 
     <div class="content">
       <div class="preview-card">
@@ -56,12 +56,14 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -88,7 +90,7 @@ const badgeGroups = ref([
   {
     name: '等级标识',
     list: [
-      { id: 'lv10', name: '10级达人', label: 'Lv.10', icon: '⭐', style: { background: 'linear-gradient(135deg, #667eea, #764ba2)', color: '#fff' }, locked: false },
+      { id: 'lv10', name: '10级达人', label: 'Lv.10', icon: '⭐', style: { background: 'var(--gradient-primary)', color: '#fff' }, locked: false },
       { id: 'lv20', name: '20级达人', label: 'Lv.20', icon: '⭐', style: { background: 'linear-gradient(135deg, #f093fb, #f5576c)', color: '#fff' }, locked: true, condition: '等级达到20级' },
       { id: 'lv30', name: '30级达人', label: 'Lv.30', icon: '🔥', style: { background: 'linear-gradient(135deg, #4facfe, #00f2fe)', color: '#fff' }, locked: true, condition: '等级达到30级' },
       { id: 'lv50', name: '50级大神', label: 'Lv.50', icon: '💎', style: { background: 'linear-gradient(135deg, #fccb90, #d57eeb)', color: '#fff' }, locked: true, condition: '等级达到50级' }
@@ -120,7 +122,7 @@ const goBack = () => {
 
 const selectBadge = (badge) => {
   if (badge.locked) {
-    alert(`解锁条件：${badge.condition}`)
+    toast.warning(`解锁条件：${badge.condition}`)
     return
   }
   selectedId.value = badge.id
@@ -132,23 +134,6 @@ const selectBadge = (badge) => {
 </script>
 
 <style scoped>
-.identity-badge-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
 .back-btn,
 .placeholder {
   width: 40px;
@@ -157,7 +142,9 @@ const selectBadge = (badge) => {
   cursor: pointer;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
   color: white;
@@ -311,7 +298,7 @@ const selectBadge = (badge) => {
 }
 
 .badge-item.active {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: rgba(102, 126, 234, 0.03);
 }
 
@@ -347,7 +334,7 @@ const selectBadge = (badge) => {
   right: 8px;
   width: 22px;
   height: 22px;
-  background: #667eea;
+  background: var(--color-primary);
   color: white;
   border-radius: 50%;
   display: flex;

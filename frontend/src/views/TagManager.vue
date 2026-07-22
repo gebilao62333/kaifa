@@ -1,10 +1,10 @@
 <template>
-  <div class="tag-manager-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">标签管理</span>
+      <span class="nav-title">标签管理</span>
       <span class="add-btn" @click="showAddDialog">+</span>
-    </div>
+    </template>
 
     <div class="category-tabs">
       <div
@@ -79,13 +79,14 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { tagService } from '../services/tagService'
+import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
 const activeTab = ref('all')
@@ -203,22 +204,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.tag-manager-page {
-  min-height: 100dvh;
-  background: #f5f5f5;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
 .back-btn {
   font-size: 20px;
   cursor: pointer;
@@ -226,7 +211,9 @@ onMounted(() => {
   color: #fff;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 17px;
   font-weight: 500;
   color: #fff;

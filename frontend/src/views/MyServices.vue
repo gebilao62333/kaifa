@@ -1,10 +1,10 @@
 <template>
-  <div class="my-services-page">
-    <div class="header">
-      <div class="back-btn" @click="goBack">‹</div>
-      <div class="title">我的服务</div>
-      <div style="width: 40px;"></div>
-    </div>
+  <PageLayout>
+    <template #nav>
+      <span class="back-btn" @click="goBack">‹</span>
+      <span class="nav-title">我的服务</span>
+      <span class="placeholder"></span>
+    </template>
 
     <div class="tabs">
       <div 
@@ -260,13 +260,15 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePermissions } from '../composables/usePermissions'
+import PageLayout from '../components/PageLayout.vue'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -562,7 +564,7 @@ const onImageChange = (e) => {
   const file = e.target.files?.[0]
   if (file) {
     if (file.size > 5 * 1024 * 1024) {
-      alert('图片大小不能超过5MB')
+      toast.error('图片大小不能超过5MB')
       return
     }
     const reader = new FileReader()
@@ -732,11 +734,11 @@ const deleteAudio = () => {
 
 const saveService = () => {
   if (!editForm.value.description) {
-    alert('请填写技能介绍')
+    toast.error('请填写技能介绍')
     return
   }
   if (!editForm.value.price || editForm.value.price <= 0) {
-    alert('请输入有效的价格')
+    toast.error('请输入有效的价格')
     return
   }
 
@@ -757,7 +759,7 @@ const saveService = () => {
     }
     saveServices()
     closeEditModal()
-    alert('保存成功！')
+    toast.success('保存成功！')
   }
 }
 
@@ -804,27 +806,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.my-services-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-  padding-bottom: 80px;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 35px 20px 35px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 80px;
-  text-align: center;
-  font-size: 20px;
-}
-
 .back-btn {
   width: 40px;
   height: 40px;
@@ -836,10 +817,16 @@ onUnmounted(() => {
   cursor: pointer;
 }
 
-.title {
-  font-size: 20px;
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
   font-weight: bold;
   color: white;
+}
+
+.placeholder {
+  width: 40px;
 }
 
 .tabs {
@@ -865,7 +852,7 @@ onUnmounted(() => {
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -955,7 +942,7 @@ onUnmounted(() => {
 
 .service-tags .tag {
   background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  color: var(--color-primary);
   font-size: 12px;
   padding: 4px 12px;
   border-radius: 12px;
@@ -1004,9 +991,9 @@ onUnmounted(() => {
 .action-btn {
   flex: 1;
   padding: 10px 0;
-  border: 1px solid #667eea;
+  border: 1px solid var(--color-primary);
   background: white;
-  color: #667eea;
+  color: var(--color-primary);
   border-radius: 20px;
   font-size: 14px;
   cursor: pointer;
@@ -1060,7 +1047,7 @@ onUnmounted(() => {
 }
 
 .empty-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   padding: 12px 40px;
@@ -1155,7 +1142,7 @@ onUnmounted(() => {
 .select-btn {
   margin-left: auto;
   font-size: 13px;
-  color: #667eea;
+  color: var(--color-primary);
   cursor: pointer;
 }
 
@@ -1251,7 +1238,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   padding: 30px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-radius: 12px;
   cursor: pointer;
   position: relative;
@@ -1348,7 +1335,7 @@ onUnmounted(() => {
 }
 
 .picker-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -1375,7 +1362,7 @@ onUnmounted(() => {
 .submit-btn {
   flex: 1;
   padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border: none;
   border-radius: 12px;
   color: white;
@@ -1487,7 +1474,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -1540,7 +1527,7 @@ onUnmounted(() => {
 .step-number {
   width: 20px;
   height: 20px;
-  background: #667eea;
+  background: var(--color-primary);
   color: white;
   border-radius: 50%;
   display: flex;
@@ -1583,7 +1570,7 @@ onUnmounted(() => {
 .alternative-btn {
   width: 100%;
   padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   border-radius: 10px;

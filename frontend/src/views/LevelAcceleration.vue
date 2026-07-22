@@ -1,10 +1,10 @@
 <template>
-  <div class="level-acceleration-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">等级加速</span>
+      <span class="nav-title">等级加速</span>
       <span class="placeholder"></span>
-    </div>
+    </template>
 
     <div class="content">
       <div class="level-card">
@@ -62,13 +62,14 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getLevelName } from '../common/common'
+import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
 
@@ -130,23 +131,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.level-acceleration-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
 .back-btn,
 .placeholder {
   width: 40px;
@@ -155,7 +139,9 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
   color: white;
@@ -166,7 +152,7 @@ onMounted(() => {
 }
 
 .level-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-radius: 16px;
   padding: 24px;
   margin-bottom: 16px;
@@ -377,7 +363,7 @@ onMounted(() => {
 
 .benefit-level-tag.unlocked {
   background: linear-gradient(135deg, #667eea20, #764ba220);
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .benefit-name {

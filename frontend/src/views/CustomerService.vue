@@ -1,10 +1,10 @@
 <template>
-  <div class="customer-service-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">在线客服</span>
+      <span class="nav-title">在线客服</span>
       <span class="placeholder"></span>
-    </div>
+    </template>
 
     <div class="content">
       <div class="greeting-card">
@@ -63,12 +63,14 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -156,24 +158,11 @@ const startChat = (agent) => {
 }
 
 const callPhone = () => {
-  alert('客服热线：400-888-8888\n服务时间：9:00-22:00')
+  toast.info('客服热线：400-888-8888\n服务时间：9:00-22:00')
 }
 </script>
 
 <style scoped>
-.customer-service-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
 .back-btn,
 .placeholder {
   width: 40px;
@@ -182,7 +171,9 @@ const callPhone = () => {
   cursor: pointer;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
   color: white;
@@ -196,7 +187,7 @@ const callPhone = () => {
   display: flex;
   align-items: center;
   gap: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-radius: 16px;
   padding: 16px 20px;
   margin-bottom: 16px;
@@ -299,7 +290,7 @@ const callPhone = () => {
 
 .agent-role.senior {
   background: linear-gradient(135deg, #667eea20, #764ba220);
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .agent-desc {

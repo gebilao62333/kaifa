@@ -255,7 +255,7 @@ syncData(themeList.value, 'theme')
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
 }
 
 .back-btn {
@@ -324,7 +324,7 @@ syncData(themeList.value, 'theme')
   transform: translateX(-50%);
   width: 40px;
   height: 3px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   border-radius: 2px;
 }
 

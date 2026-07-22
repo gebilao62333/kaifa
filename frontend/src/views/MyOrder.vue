@@ -1,9 +1,9 @@
 <template>
-  <div class="my-order-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">我的订单</span>
-    </div>
+      <span class="nav-title">我的订单</span>
+    </template>
 
     <div class="tabs">
       <div 
@@ -131,12 +131,14 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const route = useRoute()
@@ -307,14 +309,14 @@ const getFilteredOrders = () => {
 
 const goOrderDetail = (item) => {
   console.log('订单详情:', item.id)
-  alert('订单详情功能开发中...')
+  toast.info('订单详情功能开发中...')
 }
 
 const cancelOrder = (item) => {
   if (confirm('确定要取消这个订单吗？取消后无法恢复')) {
     item.status = 'cancelled'
     saveOrders(orderList.value)
-    alert('订单已取消，退款将在1-3个工作日内到账')
+    toast.success('订单已取消，退款将在1-3个工作日内到账')
   }
 }
 
@@ -334,14 +336,14 @@ const payOrder = (item) => {
 const startService = (item) => {
   item.status = 'ongoing'
   saveOrders(orderList.value)
-  alert('服务已开始')
+  toast.success('服务已开始')
 }
 
 const endService = (item) => {
   item.status = 'finished'
   saveOrders(orderList.value)
   activeTab.value = 'finished'
-  alert('服务已结束')
+  toast.success('服务已结束')
 }
 
 const contactCompanion = (item) => {
@@ -366,31 +368,13 @@ const submitRating = () => {
     currentRateOrder.value.rated = true
     saveOrders(orderList.value)
     showRateModal.value = false
-    alert(`评价成功！您的评分：${ratingValue.value}星，评价：${ratingComment.value || '无'}`)
+    toast.success(`评价成功！您的评分：${ratingValue.value}星，评价：${ratingComment.value || '无'}`)
     currentRateOrder.value = null
   }
 }
 </script>
 
 <style scoped>
-.my-order-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-  padding-bottom: 80px;
-}
-
-.header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  height: 50px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
 .back-btn {
   font-size: 24px;
   color: white;
@@ -400,18 +384,14 @@ const submitRating = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  position: static;
-  padding: 0;
-  margin: 0;
 }
 
-.header .title {
-  font-size: 17px;
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
   font-weight: bold;
   color: white;
-  padding: 0;
-  margin: 0;
-  transform: none;
 }
 
 .tabs {
@@ -432,7 +412,7 @@ const submitRating = () => {
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -573,7 +553,7 @@ const submitRating = () => {
 
 .service-tag {
   background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .source-tag {
@@ -625,7 +605,7 @@ const submitRating = () => {
 }
 
 .action-btn.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -790,37 +770,12 @@ const submitRating = () => {
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
 .btn-submit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-}
-
-@media (min-width: 768px) {
-  .my-order-page {
-    max-width: 650px;
-    margin: 0 auto;
-    position: relative;
-  }
-
-  .header {
-    max-width: 650px;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 14px 20px;
-  }
-}
-
-@media (min-width: 1024px) {
-  .my-order-page {
-    max-width: 720px;
-  }
-
-  .header {
-    max-width: 720px;
-  }
 }
 </style>

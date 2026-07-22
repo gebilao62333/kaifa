@@ -35,66 +35,27 @@ import { useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
 
-const menuItems = [
-  { page: 'dashboard', path: '/dashboard', icon: '📊', label: '控制台' },
-  { page: 'users', path: '/users', icon: '👥', label: '用户管理' },
-  { page: 'recommend', path: '/recommend', icon: '🌟', label: '热门推荐' },
-  { page: 'orders', path: '/orders', icon: '📦', label: '订单管理' },
-  { page: 'withdraw', path: '/withdraw', icon: '💸', label: '提现审核' },
-  { page: 'withdraws', path: '/withdraws', icon: '💰', label: '提现记录' },
-  { page: 'posts', path: '/posts', icon: '📝', label: '帖子管理' },
-  { page: 'reports', path: '/reports', icon: '⚠️', label: '举报管理' },
-  { page: 'banners', path: '/banners', icon: '🎪', label: 'Banner管理' },
-  { page: 'vip-packages', path: '/vip-packages', icon: '⭐', label: 'VIP套餐管理' },
-  { page: 'gift-management', path: '/gift-management', icon: '🎁', label: '礼物管理' },
-  { page: 'gifts', path: '/gifts', icon: '📜', label: '礼物记录' },
-  { page: 'recharges', path: '/recharges', icon: '💳', label: '充值记录' },
-  { page: 'cards', path: '/cards', icon: '🎫', label: '卡密管理' },
-  { page: 'games', path: '/games', icon: '🎮', label: '服务分类' },
-  { page: 'companion-applications', path: '/companion-applications', icon: '📋', label: '服务申请管理' },
-  { page: 'virtual-users', path: '/virtual-users', icon: '🤖', label: '虚拟机器人管理' },
-  { page: 'admins', path: '/admins', icon: '👨‍💼', label: '管理员管理' },
-  { page: 'roles', path: '/roles', icon: '🔑', label: '角色管理' },
-  { page: 'api', path: '/api', icon: '🔌', label: '接口管理' },
-  { page: 'settings', path: '/settings', icon: '⚙️', label: '系统设置' },
-]
-
-const pageTitleMap = {
-  'dashboard': '控制台',
-  'users': '用户管理',
-  'recommend': '热门推荐',
-  'orders': '订单管理',
-  'withdraw': '提现审核',
-  'withdraws': '提现记录',
-  'posts': '帖子管理',
-  'reports': '举报管理',
-  'banners': 'Banner管理',
-  'vip-packages': 'VIP套餐管理',
-  'gift-management': '礼物管理',
-  'gifts': '礼物记录',
-  'recharges': '充值记录',
-  'cards': '卡密管理',
-  'games': '服务分类',
-  'companion-applications': '服务申请管理',
-  'virtual-users': '虚拟机器人管理',
-  'admins': '管理员管理',
-  'roles': '角色管理',
-  'api': '接口管理',
-  'settings': '系统设置',
-}
+// 菜单与页面标题由路由 children 的 meta 自动生成，新增页面只需在 router 增加带 meta 的路由，无需改动此处
+const menuItems = computed(() => {
+  const layout = router.options.routes.find(r => r.children)
+  if (!layout) return []
+  return layout.children
+    .filter(c => c.meta && c.meta.title)
+    .map(c => ({
+      page: c.name,
+      path: c.path.startsWith('/') ? c.path : '/' + c.path,
+      icon: (c.meta && c.meta.icon) || '📄',
+      label: c.meta.title
+    }))
+})
 
 const isActive = (page) => {
-  const item = menuItems.find(m => m.page === page)
+  const item = menuItems.value.find(m => m.page === page)
   if (!item) return false
   return route.path === item.path || route.path.startsWith(item.path + '/')
 }
 
-const pageTitle = computed(() => {
-  for (const item of menuItems) {
-    if (route.path.startsWith(item.path)) return item.label
-  }
-  return '管理后台'
-})
+const pageTitle = computed(() => (route.meta && route.meta.title) || '管理后台')
 
 const handleLogout = () => {
   localStorage.removeItem('admin_token')

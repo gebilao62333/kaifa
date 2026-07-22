@@ -189,7 +189,7 @@ onMounted(() => {
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -239,11 +239,11 @@ onMounted(() => {
 }
 
 .tab-item.active {
-  border-bottom-color: #667eea;
+  border-bottom-color: var(--color-primary);
 }
 
 .tab-item.active .tab-label {
-  color: #667eea;
+  color: var(--color-primary);
   font-weight: 600;
 }
 
@@ -333,7 +333,7 @@ onMounted(() => {
 
 .gender-tag.male {
   background: rgba(102, 126, 234, 0.15);
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .gender-tag.female {
@@ -367,7 +367,7 @@ onMounted(() => {
 
 .tag {
   font-size: 11px;
-  color: #667eea;
+  color: var(--color-primary);
   background: rgba(102, 126, 234, 0.1);
   padding: 2px 8px;
   border-radius: 10px;
@@ -397,7 +397,7 @@ onMounted(() => {
   flex-shrink: 0;
   width: 56px;
   height: 32px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border: none;
   border-radius: 16px;
   color: white;

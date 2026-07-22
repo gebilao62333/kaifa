@@ -1,10 +1,10 @@
 <template>
-  <div class="companion-apply-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">申请服务</span>
-      <span style="width: 40px;"></span>
-    </div>
+      <span class="nav-title">申请服务</span>
+      <span class="placeholder"></span>
+    </template>
 
     <div class="service-tabs">
       <button 
@@ -229,7 +229,7 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
@@ -239,6 +239,7 @@ import OfflineCompanion from './OfflineCompanion.vue'
 import OnlineApplyForm from './OnlineApplyForm.vue'
 import OfflineApplyForm from './OfflineApplyForm.vue'
 import { usePermissions } from '../composables/usePermissions'
+import PageLayout from '../components/PageLayout.vue'
 
 const { 
   requestMicrophonePermission,
@@ -719,24 +720,6 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.companion-apply-page {
-  min-height: 100dvh;
-  background: #f5f5f5;
-  padding-bottom: 80px;
-}
-
-.header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  height: 50px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
 .back-btn {
   font-size: 24px;
   color: white;
@@ -748,10 +731,16 @@ onUnmounted(() => {
   justify-content: center;
 }
 
-.title {
-  font-size: 17px;
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
   font-weight: bold;
   color: white;
+}
+
+.placeholder {
+  width: 40px;
 }
 
 .service-tabs {
@@ -781,7 +770,7 @@ onUnmounted(() => {
 }
 
 .tab-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -828,7 +817,7 @@ onUnmounted(() => {
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: #667eea;
+  accent-color: var(--color-primary);
 }
 
 .agreement-label {
@@ -890,7 +879,7 @@ onUnmounted(() => {
 .confirm-btn {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border: none;
   border-radius: 12px;
   color: white;
@@ -986,7 +975,7 @@ onUnmounted(() => {
 
 .picker-item.active {
   background: #f0f5ff;
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .toast-overlay {
@@ -1119,7 +1108,7 @@ onUnmounted(() => {
 
 .tag {
   font-size: 11px;
-  color: #667eea;
+  color: var(--color-primary);
   background: rgba(102, 126, 234, 0.1);
   padding: 4px 10px;
   border-radius: 10px;
@@ -1163,12 +1152,12 @@ onUnmounted(() => {
 }
 
 .action-btn:hover {
-  border-color: #667eea;
-  color: #667eea;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .action-btn.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-color: transparent;
   color: white;
 }
@@ -1230,7 +1219,7 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -1283,7 +1272,7 @@ onUnmounted(() => {
 .step-number {
   width: 20px;
   height: 20px;
-  background: #667eea;
+  background: var(--color-primary);
   color: white;
   border-radius: 50%;
   display: flex;

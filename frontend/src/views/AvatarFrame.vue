@@ -1,10 +1,10 @@
 <template>
-  <div class="avatar-frame-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">专属头像框</span>
+      <span class="nav-title">专属头像框</span>
       <span class="placeholder"></span>
-    </div>
+    </template>
 
     <div class="content">
       <div class="preview-card">
@@ -39,12 +39,14 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -99,7 +101,7 @@ const goBack = () => {
 
 const selectFrame = (frame) => {
   if (frame.locked) {
-    alert(`解锁条件：${frame.condition}`)
+    toast.info(`解锁条件：${frame.condition}`)
     return
   }
   selectedId.value = frame.id
@@ -110,23 +112,6 @@ const selectFrame = (frame) => {
 </script>
 
 <style scoped>
-.avatar-frame-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
 .back-btn,
 .placeholder {
   width: 40px;
@@ -135,7 +120,9 @@ const selectFrame = (frame) => {
   cursor: pointer;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
   color: white;
@@ -236,7 +223,7 @@ const selectFrame = (frame) => {
 }
 
 .frame-item.active {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: rgba(102, 126, 234, 0.03);
 }
 
@@ -279,7 +266,7 @@ const selectFrame = (frame) => {
   right: 8px;
   width: 22px;
   height: 22px;
-  background: #667eea;
+  background: var(--color-primary);
   color: white;
   border-radius: 50%;
   display: flex;

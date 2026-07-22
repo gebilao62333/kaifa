@@ -256,7 +256,7 @@ const sendGift = () => {
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -286,7 +286,7 @@ const sendGift = () => {
 }
 
 .gift-item.selected {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: rgba(102, 126, 234, 0.2);
 }
 
@@ -387,7 +387,7 @@ const sendGift = () => {
 .send-btn {
   flex: 1;
   margin-left: auto;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   padding: 12px 32px;

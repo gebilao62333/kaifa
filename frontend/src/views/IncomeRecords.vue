@@ -1,10 +1,10 @@
 <template>
-  <div class="records-page">
-    <div class="header">
-    <span class="back-btn" @click="goBack">←</span>
-    <span class="title">收入明细</span>
-    <span class="total">今日 +{{ formatAmount(totalIncome) }} 金币</span>
-  </div>
+  <PageLayout>
+    <template #nav>
+      <span class="back-btn" @click="goBack">←</span>
+      <span class="nav-title">收入明细</span>
+      <span class="total">今日 +{{ formatAmount(totalIncome) }} 金币</span>
+    </template>
 
   <div class="summary-card">
     <div class="summary-item">
@@ -32,31 +32,49 @@
       </div>
     </div>
 
-    <div class="empty-state" v-if="records.length === 0">
-      <span class="empty-icon">💰</span>
-      <span class="empty-text">暂无收入记录</span>
-    </div>
-  </div>
+    <EmptyState v-if="records.length === 0" icon="💰" text="暂无收入记录" />
+  </PageLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import EmptyState from '../components/EmptyState.vue'
+import walletService from '../services/walletService'
+import { isLoggedIn } from '@/common/common'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
-const totalIncome = ref(68.50)
+const records = ref([])
 
-const records = ref([
-  { icon: '🎮', title: '陪玩订单', desc: '王者荣耀 · 2小时', time: '14:30', amount: 50.00, bgColor: 'linear-gradient(135deg, #667eea, #764ba2)' },
-  { icon: '💬', title: '语音陪聊', desc: '语音聊天 · 30分钟', time: '11:20', amount: 18.50, bgColor: 'linear-gradient(135deg, #4facfe, #00f2fe)' },
-  { icon: '⭐', title: '打赏收入', desc: '用户"小可爱"打赏', time: '09:15', amount: 8.00, bgColor: 'linear-gradient(135deg, #f093fb, #f5576c)' },
-  { icon: '🎯', title: '活动奖励', desc: '每日接单任务奖励', time: '08:00', amount: 2.00, bgColor: 'linear-gradient(135deg, #43e97b, #38f9d7)' }
-])
+const totalIncome = computed(() => {
+  return records.value.reduce((sum, r) => sum + Number(r.amount || 0), 0)
+})
 
 const formatAmount = (val) => {
   return (val || 0).toFixed(2)
 }
+
+const fetchRecords = async () => {
+  try {
+    const res = await walletService.getIncomeRecords()
+    const data = res.data || res
+    records.value = data.list || []
+  } catch (err) {
+    console.error('获取收入明细失败:', err)
+  }
+}
+
+onMounted(async () => {
+  if (!isLoggedIn()) {
+    toast.error('请先登录')
+    router.replace('/login')
+    return
+  }
+  await fetchRecords()
+})
 
 const goBack = () => {
   router.back()
@@ -64,32 +82,18 @@ const goBack = () => {
 </script>
 
 <style scoped>
-.records-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 60px 16px 16px;
-  background-color: #fff;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
 .back-btn {
   font-size: 24px;
-  color: #333;
+  color: #fff;
   cursor: pointer;
 }
 
-.title {
-  font-size: 17px;
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
   font-weight: bold;
-  color: #333;
+  color: white;
 }
 
 .total {
@@ -200,22 +204,5 @@ const goBack = () => {
 
 .record-amount.income {
   color: #10b981;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 100px 0;
-}
-
-.empty-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-}
-
-.empty-text {
-  font-size: 15px;
-  color: #999;
 }
 </style>

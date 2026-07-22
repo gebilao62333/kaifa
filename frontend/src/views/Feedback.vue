@@ -1,10 +1,10 @@
 <template>
-  <div class="feedback-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">意见反馈</span>
+      <span class="nav-title">意见反馈</span>
       <span class="placeholder"></span>
-    </div>
+    </template>
 
     <div class="content">
       <div class="type-card">
@@ -64,12 +64,14 @@
     </div>
 
     <input type="file" ref="fileInput" accept="image/*" multiple style="display: none" @change="handleFileChange" />
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -119,7 +121,7 @@ const removeImage = (index) => {
 
 const submitFeedback = () => {
   if (!feedbackContent.value.trim()) {
-    alert('请输入反馈内容')
+    toast.error('请输入反馈内容')
     return
   }
   
@@ -131,7 +133,7 @@ const submitFeedback = () => {
     time: new Date().toLocaleString()
   })
   
-  alert('感谢您的反馈，我们会尽快处理！')
+  toast.success('感谢您的反馈，我们会尽快处理！')
   feedbackContent.value = ''
   contact.value = ''
   uploadImages.value = []
@@ -139,23 +141,6 @@ const submitFeedback = () => {
 </script>
 
 <style scoped>
-.feedback-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
 .back-btn,
 .placeholder {
   width: 40px;
@@ -164,7 +149,9 @@ const submitFeedback = () => {
   cursor: pointer;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
   color: white;
@@ -209,7 +196,7 @@ const submitFeedback = () => {
 }
 
 .type-item.active {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: rgba(102,126,234,0.05);
 }
 
@@ -259,7 +246,7 @@ const submitFeedback = () => {
 }
 
 .form-textarea:focus {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   outline: none;
 }
 
@@ -274,7 +261,7 @@ const submitFeedback = () => {
 }
 
 .form-input:focus {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   outline: none;
 }
 
@@ -327,7 +314,7 @@ const submitFeedback = () => {
 }
 
 .upload-btn:hover {
-  border-color: #667eea;
+  border-color: var(--color-primary);
 }
 
 .upload-add {
@@ -344,7 +331,7 @@ const submitFeedback = () => {
 .submit-btn {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
   font-size: 16px;
   border: none;
@@ -379,7 +366,7 @@ const submitFeedback = () => {
 
 .history-type {
   font-size: 13px;
-  color: #667eea;
+  color: var(--color-primary);
   background: rgba(102,126,234,0.1);
   padding: 4px 10px;
   border-radius: 12px;

@@ -143,6 +143,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { toast } from '../composables/useToast'
 import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
@@ -312,7 +313,7 @@ const applyOrder = (item) => {
   item.status = 'closed'
   item.applyCount++
   closeOrderDetail()
-  alert(`成功申请 "${item.title}" 的订单！`)
+  toast.success(`成功申请 "${item.title}" 的订单！`)
 }
 
 const goBack = () => {
@@ -363,13 +364,13 @@ onMounted(() => {
 }
 
 .tab-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
 }
 
 .tab-count {
   background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  color: var(--color-primary);
   padding: 2px 6px;
   border-radius: 8px;
   font-size: 11px;
@@ -383,7 +384,7 @@ onMounted(() => {
 .pull-tip {
   text-align: center;
   padding: 10px;
-  color: #667eea;
+  color: var(--color-primary);
   font-size: 14px;
   background: linear-gradient(135deg, #f0f0ff 0%, #fff 100%);
 }
@@ -495,7 +496,7 @@ onMounted(() => {
 
 .order-tags .tag {
   background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  color: var(--color-primary);
   font-size: 12px;
   padding: 4px 10px;
   border-radius: 4px;
@@ -522,7 +523,7 @@ onMounted(() => {
 }
 
 .apply-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   padding: 10px 24px;
@@ -714,7 +715,7 @@ onMounted(() => {
 }
 
 .action-btn.primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: #fff;
 }
 

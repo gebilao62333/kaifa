@@ -63,10 +63,7 @@
       </div>
     </div>
 
-    <div class="empty-state" v-else-if="!loading">
-      <p>暂无动态</p>
-      <button class="publish-empty-btn" @click="goPublish">发布第一条动态</button>
-    </div>
+    <EmptyState v-else-if="!loading" text="暂无动态" actionText="发布第一条动态" @action="goPublish" />
 
     <div class="loading-more" v-if="loading">加载中...</div>
     <div class="no-more" v-if="!hasMore && postList.length > 0">没有更多了</div>
@@ -77,6 +74,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
+import EmptyState from '../components/EmptyState.vue'
 import circleService from '../services/circleService'
 import { genAvatar } from '../utils/placeholder'
 
@@ -202,7 +200,7 @@ onMounted(async () => {
 
 .publish-btn {
   background-color: #fff;
-  color: #667eea;
+  color: var(--color-primary);
   border: none;
   padding: 8px 20px;
   border-radius: 20px;
@@ -243,7 +241,7 @@ onMounted(async () => {
 }
 
 .tag-item.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: #fff;
 }
 
@@ -303,7 +301,7 @@ onMounted(async () => {
   padding: 2px 8px;
   border-radius: 10px;
   background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .post-content {
@@ -358,27 +356,6 @@ onMounted(async () => {
   gap: 4px;
   font-size: 13px;
   color: #999;
-  cursor: pointer;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 80px 20px;
-  color: #999;
-}
-
-.empty-state p {
-  font-size: 16px;
-  margin-bottom: 16px;
-}
-
-.publish-empty-btn {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #fff;
-  border: none;
-  padding: 10px 24px;
-  border-radius: 20px;
-  font-size: 14px;
   cursor: pointer;
 }
 

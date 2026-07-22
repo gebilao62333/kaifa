@@ -1,6 +1,6 @@
 <template>
-  <div class="search-page">
-    <div class="search-header">
+  <PageLayout>
+    <template #nav>
       <div class="search-input-wrap">
         <span class="search-icon">🔍</span>
         <input
@@ -15,7 +15,7 @@
         <span v-if="searchKeyword" class="clear-icon" @click="clearSearch">✕</span>
       </div>
       <span class="cancel-btn" @click="goBack">取消</span>
-    </div>
+    </template>
 
     <div v-if="!searchKeyword" class="search-content">
       <div v-if="searchHistory.length > 0" class="history-section">
@@ -138,13 +138,14 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import homeService from '@/services/homeService'
+import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
 const inputRef = ref(null)
@@ -324,26 +325,11 @@ const formatTime = (timestamp) => {
 </script>
 
 <style scoped>
-.search-page {
-  min-height: 100dvh;
-  background: #f5f5f5;
-}
-
-.search-header {
-  display: flex;
-  align-items: center;
-  padding: 12px 16px;
-  background: #fff;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
 .search-input-wrap {
   flex: 1;
   display: flex;
   align-items: center;
-  background: #f5f5f5;
+  background: #fff;
   border-radius: 20px;
   padding: 8px 16px;
   margin-right: 12px;
@@ -373,9 +359,10 @@ const formatTime = (timestamp) => {
 }
 
 .cancel-btn {
-  color: #666;
+  color: #fff;
   font-size: 14px;
   cursor: pointer;
+  white-space: nowrap;
 }
 
 .search-content {
@@ -585,7 +572,7 @@ const formatTime = (timestamp) => {
 
 .follow-btn {
   padding: 4px 12px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: #fff;
   font-size: 12px;
   border-radius: 12px;

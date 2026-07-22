@@ -86,8 +86,18 @@ const goUserProfile = (userId) => {
   router.push({ name: 'UserProfile', params: { id: userId } })
 }
 
-const handleNavigate = (path) => {
-  router.push(`/${path}`)
+const handleNavigate = (payload) => {
+  if (payload && typeof payload === 'object' && payload.path) {
+    router.push(payload)
+    return
+  }
+  const str = String(payload)
+  // 已带 query 字符串（如 'companion-list?type=online'）直接跳转
+  if (str.includes('?')) {
+    router.push(str)
+  } else {
+    router.push(`/${str}`)
+  }
 }
 
 const loadBanners = async () => {
@@ -222,13 +232,13 @@ defineExpose({
 .search-box {
   display: flex;
   align-items: center;
+  flex: 1;
+  min-width: 0;
   background-color: rgba(255, 255, 255, 0.2);
   border-radius: 50px;
   padding: 12px 20px;
   color: rgba(255, 255, 255, 0.8);
   height: 40px;
-  width: 350px;
-  flex: none;
 }
 
 .search-icon {
@@ -238,6 +248,10 @@ defineExpose({
 .search-text {
   margin-left: 10px;
   font-size: 14px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .friend-btn {
@@ -246,10 +260,7 @@ defineExpose({
   height: 40px;
   padding-left: 10px;
   padding-right: 10px;
-  margin-top: 0;
-  margin-bottom: 0;
-  margin-left: 60px;
-  margin-right: 60px;
+  margin: 0;
   background-color: rgba(255, 255, 255, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 10px;

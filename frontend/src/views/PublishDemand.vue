@@ -1,10 +1,10 @@
 <template>
-  <div class="publish-demand-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">发布需求</span>
+      <span class="nav-title">发布需求</span>
       <span class="placeholder"></span>
-    </div>
+    </template>
 
     <div class="content">
       <div class="form-section">
@@ -273,13 +273,15 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { demandService } from '@/services/demandService'
+import PageLayout from '../components/PageLayout.vue'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -624,7 +626,7 @@ watch(() => formData.serviceType, () => {
 
 const getCurrentLocation = () => {
   if (!navigator.geolocation) {
-    alert('您的浏览器不支持定位功能')
+    toast.error('您的浏览器不支持定位功能')
     return
   }
 
@@ -653,7 +655,7 @@ const getCurrentLocation = () => {
           errorMsg = '定位请求超时'
           break
       }
-      alert(errorMsg)
+      toast.error(errorMsg)
     },
     {
       enableHighAccuracy: true,
@@ -697,11 +699,11 @@ const goBack = () => {
 }
 
 const showTerms = () => {
-  alert('服务条款：\n1. 用户需遵守平台规则\n2. 禁止违法违规行为\n3. 保护个人隐私信息')
+  toast.info('服务条款：\n1. 用户需遵守平台规则\n2. 禁止违法违规行为\n3. 保护个人隐私信息')
 }
 
 const showPrivacy = () => {
-  alert('隐私政策：\n1. 我们保护您的个人信息\n2. 不会泄露给第三方\n3. 仅用于服务匹配')
+  toast.info('隐私政策：\n1. 我们保护您的个人信息\n2. 不会泄露给第三方\n3. 仅用于服务匹配')
 }
 
 const submitting = ref(false)
@@ -729,14 +731,14 @@ const submitDemand = async () => {
     const result = await demandService.createDemand(demandData)
     
     if (result.code === 0) {
-      alert('需求发布成功！')
+      toast.success('需求发布成功！')
       router.back()
     } else {
-      alert(result.message || '发布失败，请重试')
+      toast.error(result.message || '发布失败，请重试')
     }
   } catch (error) {
     console.error('发布需求异常:', error)
-    alert('发布失败，请重试')
+    toast.error('发布失败，请重试')
   } finally {
     submitting.value = false
   }
@@ -757,28 +759,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.publish-demand-page {
-  min-height: 100dvh;
-  background: #f5f7fa;
-  padding-bottom: 200px;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  height: 50px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
 .back-btn {
   font-size: 24px;
   color: white;
@@ -797,9 +777,12 @@ onMounted(() => {
   background-color: rgba(255, 255, 255, 0.3);
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: 600;
+  color: white;
 }
 
 .placeholder {
@@ -861,7 +844,7 @@ onMounted(() => {
 
 .type-item.active {
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-  border-color: #667eea;
+  border-color: var(--color-primary);
 }
 
 .type-icon {
@@ -931,9 +914,9 @@ onMounted(() => {
 }
 
 .game-item.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
-  border-color: #667eea;
+  border-color: var(--color-primary);
   box-shadow: 0 6px 20px rgba(102, 126, 234, 0.35);
   transform: translateY(-2px);
 }
@@ -1133,7 +1116,7 @@ onMounted(() => {
 }
 
 .nav-arrow:hover {
-  background: #667eea;
+  background: var(--color-primary);
   color: #fff;
 }
 
@@ -1192,12 +1175,12 @@ onMounted(() => {
 }
 
 .calendar-cell:not(.other):hover {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: #f0f0ff;
 }
 
 .calendar-cell.active {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
@@ -1299,14 +1282,14 @@ onMounted(() => {
 }
 
 .wheel-item:hover:not(.empty) {
-  color: #667eea;
+  color: var(--color-primary);
   font-weight: 500;
 }
 
 .wheel-item.selected {
   font-size: 19px;
   font-weight: 700;
-  color: #667eea;
+  color: var(--color-primary);
   text-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
 }
 
@@ -1324,8 +1307,8 @@ onMounted(() => {
   height: 44px;
   margin-top: -22px;
   pointer-events: none;
-  border-top: 1px solid #667eea;
-  border-bottom: 1px solid #667eea;
+  border-top: 1px solid var(--color-primary);
+  border-bottom: 1px solid var(--color-primary);
   background: rgba(102, 126, 234, 0.05);
 }
 
@@ -1366,7 +1349,7 @@ onMounted(() => {
 
 .time-summary .summary-text {
   font-size: 14px;
-  color: #667eea;
+  color: var(--color-primary);
   font-weight: 500;
 }
 
@@ -1410,7 +1393,7 @@ onMounted(() => {
 }
 
 .input-wrapper:focus-within {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
 }
 
@@ -1485,7 +1468,7 @@ onMounted(() => {
 }
 
 .remark-input:focus {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.12);
   background: white;
 }
@@ -1539,8 +1522,8 @@ onMounted(() => {
 }
 
 .checkbox-label input[type="checkbox"]:checked + .checkbox-check {
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  border-color: #667eea;
+  background: var(--gradient-primary);
+  border-color: var(--color-primary);
 }
 
 .checkbox-label input[type="checkbox"]:checked + .checkbox-check::after {
@@ -1564,16 +1547,16 @@ onMounted(() => {
 }
 
 .terms-link {
-  color: #667eea;
+  color: var(--color-primary);
   text-decoration: underline;
 }
 
 .terms-link:hover {
-  color: #764ba2;
+  color: var(--color-primary-end);
 }
 
 .terms-link:hover {
-  color: #764ba2;
+  color: var(--color-primary-end);
 }
 
 .footer-content {
@@ -1610,7 +1593,7 @@ onMounted(() => {
 
 .submit-btn {
   padding: 16px 48px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   background-color: var(--tw-ring-color);
   color: white;
   border: none;

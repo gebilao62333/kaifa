@@ -23,6 +23,10 @@ export const giftService = {
 
   async getRedPacketHistory(type = 'all') {
     return request('/api/gift/redpacket/history', 'GET', { type })
+  },
+
+  async withdraw(params) {
+    return request('/api/gift/withdraw', 'POST', params)
   }
 }
 

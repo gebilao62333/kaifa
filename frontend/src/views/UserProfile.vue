@@ -1,10 +1,10 @@
 <template>
-  <div class="user-profile-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">用户资料</span>
+      <span class="nav-title">用户资料</span>
       <span class="placeholder"></span>
-    </div>
+    </template>
 
     <div class="cover-bg" :style="{ backgroundImage: `url(${user.bgImage})` }">
       <div class="user-info-top">
@@ -114,13 +114,15 @@
         </div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { genAvatar, genCover } from '../utils/placeholder'
+import PageLayout from '../components/PageLayout.vue'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 const route = useRoute()
@@ -258,28 +260,11 @@ onMounted(() => {
 })
 
 const viewPhoto = (url, index) => {
-  alert(`查看第 ${index + 1} 张图片：${url}`)
+  toast.info(`查看第 ${index + 1} 张图片：${url}`)
 }
 </script>
 
 <style scoped>
-.user-profile-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
 .back-btn, .placeholder {
   width: 40px;
   font-size: 20px;
@@ -287,7 +272,9 @@ const viewPhoto = (url, index) => {
   cursor: pointer;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
   color: white;
@@ -448,7 +435,7 @@ const viewPhoto = (url, index) => {
 }
 
 .follow-btn {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -519,7 +506,7 @@ const viewPhoto = (url, index) => {
 
 .service-item.active {
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-  border-color: linear-gradient(135deg, #667eea, #764ba2);
+  border-color: var(--gradient-primary);
 }
 
 .service-icon {
@@ -542,7 +529,7 @@ const viewPhoto = (url, index) => {
 }
 
 .service-item.active .service-badge {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
 }
 
@@ -558,7 +545,7 @@ const viewPhoto = (url, index) => {
 
 .tags-list .tag {
   padding: 6px 14px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
   font-size: 13px;
   border-radius: 16px;

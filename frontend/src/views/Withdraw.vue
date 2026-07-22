@@ -1,10 +1,10 @@
 <template>
-  <div class="withdraw-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">提现</span>
+      <span class="nav-title">提现</span>
       <span class="history-btn" @click="goRecords">明细</span>
-    </div>
+    </template>
 
     <div class="balance-card">
       <div class="label">可提现余额</div>
@@ -169,32 +169,21 @@
         {{ withdrawBtnText }}
       </button>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getWithdrawMethods } from '../common/payMethods'
+import PageLayout from '../components/PageLayout.vue'
+import { toast } from '../composables/useToast'
+import walletService from '../services/walletService'
+import { isLoggedIn } from '@/common/common'
 
 const router = useRouter()
 
-const loadBalance = () => {
-  try {
-    const saved = localStorage.getItem('userInfo')
-    if (saved) {
-      const data = JSON.parse(saved)
-      return data.balance || 0
-    }
-  } catch {}
-  return 0
-}
-
-const balance = ref(loadBalance())
-
-onMounted(() => {
-  balance.value = loadBalance()
-})
+const balance = ref(0)
 const withdrawAmount = ref(0)
 const payMethod = ref('alipay')
 const submitting = ref(false)
@@ -289,6 +278,25 @@ const goRecords = () => {
   router.push('/withdraw-records')
 }
 
+const fetchBalance = async () => {
+  try {
+    const res = await walletService.getOverview()
+    const data = res.data || res
+    balance.value = data.totalAssets || 0
+  } catch (err) {
+    console.error('获取可提现余额失败:', err)
+  }
+}
+
+onMounted(async () => {
+  if (!isLoggedIn()) {
+    toast.error('请先登录')
+    router.replace('/login')
+    return
+  }
+  await fetchBalance()
+})
+
 const switchPayMethod = (id) => {
   payMethod.value = id
 }
@@ -318,51 +326,23 @@ const doWithdraw = async () => {
   submitting.value = true
 
   try {
-    const host = (window.globalData?.host) || 'https://api.your-domain.com'
-    const token = localStorage.getItem('token') || ''
+    const type = payMethod.value === 'alipay' ? 1 : (payMethod.value === 'wechat' ? 2 : 3)
+    const account = payMethod.value === 'card'
+      ? cardNo.value
+      : (payMethod.value === 'alipay' ? alipayAccount.value : wechatAccount.value)
 
-    const bankInfo = {
-      bank: bankName.value,
-      name: receiverName.value,
-      mobile: payMethod.value === 'alipay' ? alipayAccount.value : wechatAccount.value,
-      image: payMethod.value === 'alipay' ? alipayQrUrl.value : wechatQrUrl.value
-    }
-
-    const res = await fetch(`${host}/api/gift/withdraw`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        goldCoins: withdrawAmount.value,
-        type: payMethod.value === 'alipay' ? 1 : (payMethod.value === 'wechat' ? 2 : 3),
-        bankInfo
-      })
+    await walletService.withdraw({
+      amount: Number(withdrawAmount.value),
+      type,
+      account
     })
-
-    const result = await res.json()
-
-    if (result.code === 0) {
-      balance.value -= Number(withdrawAmount.value)
-      const saved = localStorage.getItem('userInfo')
-      if (saved) {
-        try {
-          const data = JSON.parse(saved)
-          data.balance = balance.value
-          localStorage.setItem('userInfo', JSON.stringify(data))
-        } catch {}
-      }
-      alert('提现申请已提交')
-      setTimeout(() => {
-        router.push('/withdraw-records')
-      }, 1500)
-    } else {
-      alert(result.message || '提交失败')
-    }
+    toast.success('提现申请已提交')
+    setTimeout(() => {
+      router.push('/withdraw-records')
+    }, 1500)
   } catch (error) {
     console.error('提现错误:', error)
-    alert('网络错误，请重试')
+    toast.error('网络错误，请重试')
   } finally {
     submitting.value = false
   }
@@ -370,30 +350,17 @@ const doWithdraw = async () => {
 </script>
 
 <style scoped>
-.withdraw-page {
-  min-height: 100dvh;
-  background: #f5f5f5;
-  padding-bottom: 80px;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  padding: 60px 20px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
 .back-btn {
   font-size: 24px;
   cursor: pointer;
-  margin-right: 20px;
 }
 
-.title {
+.nav-title {
   flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
+  color: white;
 }
 
 .history-btn {
@@ -497,7 +464,7 @@ const doWithdraw = async () => {
 }
 
 .all-btn {
-  color: #667eea;
+  color: var(--color-primary);
   cursor: pointer;
 }
 
@@ -519,8 +486,8 @@ const doWithdraw = async () => {
 }
 
 .quick-item.active {
-  border-color: #667eea;
-  color: #667eea;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
   background: rgba(102, 126, 234, 0.05);
 }
 
@@ -542,7 +509,7 @@ const doWithdraw = async () => {
 }
 
 .payment-item.active {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: rgba(102, 126, 234, 0.03);
 }
 
@@ -697,7 +664,7 @@ const doWithdraw = async () => {
 
 .bank-picker-cancel, .bank-picker-confirm {
   font-size: 15px;
-  color: #667eea;
+  color: var(--color-primary);
   cursor: pointer;
 }
 
@@ -725,7 +692,7 @@ const doWithdraw = async () => {
 }
 
 .bank-picker-item.active {
-  color: #667eea;
+  color: var(--color-primary);
   font-weight: 600;
   background: rgba(102, 126, 234, 0.08);
 }
@@ -741,7 +708,7 @@ const doWithdraw = async () => {
 }
 
 .radio.checked {
-  border-color: #667eea;
+  border-color: var(--color-primary);
 }
 
 .radio.checked::after {
@@ -752,7 +719,7 @@ const doWithdraw = async () => {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #667eea;
+  background: var(--color-primary);
 }
 
 .account-card {
@@ -809,7 +776,7 @@ const doWithdraw = async () => {
 .withdraw-btn {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   color: white;
   border: none;
   border-radius: 24px;

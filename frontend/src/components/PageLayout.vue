@@ -27,7 +27,7 @@
 <style scoped>
 .page-layout {
   min-height: calc(100dvh - 80px);
-  background-color: #f5f5f5;
+  background-color: var(--bg-page);
   padding-bottom: 80px;
 }
 
@@ -35,7 +35,7 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
 }
 
 .page-nav-inner {
@@ -77,5 +77,14 @@
   .page-nav {
     max-width: 720px;
   }
+}
+
+/* 深色模式：页面根背景随主题切换（所有使用 PageLayout 的页面自动受益） */
+.dark .page-layout {
+  background-color: #121212;
+}
+
+.dark .page-nav {
+  filter: brightness(0.92);
 }
 </style>

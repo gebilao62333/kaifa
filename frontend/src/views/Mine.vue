@@ -349,7 +349,7 @@ onMounted(() => {
 
 .edit-btn {
   background: linear-gradient(135deg, #fff 0%, #f0f0f0 100%);
-  color: #667eea;
+  color: var(--color-primary);
   font-size: 14px;
   font-weight: 500;
   padding: 10px 20px;
@@ -416,7 +416,7 @@ onMounted(() => {
   gap: 16px;
   margin: 10px 0px;
   padding: 10px 0px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-radius: 16px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   cursor: pointer;

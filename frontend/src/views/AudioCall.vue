@@ -322,7 +322,7 @@ onUnmounted(() => {
   width: 160px;
   height: 160px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -342,7 +342,7 @@ onUnmounted(() => {
 .wave-bar {
   width: 6px;
   height: 100%;
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary-180);
   border-radius: 3px;
   animation: wave 0.8s ease-in-out infinite;
 }

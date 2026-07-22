@@ -1,10 +1,10 @@
 <template>
-  <div class="records-page">
-    <div class="header">
-    <span class="back-btn" @click="goBack">←</span>
-    <span class="title">支出明细</span>
-    <span class="total expense">今日 -{{ formatAmount(totalExpense) }} 金币</span>
-  </div>
+  <PageLayout>
+    <template #nav>
+      <span class="back-btn" @click="goBack">←</span>
+      <span class="nav-title">支出明细</span>
+      <span class="total expense">今日 -{{ formatAmount(todayExpense) }} 金币</span>
+    </template>
 
   <div class="summary-card">
     <div class="summary-item">
@@ -19,7 +19,7 @@
     </div>
 
     <div class="records-list">
-      <div class="record-card" v-for="(item, idx) in records" :key="idx">
+      <div class="record-card" v-for="item in records" :key="item.id">
         <div class="record-icon-wrap" :style="{ background: item.bgColor }">
           <span class="record-icon">{{ item.icon }}</span>
         </div>
@@ -32,30 +32,49 @@
       </div>
     </div>
 
-    <div class="empty-state" v-if="records.length === 0">
-      <span class="empty-icon">💸</span>
-      <span class="empty-text">暂无支出记录</span>
-    </div>
-  </div>
+    <EmptyState v-if="records.length === 0" icon="💸" text="暂无支出记录" />
+  </PageLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import EmptyState from '../components/EmptyState.vue'
+import walletService from '../services/walletService'
+import { isLoggedIn } from '@/common/common'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
-const totalExpense = ref(12.00)
-
-const records = ref([
-  { icon: '🎁', title: '购买礼物', desc: '赠送"小雪"礼物', time: '13:40', amount: 6.00, bgColor: 'linear-gradient(135deg, #fa709a, #fee140)' },
-  { icon: '📢', title: '置顶帖子', desc: '帖子置顶消耗', time: '10:30', amount: 3.00, bgColor: 'linear-gradient(135deg, #a18cd1, #fbc2eb)' },
-  { icon: '🔒', title: '解锁勋章', desc: '开通月度勋章', time: '09:00', amount: 3.00, bgColor: 'linear-gradient(135deg, #ffecd2, #fcb69f)' }
-])
+const records = ref([])
+const totalExpense = ref(0)
+const todayExpense = ref(0)
 
 const formatAmount = (val) => {
-  return (val || 0).toFixed(2)
+  return Number(val || 0).toFixed(2)
 }
+
+const fetchRecords = async () => {
+  try {
+    const res = await walletService.getExpenseRecords()
+    const data = res.data || res || {}
+    records.value = Array.isArray(data.list) ? data.list : []
+    totalExpense.value = data.totalExpense || 0
+    todayExpense.value = data.todayExpense || 0
+  } catch (err) {
+    console.error('获取支出记录失败:', err)
+  }
+}
+
+onMounted(async () => {
+  if (!isLoggedIn()) {
+    toast.error('请先登录')
+    router.replace('/login')
+    return
+  }
+  await fetchRecords()
+})
 
 const goBack = () => {
   router.back()
@@ -63,32 +82,18 @@ const goBack = () => {
 </script>
 
 <style scoped>
-.records-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 60px 16px 16px;
-  background-color: #fff;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
 .back-btn {
   font-size: 24px;
-  color: #333;
+  color: #fff;
   cursor: pointer;
 }
 
-.title {
-  font-size: 17px;
+.nav-title {
+  flex: 1;
+  text-align: center;
+  font-size: 18px;
   font-weight: bold;
-  color: #333;
+  color: white;
 }
 
 .total.expense {
@@ -199,22 +204,5 @@ const goBack = () => {
 
 .record-amount.expense {
   color: #ef4444;
-}
-
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 100px 0;
-}
-
-.empty-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-}
-
-.empty-text {
-  font-size: 15px;
-  color: #999;
 }
 </style>

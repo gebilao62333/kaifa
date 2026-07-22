@@ -1,10 +1,10 @@
 <template>
-  <div class="realname-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">实名认证</span>
+      <span class="nav-title">实名认证</span>
       <span class="placeholder"></span>
-    </div>
+    </template>
 
     <div class="content" v-if="!isVerified">
       <div class="tips-card">
@@ -82,12 +82,14 @@
     </div>
 
     <input type="file" ref="fileInput" accept="image/*" style="display: none" @change="handleFileChange" />
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -133,45 +135,28 @@ const handleFileChange = (e) => {
 
 const submitForm = () => {
   if (!realName.value.trim()) {
-    alert('请输入真实姓名')
+    toast.error('请输入真实姓名')
     return
   }
   if (!idCard.value || idCard.value.length < 15) {
-    alert('请输入正确的身份证号码')
+    toast.error('请输入正确的身份证号码')
     return
   }
   if (!frontImg.value || !backImg.value) {
-    alert('请上传身份证照片')
+    toast.error('请上传身份证照片')
     return
   }
   if (!agreed.value) {
-    alert('请先同意认证协议')
+    toast.error('请先同意认证协议')
     return
   }
-  
-  alert('认证信息已提交，将在1-3个工作日内审核')
+
+  toast.success('认证信息已提交，将在1-3个工作日内审核')
   isVerified.value = true
 }
 </script>
 
 <style scoped>
-.realname-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
 .back-btn,
 .placeholder {
   width: 40px;
@@ -180,7 +165,9 @@ const submitForm = () => {
   cursor: pointer;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
   color: white;
@@ -247,7 +234,7 @@ const submitForm = () => {
 }
 
 .form-input:focus {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   outline: none;
 }
 
@@ -267,7 +254,7 @@ const submitForm = () => {
 }
 
 .upload-area:hover {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: rgba(102,126,234,0.05);
 }
 
@@ -313,7 +300,7 @@ const submitForm = () => {
 .submit-btn {
   width: 100%;
   padding: 16px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
   font-size: 16px;
   border: none;

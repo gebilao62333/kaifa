@@ -59,6 +59,11 @@ const Withdraw = sequelize.define('xn_withdraw', {
     type: DataTypes.STRING(20),
     allowNull: true
   },
+  channel: {
+    type: DataTypes.STRING(20),
+    defaultValue: 'gift',
+    comment: '提现渠道: gift(礼物金币) / wallet(钱包总资产)'
+  },
   create_time: {
     type: DataTypes.DATE,
     defaultValue: DataTypes.NOW

@@ -41,7 +41,7 @@ watch(() => props.modelValue, (newVal) => {
 }, { deep: true })
 
 const offlineActivities = [
-  { id: 201, name: '逛街购物', icon: '🛍️', price: 150, desc: '陪同逛街购物', bgColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+  { id: 201, name: '逛街购物', icon: '🛍️', price: 150, desc: '陪同逛街购物', bgColor: 'var(--gradient-primary)' },
   { id: 202, name: '看电影', icon: '🎬', price: 200, desc: '陪同观看电影', bgColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
   { id: 203, name: '美食探店', icon: '🍽️', price: 180, desc: '陪同品尝美食', bgColor: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' },
   { id: 204, name: '密室逃脱', icon: '🔐', price: 160, desc: '组队密室挑战', bgColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }
@@ -102,7 +102,7 @@ const handleSelect = (item) => {
 }
 
 .offline-card-active {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
 }
 
@@ -153,7 +153,7 @@ const handleSelect = (item) => {
   right: 8px;
   width: 24px;
   height: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -166,7 +166,7 @@ const handleSelect = (item) => {
 .selection-hint {
   text-align: center;
   font-size: 13px;
-  color: #667eea;
+  color: var(--color-primary);
   padding: 12px;
   background: rgba(102, 126, 234, 0.1);
   border-radius: 12px;

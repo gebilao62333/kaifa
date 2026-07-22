@@ -57,6 +57,7 @@ const setupRoutes = (app) => {
     { path: './vip', name: 'VIP会员', prefix: '/api/vip' },
     { path: './album', name: '相册', prefix: '/api/album' },
     { path: './project', name: '项目管理', prefix: '/api/project' },
+    { path: './wallet', name: '钱包', prefix: '/api/wallet' },
     { path: './health', name: '健康检查', prefix: '/api' },
   ];
 

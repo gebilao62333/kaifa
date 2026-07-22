@@ -1,10 +1,10 @@
 <template>
-  <div class="follows-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">我的关注</span>
+      <span class="nav-title">我的关注</span>
       <span class="placeholder"></span>
-    </div>
+    </template>
 
     <div class="content">
       <div class="user-list" v-if="follows.length > 0">
@@ -21,18 +21,16 @@
         </div>
       </div>
 
-      <div class="empty-state" v-else>
-        <div class="empty-icon">👥</div>
-        <div class="empty-text">暂无关注</div>
-        <div class="empty-hint">快去关注感兴趣的人吧</div>
-      </div>
+      <EmptyState v-else icon="👥" text="暂无关注" hint="快去关注感兴趣的人吧" />
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import PageLayout from '../components/PageLayout.vue'
+import EmptyState from '../components/EmptyState.vue'
 
 const router = useRouter()
 
@@ -86,23 +84,6 @@ const viewProfile = (user) => {
 </script>
 
 <style scoped>
-.follows-page {
-  min-height: 100dvh;
-  background-color: #f5f5f5;
-}
-
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
 .back-btn,
 .placeholder {
   width: 40px;
@@ -111,7 +92,9 @@ const viewProfile = (user) => {
   cursor: pointer;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 18px;
   font-weight: bold;
   color: white;
@@ -174,7 +157,7 @@ const viewProfile = (user) => {
 
 .tag {
   font-size: 11px;
-  color: #667eea;
+  color: var(--color-primary);
   background: rgba(102,126,234,0.1);
   padding: 3px 8px;
   border-radius: 10px;
@@ -195,29 +178,7 @@ const viewProfile = (user) => {
 }
 
 .follow-btn.not-followed {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 80px 20px;
-}
-
-.empty-icon {
-  font-size: 80px;
-  margin-bottom: 16px;
-  opacity: 0.3;
-}
-
-.empty-text {
-  font-size: 16px;
-  color: #999;
-  margin-bottom: 8px;
-}
-
-.empty-hint {
-  font-size: 13px;
-  color: #ccc;
 }
 </style>

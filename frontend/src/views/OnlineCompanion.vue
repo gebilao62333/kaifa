@@ -41,7 +41,7 @@ watch(() => props.modelValue, (newVal) => {
 }, { deep: true })
 
 const onlineGames = [
-  { id: 1, name: '王者荣耀', icon: '🎮', price: 50, rating: 4.9, tags: ['打野', 'Carry'], bgColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
+  { id: 1, name: '王者荣耀', icon: '🎮', price: 50, rating: 4.9, tags: ['打野', 'Carry'], bgColor: 'var(--gradient-primary)' },
   { id: 2, name: '和平精英', icon: '🔫', price: 45, rating: 4.8, tags: ['钢枪', '战术'], bgColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' },
   { id: 3, name: '英雄联盟', icon: '⚔️', price: 55, rating: 4.9, tags: ['中单', '上分'], bgColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
   { id: 4, name: '永劫无间', icon: '🗡️', price: 48, rating: 4.7, tags: ['太刀', '振刀'], bgColor: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' },
@@ -93,7 +93,7 @@ const handleSelect = (game) => {
 }
 
 .game-card-active {
-  border-color: #667eea;
+  border-color: var(--color-primary);
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
 }
 
@@ -144,7 +144,7 @@ const handleSelect = (game) => {
   right: 8px;
   width: 24px;
   height: 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -157,7 +157,7 @@ const handleSelect = (game) => {
 .selection-hint {
   text-align: center;
   font-size: 13px;
-  color: #667eea;
+  color: var(--color-primary);
   padding: 12px;
   background: rgba(102, 126, 234, 0.1);
   border-radius: 12px;

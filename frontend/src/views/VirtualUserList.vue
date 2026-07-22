@@ -1,10 +1,10 @@
 <template>
-  <div class="virtual-user-page">
-    <div class="header">
+  <PageLayout>
+    <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="title">AI 陪聊</span>
-      <span style="width: 40px;"></span>
-    </div>
+      <span class="nav-title">AI 陪聊</span>
+      <span class="placeholder"></span>
+    </template>
 
     <div class="search-bar">
       <input
@@ -65,7 +65,7 @@
         <div class="empty-hint">稍后再来看看吧</div>
       </div>
     </div>
-  </div>
+  </PageLayout>
 </template>
 
 <script setup>
@@ -73,6 +73,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { virtualUserService } from '../services/virtualUserService'
 import { genAvatar } from '../utils/placeholder'
+import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
 const activeTab = ref('all')
@@ -167,28 +168,22 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.virtual-user-page {
-  min-height: 100dvh;
-  background: #f5f5f5;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background: #fff;
-  border-bottom: 1px solid #eee;
-}
-
 .back-btn {
   font-size: 20px;
   cursor: pointer;
+  color: white;
 }
 
-.title {
+.nav-title {
+  flex: 1;
+  text-align: center;
   font-size: 17px;
   font-weight: 500;
+  color: white;
+}
+
+.placeholder {
+  width: 40px;
 }
 
 .search-bar {

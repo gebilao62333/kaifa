@@ -131,7 +131,7 @@ defineEmits(['load-more', 'user-click', 'retry'])
   width: 32px;
   height: 32px;
   border: 3px solid #f0f0f0;
-  border-top-color: #667eea;
+  border-top-color: var(--color-primary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -191,7 +191,7 @@ defineEmits(['load-more', 'user-click', 'retry'])
   padding: 8px 24px;
   border: none;
   border-radius: 20px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: #fff;
   font-size: 14px;
   cursor: pointer;
@@ -244,7 +244,7 @@ defineEmits(['load-more', 'user-click', 'retry'])
 .admin-recommend-badge {
   font-size: 9px;
   font-weight: 600;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--gradient-primary);
   color: white;
   padding: 1px 6px;
   border-radius: 8px;
@@ -375,7 +375,7 @@ defineEmits(['load-more', 'user-click', 'retry'])
 
 .companion-service .service-tag {
   color: #fff;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--gradient-primary);
   padding: 2px 10px;
   border-radius: 20px;
   font-size: 11px;
