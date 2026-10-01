@@ -242,6 +242,7 @@ import { usePermissions } from '../composables/usePermissions'
 import PageLayout from '../components/PageLayout.vue'
 import regionService from '../services/regionService'
 import gamesService from '../services/gamesService'
+import { uploadFile } from '../services/uploadService'
 
 const { 
   requestMicrophonePermission,
@@ -437,6 +438,20 @@ const closeAllPickers = () => {
   currentPicker.value = ''
 }
 
+// 把 dataURL / blob URL 还原为 File，便于直传
+const urlToFile = async (url, name) => {
+  if (url.startsWith('data:')) {
+    const [meta, b64] = url.split(',')
+    const mime = (meta.match(/:(.*?);/) || [])[1] || 'application/octet-stream'
+    const bin = atob(b64)
+    const arr = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
+    return new File([arr], name, { type: mime })
+  }
+  const blob = await (await fetch(url)).blob()
+  return new File([blob], name, { type: blob.type || 'application/octet-stream' })
+}
+
 const submitForm = async () => {
   // 检查当前标签的协议状态
   if (!currentAgreement.value.agreeRegister || !currentAgreement.value.agreePrivacy || !currentAgreement.value.agreeMinor) {
@@ -464,12 +479,29 @@ const submitForm = async () => {
   submitting.value = true
 
   try {
+    // 图片/语音先直传 COS 换取真实 URL，再提交（此前只存本地 base64/blob）
+    let imageUrl = formData.value.imageUrl || ''
+    if (imageUrl && (imageUrl.startsWith('data:') || imageUrl.startsWith('blob:'))) {
+      const f = await urlToFile(imageUrl, `apply_${Date.now()}.jpg`)
+      const r = await uploadFile(f, 'image')
+      imageUrl = r.data.url
+    }
+    let voiceIntro = formData.value.audioUrl || ''
+    if (voiceIntro && voiceIntro.startsWith('blob:')) {
+      const f = await urlToFile(voiceIntro, `voice_${Date.now()}.webm`)
+      const r = await uploadFile(f, 'audio')
+      voiceIntro = r.data.url
+    }
+
     await gamesService.applyCompanion({
       gameId: Number(gameId),
       serviceType: selectedService.value?.category || 'online',
       price: Number(formData.value.price),
       tags: (selectedService.value?.tags || []).join(','),
-      description: formData.value.skillIntro
+      description: formData.value.skillIntro,
+      icon: imageUrl,
+      voiceIntro,
+      voiceTime: 0
     })
 
     showToastMsg('提交成功，等待审核')

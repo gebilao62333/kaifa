@@ -109,9 +109,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
+import userPrefService from '../services/userPrefService'
 
 const router = useRouter()
 
@@ -136,7 +137,18 @@ const loadSettings = () => {
 
 const saveSettings = () => {
   localStorage.setItem('stealthSettings', JSON.stringify(settings))
+  userPrefService.save({ stealthSettings: { ...settings } }, 0).catch(() => {})
 }
+
+const loadPref = async () => {
+  try {
+    const res = await userPrefService.get()
+    const prefs = res?.data?.data || {}
+    if (prefs.stealthSettings) Object.assign(settings, prefs.stealthSettings)
+  } catch (e) { /* 静默 */ }
+}
+
+onMounted(loadPref)
 
 const toggleSetting = (key) => {
   if (key === 'stealth') {

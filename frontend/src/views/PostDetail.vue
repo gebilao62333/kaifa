@@ -150,6 +150,7 @@ import PageLayout from '../components/PageLayout.vue'
 import SharePopup from '../components/SharePopup.vue'
 import ReportModal from '../components/report-modal/report-modal.vue'
 import circleService from '../services/circleService'
+import authService from '../services/authService'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
@@ -237,8 +238,15 @@ const goUserProfile = () => {
   }
 }
 
-const follow = () => {
-  postData.value.isFollow = true
+const follow = async () => {
+  const uid = Number(postData.value.userId)
+  if (!uid) return
+  try {
+    await authService.follow(uid)
+    postData.value.isFollow = true
+  } catch (e) {
+    toast.error(e.message || '关注失败')
+  }
 }
 
 const toggleLike = async () => {

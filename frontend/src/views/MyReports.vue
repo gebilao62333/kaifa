@@ -148,6 +148,7 @@ const loadList = async (append = false) => {
     list.value = append ? list.value.concat(rows) : rows
     total.value = data.total || 0
     hasMore.value = list.value.length < total.value
+    if (rows.length) page.value += 1
   } catch (err) {
     toast.error(err.message || '加载举报记录失败')
   } finally {

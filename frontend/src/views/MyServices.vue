@@ -252,6 +252,7 @@ import { useRouter } from 'vue-router'
 import { usePermissions } from '../composables/usePermissions'
 import PageLayout from '../components/PageLayout.vue'
 import gamesService from '../services/gamesService'
+import { uploadFile } from '../services/uploadService'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
@@ -661,6 +662,20 @@ const deleteAudio = () => {
   }
 }
 
+// 把 dataURL / blob URL 还原为 File，便于直传（本地预览用的临时地址不能入库）
+const urlToFile = async (url, name) => {
+  if (url.startsWith('data:')) {
+    const [meta, b64] = url.split(',')
+    const mime = (meta.match(/:(.*?);/) || [])[1] || 'application/octet-stream'
+    const bin = atob(b64)
+    const arr = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
+    return new File([arr], name, { type: mime })
+  }
+  const blob = await (await fetch(url)).blob()
+  return new File([blob], name, { type: blob.type || 'application/octet-stream' })
+}
+
 const saveService = async () => {
   if (!editForm.value.price || editForm.value.price <= 0) {
     toast.error('请输入有效的价格')
@@ -671,13 +686,29 @@ const saveService = async () => {
   if (!target) return
 
   try {
-    // 后端仅支持按游戏提交/更新服务（apply 后状态回到审核中）
+    // 图片/语音先直传 COS 换取真实 URL，再提交（此前只存本地 base64/blob）
+    let iconUrl = editForm.value.icon || ''
+    if (iconUrl && (iconUrl.startsWith('data:') || iconUrl.startsWith('blob:'))) {
+      const f = await urlToFile(iconUrl, `service_${Date.now()}.jpg`)
+      const r = await uploadFile(f, 'image')
+      iconUrl = r.data.url
+    }
+    let voiceIntro = editForm.value.audioUrl || ''
+    if (voiceIntro && voiceIntro.startsWith('blob:')) {
+      const f = await urlToFile(voiceIntro, `voice_${Date.now()}.webm`)
+      const r = await uploadFile(f, 'audio')
+      voiceIntro = r.data.url
+    }
+
     await gamesService.applyCompanion({
       gameId: target.gameId,
       serviceType: 'online',
       price: Number(editForm.value.price),
       tags: (target.tags || []).join(','),
-      description: editForm.value.description || ''
+      description: editForm.value.description || '',
+      icon: iconUrl,
+      voiceIntro,
+      voiceTime: editForm.value.audioTime || 0
     })
     closeEditModal()
     toast.success('已提交，等待审核')

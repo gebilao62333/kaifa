@@ -41,16 +41,16 @@ const collectIncomeRecords = async (userId) => {
     }
   };
 
-  // 1) 接单：作为陪玩/陪聊接单，订单完成或进行中即产生收入
+  // 1) 接单：作为陪玩接单，仅统计已完成订单；金额取订单 amount（= 陪玩师到手分成，完成时写入）
   const [orders] = await sequelize.query(
-    "SELECT id, amount, create_time FROM xn_game_order WHERE companion_id = :uid AND status IN ('completed', 'ongoing')",
+    "SELECT id, amount, create_time FROM xn_game_order WHERE target_user_id = :uid AND status = 3",
     { replacements: { uid: userId } }
   );
   push(orders, 'order', '接单收入');
 
-  // 2) 礼物：收到礼物
+  // 2) 礼物：收到礼物（xn_gift_log.user_id 为收款人，金额列名为 totalmoney）
   const [gifts] = await sequelize.query(
-    'SELECT id, total_money AS amount, create_time FROM xn_gift_log WHERE to_user_id = :uid',
+    'SELECT id, totalmoney AS amount, create_time FROM xn_gift_log WHERE user_id = :uid',
     { replacements: { uid: userId } }
   );
   push(gifts, 'gift', '收到礼物');
@@ -63,17 +63,18 @@ const collectIncomeRecords = async (userId) => {
   push(packets, 'redpacket', '抢到红包');
 
   // 4) 语音/视频通话：作为被叫方（主播）的通话收入
+  //    真实列：xn_call_billing.call_id / total_amount，xn_call_record.call_type / callee_id
   const [calls] = await sequelize.query(
-    `SELECT b.id, b.amount, b.create_time, r.type
+    `SELECT b.id, b.total_amount AS amount, b.create_time, r.call_type
      FROM xn_call_billing b
-     JOIN xn_call_record r ON b.call_record_id = r.id
+     JOIN xn_call_record r ON b.call_id = r.id
      WHERE r.callee_id = :uid AND b.status = 1`,
     { replacements: { uid: userId } }
   );
   for (const r of calls) {
     const amt = Number(r.amount);
     if (!amt || amt <= 0) continue;
-    const st = Number(r.type) === 2 ? 'video' : 'voice';
+    const st = Number(r.call_type) === 2 ? 'video' : 'voice';
     records.push({
       id: `${st}-${r.id}`,
       userId,
@@ -115,9 +116,9 @@ const collectExpenseRecords = async (userId) => {
     }
   };
 
-  // 1) 请陪玩/陪聊下单
+  // 1) 请陪玩下单：下单即扣款，故统计进行中(2)与已完成(3)；金额取订单 total_price（实付）
   const [orders] = await sequelize.query(
-    "SELECT id, amount, create_time FROM xn_game_order WHERE user_id = :uid AND status IN ('completed', 'ongoing')",
+    "SELECT id, total_price AS amount, create_time FROM xn_game_order WHERE user_id = :uid AND status IN (2, 3)",
     { replacements: { uid: userId } }
   );
   push(orders, 'game', '陪玩订单');
@@ -337,13 +338,18 @@ const applyWithdraw = async (userId, { amount, type = 1, account = '', name = ''
 
   await Withdraw.create({
     user_id: userId,
+    money: amountNum,
     amount: amountNum,
-    type: String(typeInt),
+    pay_money: netAmount,
+    shouxufei: fee,
+    type: typeInt,
     account,
     name: name || '',
     image: image || '',
     bank: bank || '',
+    is_check: 0,
     status: 0,
+    channel: 'wallet',
     remark: '',
     create_time: Math.floor(Date.now() / 1000),
     update_time: Math.floor(Date.now() / 1000)

@@ -233,13 +233,19 @@ const loadUserVipInfo = async () => {
 
 const buyVip = async () => {
   if (!selectedPkgId.value || isLoading.value) return
-  
-  isLoading.value = true
-  
+
   const pkg = packages.value.find(p => p.id === selectedPkgId.value)
   const months = selectedDurations.value[pkg?.id] || 1
   const dur = pkg?.durations.find(d => d.months === months)
-  
+  const price = Number(dur?.price || 0)
+  if (price > 0 && userStore.balance < price) {
+    toast.error('金币不足，请先充值')
+    router.push('/recharge')
+    return
+  }
+
+  isLoading.value = true
+
   try {
     const order = await createVipOrder(selectedPkgId.value, months, dur?.price || '0')
     console.log('创建订单成功:', order)

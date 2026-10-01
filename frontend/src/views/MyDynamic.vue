@@ -56,7 +56,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -190,6 +190,32 @@ const updateTabCounts = () => {
   tabs.value[2].count = allPosts.value.filter(p => p.status === 'review').length
   tabs.value[3].count = allPosts.value.filter(p => p.status === 'rejected').length
 }
+
+const mapPost = (p) => ({
+  id: p.postId || p.id,
+  content: p.content || '',
+  images: Array.isArray(p.images) ? p.images : (p.images ? String(p.images).split(',').filter(Boolean) : []),
+  createTime: p.createTime || p.create_time || '',
+  likeCount: p.likeCount ?? p.likes ?? 0,
+  commentCount: p.commentCount ?? p.comments ?? 0,
+  shareCount: p.shareCount ?? p.share_num ?? 0,
+  status: p.status || 'published'
+})
+
+const loadPosts = async () => {
+  try {
+    const res = await circleService.getMyPosts({ page: 1, pageSize: 50 })
+    const rows = res?.data?.list || []
+    allPosts.value = rows.map(mapPost)
+  } catch (e) {
+    // 接口失败时保留内置示例数据
+  } finally {
+    updateTabCounts()
+  }
+}
+
+onMounted(loadPosts)
+updateTabCounts()
 </script>
 
 <style scoped>

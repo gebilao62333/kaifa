@@ -15,7 +15,7 @@ const getGiftList = async (req, res) => {
 
 const sendGift = async (req, res) => {
   try {
-    const { receiverId, giftId, roomId } = req.body;
+    const { receiverId, giftId, roomId, count } = req.body;
     
     if (!receiverId || !giftId) {
       return response.badRequest(res, '接收者和礼物ID不能为空');
@@ -25,7 +25,8 @@ const sendGift = async (req, res) => {
       req.userId,
       parseInt(receiverId),
       parseInt(giftId),
-      roomId ? parseInt(roomId) : 0
+      roomId ? parseInt(roomId) : 0,
+      count ? parseInt(count) : 1
     );
     response.success(res, result, '赠送成功');
   } catch (error) {

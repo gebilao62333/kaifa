@@ -1,4 +1,6 @@
 const { authService, smsService } = require('../services');
+const { User, Post, PostLike, UserVisit, UserPref } = require('../models');
+const { Op } = require('sequelize');
 const response = require('../utils/response');
 const logger = require('../utils/logger');
 const { generateToken } = require('../config/jwt');
@@ -289,6 +291,183 @@ const checkFollow = async (req, res) => {
   }
 };
 
+const submitRealName = async (req, res) => {
+  try {
+    const { realName, idCard, front, back } = req.body;
+    if (!realName || !idCard || !front || !back) {
+      return response.badRequest(res, '姓名、身份证号及正反面照片不能为空');
+    }
+    if (!/^[1-9]\d{5}(18|19|20)\d{2}((0[1-9])|(1[0-2]))(([0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]$/.test(String(idCard))) {
+      return response.badRequest(res, '身份证号格式不正确');
+    }
+    const user = await User.findByPk(req.userId);
+    if (!user) {
+      return response.error(res, '用户不存在');
+    }
+    await user.update({
+      real_name: realName,
+      id_card: idCard,
+      real_name_front: front,
+      real_name_back: back,
+      real_name_status: 1,
+      real_name_time: Math.floor(Date.now() / 1000)
+    });
+    response.success(res, { status: 1 }, '认证信息已提交，等待审核');
+  } catch (error) {
+    logger.error('实名认证提交错误:', error);
+    response.error(res, error.message);
+  }
+};
+
+const getRealNameStatus = async (req, res) => {
+  try {
+    const user = await User.findByPk(req.userId);
+    if (!user) {
+      return response.error(res, '用户不存在');
+    }
+    response.success(res, {
+      status: user.real_name_status || 0,
+      realName: user.real_name ? String(user.real_name).replace(/.(?=.{1})/g, '*') : '',
+      idCard: user.id_card ? String(user.id_card).replace(/^(.{3}).*(.{4})$/, '$1***********$2') : '',
+      time: user.real_name_time || 0
+    });
+  } catch (error) {
+    logger.error('查询实名状态错误:', error);
+    response.error(res, error.message);
+  }
+};
+
+// 点赞记录：谁赞过我的动态
+const getLikes = async (req, res) => {
+  try {
+    const posts = await Post.findAll({ where: { user_id: req.userId }, attributes: ['id'] });
+    const postIds = posts.map(p => p.id);
+    if (!postIds.length) {
+      return response.success(res, { list: [], total: 0 });
+    }
+    const likes = await PostLike.findAll({
+      where: { post_id: { [Op.in]: postIds } },
+      order: [['create_time', 'DESC']],
+      limit: 200
+    });
+    const userIds = [...new Set(likes.map(l => l.user_id))];
+    const users = userIds.length
+      ? await User.findAll({ where: { id: { [Op.in]: userIds } }, attributes: ['id', 'nickname', 'avatar'] })
+      : [];
+    const userMap = Object.fromEntries(users.map(u => [u.id, u]));
+    const list = likes.map(l => ({
+      userId: l.user_id,
+      nickname: userMap[l.user_id]?.nickname || '',
+      avatar: userMap[l.user_id]?.avatar || '',
+      postId: l.post_id,
+      time: l.create_time
+    }));
+    response.success(res, { list, total: list.length });
+  } catch (error) {
+    logger.error('获取点赞记录错误:', error);
+    response.error(res, error.message);
+  }
+};
+
+// 访客记录：谁访问过我的主页
+const getVisitors = async (req, res) => {
+  try {
+    const visits = await UserVisit.findAll({
+      where: { user_id: req.userId },
+      order: [['create_time', 'DESC']],
+      limit: 100
+    });
+    const visitorIds = [...new Set(visits.map(v => v.visitor_id))];
+    const users = visitorIds.length
+      ? await User.findAll({ where: { id: { [Op.in]: visitorIds } }, attributes: ['id', 'nickname', 'avatar'] })
+      : [];
+    const userMap = Object.fromEntries(users.map(u => [u.id, u]));
+    const list = visits.map(v => ({
+      userId: v.visitor_id,
+      nickname: userMap[v.visitor_id]?.nickname || '',
+      avatar: userMap[v.visitor_id]?.avatar || '',
+      time: v.create_time
+    }));
+    response.success(res, { list, total: list.length });
+  } catch (error) {
+    logger.error('获取访客记录错误:', error);
+    response.error(res, error.message);
+  }
+};
+
+// 记录一次主页访问（同访问者去重，更新最近时间）
+const recordVisit = async (req, res) => {
+  try {
+    const { targetUserId } = req.body;
+    if (!targetUserId) {
+      return response.badRequest(res, '目标用户ID不能为空');
+    }
+    const targetId = parseInt(targetUserId);
+    if (targetId === req.userId) {
+      return response.success(res, {}, 'ok');
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const exist = await UserVisit.findOne({ where: { user_id: targetId, visitor_id: req.userId } });
+    if (exist) {
+      await exist.update({ create_time: now });
+    } else {
+      await UserVisit.create({ user_id: targetId, visitor_id: req.userId, create_time: now });
+    }
+    response.success(res, {}, 'ok');
+  } catch (error) {
+    logger.error('记录访问错误:', error);
+    response.error(res, error.message);
+  }
+};
+
+// ===== 用户偏好/装扮数据（服务端持久化，替代纯前端 localStorage） =====
+const getPref = async (req, res) => {
+  try {
+    const row = await UserPref.findOne({ where: { user_id: req.userId } });
+    let data = {};
+    if (row && row.data) {
+      try { data = JSON.parse(row.data); } catch (e) { data = {}; }
+    }
+    response.success(res, { data });
+  } catch (error) {
+    logger.error('获取用户偏好错误:', error);
+    response.error(res, error.message);
+  }
+};
+
+const savePref = async (req, res) => {
+  try {
+    const { data, spend } = req.body;
+    const spendNum = Number(spend) || 0;
+    if (spendNum > 0) {
+      const user = await User.findByPk(req.userId);
+      if (!user) return response.error(res, '用户不存在');
+      if (Number(user.money) < spendNum) {
+        return response.unprocessableEntity(res, '余额不足');
+      }
+      await user.decrement('money', { by: spendNum });
+    }
+    const now = Math.floor(Date.now() / 1000);
+    const row = await UserPref.findOne({ where: { user_id: req.userId } });
+    let merged = {};
+    if (row && row.data) {
+      try { merged = JSON.parse(row.data) || {}; } catch (e) { merged = {}; }
+    }
+    Object.assign(merged, data || {});
+    const payload = JSON.stringify(merged);
+    if (row) {
+      await row.update({ data: payload, update_time: now });
+    } else {
+      await UserPref.create({ user_id: req.userId, data: payload, update_time: now });
+    }
+    const fresh = await User.findByPk(req.userId, { attributes: ['money'] });
+    response.success(res, { balance: fresh ? Number(fresh.money) : undefined }, '已保存');
+  } catch (error) {
+    logger.error('保存用户偏好错误:', error);
+    response.error(res, error.message);
+  }
+};
+
 module.exports = {
   login,
   register,
@@ -302,5 +481,12 @@ module.exports = {
   getFans,
   getFollows,
   checkFollow,
-  refreshToken
+  refreshToken,
+  submitRealName,
+  getRealNameStatus,
+  getLikes,
+  getVisitors,
+  recordVisit,
+  getPref,
+  savePref
 };

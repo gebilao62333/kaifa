@@ -188,6 +188,30 @@ const goBack = () => {
   router.back()
 }
 
+// 轮询支付单状态，确认渠道已入账（最多等待 timeoutMs）
+const pollOrderPaid = (orderNo, timeoutMs = 10000) => {
+  return new Promise((resolve) => {
+    const start = Date.now()
+    const tick = async () => {
+      try {
+        const res = await payService.getOrderStatus(orderNo)
+        const d = res?.data || res || {}
+        const st = d.status ?? d.state
+        if (st === 1 || st === 'paid' || st === 'success' || d.isPaid === true) {
+          resolve(true)
+          return
+        }
+      } catch (e) { /* 单次失败忽略，继续轮询 */ }
+      if (Date.now() - start >= timeoutMs) {
+        resolve(false)
+        return
+      }
+      setTimeout(tick, 1000)
+    }
+    tick()
+  })
+}
+
 const startPay = async () => {
   if (methodId.value === 'card') {
     if (!cardNo.value.trim() || !cardPwd.value.trim()) {
@@ -262,6 +286,9 @@ const startPay = async () => {
       //    当前演示环境模拟支付成功并调用回调接口完成真实入账。
       const transactionId = `TXN${Date.now()}`
       await payService.wxCallback(orderNo, transactionId)
+
+      // 轮询支付单状态，确认渠道入账（最多 10s）
+      await pollOrderPaid(orderNo)
 
       // 3) 刷新真实余额（入账以服务端为准）
       const res = await payService.getWalletBalance()

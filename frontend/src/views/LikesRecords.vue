@@ -22,16 +22,44 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
+import authService from '../services/authService'
+import { DEFAULT_AVATAR } from '../common/constants'
 
 const router = useRouter()
 
 const totalLikes = ref(0)
 
 const likesList = ref([])
+
+const formatTime = (ts) => {
+  if (!ts) return ''
+  const d = new Date(ts * 1000)
+  const pad = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+const loadLikes = async () => {
+  try {
+    const res = await authService.getLikes()
+    const rows = res?.data?.list || []
+    likesList.value = rows.map(r => ({
+      id: r.userId,
+      nickName: r.nickname || '用户',
+      avatar: r.avatar || DEFAULT_AVATAR,
+      time: formatTime(r.time),
+      content: '赞了你的动态'
+    }))
+    totalLikes.value = res?.data?.total ?? likesList.value.length
+  } catch (e) {
+    console.error('加载点赞记录失败:', e)
+  }
+}
+
+onMounted(loadLikes)
 
 const goBack = () => {
   router.back()

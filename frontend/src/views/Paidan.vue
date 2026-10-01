@@ -273,7 +273,7 @@ const closeOrderDetail = () => {
 
 const goUserProfile = (item) => {
   console.log('查看用户资料:', item.nickname)
-  router.push({ name: 'UserProfile', params: { id: item.id } })
+  router.push({ name: 'UserProfile', params: { id: item.userId } })
 }
 
 const applyOrder = async (item) => {

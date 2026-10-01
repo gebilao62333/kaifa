@@ -123,7 +123,7 @@ import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import { useChatStore } from '../store/chat'
 import { notificationService } from '../services/notificationService'
-import socketService from '../services/socketService'
+import chatService from '../services/chatService'
 import { DEFAULT_AVATAR } from '../common/constants'
 
 const router = useRouter()
@@ -204,48 +204,21 @@ const formatTime = (timestamp) => {
 const loadChatList = async () => {
   loadingChat.value = true
   try {
-    chatList.value = [
-      {
-        id: 1,
-        toId: 2,
-        nickName: '小雪',
-        avatar: DEFAULT_AVATAR,
-        content: '你好呀，今晚一起开黑吗？',
-        sendTime: Date.now() - 1800000,
-        unreadCount: 2,
-        isOnline: true
-      },
-      {
-        id: 2,
-        toId: 3,
-        nickName: '阿杰',
-        avatar: DEFAULT_AVATAR,
-        content: '好的，那晚上8点见！',
-        sendTime: Date.now() - 7200000,
-        unreadCount: 0,
-        isOnline: false
-      },
-      {
-        id: 3,
-        toId: 4,
-        nickName: '小美',
-        avatar: DEFAULT_AVATAR,
-        content: '谢谢你的礼物~',
-        sendTime: Date.now() - 86400000,
-        unreadCount: 1,
-        isOnline: true
-      },
-      {
-        id: 4,
-        toId: 5,
-        nickName: '大飞',
-        avatar: DEFAULT_AVATAR,
-        content: '收到，你的预约已确认',
-        sendTime: Date.now() - 172800000,
-        unreadCount: 0,
-        isOnline: false
+    const res = await chatService.getChatList(1, 50)
+    const rows = res?.data?.list || res?.data || []
+    chatList.value = (Array.isArray(rows) ? rows : []).map(c => {
+      const rawTime = c.sendTime || c.lastMessageTime || 0
+      return {
+        id: c.id ?? (c.fromId ?? c.toId),
+        toId: c.fromId ?? c.toId,
+        nickName: c.nickname || c.nickName || '用户',
+        avatar: c.avatar || DEFAULT_AVATAR,
+        content: c.content || c.lastMessage || '',
+        sendTime: rawTime ? (rawTime < 1e12 ? rawTime * 1000 : rawTime) : Date.now(),
+        unreadCount: Number(c.unreadCount) || 0,
+        isOnline: !!c.online
       }
-    ]
+    })
 
     // 应用本地持久化的已读状态，使刷新后未读会话数与刷新前完全一致
     chatList.value.forEach(item => {
@@ -288,13 +261,14 @@ const loadChatList = async () => {
 const loadNoticeList = async () => {
   loadingNotice.value = true
   try {
-    noticeList.value = [
-      { id: 1, type: 'like', title: '有人点赞了你的动态', content: '小雪 点赞了你的动态', createTime: Date.now() - 3600000, isRead: false },
-      { id: 2, type: 'follow', title: '有人关注了你', content: '阿杰 关注了你', createTime: Date.now() - 7200000, isRead: false },
-      { id: 3, type: 'system', title: '系统通知', content: '你的服务申请已通过审核', createTime: Date.now() - 86400000, isRead: true },
-      { id: 4, type: 'reserve', title: '预约提醒', content: '明天下午3点有一场预约', createTime: Date.now() - 172800000, isRead: true },
-      { id: 5, type: 'gift', title: '收到礼物', content: '小美 送给你一份礼物', createTime: Date.now() - 259200000, isRead: true }
-    ]
+    noticeList.value = notificationService.getList().map(n => ({
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      content: n.content,
+      createTime: n.createTime || Date.now(),
+      isRead: !!n.isRead
+    }))
 
     // 关键：应用本地持久化的已读状态，使刷新后通知未读数与刷新前完全一致
     noticeList.value.forEach(item => {
@@ -384,6 +358,22 @@ onMounted(() => {
   updateKefuTime()
   loadChatList()
   loadNoticeList()
+  // 订阅本地通知总线，新增通知实时刷新列表与角标
+  noticeUnsubscribe = notificationService.subscribe(({ list }) => {
+    noticeList.value = (list || []).map(n => ({
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      content: n.content,
+      createTime: n.createTime || Date.now(),
+      isRead: !!n.isRead
+    }))
+    noticeList.value.forEach(item => {
+      if (msgState.readNoticeIds.includes(item.id)) item.isRead = true
+    })
+    noticeUnread.value = noticeList.value.filter(item => !item.isRead).length
+    chatStore.setNoticeUnread(noticeUnread.value)
+  })
 })
 
 onUnmounted(() => {

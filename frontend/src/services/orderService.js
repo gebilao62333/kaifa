@@ -31,6 +31,10 @@ const orderService = {
 
   async getStatistics() {
     return request('/api/games/statistics', 'GET')
+  },
+
+  async appealOrder(orderId, reason = '') {
+    return request('/api/games/appeal', 'POST', { orderId, reason })
   }
 }
 

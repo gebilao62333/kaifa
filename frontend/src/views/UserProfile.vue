@@ -133,6 +133,8 @@ import { DEFAULT_AVATAR } from '@/common/constants'
 import PageLayout from '../components/PageLayout.vue'
 import ReserveModal from '../components/ReserveModal.vue'
 import reserveService from '../services/reserveService'
+import authService from '../services/authService'
+import gamesService from '../services/gamesService'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
@@ -183,8 +185,17 @@ const goBack = () => {
   router.back()
 }
 
-const toggleFollow = () => {
-  isFollowed.value = !isFollowed.value
+const toggleFollow = async () => {
+  const uid = Number(user.value.id)
+  if (!uid) return
+  const next = !isFollowed.value
+  try {
+    if (next) await authService.follow(uid)
+    else await authService.unfollow(uid)
+    isFollowed.value = next
+  } catch (e) {
+    toast.error(e.message || '操作失败')
+  }
 }
 
 const goChat = () => {
@@ -212,8 +223,15 @@ const handleReserveSubmit = async (data, done) => {
   try {
     const res = await reserveService.createReserve({
       companionId: Number(data.companionId),
+      gameId: Number(data.gameId) || 0,
       date: data.date,
-      time: data.startTime
+      time: data.startTime,
+      endTime: data.endTime,
+      duration: data.duration,
+      price: data.price,
+      remark: data.remark,
+      serviceType: data.serviceType,
+      offlineLocation: data.offlineLocation
     })
 
     if (res?.code === 200 || res?.code === 201) {
@@ -229,8 +247,58 @@ const handleReserveSubmit = async (data, done) => {
   }
 }
 
+const loadUser = async () => {
+  const id = Number(route.params.id)
+  if (!id) return
+  try {
+    const res = await gamesService.getCompanionDetail(id)
+    const d = res?.data || {}
+    user.value = {
+      ...user.value,
+      id: d.userId || id,
+      name: d.nickname || '',
+      avatar: d.avatar || DEFAULT_AVATAR,
+      level: d.level || 1,
+      signature: d.signature || '',
+      region: d.city || '',
+      gender: d.gender === 1 ? 'male' : d.gender === 2 ? 'female' : 'unknown',
+      age: d.age || null,
+      fans: d.fansCount || 0,
+      tags: Array.isArray(d.tags) ? d.tags : [],
+      onlineService: !!d.gameId,
+      offlineService: !!d.offlineService
+    }
+  } catch (e) {
+    // 回退到通用用户接口
+    try {
+      const res = await authService.getUserInfo(id)
+      const d = res?.data?.user || res?.data || {}
+      if (d && (d.userId || d.id)) {
+        user.value = {
+          ...user.value,
+          id: d.userId || d.id,
+          name: d.nickname || d.nickName || '',
+          avatar: d.avatar || DEFAULT_AVATAR,
+          level: d.level || d.lv || 1,
+          signature: d.signature || d.dec || '',
+          region: d.city || d.region || ''
+        }
+      }
+    } catch (e2) { /* 静默 */ }
+  }
+  try {
+    const fr = await authService.checkFollowStatus(id)
+    const v = fr?.data?.isFollow ?? fr?.data?.isFollowed
+    if (v !== undefined) isFollowed.value = !!v
+  } catch (e) { /* 静默 */ }
+}
+
 onMounted(() => {
   loadVipItems()
+  loadUser()
+  // 记录一次主页访问（用于「访客记录」）
+  const visitId = Number(route.params.id)
+  if (visitId) authService.visitUser(visitId).catch(() => {})
 })
 
 const viewPhoto = (url, index) => {

@@ -22,6 +22,7 @@ router.post('/apply', authMiddleware, gamesController.applyAsCompanion);
 router.get('/apply/status', authMiddleware, gamesController.getApplyStatus);
 router.get('/companions/:companionId', authMiddleware, gamesController.getCompanionDetail);
 router.post('/evaluate', authMiddleware, gamesController.evaluateOrder);
+router.post('/appeal', authMiddleware, gamesController.appealOrder);
 router.get('/order-detail', authMiddleware, gamesController.getOrderDetail);
 router.get('/statistics', authMiddleware, gamesController.getStatistics);
 

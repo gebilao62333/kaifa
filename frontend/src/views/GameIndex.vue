@@ -83,11 +83,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from '../composables/useToast'
 import PageLayout from '../components/PageLayout.vue'
 import gamesService from '../services/gamesService'
+import authService from '../services/authService'
 
 const router = useRouter()
 
@@ -201,11 +202,14 @@ const goCompanionDetail = (item) => {
 }
 
 const followCompanion = async (item) => {
+  const uid = Number(item.userId)
+  if (!uid) return
   try {
+    await authService.follow(uid)
     item.isFollowed = true
     toast.success('关注成功')
   } catch (err) {
-    toast.error('关注失败')
+    toast.error(err.message || '关注失败')
   }
 }
 
@@ -228,6 +232,10 @@ onMounted(() => {
   loadCategories()
   loadCompanionList()
   window.addEventListener('scroll', handleScroll)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('scroll', handleScroll)
 })
 </script>
 

@@ -854,7 +854,7 @@ const getReportList = async (req, res) => {
     const { page = 1, pageSize = 20, keyword, status, type } = req.query;
     const where = {};
     if (status !== undefined && status !== '') where.status = parseInt(status);
-    if (type !== undefined && type !== '') where.type = type;
+    if (type !== undefined && type !== '') where.target_type = type;
 
     const queryOptions = {
       where,
@@ -877,11 +877,11 @@ const getReportList = async (req, res) => {
     response.success(res, {
       list: list.map(r => ({
         id: r.id,
-        reporterId: r.reporter_id,
-        reportedUserId: r.reported_user_id,
-        type: r.type,
+        reporterId: r.user_id,
+        reportedUserId: r.target_user_id,
+        type: r.target_type,
         targetId: r.target_id,
-        description: r.description,
+        description: r.reason,
         images: r.images && typeof r.images === 'string' ? (() => { try { return JSON.parse(r.images); } catch { return []; } })() : (Array.isArray(r.images) ? r.images : []),
         status: r.status,
         handleResult: r.handle_result || '',
@@ -909,15 +909,14 @@ const getReportDetail = async (req, res) => {
 
     response.success(res, {
       id: report.id,
-      reporterId: report.reporter_id,
-      reportedUserId: report.reported_user_id,
-      type: report.type,
+      reporterId: report.user_id,
+      reportedUserId: report.target_user_id,
+      type: report.target_type,
       targetId: report.target_id,
-      description: report.description,
+      description: report.reason,
       images: report.images && typeof report.images === 'string' ? (() => { try { return JSON.parse(report.images); } catch { return []; } })() : (Array.isArray(report.images) ? report.images : []),
       status: report.status,
       handleResult: report.handle_result || '',
-      handleAdminId: report.handle_admin_id || 0,
       handleTime: report.handle_time || 0,
       createTime: report.create_time || 0
     });
@@ -938,7 +937,6 @@ const handleReport = async (req, res) => {
     await report.update({
       status: parseInt(status),
       handle_result: handleResult || '',
-      handle_admin_id: req.admin?.id || 0,
       handle_time: Math.floor(Date.now() / 1000)
     });
 
@@ -1576,11 +1574,13 @@ const getGiftLogList = async (req, res) => {
 
       let result = rows.map(g => ({
         id: g.id,
-        fromUserId: g.user_id,
-        toUserId: g.to_user_id,
-        toUserName: g.to_user_name || '',
+        fromUserId: g.song_user_id,
+        fromUserName: g.song_user_nickname || '',
+        toUserId: g.user_id,
+        toUserName: g.user_nickname || '',
         giftName: g.gift_name || '',
-        giftPrice: g.gift_price || 0,
+        giftNum: g.gift_num || 1,
+        giftPrice: Number(g.totalmoney) || 0,
         giftImage: g.gift_image || '',
         createTime: g.create_time ? g.create_time * 1000 : Date.now()
       }));
@@ -1613,11 +1613,13 @@ const getGiftLogDetail = async (req, res) => {
 
     response.success(res, {
       id: giftLog.id,
-      fromUserId: giftLog.user_id,
-      toUserId: giftLog.to_user_id,
-      toUserName: giftLog.to_user_name || '',
+      fromUserId: giftLog.song_user_id,
+      fromUserName: giftLog.song_user_nickname || '',
+      toUserId: giftLog.user_id,
+      toUserName: giftLog.user_nickname || '',
       giftName: giftLog.gift_name || '',
-      giftPrice: giftLog.gift_price || 0,
+      giftNum: giftLog.gift_num || 1,
+      giftPrice: Number(giftLog.totalmoney) || 0,
       giftImage: giftLog.gift_image || '',
       createTime: giftLog.create_time ? giftLog.create_time * 1000 : Date.now()
     });
@@ -1981,7 +1983,7 @@ const getFinanceStats = async (req, res) => {
       Withdraw.sum('amount', { where: { status: 1 } }),
       Withdraw.count({ where: { status: 1 } }),
       Withdraw.count({ where: { status: 0 } }),
-      sequelize.query("SELECT COALESCE(SUM(total_money),0) AS v FROM xn_gift_log", { type: sequelize.QueryTypes.SELECT }).then(r => r[0].v).catch(err => { logger.error('财务统计-礼物汇总查询失败:', err.message); return 0; }),
+      sequelize.query("SELECT COALESCE(SUM(totalmoney),0) AS v FROM xn_gift_log", { type: sequelize.QueryTypes.SELECT }).then(r => r[0].v).catch(err => { logger.error('财务统计-礼物汇总查询失败:', err.message); return 0; }),
       GameOrder.sum('amount'),
       sequelize.query("SELECT COALESCE(SUM(amount),0) AS v FROM xn_vip_order WHERE status = 1", { type: sequelize.QueryTypes.SELECT }).then(r => r[0].v).catch(err => { logger.error('财务统计-VIP汇总查询失败:', err.message); return 0; }),
       sequelize.query("SELECT COALESCE(SUM(value),0) AS v FROM xn_card WHERE status = 1", { type: sequelize.QueryTypes.SELECT }).then(r => r[0].v).catch(err => { logger.error('财务统计-卡密汇总查询失败:', err.message); return 0; })

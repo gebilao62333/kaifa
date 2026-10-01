@@ -5,7 +5,7 @@ const { toFullUrl } = require('../utils/url');
 const { Op } = require('sequelize');
 const sequelize = require('../config/mysql');
 
-const sendGift = async (senderId, receiverId, giftId, roomId = 0) => {
+const sendGift = async (senderId, receiverId, giftId, roomId = 0, count = 1) => {
   const gift = await Gift.findByPk(giftId);
   
   if (!gift || gift.status !== 1) {
@@ -19,20 +19,20 @@ const sendGift = async (senderId, receiverId, giftId, roomId = 0) => {
     throw new Error('用户不存在');
   }
   
-  const totalCost = Number(gift.money);
-  
-  if (Number(sender.money) < totalCost) {
-    throw new Error('余额不足');
-  }
+  const num = Math.max(1, parseInt(count) || 1);
+  const totalCost = Number(gift.money) * num;
   
   const transaction = await sequelize.transaction();
   
   try {
-    await User.decrement('money', {
-      by: totalCost,
-      where: { id: senderId },
-      transaction
-    });
+    // 原子扣款：仅当余额充足时才扣减，避免并发超扣
+    const [affected] = await User.update(
+      { money: sequelize.literal(`money - ${totalCost}`) },
+      { where: { id: senderId, money: { [Op.gte]: totalCost } }, transaction }
+    );
+    if (!affected) {
+      throw new Error('余额不足');
+    }
     
     const commission = totalCost * 0.7;
     
@@ -64,7 +64,7 @@ const sendGift = async (senderId, receiverId, giftId, roomId = 0) => {
       gift_id: giftId,
       gift_name: gift.title,
       gift_image: gift.image,
-      gift_num: 1,
+      gift_num: num,
       totalmoney: totalCost,
       currency: CURRENCY_UNIT,
       create_time: getTimestamp()
@@ -77,6 +77,7 @@ const sendGift = async (senderId, receiverId, giftId, roomId = 0) => {
       giftName: gift.title,
       giftImage: toFullUrl(gift.image),
       goldCoins: totalCost,
+      num,
       currencyUnit: CURRENCY_UNIT,
       giftType: gift.type,
       isVip: gift.is_vip,
@@ -159,6 +160,7 @@ const withdraw = async (userId, goldCoins, type, bankInfo) => {
     await Withdraw.create({
       user_id: userId,
       money: amount,
+      amount: amount,
       pay_money: netAmount,
       shouxufei: fee,
       type: type || 1,
@@ -167,8 +169,10 @@ const withdraw = async (userId, goldCoins, type, bankInfo) => {
       mobile: bankInfo?.mobile || user.mobile || '',
       image: bankInfo?.image || '',
       is_check: 0,
+      status: 0,
       state: 'pending',
       lailu: 'app',
+      channel: 'gift',
       currency: CURRENCY_UNIT,
       create_time: getTimestamp()
     }, { transaction });
@@ -319,11 +323,14 @@ const sendRedPacket = async (senderId, type, totalAmount, totalNum, roomId = 0) 
   const transaction = await sequelize.transaction();
   
   try {
-    await User.decrement('money', {
-      by: totalAmount,
-      where: { id: senderId },
-      transaction
-    });
+    // 原子扣款：仅当余额充足时才扣减，避免并发超扣
+    const [affected] = await User.update(
+      { money: sequelize.literal(`money - ${totalAmount}`) },
+      { where: { id: senderId, money: { [Op.gte]: totalAmount } }, transaction }
+    );
+    if (!affected) {
+      throw new Error('余额不足');
+    }
     
     await RedPacket.create({
       packet_no: packetNo,

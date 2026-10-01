@@ -150,7 +150,13 @@
           @input="handleInput"
         />
         <div v-else class="voice-input">
-          <div class="record-indicator" :class="{ recording: isRecording }">
+          <div class="record-indicator" :class="{ recording: isRecording }"
+            @touchstart.prevent="startRecord"
+            @touchend.prevent="endRecord"
+            @touchcancel="endRecord"
+            @mousedown.prevent="startRecord"
+            @mouseup="endRecord"
+            @mouseleave="endRecord">
             <span class="record-icon">{{ isRecording ? '🔴' : '🎤' }}</span>
             <span class="record-text">{{ isRecording ? '松开发送' : '按住录音' }}</span>
             <span class="record-time" v-if="isRecording">{{ recordDuration }}</span>
@@ -349,6 +355,7 @@
 import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '../store/user-info';
 import chatService from '../services/chatService';
+import giftService from '../services/giftService';
 import { uploadFile } from '../services/uploadService';
 import socketService from '../services/socketService';
 import authService from '../services/authService';
@@ -458,6 +465,8 @@ const streets = ref([]);
 const cityData = chinaCityData;
 let recordTimer = null;
 let typingTimer = null;
+let mediaRecorder = null;
+let recordedChunks = [];
 
 const privacySettings = ref({
   autoRecall: 0,
@@ -614,32 +623,59 @@ const sendText = async () => {
  }
  }
 };
-const startRecord = () => {
+const startRecord = async () => {
+ if (isRecording.value) return;
+ if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+ toast.error('当前环境不支持录音');
+ return;
+ }
+ try {
+ const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+ recordedChunks = [];
+ mediaRecorder = new MediaRecorder(stream);
+ mediaRecorder.ondataavailable = (e) => {
+ if (e.data && e.data.size > 0) recordedChunks.push(e.data);
+ };
+ mediaRecorder.start();
  isRecording.value = true;
  recordDuration.value = '00:00';
  let seconds = 0;
  recordTimer = setInterval(() => {
  seconds++;
+ if (seconds >= 60) { endRecord(); return; }
  const m = Math.floor(seconds / 60).toString().padStart(2, '0');
  const s = (seconds % 60).toString().padStart(2, '0');
  recordDuration.value = `${m}:${s}`;
  }, 1000);
+ } catch (error) {
+ console.warn('[ChatRoom] 录音启动失败:', error);
+ toast.error('无法访问麦克风，请检查权限');
+ isRecording.value = false;
+ }
 };
 const endRecord = () => {
  if (recordTimer) {
  clearInterval(recordTimer);
  recordTimer = null;
  }
- if (isRecording.value) {
+ if (!isRecording.value || !mediaRecorder) return;
+ const duration = Math.max(1, Math.floor(parseInt(recordDuration.value.split(':')[0]) * 60 + parseInt(recordDuration.value.split(':')[1])) || 0);
+ const recorder = mediaRecorder;
+ const stream = recorder.stream;
+ mediaRecorder = null;
  isRecording.value = false;
- const duration = Math.floor(parseInt(recordDuration.value.split(':')[0]) * 60 + parseInt(recordDuration.value.split(':')[1]));
- if (duration > 0) {
- sendAudio(duration);
- }
- }
  recordDuration.value = '';
+ recorder.onstop = async () => {
+ stream.getTracks().forEach(t => t.stop());
+ if (!recordedChunks.length) return;
+ const blob = new Blob(recordedChunks, { type: recorder.mimeType || 'audio/webm' });
+ recordedChunks = [];
+ const file = new File([blob], `voice_${Date.now()}.webm`, { type: blob.type });
+ await sendAudio(duration, file);
+ };
+ recorder.stop();
 };
-const sendAudio = async (duration) => {
+const sendAudio = async (duration, file) => {
  const msgId = Date.now();
  const newMessage = {
  id: msgId,
@@ -655,7 +691,14 @@ const sendAudio = async (duration) => {
  messages.value.push(newMessage);
  scrollToBottom();
  try {
- await chatService.sendMessage(userInfo.value.userId, '', 1, '', duration);
+ let mediaUrl = '';
+ if (file) {
+ const result = await uploadFile(file, 'audio');
+ mediaUrl = result.data.url;
+ newMessage.content = mediaUrl;
+ }
+ // 后端 sendMessage 要求 content 非空，语音用占位文本承载，音频地址放 mediaUrl
+ await chatService.sendMessage(userInfo.value.userId, '[语音]', 1, mediaUrl, duration);
  const index = messages.value.findIndex(m => m.id === msgId);
  if (index > -1) {
  messages.value[index].status = 'sent';
@@ -1024,7 +1067,7 @@ const useCurrentLocation = () => {
     { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
   );
 };
-const sendLocation = () => {
+const sendLocation = async () => {
   const provinceName = provinces.value.find(p => p.code === selectedProvince.value)?.name || '';
   const cityName = cities.value.find(c => c.code === selectedCity.value)?.name || '';
   const districtName = districts.value.find(d => d.code === selectedDistrict.value)?.name || '';
@@ -1052,12 +1095,19 @@ const sendLocation = () => {
   messages.value.push(newMessage);
   scrollToBottom();
   showLocationSelector.value = false;
-  setTimeout(() => {
+  try {
+    // 位置消息走统一消息接口（type=4），content 承载地址文本
+    await chatService.sendMessage(userInfo.value.userId, content, 4, '', 0);
     const index = messages.value.findIndex(m => m.id === msgId);
     if (index > -1) {
       messages.value[index].status = 'sent';
     }
-  }, 500);
+  } catch (error) {
+    const index = messages.value.findIndex(m => m.id === msgId);
+    if (index > -1) {
+      messages.value[index].status = 'failed';
+    }
+  }
 };
 const selectGift = () => {
   showGiftPanel.value = true;
@@ -1085,7 +1135,8 @@ const handleSendRedPacket = (data) => {
   };
   messages.value.push(newMessage);
   scrollToBottom();
-  userStore.setBalance(userStore.balance - amount);
+  // 红包已在面板内经 /api/gift/redpacket/send 提交，服务端已扣款，这里不再本地扣减，改为同步余额
+  userStore.fetchUserInfo().catch(() => {});
   setTimeout(() => {
     const index = messages.value.findIndex(m => m.id === msgId);
     if (index > -1) {
@@ -1101,7 +1152,7 @@ const triggerGiftEffect = (gift, count) => {
     giftEffect.value = null;
   }, 3000);
 };
-const handleSendGift = (data) => {
+const handleSendGift = async (data) => {
   const { gift, count, giftType = 0, animation = '' } = data;
   const msgId = Date.now();
   const newMessage = {
@@ -1119,16 +1170,20 @@ const handleSendGift = (data) => {
   };
   messages.value.push(newMessage);
   scrollToBottom();
-  userStore.setBalance(userStore.balance - gift.price * count);
-  if (Number(giftType) === 1 || animation) {
-    triggerGiftEffect(gift, count);
-  }
-  setTimeout(() => {
+  try {
+    // 调用后端赠送礼物（服务端扣款/分账），成功后同步余额
+    await giftService.sendGift(userInfo.value.userId, gift.id, count);
     const index = messages.value.findIndex(m => m.id === msgId);
-    if (index > -1) {
-      messages.value[index].status = 'sent';
+    if (index > -1) messages.value[index].status = 'sent';
+    await userStore.fetchUserInfo().catch(() => {});
+    if (Number(giftType) === 1 || animation) {
+      triggerGiftEffect(gift, count);
     }
-  }, 500);
+  } catch (error) {
+    const index = messages.value.findIndex(m => m.id === msgId);
+    if (index > -1) messages.value[index].status = 'failed';
+    toast.error(error.message || '礼物发送失败');
+  }
 };
 const makeCall = () => {
   const saved = localStorage.getItem('callSettings')

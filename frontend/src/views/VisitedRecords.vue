@@ -23,21 +23,52 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
+import authService from '../services/authService'
+import { DEFAULT_AVATAR } from '../common/constants'
 
 const router = useRouter()
 
 const visitorsList = ref([])
 
+const formatTime = (ts) => {
+  if (!ts) return ''
+  const d = new Date(ts * 1000)
+  const pad = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+const loadVisitors = async () => {
+  try {
+    const res = await authService.getVisitors()
+    const rows = res?.data?.list || []
+    visitorsList.value = rows.map(r => ({
+      id: r.userId,
+      nickName: r.nickname || '用户',
+      avatar: r.avatar || DEFAULT_AVATAR,
+      time: formatTime(r.time),
+      isFollowed: false
+    }))
+  } catch (e) {
+    console.error('加载访客记录失败:', e)
+  }
+}
+
+onMounted(loadVisitors)
+
 const goBack = () => {
   router.back()
 }
 
-const followUser = (item) => {
-  item.isFollowed = true
+const followUser = async (item) => {
+  if (!item.id) return
+  try {
+    await authService.follow(item.id)
+    item.isFollowed = true
+  } catch (e) { /* 忽略失败 */ }
 }
 
 const viewProfile = (user) => {

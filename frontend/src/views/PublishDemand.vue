@@ -559,6 +559,14 @@ const onWheelMouseUp = (event) => {
 
 const isTimeAvailable = (time) => {
   if (!formData.date) return true
+  // 仅当天需要排除已过去的时间点，其它日期全部可选
+  const now = new Date()
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  if (formData.date === todayStr) {
+    const [h, m] = time.split(':').map(Number)
+    const slot = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m)
+    return slot.getTime() > now.getTime()
+  }
   return true
 }
 

@@ -7,7 +7,12 @@
         <div class="subtitle">连接游戏玩家与陪玩师</div>
       </div>
 
-      <form class="login-form" @submit.prevent="handleLogin">
+      <div class="login-tabs">
+        <span :class="['login-tab', { active: loginMode === 'password' }]" @click="loginMode = 'password'">密码登录</span>
+        <span :class="['login-tab', { active: loginMode === 'code' }]" @click="loginMode = 'code'">验证码登录</span>
+      </div>
+
+      <form v-show="loginMode === 'password'" class="login-form" @submit.prevent="handleLogin">
         <div class="form-group">
           <label class="form-label">手机号</label>
           <input 
@@ -32,6 +37,39 @@
           {{ isLoading ? '登录中...' : '登 录' }}
         </button>
       </form>
+
+      <form v-show="loginMode === 'code'" class="login-form" @submit.prevent="handleCodeLogin">
+        <div class="form-group">
+          <label class="form-label">手机号</label>
+          <input v-model="codePhone" type="tel" class="form-input" placeholder="请输入手机号" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">验证码</label>
+          <div class="code-row">
+            <input v-model="codeValue" type="text" class="form-input" placeholder="请输入验证码" />
+            <button type="button" class="code-btn" :disabled="loginCodeSending" @click="sendLoginCode">
+              {{ loginCodeSending ? loginCountdown + 's' : '获取验证码' }}
+            </button>
+          </div>
+          <div v-if="sentCode" class="code-tip">
+            🧪 开发模式 — 验证码：<strong>{{ sentCode }}</strong>
+            <span class="code-tip-action" @click="codeValue = sentCode">点击填入</span>
+          </div>
+        </div>
+
+        <button type="submit" class="login-btn" :disabled="isLoading">
+          {{ isLoading ? '登录中...' : '登 录' }}
+        </button>
+      </form>
+
+      <div class="third-login">
+        <div class="third-divider"><span>其他登录方式</span></div>
+        <div class="third-btns">
+          <button type="button" class="third-btn wechat" @click="handleThirdLogin('wechat')">微信登录</button>
+          <button type="button" class="third-btn qq" @click="handleThirdLogin('qq')">QQ 登录</button>
+        </div>
+      </div>
 
       <div class="login-links">
         <span class="link" @click="showRegister = true">注册账号</span>
@@ -133,6 +171,110 @@ const forgotPwd = ref('')
 const codeSending = ref(false)
 const sentCode = ref('')
 const codeCountdown = ref(0)
+
+const loginMode = ref('password')
+const codePhone = ref('')
+const codeValue = ref('')
+const loginCodeSending = ref(false)
+const loginCountdown = ref(0)
+let loginTimer = null
+
+const redirectAfterLogin = async () => {
+  let redirect = router.currentRoute.value.query.redirect || '/home'
+  try {
+    const decoded = decodeURIComponent(redirect)
+    const validRoutes = router.getRoutes().map(r => r.path)
+    if (!validRoutes.includes(decoded)) redirect = '/home'
+  } catch (e) {
+    redirect = '/home'
+  }
+  await nextTick()
+  try {
+    await router.push(redirect)
+  } catch (error) {
+    await router.push('/home')
+  }
+}
+
+const sendLoginCode = async () => {
+  if (!codePhone.value.trim()) { toast.warning('请输入手机号'); return }
+  if (!/^1[3-9]\d{9}$/.test(codePhone.value.trim())) { toast.warning('手机号格式不正确'); return }
+  loginCodeSending.value = true
+  try {
+    const result = await userStore.sendSms(codePhone.value.trim(), 'login')
+    if (result.success) {
+      sentCode.value = result.code || ''
+      toast.success(result.code ? `验证码已发送（验证码: ${result.code}）` : '验证码已发送', 5000)
+      let countdown = 60
+      loginCountdown.value = countdown
+      loginTimer = setInterval(() => {
+        countdown--
+        loginCountdown.value = countdown
+        if (countdown <= 0) {
+          clearInterval(loginTimer)
+          loginTimer = null
+          loginCodeSending.value = false
+        }
+      }, 1000)
+    } else {
+      toast.error(result.message || '发送失败')
+      loginCodeSending.value = false
+    }
+  } catch (error) {
+    console.error('发送登录验证码失败:', error)
+    toast.error('发送失败，请重试')
+    loginCodeSending.value = false
+  }
+}
+
+const handleCodeLogin = async () => {
+  if (!codePhone.value.trim()) { toast.warning('请输入手机号'); return }
+  if (!/^1[3-9]\d{9}$/.test(codePhone.value.trim())) { toast.warning('手机号格式不正确'); return }
+  if (!codeValue.value.trim()) { toast.warning('请输入验证码'); return }
+  isLoading.value = true
+  try {
+    const result = await userStore.loginMobile(codePhone.value.trim(), codeValue.value.trim())
+    if (result.success) {
+      toast.success('登录成功')
+      await redirectAfterLogin()
+    } else {
+      toast.error(result.message || '登录失败')
+    }
+  } catch (error) {
+    if (error instanceof RequestError && error.status === 422) {
+      toast.error('验证码错误或已过期')
+      return
+    }
+    toast.error(error.message || '登录失败，请重试')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// 第三方登录：真实场景由平台授权后回调携带 openId（?provider=wechat&openId=xxx）
+const handleThirdLogin = async (provider) => {
+  const q = router.currentRoute.value.query
+  const openId = q.openId || q.openid || ''
+  const fromProvider = q.provider
+  if (!openId || (fromProvider && fromProvider !== provider)) {
+    toast.info('第三方登录需经对应平台授权后回调，当前未接入')
+    return
+  }
+  try {
+    const result = await userStore.loginThird(provider, openId, {
+      nickname: q.nickname || '',
+      avatar: q.avatar || ''
+    })
+    if (result.success) {
+      toast.success('登录成功')
+      await redirectAfterLogin()
+    } else {
+      toast.error(result.message || '登录失败')
+    }
+  } catch (error) {
+    toast.error(error.message || '登录失败')
+  }
+}
 
 const handleFieldErrors = (error) => {
   if (error.fieldErrors && typeof error.fieldErrors === 'object') {
@@ -745,4 +887,16 @@ const handleResetPwd = async () => {
 .modal-leave-to .modal-box {
   transform: scale(0.9);
 }
+.login-tabs { display: flex; gap: 20px; margin-bottom: 20px; justify-content: center; }
+.login-tab { font-size: 15px; color: #999; padding-bottom: 6px; cursor: pointer; border-bottom: 2px solid transparent; transition: all .2s; }
+.login-tab.active { color: var(--color-primary, #667eea); border-bottom-color: var(--color-primary, #667eea); font-weight: 600; }
+.third-login { margin-top: 20px; }
+.third-divider { display: flex; align-items: center; color: #bbb; font-size: 12px; margin: 12px 0; }
+.third-divider::before, .third-divider::after { content: ''; flex: 1; height: 1px; background: #eee; }
+.third-divider span { padding: 0 12px; }
+.third-btns { display: flex; gap: 12px; }
+.third-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #eee; background: #fff; font-size: 14px; cursor: pointer; transition: all .2s; }
+.third-btn:active { transform: scale(0.98); }
+.third-btn.wechat { color: #07c160; }
+.third-btn.qq { color: #12b7f5; }
 </style>

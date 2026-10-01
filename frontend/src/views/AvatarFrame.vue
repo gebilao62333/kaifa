@@ -43,11 +43,12 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
 import { DEFAULT_AVATAR } from '@/common/constants'
+import userPrefService from '../services/userPrefService'
 
 const router = useRouter()
 
@@ -108,8 +109,27 @@ const selectFrame = (frame) => {
   selectedId.value = frame.id
   selectedFrame.name = frame.name
   selectedFrame.style = { ...frame.style }
-  localStorage.setItem('selectedAvatarFrame', JSON.stringify({ id: frame.id, name: frame.name, style: frame.style }))
+  const payload = { id: frame.id, name: frame.name, style: frame.style }
+  localStorage.setItem('selectedAvatarFrame', JSON.stringify(payload))
+  // 同步到服务端偏好
+  userPrefService.save({ selectedAvatarFrame: payload }, 0).catch(() => {})
 }
+
+// 加载服务端已选头像框（替代纯 localStorage）
+const loadPref = async () => {
+  try {
+    const res = await userPrefService.get()
+    const prefs = res?.data?.data || {}
+    if (prefs.selectedAvatarFrame) {
+      const f = prefs.selectedAvatarFrame
+      selectedId.value = f.id
+      selectedFrame.name = f.name
+      selectedFrame.style = { ...(f.style || {}) }
+    }
+  } catch (e) { /* 静默 */ }
+}
+
+onMounted(loadPref)
 </script>
 
 <style scoped>

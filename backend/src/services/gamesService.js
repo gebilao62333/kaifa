@@ -1,6 +1,21 @@
-const { Game, CompanionProfile, GameOrder, User } = require('../models');
+const { Game, CompanionProfile, GameOrder, User, SystemSettings } = require('../models');
 const { getTimestamp, generateOrderNo, parseQuery } = require('../utils/helper');
 const { Op } = require('sequelize');
+const sequelize = require('../config/mysql');
+
+// 订单分账比例（陪玩师分成）：读取系统设置 order_commission_rate，默认 0.7，范围 [0,1]
+const getOrderCommissionRate = async () => {
+  try {
+    const row = await SystemSettings.findOne({ where: { key: 'order_commission_rate' } });
+    const rate = row ? Number(row.value) : NaN;
+    if (Number.isFinite(rate) && rate >= 0 && rate <= 1) {
+      return rate;
+    }
+  } catch (e) {
+    // 设置表不可用时使用默认比例
+  }
+  return 0.7;
+};
 
 const getCategories = async () => {
   const games = await Game.findAll({
@@ -96,12 +111,6 @@ const createOrder = async (userId, targetUserId, gameId, num = 1, price) => {
   const orderNo = generateOrderNo();
   const totalPrice = unitPrice * num;
   
-  const user = await User.findByPk(userId);
-  
-  if (Number(user.money) < totalPrice) {
-    throw new Error('余额不足');
-  }
-  
   // 下单即从用户余额中真实扣款，与订单创建保持事务一致性
   const transaction = await User.sequelize.transaction();
   
@@ -120,11 +129,14 @@ const createOrder = async (userId, targetUserId, gameId, num = 1, price) => {
       create_time: getTimestamp()
     }, { transaction });
     
-    await User.decrement('money', {
-      by: totalPrice,
-      where: { id: userId },
-      transaction
-    });
+    // 原子扣款：仅当余额充足时才扣减，避免并发超扣
+    const [affected] = await User.update(
+      { money: sequelize.literal(`money - ${totalPrice}`) },
+      { where: { id: userId, money: { [Op.gte]: totalPrice } }, transaction }
+    );
+    if (!affected) {
+      throw new Error('余额不足');
+    }
     
     await transaction.commit();
     
@@ -186,10 +198,6 @@ const grabOrder = async (companionId, orderId) => {
   if (!order) {
     throw new Error('订单不存在');
   }
-  
-  if (order.status !== 0) {
-    throw new Error('订单已被抢或已取消');
-  }
 
   if (order.user_id === companionId) {
     throw new Error('不能接自己发布的订单');
@@ -205,14 +213,20 @@ const grabOrder = async (companionId, orderId) => {
 
   const companion = await User.findByPk(companionId);
   
-  // 抢单成功需回填服务者，否则后续 startOrder 的归属校验会失败
-  await order.update({
+  // 原子抢单：仅当订单仍为待接单(0)时才更新，避免并发被两名陪玩师同时抢到
+  const [affected] = await GameOrder.update({
     status: 1,
     target_user_id: companionId,
     companion_id: companionId,
     companion_name: companion?.nickname || '',
     add_time: getTimestamp()
+  }, {
+    where: { id: orderId, status: 0 }
   });
+  
+  if (!affected) {
+    throw new Error('订单已被抢或已取消');
+  }
   
   return {
     orderId: order.id,
@@ -255,10 +269,76 @@ const completeOrder = async (userId, orderId) => {
     throw new Error('订单状态不正确');
   }
   
+  const companionUserId = order.target_user_id || order.companion_id;
+  const totalPrice = Number(order.total_price) || 0;
+  const rate = await getOrderCommissionRate();
+  const companionIncome = Math.round(totalPrice * rate * 100) / 100;
+  
+  // 完成订单：给陪玩师分账 + 累加其资料（收入/单量），全部在同一事务内保证一致
+  const transaction = await User.sequelize.transaction();
+  
+  try {
+    await order.update({
+      status: 3,
+      // 复用 amount 列记录陪玩师实际到手收入，供钱包收入聚合
+      amount: companionIncome,
+      user_time: getTimestamp(),
+      end_time: getTimestamp()
+    }, { transaction });
+    
+    if (companionUserId && companionIncome > 0) {
+      await User.increment('gift_money', {
+        by: companionIncome,
+        where: { id: companionUserId },
+        transaction
+      });
+      await User.increment('gift_money_zong', {
+        by: companionIncome,
+        where: { id: companionUserId },
+        transaction
+      });
+    }
+    
+    const profile = await CompanionProfile.findOne({
+      where: { user_id: companionUserId },
+      transaction
+    });
+    if (profile) {
+      await profile.update({
+        income_total: Number(profile.income_total) + companionIncome,
+        order_num: (profile.order_num || 0) + 1,
+        update_time: getTimestamp()
+      }, { transaction });
+    }
+    
+    await transaction.commit();
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+  
+  return true;
+};
+
+const appealOrder = async (userId, orderId, reason = '') => {
+  const order = await GameOrder.findByPk(orderId);
+  
+  if (!order) {
+    throw new Error('订单不存在');
+  }
+  
+  if (order.user_id !== userId) {
+    throw new Error('无权操作此订单');
+  }
+  
+  if (![1, 2, 3].includes(order.status)) {
+    throw new Error('当前订单状态不可申诉');
+  }
+  
   await order.update({
-    status: 3,
-    user_time: getTimestamp(),
-    end_time: getTimestamp()
+    status: 5,
+    appeal_reason: reason || '',
+    appeal_time: getTimestamp()
   });
   
   return true;
@@ -352,10 +432,18 @@ const getOrders = async (userId, role, status, page, pageSize) => {
   };
 };
 
-const applyAsCompanion = async (userId, gameId, price, tags) => {
+const applyAsCompanion = async (userId, gameId, price, tags, profile = {}) => {
   const existing = await CompanionProfile.findOne({
     where: { user_id: userId }
   });
+  
+  // 仅写入模型实际存在的列，避免 Unknown column
+  const extraFields = {
+    icon: profile.icon || null,
+    description: profile.description || null,
+    voice_intro: profile.voiceIntro || null,
+    voice_time: parseInt(profile.voiceTime) || 0
+  };
   
   if (existing) {
     if (existing.status === 1) {
@@ -369,6 +457,7 @@ const applyAsCompanion = async (userId, gameId, price, tags) => {
       game_id: gameId,
       price,
       tags,
+      ...extraFields,
       status: 1,
       update_time: getTimestamp()
     });
@@ -378,6 +467,7 @@ const applyAsCompanion = async (userId, gameId, price, tags) => {
       game_id: gameId,
       price,
       tags,
+      ...extraFields,
       status: 1,
       create_time: getTimestamp(),
       update_time: getTimestamp()
@@ -500,17 +590,52 @@ const evaluateOrder = async (userId, orderId, rating, comment) => {
   if (order.status !== 3) {
     throw new Error('订单尚未完成');
   }
+  if (order.pingjia_status === 1) {
+    throw new Error('该订单已评价');
+  }
 
-  await order.update({
-    star: rating,
-    content: comment || '',
-    add_time: getTimestamp()
-  });
+  const score = Number(rating);
+  if (!Number.isFinite(score) || score < 1 || score > 5) {
+    throw new Error('评分需在 1-5 之间');
+  }
+
+  const companionUserId = order.target_user_id || order.companion_id;
+
+  // 评价：写订单并回写陪玩师滚动平均分与评价数，事务内完成避免半更新
+  const transaction = await User.sequelize.transaction();
+  try {
+    await order.update({
+      star: score,
+      content: comment || '',
+      pingjia_status: 1,
+      pingjia_time: getTimestamp()
+    }, { transaction });
+
+    const profile = await CompanionProfile.findOne({
+      where: { user_id: companionUserId },
+      transaction
+    });
+    if (profile) {
+      const count = profile.pingjia_num || 0;
+      const oldAvg = Number(profile.star) || 0;
+      const newAvg = Math.round(((oldAvg * count + score) / (count + 1)) * 100) / 100;
+      await profile.update({
+        star: newAvg,
+        pingjia_num: count + 1,
+        update_time: getTimestamp()
+      }, { transaction });
+    }
+
+    await transaction.commit();
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
 
   return {
     orderId: order.id,
     orderNo: order.order_no,
-    rating,
+    rating: score,
     comment
   };
 };
@@ -645,5 +770,6 @@ module.exports = {
   getCompanionDetail,
   evaluateOrder,
   getOrderDetail,
-  getStatistics
+  getStatistics,
+  appealOrder
 };

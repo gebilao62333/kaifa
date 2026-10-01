@@ -32,6 +32,14 @@ const CompanionProfile = sequelize.define('xn_companion_profile', {
     type: DataTypes.INTEGER,
     defaultValue: 0
   },
+  icon: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  description: {
+    type: DataTypes.STRING(500),
+    allowNull: true
+  },
   order_num: {
     type: DataTypes.INTEGER,
     defaultValue: 0

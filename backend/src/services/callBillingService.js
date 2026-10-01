@@ -1,5 +1,7 @@
 const { CallRecord, CallBilling, User } = require('../models');
 const { getTimestamp, generateCallNo, parseQuery } = require('../utils/helper');
+const sequelize = require('../config/mysql');
+const { Op } = require('sequelize');
 
 const startCall = async (callerId, calleeId, callType, isCompanionCall = false, orderId = 0) => {
   const caller = await User.findByPk(callerId);
@@ -144,26 +146,47 @@ const createBilling = async (call, duration) => {
   const unitPrice = 1;
   const totalFee = (billableDuration / 60) * unitPrice;
   const companionIncome = totalFee * COMPANION_RATIO;
-  
-  await CallBilling.create({
-    call_id: call.id,
-    user_id: call.caller_id,
-    companion_id: call.callee_id,
-    duration: billableDuration,
-    unit_price: unitPrice,
-    total_amount: totalFee,
-    status: 0,
-    create_time: getTimestamp()
-  });
-  
-  const caller = await User.findByPk(call.caller_id);
-  if (Number(caller.money) < totalFee) {
-    await endCall(call.caller_id, call.id);
-    throw new Error('余额不足，通话已结束');
+
+  // 免费时长内不产生计费
+  if (totalFee <= 0) {
+    return;
   }
-  
-  await User.decrement('money', { by: totalFee, where: { id: call.caller_id } });
-  await User.increment('gift_money', { by: companionIncome, where: { id: call.callee_id } });
+
+  const transaction = await sequelize.transaction();
+  try {
+    // 原子扣款：仅当余额充足时才扣减，避免并发超扣
+    const [affected] = await User.update(
+      { money: sequelize.literal(`money - ${totalFee}`) },
+      { where: { id: call.caller_id, money: { [Op.gte]: totalFee } }, transaction }
+    );
+    if (!affected) {
+      throw new Error('余额不足，通话已结束');
+    }
+
+    await User.increment('gift_money', {
+      by: companionIncome,
+      where: { id: call.callee_id },
+      transaction
+    });
+
+    // 通话结束即完成扣款与分账，计费单直接标记为已结算（status=1），供钱包收入聚合统计
+    await CallBilling.create({
+      call_id: call.id,
+      user_id: call.caller_id,
+      companion_id: call.callee_id,
+      duration: billableDuration,
+      unit_price: unitPrice,
+      total_amount: totalFee,
+      status: 1,
+      settle_time: getTimestamp(),
+      create_time: getTimestamp()
+    }, { transaction });
+
+    await transaction.commit();
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
 };
 
 const getCallHistory = async (userId, page, pageSize) => {

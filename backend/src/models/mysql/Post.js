@@ -59,6 +59,11 @@ const Post = sequelize.define('xn_post', {
     type: DataTypes.INTEGER,
     defaultValue: 0
   },
+  repost_id: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    comment: '转发的原帖ID，0=原创'
+  },
   create_time: {
     type: DataTypes.INTEGER(10),
     defaultValue: 0

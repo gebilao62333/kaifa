@@ -60,11 +60,12 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
 import { DEFAULT_AVATAR } from '@/common/constants'
+import userPrefService from '../services/userPrefService'
 
 const router = useRouter()
 
@@ -130,8 +131,28 @@ const selectBadge = (badge) => {
   selectedBadge.label = badge.label
   selectedBadge.icon = badge.icon
   selectedBadge.style = badge.style
-  localStorage.setItem('selectedBadge', JSON.stringify({ id: badge.id, label: badge.label, icon: badge.icon, style: badge.style }))
+  const payload = { id: badge.id, label: badge.label, icon: badge.icon, style: badge.style }
+  localStorage.setItem('selectedBadge', JSON.stringify(payload))
+  // 同步到服务端偏好
+  userPrefService.save({ selectedBadge: payload }, 0).catch(() => {})
 }
+
+// 加载服务端已选标识（替代纯 localStorage）
+const loadPref = async () => {
+  try {
+    const res = await userPrefService.get()
+    const prefs = res?.data?.data || {}
+    if (prefs.selectedBadge) {
+      const b = prefs.selectedBadge
+      selectedId.value = b.id
+      selectedBadge.label = b.label
+      selectedBadge.icon = b.icon
+      selectedBadge.style = b.style
+    }
+  } catch (e) { /* 静默 */ }
+}
+
+onMounted(loadPref)
 </script>
 
 <style scoped>

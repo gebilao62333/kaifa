@@ -86,9 +86,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
+import authService from '../services/authService'
+import { uploadFile } from '../services/uploadService'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
@@ -133,7 +135,18 @@ const handleFileChange = (e) => {
   }
 }
 
-const submitForm = () => {
+const dataUrlToFile = (dataUrl, name) => {
+  const [meta, b64] = dataUrl.split(',')
+  const mime = (meta.match(/:(.*?);/) || [])[1] || 'application/octet-stream'
+  const bin = atob(b64)
+  const arr = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i)
+  return new File([arr], name, { type: mime })
+}
+
+const submitting = ref(false)
+
+const submitForm = async () => {
   if (!realName.value.trim()) {
     toast.error('请输入真实姓名')
     return
@@ -150,10 +163,46 @@ const submitForm = () => {
     toast.error('请先同意认证协议')
     return
   }
+  if (submitting.value) return
+  submitting.value = true
 
-  toast.success('认证信息已提交，将在1-3个工作日内审核')
-  isVerified.value = true
+  try {
+    // 正反面照片先直传 COS 换真实 URL，再提交认证
+    let frontUrl = frontImg.value
+    let backUrl = backImg.value
+    if (frontUrl.startsWith('data:')) {
+      const r = await uploadFile(dataUrlToFile(frontUrl, `idcard_front_${Date.now()}.jpg`), 'image')
+      frontUrl = r.data.url
+    }
+    if (backUrl.startsWith('data:')) {
+      const r = await uploadFile(dataUrlToFile(backUrl, `idcard_back_${Date.now()}.jpg`), 'image')
+      backUrl = r.data.url
+    }
+
+    await authService.submitRealName({
+      realName: realName.value.trim(),
+      idCard: idCard.value.trim(),
+      front: frontUrl,
+      back: backUrl
+    })
+    toast.success('认证信息已提交，将在1-3个工作日内审核')
+    isVerified.value = true
+  } catch (err) {
+    toast.error(err.message || '提交失败，请重试')
+  } finally {
+    submitting.value = false
+  }
 }
+
+onMounted(async () => {
+  try {
+    const res = await authService.getRealNameStatus()
+    const st = res?.data?.status
+    if (st === 1 || st === 2) {
+      isVerified.value = true
+    }
+  } catch (e) { /* 未登录或接口异常时忽略 */ }
+})
 </script>
 
 <style scoped>

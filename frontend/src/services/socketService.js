@@ -121,6 +121,12 @@ class SocketService {
     }
   }
 
+  // 发送“正在输入”提示（后端按 toId 转发给对端）
+  sendTyping(toId) {
+    if (!toId) return
+    this.emit('typing', { toId })
+  }
+
   disconnect() {
     if (this.socket) {
       this.socket.disconnect()

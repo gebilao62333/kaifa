@@ -1,39 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const adminManageController = require('../controllers/adminManage.js');
-const logger = require('../utils/logger');
-const { verifyToken } = require('../config/jwt');
-const { requirePermission } = require('../middlewares/permission');
+const { adminAuth, requirePermission } = require('../middlewares');
 
-const adminAuth = async (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization;
-    const token = authHeader?.replace('Bearer ', '');
-
-    if (!token) {
-      return res.status(401).json({ code: 401, message: '未提供认证令牌' });
-    }
-
-    const decoded = verifyToken(token);
-    if (!decoded) {
-      return res.status(401).json({ code: 401, message: '令牌已过期或无效' });
-    }
-
-    // 严格校验管理员身份：令牌需包含管理员标识
-    if (!decoded.roleId && decoded.role !== 'admin' && decoded.role_id !== 1) {
-      return res.status(403).json({ code: 403, message: '无管理员权限' });
-    }
-
-    req.admin = decoded;
-    next();
-  } catch (error) {
-    logger.error('Admin auth error:', error);
-    res.status(500).json({ code: 500, message: '服务器错误' });
-  }
-};
-
+// 登录接口无需认证
 router.post('/login', adminManageController.adminLogin);
 
+// 统一使用 middlewares 中的 adminAuth（与 /api/admin 路由同一套鉴权口径）
 router.use(adminAuth);
 
 router.get('/current', adminManageController.getCurrentAdmin);

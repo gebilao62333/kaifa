@@ -17,6 +17,16 @@ const VirtualUserTag = sequelize.define('xn_virtual_user_tag', {
     allowNull: true,
     comment: '标签图标'
   },
+  category: {
+    type: DataTypes.STRING(32),
+    allowNull: true,
+    comment: '标签分类 personality/expertise/style/scenario'
+  },
+  is_default: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0,
+    comment: '是否默认标签：0-否，1-是'
+  },
   sort_order: {
     type: DataTypes.INTEGER,
     defaultValue: 0,

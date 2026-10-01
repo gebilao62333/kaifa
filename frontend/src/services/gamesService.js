@@ -112,6 +112,13 @@ const gamesService = {
       rating: { required: true, label: '评分', type: 'number' }
     })
     return request('/api/games/evaluate', 'POST', { orderId, rating, comment })
+  },
+
+  async appealOrder(orderId, reason = '') {
+    validateParams({ orderId }, {
+      orderId: { required: true, label: '订单ID', type: 'number' }
+    })
+    return request('/api/games/appeal', 'POST', { orderId, reason })
   }
 }
 

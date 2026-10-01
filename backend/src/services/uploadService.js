@@ -197,6 +197,33 @@ const FOLDER_MAP = {
   file: 'files'
 };
 
+// 各类别允许直传的扩展名白名单（与 uploadImage/uploadAudio/uploadVideo 保持一致）
+const ALLOWED_EXTENSIONS = {
+  image: ['.jpg', '.jpeg', '.png', '.gif', '.webp'],
+  audio: ['.mp3', '.wav', '.amr'],
+  video: ['.mp4']
+};
+
+// 规范化扩展名并做白名单校验，拒绝任意后缀与路径穿越
+const assertAllowedExt = (type, ext) => {
+  const safeExt = ext ? (String(ext).trim().toLowerCase().startsWith('.')
+    ? String(ext).trim().toLowerCase()
+    : `.${String(ext).trim().toLowerCase()}`) : '';
+
+  const allowed = ALLOWED_EXTENSIONS[type];
+  // 未提供扩展名时放行（无后缀本身无可利用面），一旦提供即严格校验
+  if (safeExt) {
+    if (allowed) {
+      if (!allowed.includes(safeExt)) {
+        throw new Error('不支持的文件格式');
+      }
+    } else if (!/^\.[a-z0-9]{1,8}$/.test(safeExt)) {
+      throw new Error('不支持的文件格式');
+    }
+  }
+  return safeExt;
+};
+
 // 生成前端直传 COS 的预签名 PUT URL（绕过后端文件流中转，节省服务器带宽）
 const getDirectUploadToken = async (type = 'file', ext = '') => {
   const cos = initCosClient();
@@ -206,7 +233,8 @@ const getDirectUploadToken = async (type = 'file', ext = '') => {
   }
 
   const folder = FOLDER_MAP[type] || 'files';
-  const safeExt = ext && ext.startsWith('.') ? ext.toLowerCase() : (ext ? `.${ext.toLowerCase()}` : '');
+  // 白名单校验：不允许任意后缀直传（image/audio/video 走各自白名单，file 仅允许字母数字后缀）
+  const safeExt = assertAllowedExt(type, ext);
   const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}${safeExt}`;
   const key = `uploads/${folder}/${filename}`;
 

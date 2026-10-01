@@ -333,13 +333,28 @@ describe('Controller - Games', () => {
       gamesService.applyAsCompanion.mockResolvedValue(true);
 
       const req = mockReq({
-        body: { gameId: 1, price: 30, tags: ['技术流', '温柔'] }
+        body: {
+          gameId: 1,
+          price: 30,
+          tags: ['技术流', '温柔'],
+          description: '五年王者段位',
+          icon: 'icon.png',
+          voiceIntro: 'voice.mp3',
+          voiceTime: 12
+        }
       });
       const res = mockRes();
 
       await gamesController.applyAsCompanion(req, res);
 
-      expect(gamesService.applyAsCompanion).toHaveBeenCalledWith(100001, 1, 30, ['技术流', '温柔']);
+      // 控制器会把简介/头像/语音等资料一并透传给服务层
+      expect(gamesService.applyAsCompanion).toHaveBeenCalledWith(
+        100001,
+        1,
+        30,
+        ['技术流', '温柔'],
+        { description: '五年王者段位', icon: 'icon.png', voiceIntro: 'voice.mp3', voiceTime: 12 }
+      );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({ message: '申请已提交，等待审核' })

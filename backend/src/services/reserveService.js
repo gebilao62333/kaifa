@@ -1,6 +1,7 @@
 const { Reserve, ReserveSlot, User, Game } = require('../models');
 const { getTimestamp, parseQuery } = require('../utils/helper');
 const { Op } = require('sequelize');
+const sequelize = require('../config/mysql');
 
 const getAvailableSlots = async (companionId, date, gameId) => {
   const slots = await ReserveSlot.findAll({
@@ -70,36 +71,53 @@ const createReserve = async (userId, companionId, gameId, date, time) => {
     throw new Error('该时间段不可预约');
   }
 
-  const existing = await Reserve.findOne({
-    where: {
+  // 事务内：原子占用时段 + 建预约单，避免并发重复预约同一时段
+  const transaction = await sequelize.transaction();
+  try {
+    const [claimed] = await ReserveSlot.update(
+      { status: 1 },
+      { where: { id: slot.id, status: 0 }, transaction }
+    );
+    if (!claimed) {
+      throw new Error('该时间段不可预约');
+    }
+
+    const existing = await Reserve.findOne({
+      where: {
+        target_user_id: companionId,
+        reserve_date: date,
+        reserve_time: time,
+        status: {
+          [Op.in]: [0, 1]
+        }
+      },
+      transaction
+    });
+
+    if (existing) {
+      throw new Error('该时间段已被预约');
+    }
+
+    // 预约免费：不涉及金额，仅落时段占用
+    const reserve = await Reserve.create({
+      user_id: userId,
       target_user_id: companionId,
+      game_id: gameId,
       reserve_date: date,
       reserve_time: time,
-      status: {
-        [Op.in]: [0, 1]
-      }
-    }
-  });
+      status: 0,
+      create_time: getTimestamp()
+    }, { transaction });
 
-  if (existing) {
-    throw new Error('该时间段已被预约');
+    await transaction.commit();
+
+    return {
+      reserveId: reserve.id
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
   }
-
-  const reserve = await Reserve.create({
-    user_id: userId,
-    target_user_id: companionId,
-    game_id: gameId,
-    reserve_date: date,
-    reserve_time: time,
-    status: 0,
-    create_time: getTimestamp()
-  });
-
-  await slot.update({ status: 1 });
-
-  return {
-    reserveId: reserve.id
-  };
 };
 
 const confirmReserve = async (companionId, reserveId) => {
@@ -173,17 +191,7 @@ const cancelReserve = async (userId, reserveId) => {
     throw new Error('预约无法取消');
   }
 
-  const reserveDateTime = new Date(`${reserve.reserve_date} ${reserve.reserve_time}`).getTime();
-  const now = Date.now();
-  const hoursUntilReserve = (reserveDateTime - now) / (1000 * 60 * 60);
-
-  let refundRate = 0;
-  if (hoursUntilReserve >= 24) {
-    refundRate = 1;
-  } else if (hoursUntilReserve >= 12) {
-    refundRate = 0.5;
-  }
-
+  // 预约免费：取消仅释放时段，不涉及退款
   await reserve.update({
     status: 4,
     update_time: getTimestamp()
@@ -199,7 +207,7 @@ const cancelReserve = async (userId, reserveId) => {
     }
   });
 
-  return { refundRate };
+  return { success: true };
 };
 
 const completeReserve = async (userId, reserveId) => {

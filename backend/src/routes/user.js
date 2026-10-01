@@ -16,5 +16,12 @@ router.post('/send-sms', smsLimiter, userController.sendSms);
 router.post('/login-mobile', loginLimiter, userController.loginMobile);
 router.post('/login-third', loginLimiter, userController.loginThird);
 router.post('/refresh-token', userController.refreshToken);
+router.post('/real-name', authMiddleware, userController.submitRealName);
+router.get('/real-name', authMiddleware, userController.getRealNameStatus);
+router.get('/likes', authMiddleware, userController.getLikes);
+router.get('/visitors', authMiddleware, userController.getVisitors);
+router.post('/visit', authMiddleware, userController.recordVisit);
+router.get('/pref', authMiddleware, userController.getPref);
+router.post('/pref', authMiddleware, userController.savePref);
 
 module.exports = router;

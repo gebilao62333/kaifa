@@ -67,10 +67,10 @@
           <span class="menu-status">{{ callSettings.videoPrice }} 金币/分钟</span>
           <span class="menu-arrow">›</span>
         </div>
-        <div class="menu-item">
+        <div class="menu-item" @click="clearCache">
           <span class="menu-icon">🗑️</span>
           <span class="menu-text">清理缓存</span>
-          <span class="menu-status">128.5 MB</span>
+          <span class="menu-status">{{ cacheSize }}</span>
           <span class="menu-arrow">›</span>
         </div>
       </div>
@@ -451,8 +451,19 @@ const goAboutUs = () => {
   router.push('/about-us')
 }
 
-const goFeedback = () => {
-  router.push('/feedback')
+const cacheSize = ref('128.5 MB')
+
+const clearCache = () => {
+  try {
+    ;['searchHistory', 'notification_list', 'preferred_message_state'].forEach(k => localStorage.removeItem(k))
+    cacheSize.value = '0 MB'
+    toast.success('缓存已清理')
+  } catch (e) {
+    toast.error('清理失败')
+  }
+}
+
+const goFeedback = () => {  router.push('/feedback')
 }
 
 const sendCode = () => {

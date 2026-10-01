@@ -13,6 +13,8 @@ const createTag = async (data) => {
   const {
     name,
     icon,
+    category = null,
+    is_default = 0,
     sort_order = 0,
     status = 1
   } = data;
@@ -24,6 +26,8 @@ const createTag = async (data) => {
   const tag = await VirtualUserTag.create({
     name,
     icon,
+    category,
+    is_default: is_default ? 1 : 0,
     sort_order,
     status,
     create_time: getTimestamp(),
@@ -70,9 +74,12 @@ const getAllTags = async (query) => {
 };
 
 const getTagsByCategory = async (category) => {
-  // 真实表结构无分类字段，返回全部启用标签
+  const where = { status: 1 };
+  if (category) {
+    where.category = category;
+  }
   const tags = await VirtualUserTag.findAll({
-    where: { status: 1 },
+    where,
     order: [['sort_order', 'ASC'], ['create_time', 'DESC']]
   });
   return tags.map(formatTag);
@@ -88,6 +95,8 @@ const updateTag = async (id, data) => {
 
   if (data.name !== undefined) updateData.name = data.name;
   if (data.icon !== undefined) updateData.icon = data.icon;
+  if (data.category !== undefined) updateData.category = data.category;
+  if (data.is_default !== undefined) updateData.is_default = data.is_default ? 1 : 0;
   if (data.sort_order !== undefined) updateData.sort_order = data.sort_order;
   if (data.status !== undefined) updateData.status = data.status;
 
@@ -131,6 +140,7 @@ const assignTagToUser = async (virtualUserId, tagId, isPrimary = false, customCo
   await VirtualUserTagRelation.create({
     virtual_user_id: virtualUserId,
     tag_id: tagId,
+    is_primary: isPrimary ? 1 : 0,
     create_time: getTimestamp()
   });
 
@@ -163,7 +173,7 @@ const getUserTags = async (virtualUserId) => {
   for (const relation of relations) {
     const tag = await VirtualUserTag.findByPk(relation.tag_id);
     if (tag) {
-      tags.push(formatTag(tag));
+      tags.push({ ...formatTag(tag), is_primary: relation.is_primary ? 1 : 0 });
     }
   }
 
@@ -178,6 +188,13 @@ const setPrimaryTag = async (virtualUserId, tagId) => {
   if (!relation) {
     throw new Error('该标签未分配给此虚拟用户');
   }
+
+  // 同一用户仅保留一个主要标签：先清空再设置
+  await VirtualUserTagRelation.update(
+    { is_primary: 0 },
+    { where: { virtual_user_id: virtualUserId } }
+  );
+  await relation.update({ is_primary: 1 });
 
   logger.info(`设置主要标签: 虚拟用户${virtualUserId} -> 标签${tagId}`);
   return true;
@@ -237,9 +254,8 @@ const getTagsWithUsers = async (tagId) => {
 };
 
 const getDefaultTags = async () => {
-  // 真实表结构无 is_default 字段，返回全部启用标签
   const tags = await VirtualUserTag.findAll({
-    where: { status: 1 },
+    where: { status: 1, is_default: 1 },
     order: [['sort_order', 'ASC'], ['create_time', 'DESC']]
   });
   return tags.map(formatTag);
@@ -260,6 +276,7 @@ const initializeDefaultTags = async () => {
     if (!existing) {
       await VirtualUserTag.create({
         ...tagData,
+        is_default: 1,
         status: 1,
         create_time: getTimestamp(),
         update_time: getTimestamp()
@@ -276,6 +293,8 @@ const formatTag = (tag) => {
     id: tag.id,
     name: tag.name,
     icon: tag.icon,
+    category: tag.category || null,
+    is_default: tag.is_default || 0,
     sort_order: tag.sort_order,
     status: tag.status,
     create_time: tag.create_time,

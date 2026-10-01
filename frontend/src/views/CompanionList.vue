@@ -71,6 +71,7 @@ const load = async (reset = false) => {
   try {
     const result = await homeService.getRecommendCompanions({
       serviceType: type.value,
+      gameId: route.query.gameId,
       page: currentPage.value,
       pageSize
     })

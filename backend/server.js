@@ -9,7 +9,7 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 
 const config = require('./src/config');
-const { xssProtection } = require('./src/middlewares');
+const { xssProtection, apiLimiter } = require('./src/middlewares');
 
 console.log('🚀 正在启动eu搭子后端服务...\n');
 
@@ -188,6 +188,10 @@ if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'tru
     console.log('⚠️  Swagger模块加载失败:', e.message);
   }
 }
+
+// 全局限流：覆盖 /api 下所有业务路由（健康检查/API测试已在此之前注册，不受限流影响）
+// 开发环境自动跳过；阈值由 RATE_LIMIT_WINDOW_MS / RATE_LIMIT_MAX_REQUESTS 控制
+app.use('/api', apiLimiter);
 
 // 设置路由（如果可用）
 try {

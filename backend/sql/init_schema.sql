@@ -42,6 +42,12 @@ CREATE TABLE IF NOT EXISTS `xn_user` (
   `ip` VARCHAR(15),
   `platform` VARCHAR(20),
   `dec` VARCHAR(255),
+  `real_name` VARCHAR(50),
+  `id_card` VARCHAR(18),
+  `real_name_front` VARCHAR(255),
+  `real_name_back` VARCHAR(255),
+  `real_name_status` TINYINT(1) DEFAULT 0,
+  `real_name_time` INT(10) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_mobile` (`mobile`),
   KEY `idx_open_id` (`open_id`),
@@ -126,6 +132,8 @@ CREATE TABLE IF NOT EXISTS `xn_virtual_user_tag` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(50) NOT NULL,
   `icon` VARCHAR(255),
+  `category` VARCHAR(32) COMMENT '标签分类 personality/expertise/style/scenario',
+  `is_default` TINYINT(1) DEFAULT 0 COMMENT '是否默认标签：0-否，1-是',
   `sort_order` INT DEFAULT 0,
   `status` TINYINT(1) DEFAULT 1,
   `create_time` INT(10) DEFAULT 0,
@@ -140,6 +148,7 @@ CREATE TABLE IF NOT EXISTS `xn_virtual_user_tag_relation` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `virtual_user_id` BIGINT NOT NULL,
   `tag_id` BIGINT NOT NULL,
+  `is_primary` TINYINT(1) DEFAULT 0 COMMENT '是否主要标签：0-否，1-是',
   `create_time` INT(10) DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_virtual_user_id` (`virtual_user_id`),
@@ -232,6 +241,8 @@ CREATE TABLE IF NOT EXISTS `xn_game_order` (
   `total_price` DECIMAL(10, 2) NOT NULL,
   `status` TINYINT(1) DEFAULT 0,
   `remark` TEXT,
+  `appeal_reason` VARCHAR(255),
+  `appeal_time` INT(10) DEFAULT 0,
   `create_time` INT(10) DEFAULT 0,
   `add_time` INT(10) DEFAULT 0,
   `start_time` INT(10),
@@ -363,6 +374,7 @@ CREATE TABLE IF NOT EXISTS `xn_post` (
   `is_private` TINYINT(1) DEFAULT 0,
   `private_password` VARCHAR(32),
   `private_price` INT DEFAULT 0,
+  `repost_id` INT DEFAULT 0 COMMENT '转发的原帖ID，0=原创',
   `create_time` INT(10) DEFAULT 0,
   `update_time` INT(10) DEFAULT 0,
   PRIMARY KEY (`id`),
@@ -441,6 +453,17 @@ CREATE TABLE IF NOT EXISTS `xn_album_photo` (
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='相册照片表';
 
+-- 相册点赞表
+CREATE TABLE IF NOT EXISTS `xn_album_like` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `photo_id` BIGINT NOT NULL COMMENT '照片ID',
+  `user_id` BIGINT NOT NULL COMMENT '点赞用户ID',
+  `create_time` INT(10) DEFAULT 0 COMMENT '点赞时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_photo_user` (`photo_id`, `user_id`),
+  KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='相册点赞表';
+
 -- 红包表
 CREATE TABLE IF NOT EXISTS `xn_red_packet` (
   `id` INT NOT NULL AUTO_INCREMENT,
@@ -503,6 +526,10 @@ CREATE TABLE IF NOT EXISTS `xn_reserve` (
   `reserve_date` DATE NOT NULL,
   `reserve_time` TIME NOT NULL,
   `status` TINYINT(1) DEFAULT 0,
+  `duration` INT DEFAULT 0,
+  `price` DECIMAL(10, 2) DEFAULT 0,
+  `remark` VARCHAR(255),
+  `service_type` VARCHAR(16),
   `create_time` INT(10) DEFAULT 0,
   `update_time` INT(10) DEFAULT 0,
   PRIMARY KEY (`id`),
@@ -791,6 +818,8 @@ CREATE TABLE IF NOT EXISTS `xn_companion_profile` (
   `tags` VARCHAR(255),
   `voice_intro` VARCHAR(255),
   `voice_time` INT DEFAULT 0,
+  `icon` VARCHAR(255),
+  `description` VARCHAR(500),
   `order_num` INT DEFAULT 0,
   `income_total` DECIMAL(12, 2) DEFAULT 0,
   `pingjia_num` INT DEFAULT 0,
@@ -821,6 +850,27 @@ CREATE TABLE IF NOT EXISTS `xn_feedback` (
   KEY `idx_status` (`status`),
   KEY `idx_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户意见反馈表';
+
+-- 用户主页访问记录表
+CREATE TABLE IF NOT EXISTS `xn_user_visit` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT NOT NULL COMMENT '被访问者ID',
+  `visitor_id` BIGINT NOT NULL COMMENT '访问者ID',
+  `create_time` INT(10) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_user_visitor` (`user_id`, `visitor_id`),
+  KEY `idx_user_time` (`user_id`, `create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户主页访问记录表';
+
+-- 用户偏好/装扮数据表（JSON）
+CREATE TABLE IF NOT EXISTS `xn_user_pref` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT NOT NULL,
+  `data` TEXT,
+  `update_time` INT(10) DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户偏好/装扮数据表';
 
 -- 相册表（历史遗留表，无对应 Sequelize 模型；保留以兼容既有数据）
 CREATE TABLE IF NOT EXISTS `xn_album` (

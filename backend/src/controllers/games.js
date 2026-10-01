@@ -137,7 +137,7 @@ const getOrders = async (req, res) => {
 
 const applyAsCompanion = async (req, res) => {
   try {
-    const { gameId, price, tags } = req.body;
+    const { gameId, price, tags, description, icon, voiceIntro, voiceTime } = req.body;
     
     if (!gameId || !price) {
       return response.badRequest(res, '游戏ID和价格不能为空');
@@ -147,7 +147,8 @@ const applyAsCompanion = async (req, res) => {
       req.userId,
       parseInt(gameId),
       parseFloat(price),
-      tags
+      tags,
+      { description, icon, voiceIntro, voiceTime }
     );
     response.success(res, {}, '申请已提交，等待审核');
   } catch (error) {
@@ -296,6 +297,20 @@ const toggleServiceStatus = async (req, res) => {
   }
 };
 
+const appealOrder = async (req, res) => {
+  try {
+    const { orderId, reason } = req.body;
+    if (!orderId) {
+      return response.badRequest(res, '订单ID不能为空');
+    }
+    await gamesService.appealOrder(req.userId, parseInt(orderId), reason || '');
+    response.success(res, {}, '申诉已提交');
+  } catch (error) {
+    logger.error('订单申诉错误:', error);
+    response.unprocessableEntity(res, error.message);
+  }
+};
+
 module.exports = {
   getCategories,
   getCompanions,
@@ -314,5 +329,6 @@ module.exports = {
   getCompanionDetail,
   evaluateOrder,
   getOrderDetail,
-  getStatistics
+  getStatistics,
+  appealOrder
 };

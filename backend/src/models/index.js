@@ -11,6 +11,8 @@ const GameOrder = require('./mysql/GameOrder');
 const CompanionProfile = require('./mysql/CompanionProfile');
 const Post = require('./mysql/Post');
 const PostLike = require('./mysql/PostLike');
+const UserVisit = require('./mysql/UserVisit');
+const UserPref = require('./mysql/UserPref');
 const PostComment = require('./mysql/PostComment');
 const PostUnlock = require('./mysql/PostUnlock');
 const UserFollow = require('./mysql/UserFollow');
@@ -36,6 +38,7 @@ const VirtualUserTagRelation = require('./mysql/VirtualUserTagRelation');
 const VipPackage = require('./mysql/VipPackage');
 const VipOrder = require('./mysql/VipOrder');
 const AlbumPhoto = require('./mysql/AlbumPhoto');
+const AlbumLike = require('./mysql/AlbumLike');
 const MediaAsset = require('./mysql/MediaAsset');
 const Feedback = require('./mysql/Feedback');
 const Admin = require('./mysql/Admin');
@@ -60,6 +63,8 @@ module.exports = {
   CompanionProfile,
   Post,
   PostLike,
+  UserVisit,
+  UserPref,
   PostComment,
   PostUnlock,
   UserFollow,
@@ -86,6 +91,7 @@ module.exports = {
   UserSession,
   Notification,
   AlbumPhoto,
+  AlbumLike,
   MediaAsset,
   Feedback,
   SystemSettings,

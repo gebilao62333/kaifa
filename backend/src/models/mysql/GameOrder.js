@@ -70,6 +70,16 @@ const GameOrder = sequelize.define('xn_game_order', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  appeal_reason: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    field: 'appeal_reason'
+  },
+  appeal_time: {
+    type: DataTypes.INTEGER(10),
+    defaultValue: 0,
+    field: 'appeal_time'
+  },
   create_time: {
     type: DataTypes.INTEGER(10),
     defaultValue: 0

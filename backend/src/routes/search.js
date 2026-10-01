@@ -8,6 +8,7 @@ const { Game } = require('../models');
 const { Op } = require('sequelize');
 
 // 热门搜索词
+// ⚠️ 占位数据：当前返回硬编码热搜词，尚未落库；如需动态热搜应接入统计/配置表。
 router.get('/hot', (req, res) => {
   try {
     const hotList = [

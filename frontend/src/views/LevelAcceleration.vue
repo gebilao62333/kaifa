@@ -70,14 +70,16 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getLevelName } from '../common/common'
 import PageLayout from '../components/PageLayout.vue'
+import { useUserStore } from '../store/user-info'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 const userInfo = ref({
-  level: 15,
-  exp: 7200,
-  vip: true,
-  vipLevel: 2
+  level: userStore.level || 1,
+  exp: 0,
+  vip: !!userStore.vip,
+  vipLevel: userStore.vipLevel || 0
 })
 
 const nextLevelExp = computed(() => userInfo.value.level * 1000 + 500)
@@ -119,7 +121,13 @@ const goBack = () => {
   router.back()
 }
 
-onMounted(() => {
+onMounted(async () => {
+  try {
+    await userStore.fetchUserInfo()
+    userInfo.value.level = userStore.level || userInfo.value.level
+    userInfo.value.vip = !!userStore.vip
+    userInfo.value.vipLevel = userStore.vipLevel || 0
+  } catch (e) { /* 静默 */ }
   if (userInfo.value.vip) {
     boostList.value.forEach(b => {
       if (b.level > 0 && b.level <= userInfo.value.vipLevel) {

@@ -97,12 +97,15 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { DEFAULT_AVATAR } from '@/common/constants'
+import userPrefService from '../services/userPrefService'
+import { useUserStore } from '../store/user-info'
 
 const router = useRouter()
 
+const userStore = useUserStore()
 const userBalance = ref(0)
 const demoAvatar = ref(DEFAULT_AVATAR)
 const activeTab = ref('frame')
@@ -169,12 +172,45 @@ const loadData = () => {
 }
 
 const saveData = () => {
+  persistPref(0)
+}
+
+// 持久化到服务端偏好；spend>0 时由服务端扣金币并回传最新余额
+const persistPref = async (spend = 0) => {
   localStorage.setItem('skinShopData', JSON.stringify({
     owned: { ...ownedMap },
-    using: { ...usingMap },
-    balance: userBalance.value
+    using: { ...usingMap }
   }))
+  try {
+    const res = await userPrefService.save(
+      { skinShop: { owned: { ...ownedMap }, using: { ...usingMap } } },
+      spend
+    )
+    if (res?.data?.balance != null) userBalance.value = Number(res.data.balance)
+    return true
+  } catch (e) {
+    showToast(e.message || '操作失败')
+    return false
+  }
 }
+
+// 加载服务端装扮与余额
+const loadPref = async () => {
+  try {
+    const res = await userPrefService.get()
+    const prefs = res?.data?.data || {}
+    if (prefs.skinShop) {
+      Object.assign(ownedMap, prefs.skinShop.owned || {})
+      Object.assign(usingMap, prefs.skinShop.using || {})
+    }
+  } catch (e) { /* 静默 */ }
+  try {
+    await userStore.fetchUserInfo()
+    if (userStore.balance != null) userBalance.value = Number(userStore.balance)
+  } catch (e) { /* 静默 */ }
+}
+
+onMounted(loadPref)
 
 const actionItem = (item, type) => {
   const key = `${type}_${item.id}`
@@ -207,12 +243,12 @@ const actionItem = (item, type) => {
     return
   }
 
-  userBalance.value -= item.price
   ownedMap[key] = true
   Object.keys(usingMap).forEach(k => { usingMap[k] = false })
   usingMap[key] = true
-  saveData()
-  showToast(`购买成功！已切换至「${item.name}」`)
+  persistPref(item.price).then((ok) => {
+    if (ok) showToast(`购买成功！已切换至「${item.name}」`)
+  })
 }
 
 const syncData = (list, type) => {
@@ -226,6 +262,8 @@ const syncData = (list, type) => {
     }
     item.owned = ownedMap[key]
     item.using = usingMap[key]
+    // 带 vipLevel 的装扮按 VIP 专属处理，使 VIP 拦截与 VIP 价格展示生效
+    item.vipOnly = item.vipOnly || !!item.vipLevel
   })
 }
 
@@ -244,6 +282,7 @@ syncData(themeList.value, 'theme')
 .skin-shop-page {
   min-height: 100dvh;
   background-color: #f5f5f5;
+  padding-bottom: 80px;
 }
 
 .header {

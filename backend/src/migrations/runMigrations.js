@@ -10,6 +10,7 @@ const runMigrations = async () => {
 
   const { up: currencyUp, convertData } = require('./20240101000000_add_currency_column');
   const { up: virtualUserUp } = require('./20260824000000_add_virtual_user_online_columns');
+  const { up: postTagAlbumUp } = require('./20261001000000_add_post_tag_album_fields');
 
   console.log('\n1. 添加货币单位字段...');
   await currencyUp();
@@ -19,6 +20,9 @@ const runMigrations = async () => {
 
   console.log('\n3. 补充虚拟人随机在线调度字段...');
   await virtualUserUp();
+
+  console.log('\n4. 补充转发帖/标签分类/相册点赞字段...');
+  await postTagAlbumUp();
 
   console.log('\n========== 数据库迁移完成 ==========');
 };

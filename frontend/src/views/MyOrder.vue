@@ -81,6 +81,7 @@
             <button class="action-btn primary" v-if="item.status === 0 || item.status === 1 || item.status === 2" @click.stop="contactCompanion(item)">联系陪玩</button>
             <button class="action-btn primary" v-if="item.status === 3 && !item.rated" @click.stop="rateOrder(item)">评价</button>
             <button class="action-btn secondary" v-if="item.status === 3 && item.rated" disabled>已评价</button>
+            <button class="action-btn secondary" v-if="item.status === 3" @click.stop="appealOrder(item)">申诉</button>
           </div>
         </div>
       </div>
@@ -245,6 +246,22 @@ const completeOrder = async (item) => {
     await loadOrders()
   } catch (err) {
     toast.error(err.message || '操作失败')
+  }
+}
+
+const appealOrder = async (item) => {
+  const reason = window.prompt('请输入申诉原因')
+  if (reason === null) return
+  if (!reason.trim()) {
+    toast.error('请填写申诉原因')
+    return
+  }
+  try {
+    await orderService.appealOrder(item.orderId, reason.trim())
+    toast.success('申诉已提交，请等待处理')
+    loadOrders()
+  } catch (err) {
+    toast.error(err.message || '申诉失败')
   }
 }
 

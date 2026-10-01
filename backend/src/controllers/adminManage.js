@@ -124,8 +124,11 @@ const adminLogin = async (req, res) => {
         }
       });
     } catch (dbError) {
-      // 数据库不可用时，回退到环境变量配置（仅开发/紧急用途）
+      // 数据库不可用时的环境变量应急登录：必须显式开启 ADMIN_EMERGENCY_LOGIN=true，默认关闭
       logger.error('[adminManage] 数据库登录失败，尝试环境变量回退:', dbError.message);
+      if (!config.admin.emergencyLogin) {
+        return res.status(503).json({ code: 503, message: '数据库不可用，应急登录未开启' });
+      }
       const envUser = process.env.ADMIN_USERNAME;
       const envPass = process.env.ADMIN_PASSWORD;
       if (!envUser || !envPass) {
@@ -223,7 +226,7 @@ const createAdmin = async (req, res) => {
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
-    // 权限由所选角色决定；未单独提交时存空数组（登录时角色缺失则兜底全权限）
+    // 权限由所选角色决定；未单独提交时存空数组（角色缺失且无自身权限即为空权限，需显式分配）
     const perms = permissions && permissions.length > 0
       ? JSON.stringify(permissions)
       : '[]';

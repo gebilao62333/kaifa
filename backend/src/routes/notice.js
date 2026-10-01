@@ -4,6 +4,7 @@ const response = require('../utils/response');
 const logger = require('../utils/logger');
 
 // 公告 / 通知列表（公开）
+// ⚠️ 占位数据：当前返回硬编码示例公告，尚未落库。如需运营可配，应接入 xn_notice 表及管理端 CRUD。
 router.get('/list', (req, res) => {
   try {
     const now = Math.floor(Date.now() / 1000);

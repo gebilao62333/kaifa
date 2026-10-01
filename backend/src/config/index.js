@@ -100,7 +100,9 @@ module.exports = {
   },
   
   admin: {
-    token: process.env.ADMIN_TOKEN
+    token: process.env.ADMIN_TOKEN,
+    // 应急备用登录：仅当显式设置 ADMIN_EMERGENCY_LOGIN=true 时，才允许数据库不可用时用环境变量账号登录（默认关闭）
+    emergencyLogin: process.env.ADMIN_EMERGENCY_LOGIN === 'true'
   },
   
   rateLimit: {

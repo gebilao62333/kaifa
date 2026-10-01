@@ -146,12 +146,7 @@ export default {
 
       isLoading.value = true
 
-      const res = await giftService.sendRedPacket(
-        props.receiverId,
-        amountFixed,
-        1,
-        'normal'
-      )
+      const res = await giftService.sendRedPacket(amountFixed, 1, 0)
 
       isLoading.value = false
 

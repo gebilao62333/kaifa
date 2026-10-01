@@ -122,6 +122,31 @@ const User = sequelize.define('xn_user', {
   dec: {
     type: DataTypes.STRING(255),
     allowNull: true
+  },
+  real_name: {
+    type: DataTypes.STRING(50),
+    allowNull: true
+  },
+  id_card: {
+    type: DataTypes.STRING(18),
+    allowNull: true
+  },
+  real_name_front: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  real_name_back: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  real_name_status: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0,
+    comment: '实名状态 0未认证 1审核中 2已认证 3已拒绝'
+  },
+  real_name_time: {
+    type: DataTypes.INTEGER(10),
+    defaultValue: 0
   }
 }, {
   tableName: 'xn_user',

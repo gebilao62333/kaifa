@@ -70,6 +70,7 @@ const loadFollows = async (append = false) => {
     follows.value = append ? follows.value.concat(rows) : rows
     total.value = data.total || 0
     hasMore.value = follows.value.length < total.value
+    if (rows.length) page.value += 1
   } catch (err) {
     toast.error(err.message || '加载关注列表失败')
   } finally {

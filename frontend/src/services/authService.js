@@ -183,6 +183,26 @@ const authService = {
       }
     })
     return request(`/api/user/check-follow?userId=${userId}`, 'GET')
+  },
+
+  async submitRealName(data = {}) {
+    return request('/api/user/real-name', 'POST', data)
+  },
+
+  async getRealNameStatus() {
+    return request('/api/user/real-name', 'GET')
+  },
+
+  async getLikes() {
+    return request('/api/user/likes', 'GET')
+  },
+
+  async getVisitors() {
+    return request('/api/user/visitors', 'GET')
+  },
+
+  async visitUser(targetUserId) {
+    return request('/api/user/visit', 'POST', { targetUserId })
   }
 }
 

@@ -87,7 +87,7 @@
       
       <div class="topic-tag" @click="showTopicModal = true">
         <span class="icon">#</span>
-        <span class="text">{{ topics.length > 0 ? topics.join(', ') : '添加话题' }}</span>
+        <span class="text">{{ topics.length > 0 ? topics.map(t => t.name).join(', ') : '添加话题' }}</span>
       </div>
       
       <div class="topic-modal" v-if="showTopicModal" @click.self="showTopicModal = false">
@@ -99,12 +99,12 @@
           <div class="topic-modal-body">
             <div 
               v-for="t in availableTopics" 
-              :key="t"
+              :key="t.id"
               class="topic-item"
-              :class="{ selected: topics.includes(t) }"
+              :class="{ selected: topics.some(x => x.id === t.id) }"
               @click="toggleTopic(t)"
             >
-              {{ t }}
+              {{ t.name }}
             </div>
           </div>
           <div class="topic-modal-footer">
@@ -112,11 +112,11 @@
               <span class="topic-selected-label">已选：</span>
               <span 
                 v-for="t in topics" 
-                :key="t"
+                :key="t.id"
                 class="topic-selected-item"
                 @click="toggleTopic(t)"
               >
-                #{{ t }} ×
+                #{{ t.name }} ×
               </span>
             </div>
             <button class="topic-confirm-btn" @click="showTopicModal = false">确定</button>
@@ -182,6 +182,7 @@ import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
 import circleService from '../services/circleService'
 import { uploadFile } from '../services/uploadService'
+import { tagService } from '../services/tagService'
 import regionService from '../services/regionService'
 
 const router = useRouter()
@@ -199,10 +200,19 @@ const showLocationModal = ref(false)
 const locationSearch = ref('')
 const locationLoading = ref(false)
 
-const availableTopics = ref([
-  '游戏', '音乐', '美食', '旅行', '摄影', '运动', '阅读', '电影',
-  '美妆', '穿搭', '萌宠', '科技', '电竞', '社交', '情感', '职场'
-])
+const availableTopics = ref([])
+
+const loadTopics = async () => {
+  try {
+    const res = await tagService.getTags()
+    const list = res?.data?.list || res?.data || []
+    availableTopics.value = (Array.isArray(list) ? list : [])
+      .map(t => ({ id: t.id ?? t.tagId ?? t.tag_id, name: t.name ?? t.tagName ?? t.tag_name ?? '' }))
+      .filter(t => t.id != null && t.name)
+  } catch (e) {
+    console.warn('加载话题失败:', e)
+  }
+}
 
 const popularLocations = ref([])
 
@@ -221,6 +231,7 @@ const loadPopularLocations = async () => {
 
 onMounted(() => {
   loadPopularLocations()
+  loadTopics()
 })
 
 const filteredLocations = computed(() => {
@@ -320,11 +331,11 @@ const getCurrentLocation = () => {
 }
 
 const toggleTopic = (t) => {
-  const index = topics.value.indexOf(t)
+  const index = topics.value.findIndex(x => x.id === t.id)
   if (index > -1) {
     topics.value.splice(index, 1)
   } else if (topics.value.length < 3) {
-    topics.value.push(t)
+    topics.value.push({ id: t.id, name: t.name })
   }
 }
 
@@ -365,7 +376,7 @@ const publish = async () => {
       images,
       videos,
       location: location.value,
-      tagIds: topics.value.map(t => t),
+      tagIds: topics.value.map(t => t.id),
       visibility: visibilityMap[visibility.value] || 0
     }
     if (visibility.value === 'password') {

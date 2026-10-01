@@ -4,6 +4,7 @@ const { getTimestamp, parseQuery } = require('../utils/helper');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
+const sequelize = require('../config/mysql');
 
 // 兼容逗号分隔字符串和 JSON 数组两种 images 存储格式
 const parseImages = (raw) => {
@@ -20,20 +21,18 @@ const parseImages = (raw) => {
 };
 
 const createPost = async (userId, content, images, videos, tagIds, location, visibility, password, price) => {
+  // 仅写入模型实际存在的列；visibility 映射为 is_private/private_password/private_price
   const post = await Post.create({
     user_id: userId,
     content,
     images: images ? images.join(',') : '',
     videos: videos || '',
     tag_id: tagIds && tagIds.length > 0 ? tagIds[0] : 0,
-    tag_ids: tagIds ? JSON.stringify(tagIds) : null,
-    location: location || '',
-    visibility: visibility || 0,
-    password: password ? crypto.createHash('md5').update(password).digest('hex') : null,
-    price: price || 0,
     is_private: visibility === 3 ? 1 : (visibility === 4 ? 2 : 0),
-    private_password: visibility === 3 ? crypto.createHash('md5').update(password).digest('hex') : null,
-    private_price: visibility === 4 ? price : 0,
+    private_password: (visibility === 3 && password)
+      ? crypto.createHash('md5').update(password).digest('hex')
+      : null,
+    private_price: visibility === 4 ? (price || 0) : 0,
     create_time: getTimestamp()
   });
 
@@ -160,7 +159,6 @@ const searchPosts = async (userId, keyword, page, pageSize) => {
     where: {
       status: 1,
       is_private: 0,
-      visibility: 0,
       content: { [Op.like]: `%${kw}%` }
     },
     offset,
@@ -231,6 +229,7 @@ const getPostDetail = async (userId, postId) => {
     shares: post.share_num,
     tagId: post.tag_id,
     type: post.type,
+    repostId: post.repost_id || 0,
     isLiked: !!isLiked,
     createTime: post.create_time,
     locked: false
@@ -262,31 +261,43 @@ const unlockPost = async (userId, postId, unlockType, password) => {
       throw new Error('密码错误');
     }
   }
-  
-  if (post.is_private === 2) {
-    const user = await User.findByPk(userId);
-    if (Number(user.money) < post.private_price) {
-      throw new Error('虚拟币不足');
+
+  // 事务内先写解锁记录（唯一键 post_id+user_id 拦截并发重复解锁），再执行扣费
+  const transaction = await sequelize.transaction();
+  try {
+    await PostUnlock.create({
+      post_id: postId,
+      user_id: userId,
+      price: post.private_price,
+      create_time: getTimestamp()
+    }, { transaction });
+
+    if (post.is_private === 2) {
+      // 原子扣款：余额不足则不扣并回滚（连同上面的解锁记录）
+      const [affected] = await User.update(
+        { money: sequelize.literal(`money - ${post.private_price}`) },
+        { where: { id: userId, money: { [Op.gte]: post.private_price } }, transaction }
+      );
+      if (!affected) {
+        throw new Error('虚拟币不足');
+      }
+
+      await User.increment('money', {
+        by: post.private_price,
+        where: { id: post.user_id },
+        transaction
+      });
     }
-    
-    await User.decrement('money', {
-      by: post.private_price,
-      where: { id: userId }
-    });
-    
-    await User.increment('money', {
-      by: post.private_price,
-      where: { id: post.user_id }
-    });
+
+    await transaction.commit();
+  } catch (error) {
+    await transaction.rollback();
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      throw new Error('已解锁过该帖子');
+    }
+    throw error;
   }
-  
-  await PostUnlock.create({
-    post_id: postId,
-    user_id: userId,
-    price: post.private_price,
-    create_time: getTimestamp()
-  });
-  
+
   return true;
 };
 

@@ -108,11 +108,12 @@ const createUnifiedOrder = async (userId, packageId) => {
   try {
     const result = await request('https://api.mch.weixin.qq.com/pay/unifiedorder', params);
     
+    // xn_order_chong 真实列为 amount/coins，无 cid/money
     const order = await OrderChong.create({
       user_id: userId,
       order_no: orderNo,
-      cid: packageId,
-      money: pkg.price,
+      amount: Number(pkg.price),
+      coins: Number(pkg.coins) + Number(pkg.bonus_coins || 0),
       pay_type: 1,
       status: 0,
       create_time: getTimestamp()
@@ -159,7 +160,6 @@ const handleNotify = async (xmlData) => {
   }
 
   const orderNo = params.out_trade_no;
-  const transactionId = params.transaction_id;
 
   const order = await OrderChong.findOne({
     where: { order_no: orderNo, status: 0 }
@@ -169,21 +169,17 @@ const handleNotify = async (xmlData) => {
     return { success: false, message: '订单不存在或已处理' };
   }
 
-  const pkg = await RechargePackage.findByPk(order.cid);
-
+  // 订单自带到账金币，无需反查套餐；xn_order_chong 无 pay_no 列
   const transaction = await User.sequelize.transaction();
 
   try {
     await order.update({
       status: 1,
-      pay_no: transactionId,
       pay_time: getTimestamp()
     }, { transaction });
 
-    const totalCoins = pkg.coins + (pkg.bonus_coins || 0);
-
     await User.increment('money', {
-      by: totalCoins,
+      by: order.coins,
       where: { id: order.user_id },
       transaction
     });

@@ -76,6 +76,7 @@ const loadFans = async (append = false) => {
     fans.value = append ? fans.value.concat(rows) : rows
     total.value = data.total || 0
     hasMore.value = fans.value.length < total.value
+    if (rows.length) page.value += 1
   } catch (err) {
     toast.error(err.message || '加载粉丝列表失败')
   } finally {

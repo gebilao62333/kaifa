@@ -2,7 +2,7 @@
   <div class="app">
     <ErrorBoundary>
       <router-view v-slot="{ Component, route }">
-        <transition name="page">
+        <transition :name="transitionName">
           <div :key="route.path" :class="['route-shell', { 'route-shell--frame': !isFullscreen }]">
             <component :is="Component" />
           </div>
@@ -25,13 +25,73 @@ import ErrorBoundary from './components/ErrorBoundary.vue'
 import { useToast } from './composables/useToast'
 import { socketService } from './services/socketService'
 import { useUserStore } from './store/user-info'
-import { onMounted, ref, computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 const toast = useToast()
 const userStore = useUserStore()
 const incomingCallRef = ref(null)
 const route = useRoute()
+const router = useRouter()
+
+// 主 Tab 顺序：全屏左右滑动按此顺序切换
+const MAIN_TABS = ['/home', '/square', '/preferred', '/mine']
+const transitionName = ref('page')
+let lastTabIndex = MAIN_TABS.indexOf(route.path)
+let swipeStartX = 0
+let swipeStartY = 0
+let swiping = false
+
+// 这些区域内的横向拖动不触发切 Tab（可滚动区域/弹层/输入框等）
+const IGNORE_SELECTOR = 'input, textarea, .banner-swiper, .tag-filter, [data-no-swipe], [class*="overlay"], [class*="modal"], [class*="sheet"], [class*="panel"]'
+
+const isHorizontallyScrollable = (el) => {
+  let node = el
+  while (node && node !== document.body) {
+    const ox = getComputedStyle(node).overflowX
+    if ((ox === 'auto' || ox === 'scroll') && node.scrollWidth > node.clientWidth + 4) return true
+    node = node.parentElement
+  }
+  return false
+}
+
+const onPointerDown = (e) => {
+  if (e.pointerType === 'mouse' && e.button !== 0) return
+  const t = e.target
+  if (!t || !t.closest) return
+  if (t.closest(IGNORE_SELECTOR)) return
+  if (isHorizontallyScrollable(t)) return
+  if (MAIN_TABS.indexOf(route.path) === -1) return
+  swipeStartX = e.clientX
+  swipeStartY = e.clientY
+  swiping = true
+}
+
+const onPointerUp = (e) => {
+  if (!swiping) return
+  swiping = false
+  const dx = e.clientX - swipeStartX
+  const dy = e.clientY - swipeStartY
+  // 横向位移足够大且明显偏水平，才算切换手势
+  if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+  const idx = MAIN_TABS.indexOf(route.path)
+  if (idx === -1) return
+  const nextIdx = dx < 0 ? idx + 1 : idx - 1
+  if (nextIdx < 0 || nextIdx >= MAIN_TABS.length) return
+  router.push(MAIN_TABS[nextIdx])
+}
+
+const onPointerCancel = () => { swiping = false }
+
+// 主 Tab 之间切换时使用滑动过渡（点击或滑动均适用），其余导航保持淡入
+watch(() => route.path, (newPath) => {
+  const newIdx = MAIN_TABS.indexOf(newPath)
+  if (newIdx !== -1 && lastTabIndex !== -1 && newIdx !== lastTabIndex) {
+    transitionName.value = newIdx > lastTabIndex ? 'tab-left' : 'tab-right'
+    setTimeout(() => { transitionName.value = 'page' }, 360)
+  }
+  lastTabIndex = newIdx
+})
 
 const shouldShowNav = computed(() => {
   return !route.meta.fullscreen && route.path !== '/login'
@@ -63,6 +123,15 @@ onMounted(() => {
   if (userStore.isLogin) {
     initSocket()
   }
+  window.addEventListener('pointerdown', onPointerDown, { passive: true })
+  window.addEventListener('pointerup', onPointerUp, { passive: true })
+  window.addEventListener('pointercancel', onPointerCancel, { passive: true })
+})
+
+onUnmounted(() => {
+  window.removeEventListener('pointerdown', onPointerDown)
+  window.removeEventListener('pointerup', onPointerUp)
+  window.removeEventListener('pointercancel', onPointerCancel)
 })
 </script>
 
@@ -81,6 +150,7 @@ body {
   background: #f5f5f7;
 }
 .app {
+  position: relative;
   min-height: 100dvh;
   background: #f5f5f7;
 }
@@ -151,6 +221,24 @@ body {
   opacity: 0;
   transform: translateX(-8px);
 }
+
+/* 主 Tab 左右滑动切换过渡 */
+.tab-left-enter-active,
+.tab-left-leave-active,
+.tab-right-enter-active,
+.tab-right-leave-active {
+  transition: transform 0.32s ease, opacity 0.32s ease;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+}
+
+.tab-left-enter-from { transform: translateX(100%); opacity: 0.4; }
+.tab-left-leave-to { transform: translateX(-100%); opacity: 0.4; }
+.tab-right-enter-from { transform: translateX(-100%); opacity: 0.4; }
+.tab-right-leave-to { transform: translateX(100%); opacity: 0.4; }
 
 /* PC端通用容器优化 */
 @media (min-width: 768px) {

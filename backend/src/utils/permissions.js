@@ -44,10 +44,8 @@ const parsePerms = (p) => {
 // role: { is_super, permissions } 或 null（无角色）
 const resolvePermissions = (adminPerms, role) => {
   if (role && role.is_super) return ['all'];
-  const perms = [...new Set([...parsePerms(role ? role.permissions : null), ...parsePerms(adminPerms)])];
-  // 未绑定角色且账号未配置任何权限 → 兜底全权限（兼容历史环境变量账号 admin/admin123）
-  if (!role && perms.length === 0) return ['all'];
-  return perms;
+  // 未绑定角色且账号未配置任何权限 → 空权限（不再兜底全权限，避免越权）
+  return [...new Set([...parsePerms(role ? role.permissions : null), ...parsePerms(adminPerms)])];
 };
 
 // 是否为超级管理员（直接放行所有接口）
