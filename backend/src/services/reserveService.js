@@ -2,6 +2,10 @@ const { Reserve, ReserveSlot, User, Game } = require('../models');
 const { getTimestamp, parseQuery } = require('../utils/helper');
 const { Op } = require('sequelize');
 const sequelize = require('../config/mysql');
+const { getCommissionRate } = require('./settingsService');
+
+// 预约完成结算分成（陪玩师占比）默认值：系统设置 reserve_commission_rate 缺省时使用（全额给陪玩师）
+const RESERVE_COMMISSION_DEFAULT = 1;
 
 const getAvailableSlots = async (companionId, date, gameId) => {
   const slots = await ReserveSlot.findAll({
@@ -277,6 +281,8 @@ const completeReserve = async (userId, reserveId) => {
 
   const price = Number(reserve.price) || 0;
   const companionUserId = reserve.target_user_id;
+  const rate = await getCommissionRate('reserve_commission_rate', RESERVE_COMMISSION_DEFAULT);
+  const companionIncome = Math.round(price * rate * 100) / 100;
 
   const transaction = await sequelize.transaction();
   try {
@@ -285,15 +291,15 @@ const completeReserve = async (userId, reserveId) => {
       update_time: getTimestamp()
     }, { transaction });
 
-    // 完成结算：预约金额全额计入陪玩师可提现收入
-    if (price > 0 && companionUserId) {
+    // 完成结算：按系统设置比例把预约金额计入陪玩师可提现收入
+    if (companionIncome > 0 && companionUserId) {
       await User.increment('gift_money', {
-        by: price,
+        by: companionIncome,
         where: { id: companionUserId },
         transaction
       });
       await User.increment('gift_money_zong', {
-        by: price,
+        by: companionIncome,
         where: { id: companionUserId },
         transaction
       });

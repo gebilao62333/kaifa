@@ -1,21 +1,11 @@
-const { Game, CompanionProfile, GameOrder, User, SystemSettings } = require('../models');
+const { Game, CompanionProfile, GameOrder, User } = require('../models');
 const { getTimestamp, generateOrderNo, parseQuery } = require('../utils/helper');
 const { Op } = require('sequelize');
 const sequelize = require('../config/mysql');
+const { getCommissionRate } = require('./settingsService');
 
-// 订单分账比例（陪玩师分成）：读取系统设置 order_commission_rate，默认 0.7，范围 [0,1]
-const getOrderCommissionRate = async () => {
-  try {
-    const row = await SystemSettings.findOne({ where: { key: 'order_commission_rate' } });
-    const rate = row ? Number(row.value) : NaN;
-    if (Number.isFinite(rate) && rate >= 0 && rate <= 1) {
-      return rate;
-    }
-  } catch (e) {
-    // 设置表不可用时使用默认比例
-  }
-  return 0.7;
-};
+// 订单分账比例（陪玩师分成）默认值：系统设置 order_commission_rate 缺省时使用
+const ORDER_COMMISSION_DEFAULT = 0.7;
 
 const getCategories = async () => {
   const games = await Game.findAll({
@@ -271,7 +261,7 @@ const completeOrder = async (userId, orderId) => {
   
   const companionUserId = order.target_user_id || order.companion_id;
   const totalPrice = Number(order.total_price) || 0;
-  const rate = await getOrderCommissionRate();
+  const rate = await getCommissionRate('order_commission_rate', ORDER_COMMISSION_DEFAULT);
   const companionIncome = Math.round(totalPrice * rate * 100) / 100;
   
   // 完成订单：给陪玩师分账 + 累加其资料（收入/单量），全部在同一事务内保证一致

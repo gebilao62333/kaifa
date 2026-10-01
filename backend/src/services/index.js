@@ -21,6 +21,7 @@ const demandService = require('./demandService');
 const regionService = require('./regionService');
 const walletService = require('./walletService');
 const feedbackService = require('./feedbackService');
+const settingsService = require('./settingsService');
 
 module.exports = {
   authService,
@@ -45,5 +46,6 @@ module.exports = {
   demandService,
   regionService,
   walletService,
-  feedbackService
+  feedbackService,
+  settingsService
 };
