@@ -97,7 +97,9 @@ const goTo = (path) => {
 }
 
 .nav-item.active .nav-icon {
-  transform: scale(1.1);
+  /* 选中：先弹一下，再轻微上下浮动 */
+  transform-origin: center bottom;
+  animation: navPop 0.45s ease, navFloat 2.4s ease-in-out 0.45s infinite;
 }
 
 .nav-item.active .nav-text {
@@ -143,6 +145,26 @@ const goTo = (path) => {
   }
   50% {
     transform: scale(1.1);
+  }
+}
+
+/* 选中图标：弹跳一次 */
+@keyframes navPop {
+  0% { transform: scale(0.85); }
+  55% { transform: scale(1.3); }
+  100% { transform: scale(1.1); }
+}
+
+/* 选中图标：持续轻微上下浮动 */
+@keyframes navFloat {
+  0%, 100% { transform: scale(1.1) translateY(0); }
+  50% { transform: scale(1.1) translateY(-3px); }
+}
+
+/* 桌面端 hover 微抬（未选中项） */
+@media (hover: hover) {
+  .nav-item:not(.active):hover .nav-icon {
+    transform: translateY(-2px) scale(1.08);
   }
 }
 

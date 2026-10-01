@@ -73,7 +73,7 @@ const onPointerUp = (e) => {
   const dx = e.clientX - swipeStartX
   const dy = e.clientY - swipeStartY
   // 横向位移足够大且明显偏水平，才算切换手势
-  if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+  if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) return
   const idx = MAIN_TABS.indexOf(route.path)
   if (idx === -1) return
   const nextIdx = dx < 0 ? idx + 1 : idx - 1
