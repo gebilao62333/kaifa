@@ -127,12 +127,6 @@ INSERT INTO `xn_banner` (`id`, `title`, `image`, `link_url`, `sort_order`, `stat
 (2, 'VIP会员限时特惠', 'banner2.png', '/vip', 2, 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
 (3, '热门游戏推荐', 'banner3.png', '/games', 3, 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
 
--- 相册
-INSERT INTO `xn_album` (`id`, `user_id`, `title`, `cover`, `photos_count`, `status`, `create_time`, `update_time`) VALUES
-(1, 1, '我的游戏日常', 'https://picsum.photos/400/300?random=301', 5, 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-(2, 2, '精彩瞬间', 'https://picsum.photos/400/300?random=302', 8, 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-(3, 3, '生活随拍', 'https://picsum.photos/400/300?random=303', 3, 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
-
 -- 相册照片
 INSERT INTO `xn_album_photo` (`id`, `user_id`, `image_url`, `description`, `privacy`, `create_time`, `status`) VALUES
 (1, 1, 'https://picsum.photos/400/300?random=311', '游戏日常', 'public', UNIX_TIMESTAMP(), 1),

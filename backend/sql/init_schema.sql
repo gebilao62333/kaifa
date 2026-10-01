@@ -744,42 +744,6 @@ CREATE TABLE IF NOT EXISTS `xn_withdraw` (
   KEY `idx_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='提现表';
 
--- 支出流水表
-CREATE TABLE IF NOT EXISTS `xn_expense_record` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `user_id` BIGINT NOT NULL,
-  `source_type` VARCHAR(20) NOT NULL,
-  `source_name` VARCHAR(50) NOT NULL,
-  `icon` VARCHAR(20),
-  `bg_color` VARCHAR(64),
-  `amount` DECIMAL(10, 2) NOT NULL DEFAULT 0,
-  `rel_id` BIGINT DEFAULT 0,
-  `remark` VARCHAR(255),
-  `create_time` INT(10) DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_user_id` (`user_id`),
-  KEY `idx_source_type` (`source_type`),
-  KEY `idx_create_time` (`create_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='支出流水表';
-
--- 收入流水表
-CREATE TABLE IF NOT EXISTS `xn_income_record` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `user_id` BIGINT NOT NULL,
-  `source_type` VARCHAR(20) NOT NULL,
-  `source_name` VARCHAR(50) NOT NULL,
-  `icon` VARCHAR(20),
-  `bg_color` VARCHAR(64),
-  `amount` DECIMAL(10, 2) NOT NULL DEFAULT 0,
-  `rel_id` BIGINT DEFAULT 0,
-  `remark` VARCHAR(255),
-  `create_time` INT(10) DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_user_id` (`user_id`),
-  KEY `idx_source_type` (`source_type`),
-  KEY `idx_create_time` (`create_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='收入流水表';
-
 -- 媒资登记表
 CREATE TABLE IF NOT EXISTS `xn_media_asset` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
@@ -871,19 +835,5 @@ CREATE TABLE IF NOT EXISTS `xn_user_pref` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户偏好/装扮数据表';
-
--- 相册表（历史遗留表，无对应 Sequelize 模型；保留以兼容既有数据）
-CREATE TABLE IF NOT EXISTS `xn_album` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `user_id` BIGINT NOT NULL,
-  `title` VARCHAR(255),
-  `cover` VARCHAR(255),
-  `photos_count` INT DEFAULT 0,
-  `status` TINYINT(1) DEFAULT 1,
-  `create_time` INT(10) DEFAULT 0,
-  `update_time` INT(10) DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_user_id` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='相册表';
 
 SET FOREIGN_KEY_CHECKS = 1;

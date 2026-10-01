@@ -29,8 +29,6 @@ const SplashScreen = require('./mysql/SplashScreen');
 const RechargePackage = require('./mysql/RechargePackage');
 const Card = require('./mysql/Card');
 const Withdraw = require('./mysql/Withdraw');
-const IncomeRecord = require('./mysql/IncomeRecord');
-const ExpenseRecord = require('./mysql/ExpenseRecord');
 const VirtualUser = require('./mysql/VirtualUser');
 const VirtualChatHistory = require('./mysql/VirtualChatHistory');
 const VirtualUserTag = require('./mysql/VirtualUserTag');
@@ -44,11 +42,6 @@ const Feedback = require('./mysql/Feedback');
 const Admin = require('./mysql/Admin');
 const AdminRole = require('./mysql/AdminRole');
 const SystemSettings = require('./mysql/SystemSettings');
-
-// ==================== MongoDB 模型 ====================
-const ChatMessage = require('./mongo/ChatMessage');
-const UserSession = require('./mongo/UserSession');
-const Notification = require('./mongo/Notification');
 
 module.exports = {
   User,
@@ -81,15 +74,10 @@ module.exports = {
   RechargePackage,
   Card,
   Withdraw,
-  IncomeRecord,
-  ExpenseRecord,
   VirtualUser,
   VirtualChatHistory,
   VirtualUserTag,
   VirtualUserTagRelation,
-  ChatMessage,
-  UserSession,
-  Notification,
   AlbumPhoto,
   AlbumLike,
   MediaAsset,

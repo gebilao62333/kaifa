@@ -12,6 +12,7 @@ const runMigrations = async () => {
   const { up: virtualUserUp } = require('./20260824000000_add_virtual_user_online_columns');
   const { up: postTagAlbumUp } = require('./20261001000000_add_post_tag_album_fields');
   const { up: interactionFixUp } = require('./20261001000001_add_interaction_fix_columns');
+  const { up: dropLegacyTablesUp } = require('./20261001000002_drop_legacy_tables');
 
   console.log('\n1. 添加货币单位字段...');
   await currencyUp();
@@ -27,6 +28,9 @@ const runMigrations = async () => {
 
   console.log('\n5. 补充交互修复字段（预约/陪玩师资料/实名/申诉/访问与偏好表）...');
   await interactionFixUp();
+
+  console.log('\n6. 删除历史遗留无用表（xn_income_record / xn_expense_record / xn_album）...');
+  await dropLegacyTablesUp();
 
   console.log('\n========== 数据库迁移完成 ==========');
 };

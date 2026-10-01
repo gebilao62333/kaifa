@@ -15,11 +15,6 @@ jest.mock('../../../src/models', () => ({
     create: jest.fn(),
     destroy: jest.fn()
   },
-  UserSession: {
-    findAndCountAll: jest.fn(),
-    findOrCreate: jest.fn(),
-    update: jest.fn()
-  },
   ChatLog: {
     findAndCountAll: jest.fn(),
     create: jest.fn()

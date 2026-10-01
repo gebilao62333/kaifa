@@ -978,7 +978,7 @@
 ### 19.3 数据库配置
 
 - **MySQL**: 用户、订单、游戏、礼物、需求、相册等核心业务数据；**聊天消息也存 MySQL**（`xn_chat_log` / `xn_chat_room`）
-- **MongoDB**: 预留 `ChatMessage` / `UserSession` / `Notification` 3 个模型，但当前聊天流未实际使用（历史结构保留）
+- **MongoDB**: 曾预留 `ChatMessage` / `UserSession` / `Notification` 3 个模型，因长期未被使用已于 2026-10-01 清理移除；聊天消息实际存于 MySQL（`xn_chat_log`），当前无 Mongoose 模型
 - **开发环境**: 支持 Mock 模式，无需真实数据库
 
 ---

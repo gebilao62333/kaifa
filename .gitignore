@@ -9,3 +9,8 @@ dist/
 nginx/ssl/
 # 本地口令重置脚本，不入库
 backend/sql/fix_passwords.sql
+# 测试/压测生成物（可随时重新生成，不入库）
+backend/tests/e2e/report.json
+backend/tests/e2e/report.md
+backend/tests/e2e/write-report.json
+backend/scripts/bench_results.jsonl
