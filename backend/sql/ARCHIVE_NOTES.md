@@ -38,7 +38,30 @@ fix_columns.sql、fix_companion_profile.sql、fix_status_types.sql、init_data.s
 > init_system_settings.sql、init_admin_system.sql、fix_companion_profile.sql、fix_status_types.sql、test_data.sql、
 > alter_virtual_chat_history_user_isolation.sql、alter_virtual_user_random_online.sql、以及各字符集修复脚本。
 
-## 确认执行状态的方法
+## ✅ 2026-10-01 归档处理
+
+上表中"需单独决策"的脚本已**全部移入 `archive/` 子目录**，`sql/` 根目录现在只保留：
+
+- `init_schema.sql` —— 唯一权威建表脚本（43 张表，与 Sequelize 模型逐列对齐）
+- `init_data.sql` —— 初始化数据（字段与 init_schema 一致）
+- `check-tables.sql` —— 只读表结构检查
+- `fix_passwords.sql` —— 未纳入版本库（高风险，需人工确认）
+
+`archive/` 内脚本（17 个）：`migrate2.sql`、`migrate-admin.sql`、`fix_columns.sql`、`fix_companion_profile.sql`、`migrate_companion_profile.sql`、`fix_status_types.sql`、`fix_charset.sql`、`fix_all_charset.sql`、`repair_charset_data.sql`、`fix_users_6_13.sql`、`fix_avatar.sql`、`init_settings.sql`、`init_system_settings.sql`、`init_admin_system.sql`、`test_data.sql`、`alter_virtual_chat_history_user_isolation.sql`、`alter_virtual_user_random_online.sql`
+
+> **⚠️ 请勿直接在生产库执行 `archive/` 中的脚本**：其中 `migrate2.sql` 会 `DROP TABLE xn_system_settings`，字符集类脚本为覆盖式 UPDATE，`fix_columns.sql` 与模型可能存在二次漂移。若某环境历史库结构落后，请先用 `check-tables.sql` 比对实际结构，再手工 ALTER。
+
+## 首次部署
+
+```bash
+mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS eudazi_peer CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -u root -p --default-character-set=utf8mb4 eudazi_peer < init_schema.sql
+mysql -u root -p --default-character-set=utf8mb4 eudazi_peer < init_data.sql
+```
+
+> 注意：后端**不调用 `sequelize.sync()`**，修改模型后必须同步更新 `init_schema.sql`。
+
+## 确认现有库执行状态的方法
 
 在数据库可连接的环境（Sealos 云端容器）执行：
 

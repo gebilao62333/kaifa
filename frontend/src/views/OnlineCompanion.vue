@@ -24,7 +24,8 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
+import gamesService from '../services/gamesService'
 
 const emit = defineEmits(['update:modelValue', 'change'])
 const props = defineProps({
@@ -40,14 +41,33 @@ watch(() => props.modelValue, (newVal) => {
   }
 }, { deep: true })
 
-const onlineGames = [
-  { id: 1, name: '王者荣耀', icon: '🎮', price: 50, rating: 4.9, tags: ['打野', 'Carry'], bgColor: 'var(--gradient-primary)' },
-  { id: 2, name: '和平精英', icon: '🔫', price: 45, rating: 4.8, tags: ['钢枪', '战术'], bgColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' },
-  { id: 3, name: '英雄联盟', icon: '⚔️', price: 55, rating: 4.9, tags: ['中单', '上分'], bgColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
-  { id: 4, name: '永劫无间', icon: '🗡️', price: 48, rating: 4.7, tags: ['太刀', '振刀'], bgColor: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' },
-  { id: 5, name: '原神', icon: '✨', price: 40, rating: 4.8, tags: ['代肝', '深渊'], bgColor: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' },
-  { id: 6, name: 'CS2', icon: '🎯', price: 60, rating: 4.9, tags: ['突破', 'AWP'], bgColor: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)' }
+// 游戏列表改为从后端拉取，确保 game.id 是真实的 game_id（此前硬编码 id 与数据库不一致）
+const BADGE_COLORS = [
+  'var(--gradient-primary)',
+  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+  'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+  'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)'
 ]
+
+const onlineGames = ref([])
+
+const loadGames = async () => {
+  try {
+    const res = await gamesService.getCategories()
+    onlineGames.value = (res.data || []).map((g, i) => ({
+      id: g.gameId,
+      name: g.gameName,
+      icon: '🎮',
+      bgColor: BADGE_COLORS[i % BADGE_COLORS.length]
+    }))
+  } catch (e) {
+    onlineGames.value = []
+  }
+}
+
+onMounted(loadGames)
 
 const handleSelect = (game) => {
   const index = selectedIds.value.findIndex(id => id === game.id)
@@ -61,7 +81,7 @@ const handleSelect = (game) => {
   
   // 直接 emit，不通过 watch
   emit('update:modelValue', [...newSelectedIds])
-  const selectedItems = onlineGames.filter(service => newSelectedIds.includes(service.id))
+  const selectedItems = onlineGames.value.filter(service => newSelectedIds.includes(service.id))
   emit('change', selectedItems)
 }
 </script>

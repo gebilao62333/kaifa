@@ -67,9 +67,9 @@
         <div class="order-footer">
           <div class="price">{{ item.price }} 金币/{{ item.unit }}</div>
           <div class="stats">
-            <span>👥 {{ item.applyCount }}人已接单</span>
+            <span>💰 共 {{ item.totalPrice }} 金币</span>
           </div>
-          <button class="apply-btn" v-if="item.status === 'active'" @click.stop="applyOrder(item)">立即接单</button>
+          <button class="apply-btn" v-if="item.status === 'active'" :disabled="grabbing" @click.stop="applyOrder(item)">立即接单</button>
         </div>
       </div>
 
@@ -119,12 +119,12 @@
           </div>
           <div class="detail-row">
             <div class="detail-section">
-              <div class="detail-label">价格</div>
-              <div class="detail-value price">¥{{ currentOrder.price }}/{{ currentOrder.unit }}</div>
+              <div class="detail-label">单价</div>
+              <div class="detail-value price">{{ currentOrder.price }} 金币/{{ currentOrder.unit }}</div>
             </div>
             <div class="detail-section">
-              <div class="detail-label">已接单</div>
-              <div class="detail-value">{{ currentOrder.applyCount }}人</div>
+              <div class="detail-label">合计</div>
+              <div class="detail-value">{{ currentOrder.totalPrice }} 金币</div>
             </div>
           </div>
           <div class="detail-section">
@@ -132,7 +132,7 @@
             <div class="detail-value">{{ formatTime(currentOrder.createTime) }}</div>
           </div>
           <div class="detail-actions" v-if="currentOrder.status === 'active'">
-            <button class="action-btn primary" @click="applyOrder(currentOrder)">立即接单</button>
+            <button class="action-btn primary" :disabled="grabbing" @click="applyOrder(currentOrder)">{{ grabbing ? '抢单中...' : '立即接单' }}</button>
           </div>
         </div>
       </div>
@@ -145,6 +145,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from '../composables/useToast'
 import PageLayout from '../components/PageLayout.vue'
+import gamesService from '../services/gamesService'
 import { DEFAULT_AVATAR } from '../common/constants'
 
 const router = useRouter()
@@ -154,6 +155,7 @@ const loading = ref(false)
 const hasMore = ref(true)
 const showOrderDetail = ref(false)
 const currentOrder = ref(null)
+const grabbing = ref(false)
 const pullTipVisible = ref(false)
 const pullTipText = ref('下拉刷新')
 
@@ -167,7 +169,7 @@ const filteredOrders = computed(() => {
   if (activeTab.value === 'new') {
     return [...activeOrders].sort((a, b) => b.createTime - a.createTime)
   } else if (activeTab.value === 'hot') {
-    return [...activeOrders].sort((a, b) => b.applyCount - a.applyCount)
+    return [...activeOrders].sort((a, b) => b.totalPrice - a.totalPrice)
   }
   return activeOrders
 })
@@ -219,78 +221,43 @@ const formatTime = (timestamp) => {
 
 const getStatusText = (status) => {
   const statusMap = {
-    active: '进行中',
+    active: '待接单',
     closed: '已结束',
     finished: '已完成'
   }
   return statusMap[status] || status
 }
 
+const mapPoolItem = (o) => ({
+  id: o.orderId,
+  orderNo: o.orderNo,
+  userId: o.userId,
+  avatar: o.avatar || DEFAULT_AVATAR,
+  nickname: o.nickName || '玩家',
+  level: o.level,
+  gameId: o.gameId,
+  title: o.gameName ? `${o.gameName} 陪玩悬赏` : '陪玩悬赏',
+  desc: o.remark || `悬赏 ${o.num} 单，合计 ${o.totalPrice} 金币`,
+  tags: [o.gameName].filter(Boolean),
+  price: o.price,
+  unit: '单',
+  num: o.num,
+  totalPrice: o.totalPrice,
+  status: 'active',
+  createTime: (o.createTime || 0) * 1000
+})
+
 const loadOrders = async () => {
   loading.value = true
-  await new Promise(resolve => setTimeout(resolve, 500))
-  
-  orderList.value = [
-    {
-      id: 1,
-      avatar: DEFAULT_AVATAR,
-      nickname: '玩家小李',
-      level: 18,
-      title: '王者荣耀排位上分',
-      desc: '需要一个打野陪玩，能带我飞的，钻石到星耀段位',
-      tags: ['王者荣耀', '排位赛', '打野'],
-      price: 35,
-      unit: '小时',
-      applyCount: 8,
-      status: 'active',
-      createTime: Date.now() - 1800000
-    },
-    {
-      id: 2,
-      avatar: DEFAULT_AVATAR,
-      nickname: '菜鸟玩家',
-      level: 12,
-      title: '和平精英娱乐局',
-      desc: '找个会聊天的陪玩，一起打打娱乐局，开心最重要',
-      tags: ['和平精英', '娱乐', '聊天'],
-      price: 25,
-      unit: '小时',
-      applyCount: 15,
-      status: 'active',
-      createTime: Date.now() - 3600000
-    },
-    {
-      id: 3,
-      avatar: DEFAULT_AVATAR,
-      nickname: '原神玩家',
-      level: 30,
-      title: '原神刷本组队',
-      desc: '需要一个熟悉原神的陪玩，一起刷圣遗物和材料',
-      tags: ['原神', '刷本', '材料'],
-      price: 30,
-      unit: '小时',
-      applyCount: 5,
-      status: 'active',
-      createTime: Date.now() - 7200000
-    },
-    {
-      id: 4,
-      avatar: DEFAULT_AVATAR,
-      nickname: '电竞小王子',
-      level: 45,
-      title: 'LOL灵活组排',
-      desc: '找个辅助或打野一起打灵活组排，白银到黄金',
-      tags: ['英雄联盟', '灵活组排', '辅助'],
-      price: 40,
-      unit: '小时',
-      applyCount: 12,
-      status: 'closed',
-      createTime: Date.now() - 86400000
-    }
-  ]
-  
-  loading.value = false
-  hasMore.value = false
+  try {
+    const res = await gamesService.getPool({ page: 1, pageSize: 50 })
+    orderList.value = (res.data?.list || []).map(mapPoolItem)
+  } catch (err) {
+    toast.error(err.message || '加载派单列表失败')
+  } finally {
+    loading.value = false
+    hasMore.value = false
+  }
 }
 
 const goOrderDetail = (item) => {
@@ -309,12 +276,19 @@ const goUserProfile = (item) => {
   router.push({ name: 'UserProfile', params: { id: item.id } })
 }
 
-const applyOrder = (item) => {
-  console.log('接单:', item.id)
-  item.status = 'closed'
-  item.applyCount++
-  closeOrderDetail()
-  toast.success(`成功申请 "${item.title}" 的订单！`)
+const applyOrder = async (item) => {
+  if (grabbing.value) return
+  grabbing.value = true
+  try {
+    await gamesService.grabOrder(item.id)
+    item.status = 'closed'
+    closeOrderDetail()
+    toast.success('抢单成功，可在「我的订单」查看')
+  } catch (err) {
+    toast.error(err.message || '抢单失败')
+  } finally {
+    grabbing.value = false
+  }
 }
 
 const goBack = () => {

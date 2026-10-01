@@ -6,23 +6,6 @@
       <span class="placeholder"></span>
     </template>
 
-    <div class="tabs">
-      <div 
-        class="tab-item" 
-        :class="{ active: activeTab === 'online' }"
-        @click="activeTab = 'online'">
-        <span class="tab-icon">💻</span>
-        <span>线上陪玩</span>
-      </div>
-      <div 
-        class="tab-item" 
-        :class="{ active: activeTab === 'offline' }"
-        @click="activeTab = 'offline'">
-        <span class="tab-icon">🏃</span>
-        <span>线下陪伴</span>
-      </div>
-    </div>
-
     <div class="service-list">
       <div 
         class="service-card" 
@@ -50,7 +33,7 @@
         <div class="service-footer">
           <div class="price">
             <span class="price-value">{{ service.price }} 金币</span>
-            <span class="price-unit">/{{ activeTab === 'online' ? '小时' : '次' }}</span>
+            <span class="price-unit">/单</span>
           </div>
           <div class="stats">
             <span>📊 {{ service.orderCount }} 单</span>
@@ -268,6 +251,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePermissions } from '../composables/usePermissions'
 import PageLayout from '../components/PageLayout.vue'
+import gamesService from '../services/gamesService'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
@@ -279,6 +263,7 @@ const {
 } = usePermissions()
 
 const activeTab = ref('online')
+const togglingId = ref(null)
 const showEditModal = ref(false)
 const showPicker = ref(false)
 const currentPicker = ref('')
@@ -379,96 +364,40 @@ const pickerOptions = computed(() => {
   return optionMap[currentPicker.value] || []
 })
 
-const STORAGE_KEY = 'myServices'
-
-const defaultServices = {
-  online: [
-    {
-      id: 1,
-      name: '王者荣耀排位',
-      gameName: '王者荣耀',
-      icon: 'https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=200',
-      description: '专业打野，快速上分，钻石到星耀',
-      tags: ['打野', '排位', '上分'],
-      price: 35,
-      status: 'active',
-      orderCount: 48,
-      rating: 4.9,
-      level: 'semi-pro',
-      position: 'jungle',
-      playType: 'carry',
-      audioUrl: '',
-      city: 'beijing'
-    },
-    {
-      id: 2,
-      name: '和平精英娱乐',
-      gameName: '和平精英',
-      icon: 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=200',
-      description: '搞笑陪聊，带你躺赢，开心最重要',
-      tags: ['娱乐', '聊天', '躺赢'],
-      price: 25,
-      status: 'active',
-      orderCount: 32,
-      rating: 4.8,
-      level: 'amateur',
-      position: 'all',
-      playType: 'entertainment',
-      audioUrl: '',
-      city: 'shanghai'
-    }
-  ],
-  offline: [
-    {
-      id: 101,
-      name: '王者荣耀开黑',
-      gameName: '王者荣耀',
-      icon: 'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=200',
-      description: '线下开黑，一起到网咖面基打游戏',
-      tags: ['开黑', '面基', '网咖'],
-      price: 100,
-      status: 'paused',
-      orderCount: 12,
-      rating: 4.7,
-      level: 'professional',
-      position: 'mid',
-      playType: 'carry',
-      audioUrl: '',
-      city: 'shenzhen'
-    }
-  ]
-}
-
-const servicesData = ref({
-  online: [],
-  offline: []
+// 后端 CompanionProfile.status：1=审核中 2=接单中 3=已暂停
+const mapService = (s) => ({
+  id: s.serviceId,
+  name: s.gameName ? `${s.gameName} 陪玩` : '陪玩服务',
+  gameName: s.gameName,
+  gameId: s.gameId,
+  icon: s.image,
+  description: (s.tags && s.tags.length) ? s.tags.join(' · ') : '暂无技能介绍',
+  tags: s.tags || [],
+  price: s.price,
+  status: s.status === 2 ? 'active' : (s.status === 3 ? 'paused' : 'pending'),
+  orderCount: s.orderCount,
+  rating: s.rating,
+  incomeTotal: s.incomeTotal
 })
 
-const currentServices = computed(() => {
-  return servicesData.value[activeTab.value]
-})
+const services = ref([])
 
-const loadServices = () => {
-  const saved = localStorage.getItem(STORAGE_KEY)
-  if (saved) {
-    try {
-      servicesData.value = JSON.parse(saved)
-    } catch (e) {
-      servicesData.value = { ...defaultServices }
-    }
-  } else {
-    servicesData.value = { ...defaultServices }
+const currentServices = computed(() => services.value)
+
+const loadServices = async () => {
+  try {
+    const res = await gamesService.getMyServices()
+    services.value = (res.data?.list || []).map(mapService)
+  } catch (err) {
+    toast.error(err.message || '加载我的服务失败')
   }
-}
-
-const saveServices = () => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(servicesData.value))
 }
 
 const getStatusText = (status) => {
   const statusMap = {
-    active: '已开启',
-    paused: '已暂停'
+    active: '接单中',
+    paused: '已暂停',
+    pending: '审核中'
   }
   return statusMap[status] || status
 }
@@ -732,43 +661,45 @@ const deleteAudio = () => {
   }
 }
 
-const saveService = () => {
-  if (!editForm.value.description) {
-    toast.error('请填写技能介绍')
-    return
-  }
+const saveService = async () => {
   if (!editForm.value.price || editForm.value.price <= 0) {
     toast.error('请输入有效的价格')
     return
   }
 
-  const services = servicesData.value[activeTab.value]
-  const idx = services.findIndex(s => s.id === editForm.value.id)
-  if (idx !== -1) {
-    services[idx] = {
-      ...services[idx],
-      name: editForm.value.name,
-      description: editForm.value.description,
-      level: editForm.value.level,
-      position: editForm.value.position,
-      playType: editForm.value.playType,
-      price: editForm.value.price,
-      icon: editForm.value.icon,
-      audioUrl: editForm.value.audioUrl,
-      city: editForm.value.city
-    }
-    saveServices()
+  const target = services.value.find(s => s.id === editForm.value.id)
+  if (!target) return
+
+  try {
+    // 后端仅支持按游戏提交/更新服务（apply 后状态回到审核中）
+    await gamesService.applyCompanion({
+      gameId: target.gameId,
+      serviceType: 'online',
+      price: Number(editForm.value.price),
+      tags: (target.tags || []).join(','),
+      description: editForm.value.description || ''
+    })
     closeEditModal()
-    toast.success('保存成功！')
+    toast.success('已提交，等待审核')
+    loadServices()
+  } catch (err) {
+    toast.error(err.message || '保存失败')
   }
 }
 
-const toggleService = (service) => {
-  const services = servicesData.value[activeTab.value]
-  const idx = services.findIndex(s => s.id === service.id)
-  if (idx !== -1) {
-    services[idx].status = services[idx].status === 'active' ? 'paused' : 'active'
-    saveServices()
+const toggleService = async (service) => {
+  if (togglingId.value === service.id) return
+  togglingId.value = service.id
+  try {
+    const res = await gamesService.toggleServiceStatus(service.id)
+    const st = res.data?.status
+    if (st === 2) service.status = 'active'
+    else if (st === 3) service.status = 'paused'
+    toast.success(st === 2 ? '已开启接单' : '已暂停接单')
+  } catch (err) {
+    toast.error(err.message || '操作失败')
+  } finally {
+    togglingId.value = null
   }
 }
 

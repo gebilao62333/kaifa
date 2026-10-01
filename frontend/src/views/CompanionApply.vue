@@ -241,6 +241,7 @@ import OfflineApplyForm from './OfflineApplyForm.vue'
 import { usePermissions } from '../composables/usePermissions'
 import PageLayout from '../components/PageLayout.vue'
 import regionService from '../services/regionService'
+import gamesService from '../services/gamesService'
 
 const { 
   requestMicrophonePermission,
@@ -251,6 +252,7 @@ const activeTab = ref('online')
 const showCompanionModal = ref(false)
 const showDetailModal = ref(false)
 const selectedService = ref(null)
+const submitting = ref(false)
 const selectedCompanion = ref(null)
 const selectedOfflineIds = ref([])
 const selectedOfflineServices = ref([])
@@ -435,7 +437,7 @@ const closeAllPickers = () => {
   currentPicker.value = ''
 }
 
-const submitForm = () => {
+const submitForm = async () => {
   // 检查当前标签的协议状态
   if (!currentAgreement.value.agreeRegister || !currentAgreement.value.agreePrivacy || !currentAgreement.value.agreeMinor) {
     showToastMsg('请先同意所有协议')
@@ -446,27 +448,56 @@ const submitForm = () => {
     showToastMsg('请填写技能介绍')
     return
   }
-  showToastMsg('提交成功，等待审核')
-  closeCompanionModal()
-  formData.value = {
-    city: '',
-    level: '',
-    skillIntro: '',
-    zone: '',
-    position: '',
-    playType: '',
-    price: '',
-    imageUrl: '',
-    audioUrl: '',
-    agreeRegister: false,
-    agreePrivacy: false,
-    agreeMinor: false
+
+  const gameId = selectedService.value?.id
+  if (!gameId) {
+    showToastMsg('请选择要申请的游戏')
+    return
   }
-  // 清除协议勾选状态
-  if (activeTab.value === 'online') {
-    onlineAgreement.value = { agreeRegister: false, agreePrivacy: false, agreeMinor: false }
-  } else {
-    offlineAgreement.value = { agreeRegister: false, agreePrivacy: false, agreeMinor: false }
+
+  if (!formData.value.price || Number(formData.value.price) <= 0) {
+    showToastMsg('请输入有效的价格')
+    return
+  }
+
+  if (submitting.value) return
+  submitting.value = true
+
+  try {
+    await gamesService.applyCompanion({
+      gameId: Number(gameId),
+      serviceType: selectedService.value?.category || 'online',
+      price: Number(formData.value.price),
+      tags: (selectedService.value?.tags || []).join(','),
+      description: formData.value.skillIntro
+    })
+
+    showToastMsg('提交成功，等待审核')
+    closeCompanionModal()
+    formData.value = {
+      city: '',
+      level: '',
+      skillIntro: '',
+      zone: '',
+      position: '',
+      playType: '',
+      price: '',
+      imageUrl: '',
+      audioUrl: '',
+      agreeRegister: false,
+      agreePrivacy: false,
+      agreeMinor: false
+    }
+    // 清除协议勾选状态
+    if (activeTab.value === 'online') {
+      onlineAgreement.value = { agreeRegister: false, agreePrivacy: false, agreeMinor: false }
+    } else {
+      offlineAgreement.value = { agreeRegister: false, agreePrivacy: false, agreeMinor: false }
+    }
+  } catch (err) {
+    showToastMsg(err.message || '提交失败，请稍后重试')
+  } finally {
+    submitting.value = false
   }
 }
 

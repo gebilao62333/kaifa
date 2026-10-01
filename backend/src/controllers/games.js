@@ -29,17 +29,22 @@ const getCompanions = async (req, res) => {
 
 const createOrder = async (req, res) => {
   try {
-    const { targetUserId, gameId, num = 1 } = req.body;
+    const { targetUserId, gameId, num = 1, price } = req.body;
     
-    if (!targetUserId || !gameId) {
-      return response.badRequest(res, '陪玩师ID和游戏ID不能为空');
+    if (!gameId) {
+      return response.badRequest(res, '游戏ID不能为空');
+    }
+    // 不传 targetUserId 视为派单大厅悬赏单，此时必须提供单价
+    if (!targetUserId && !price) {
+      return response.badRequest(res, '请选择陪玩师或填写悬赏单价');
     }
     
     const result = await gamesService.createOrder(
       req.userId,
-      parseInt(targetUserId),
+      targetUserId ? parseInt(targetUserId) : 0,
       parseInt(gameId),
-      parseInt(num)
+      parseInt(num),
+      price
     );
     response.success(res, result, '下单成功');
   } catch (error) {
@@ -246,11 +251,57 @@ const getStatistics = async (req, res) => {
   }
 };
 
+// 派单大厅：待抢悬赏单列表
+const getPool = async (req, res) => {
+  try {
+    const { gameId, page = 1, pageSize = 20 } = req.query;
+    const result = await gamesService.getPool(
+      req.userId,
+      gameId ? parseInt(gameId) : null,
+      parseInt(page),
+      parseInt(pageSize)
+    );
+    response.success(res, result);
+  } catch (error) {
+    logger.error('获取派单池错误:', error);
+    response.error(res, error.message);
+  }
+};
+
+// 我的服务（陪玩师端）
+const getMyServices = async (req, res) => {
+  try {
+    const result = await gamesService.getMyServices(req.userId);
+    response.success(res, result);
+  } catch (error) {
+    logger.error('获取我的服务错误:', error);
+    response.error(res, error.message);
+  }
+};
+
+// 服务上下线切换
+const toggleServiceStatus = async (req, res) => {
+  try {
+    const { serviceId } = req.body;
+
+    if (!serviceId) {
+      return response.badRequest(res, '服务ID不能为空');
+    }
+
+    const result = await gamesService.toggleServiceStatus(req.userId, parseInt(serviceId));
+    response.success(res, result, result.status === 2 ? '已开启接单' : '已暂停接单');
+  } catch (error) {
+    logger.error('切换服务状态错误:', error);
+    response.unprocessableEntity(res, error.message);
+  }
+};
+
 module.exports = {
   getCategories,
   getCompanions,
   searchCompanions,
   createOrder,
+  getPool,
   grabOrder,
   startOrder,
   completeOrder,
@@ -258,6 +309,8 @@ module.exports = {
   getOrders,
   applyAsCompanion,
   getApplyStatus,
+  getMyServices,
+  toggleServiceStatus,
   getCompanionDetail,
   evaluateOrder,
   getOrderDetail,

@@ -8,7 +8,12 @@ router.get('/categories', gamesController.getCategories);
 router.get('/companions', gamesController.getCompanions);
 router.get('/search', authMiddleware, gamesController.searchCompanions);
 router.post('/push', authMiddleware, gamesController.createOrder);
+// 派单大厅：待抢悬赏单
+router.get('/pool', authMiddleware, gamesController.getPool);
 router.post('/grab', authMiddleware, gamesController.grabOrder);
+// 陪玩师端「我的服务」
+router.get('/my-services', authMiddleware, gamesController.getMyServices);
+router.post('/toggle-service', authMiddleware, gamesController.toggleServiceStatus);
 router.post('/start', authMiddleware, gamesController.startOrder);
 router.post('/complete', authMiddleware, gamesController.completeOrder);
 router.post('/cancel', authMiddleware, gamesController.cancelOrder);

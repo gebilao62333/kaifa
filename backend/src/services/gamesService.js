@@ -65,22 +65,36 @@ const getCompanions = async (gameId, page, pageSize) => {
   };
 };
 
-const createOrder = async (userId, targetUserId, gameId, num = 1) => {
-  const targetProfile = await CompanionProfile.findOne({
-    where: {
-      user_id: targetUserId,
-      status: 2
-    }
-  });
-  
-  if (!targetProfile) {
-    throw new Error('陪玩师不存在或未认证');
-  }
-  
+const createOrder = async (userId, targetUserId, gameId, num = 1, price) => {
   const game = await Game.findByPk(gameId);
-  
+  if (!game) {
+    throw new Error('游戏不存在');
+  }
+
+  let unitPrice;
+  if (targetUserId) {
+    // 指定陪玩师：单价取该陪玩师的服务定价
+    const targetProfile = await CompanionProfile.findOne({
+      where: {
+        user_id: targetUserId,
+        status: 2
+      }
+    });
+
+    if (!targetProfile) {
+      throw new Error('陪玩师不存在或未认证');
+    }
+    unitPrice = Number(targetProfile.price);
+  } else {
+    // 不指定陪玩师：派单大厅悬赏单，单价由发布者指定
+    if (!price || Number(price) <= 0) {
+      throw new Error('请填写悬赏单价');
+    }
+    unitPrice = Number(price);
+  }
+
   const orderNo = generateOrderNo();
-  const totalPrice = Number(targetProfile.price) * num;
+  const totalPrice = unitPrice * num;
   
   const user = await User.findByPk(userId);
   
@@ -95,10 +109,11 @@ const createOrder = async (userId, targetUserId, gameId, num = 1) => {
     const order = await GameOrder.create({
       order_no: orderNo,
       user_id: userId,
-      target_user_id: targetUserId,
+      // 悬赏单 target_user_id=0，等待陪玩师抢单后回填
+      target_user_id: targetUserId || 0,
       game_id: gameId,
       game_name: game?.name || '',
-      price: targetProfile.price,
+      price: unitPrice,
       num,
       total_price: totalPrice,
       status: 0,
@@ -124,6 +139,47 @@ const createOrder = async (userId, targetUserId, gameId, num = 1) => {
   }
 };
 
+// 派单大厅：列出待抢的悬赏单（target_user_id=0，不含自己发布的）
+const getPool = async (userId, gameId, page, pageSize) => {
+  const { offset, limit } = parseQuery({ page, pageSize });
+
+  const where = { status: 0, target_user_id: 0 };
+  if (gameId) {
+    where.game_id = gameId;
+  }
+  if (userId) {
+    where.user_id = { [Op.ne]: userId };
+  }
+
+  const { count, rows } = await GameOrder.findAndCountAll({
+    where,
+    offset,
+    limit,
+    order: [['create_time', 'DESC']]
+  });
+
+  const list = await Promise.all(rows.map(async (order) => {
+    const publisher = await User.findByPk(order.user_id);
+    return {
+      orderId: order.id,
+      orderNo: order.order_no,
+      userId: order.user_id,
+      nickName: publisher?.nickname || '',
+      avatar: publisher?.avatar || '',
+      level: publisher?.lv || 1,
+      gameId: order.game_id,
+      gameName: order.game_name,
+      price: Number(order.price),
+      num: order.num,
+      totalPrice: Number(order.total_price),
+      remark: order.remark || '',
+      createTime: order.create_time
+    };
+  }));
+
+  return { total: count, list };
+};
+
 const grabOrder = async (companionId, orderId) => {
   const order = await GameOrder.findByPk(orderId);
   
@@ -134,20 +190,27 @@ const grabOrder = async (companionId, orderId) => {
   if (order.status !== 0) {
     throw new Error('订单已被抢或已取消');
   }
-  
-  const profile = await CompanionProfile.findOne({
-    where: {
-      user_id: companionId,
-      status: 2
-    }
-  });
-  
-  if (!profile) {
-    throw new Error('您不是认证陪玩师');
+
+  if (order.user_id === companionId) {
+    throw new Error('不能接自己发布的订单');
   }
   
+  const profile = await CompanionProfile.findOne({
+    where: { user_id: companionId }
+  });
+
+  if (!profile || profile.status !== 2) {
+    throw new Error('您不是在线接单的陪玩师');
+  }
+
+  const companion = await User.findByPk(companionId);
+  
+  // 抢单成功需回填服务者，否则后续 startOrder 的归属校验会失败
   await order.update({
     status: 1,
+    target_user_id: companionId,
+    companion_id: companionId,
+    companion_name: companion?.nickname || '',
     add_time: getTimestamp()
   });
   
@@ -518,11 +581,58 @@ const getStatistics = async (userId) => {
   };
 };
 
+// 我的服务（陪玩师端）：CompanionProfile 每用户一行，携带游戏名与接单状态
+const getMyServices = async (userId) => {
+  const profiles = await CompanionProfile.findAll({
+    where: { user_id: userId },
+    order: [['update_time', 'DESC']]
+  });
+
+  const list = await Promise.all(profiles.map(async (profile) => {
+    const game = await Game.findByPk(profile.game_id);
+    return {
+      serviceId: profile.id,
+      gameId: profile.game_id,
+      gameName: game?.name || '',
+      image: game?.image || '',
+      price: Number(profile.price),
+      tags: profile.tags ? profile.tags.split(',') : [],
+      // status: 1=审核中 2=接单中 3=已暂停
+      status: profile.status,
+      orderCount: profile.order_num || 0,
+      incomeTotal: Number(profile.income_total) || 0,
+      rating: Number(profile.star) || 0,
+      ratingCount: profile.pingjia_num || 0
+    };
+  }));
+
+  return { total: list.length, list };
+};
+
+// 上下线切换：接单中(2) <-> 已暂停(3)
+const toggleServiceStatus = async (userId, serviceId) => {
+  const profile = await CompanionProfile.findByPk(serviceId);
+
+  if (!profile || profile.user_id !== userId) {
+    throw new Error('服务不存在');
+  }
+
+  if (profile.status !== 2 && profile.status !== 3) {
+    throw new Error('当前状态不可切换');
+  }
+
+  const next = profile.status === 2 ? 3 : 2;
+  await profile.update({ status: next, update_time: getTimestamp() });
+
+  return { serviceId: profile.id, status: next };
+};
+
 module.exports = {
   getCategories,
   getCompanions,
   searchCompanions,
   createOrder,
+  getPool,
   grabOrder,
   startOrder,
   completeOrder,
@@ -530,6 +640,8 @@ module.exports = {
   getOrders,
   applyAsCompanion,
   getApplyStatus,
+  getMyServices,
+  toggleServiceStatus,
   getCompanionDetail,
   evaluateOrder,
   getOrderDetail,

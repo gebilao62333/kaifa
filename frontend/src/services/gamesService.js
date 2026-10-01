@@ -15,14 +15,38 @@ const gamesService = {
     return request('/api/games/companions', 'GET', data)
   },
 
+  // 后端契约：{ targetUserId?, gameId, num, price? }
+  // 传 targetUserId → 指定陪玩师下单；不传 → 派单大厅悬赏单（必须给 price）
   async pushOrder(params) {
-    validateParams(params, {
-      companionId: { required: true, label: '陪玩师', type: 'number' },
-      gameId: { required: true, label: '游戏', type: 'number' },
-      serviceType: { required: true, label: '服务类型', type: 'string' },
-      duration: { required: true, label: '服务时长', type: 'number' }
+    const { targetUserId, gameId, num = 1, price } = params
+    validateParams({ gameId }, {
+      gameId: { required: true, label: '游戏', type: 'number' }
     })
-    return request('/api/games/push', 'POST', params)
+    const data = { gameId, num }
+    if (targetUserId) data.targetUserId = targetUserId
+    if (price !== undefined && price !== null && price !== '') data.price = price
+    if (!targetUserId && !data.price) {
+      throw new Error('请选择陪玩师或填写悬赏单价')
+    }
+    return request('/api/games/push', 'POST', data)
+  },
+
+  async getPool(params = {}) {
+    const { gameId, page = 1, pageSize = 20 } = params
+    const data = { page, pageSize }
+    if (gameId) data.gameId = gameId
+    return request('/api/games/pool', 'GET', data)
+  },
+
+  async getMyServices() {
+    return request('/api/games/my-services', 'GET')
+  },
+
+  async toggleServiceStatus(serviceId) {
+    validateParams({ serviceId }, {
+      serviceId: { required: true, label: '服务ID', type: 'number' }
+    })
+    return request('/api/games/toggle-service', 'POST', { serviceId })
   },
 
   async grabOrder(orderId) {
