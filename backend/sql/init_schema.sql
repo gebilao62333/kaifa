@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS `xn_user` (
   `vip_expire_time` INT(10) DEFAULT 0,
   `sex` TINYINT(1) DEFAULT 0,
   `city` VARCHAR(50),
-  `status` TINYINT(1) DEFAULT 0,
+  `status` TINYINT(1) DEFAULT 1,
   `jinyan_time` INT(10) DEFAULT 0,
   `is_dav` TINYINT(1) DEFAULT 0,
   `is_manage_normal` TINYINT(1) DEFAULT 0,

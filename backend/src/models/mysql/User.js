@@ -84,7 +84,8 @@ const User = sequelize.define('xn_user', {
   },
   status: {
     type: DataTypes.TINYINT(1),
-    defaultValue: 0
+    // 1=正常 0=禁用（与 authMiddleware 及管理后台一致）
+    defaultValue: 1
   },
   jinyan_time: {
     type: DataTypes.INTEGER(10),

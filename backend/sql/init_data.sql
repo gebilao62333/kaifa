@@ -12,11 +12,11 @@ INSERT INTO `xn_admin` (`id`, `username`, `password`, `nickname`, `role_id`, `st
 
 -- 用户数据
 INSERT INTO `xn_user` (`id`, `username`, `nickname`, `avatar`, `mobile`, `email`, `money`, `gift_money`, `score`, `lv`, `vip`, `vip_lv`, `vip_expire_time`, `sex`, `city`, `status`, `fans_num`, `create_time`, `last_login_time`, `dec`) VALUES
-(1, 'user001', '游戏达人小王', 'https://picsum.photos/100/100?random=1', '13800138001', 'user1@example.com', 5000.00, 200.00, 1500, 5, 1, 2, UNIX_TIMESTAMP() + 86400*30, 1, '北京', 0, 120, UNIX_TIMESTAMP() - 86400*30, UNIX_TIMESTAMP() - 3600, '喜欢玩各种游戏'),
-(2, 'user002', '玩家小美', 'https://picsum.photos/100/100?random=2', '13800138002', 'user2@example.com', 1200.00, 50.00, 300, 3, 0, 0, 0, 0, '上海', 0, 35, UNIX_TIMESTAMP() - 86400*20, UNIX_TIMESTAMP() - 7200, ''),
-(3, 'user003', '新手玩家', 'https://picsum.photos/100/100?random=3', '13800138003', 'user3@example.com', 0.00, 0.00, 0, 1, 0, 0, 0, 1, '广州', 1, 0, UNIX_TIMESTAMP() - 86400*10, UNIX_TIMESTAMP() - 86400, '刚注册的用户'),
-(4, 'user004', '游戏爱好者', 'https://picsum.photos/100/100?random=4', '13800138004', 'user4@example.com', 800.00, 100.00, 200, 2, 0, 0, 0, 0, '深圳', 0, 15, UNIX_TIMESTAMP() - 86400*5, UNIX_TIMESTAMP() - 18000, '新人报道'),
-(5, 'user005', '资深玩家', 'https://picsum.photos/100/100?random=5', '13800138005', 'user5@example.com', 15000.00, 500.00, 5000, 10, 1, 3, UNIX_TIMESTAMP() + 86400*90, 1, '杭州', 0, 500, UNIX_TIMESTAMP() - 86400*60, UNIX_TIMESTAMP() - 3600, '资深游戏玩家');
+(1, 'user001', '游戏达人小王', 'https://picsum.photos/100/100?random=1', '13800138001', 'user1@example.com', 5000.00, 200.00, 1500, 5, 1, 2, UNIX_TIMESTAMP() + 86400*30, 1, '北京', 1, 120, UNIX_TIMESTAMP() - 86400*30, UNIX_TIMESTAMP() - 3600, '喜欢玩各种游戏'),
+(2, 'user002', '玩家小美', 'https://picsum.photos/100/100?random=2', '13800138002', 'user2@example.com', 1200.00, 50.00, 300, 3, 0, 0, 0, 0, '上海', 1, 35, UNIX_TIMESTAMP() - 86400*20, UNIX_TIMESTAMP() - 7200, ''),
+(3, 'user003', '新手玩家', 'https://picsum.photos/100/100?random=3', '13800138003', 'user3@example.com', 0.00, 0.00, 0, 1, 0, 0, 0, 1, '广州', 0, 0, UNIX_TIMESTAMP() - 86400*10, UNIX_TIMESTAMP() - 86400, '已被禁用'),
+(4, 'user004', '游戏爱好者', 'https://picsum.photos/100/100?random=4', '13800138004', 'user4@example.com', 800.00, 100.00, 200, 2, 0, 0, 0, 0, '深圳', 1, 15, UNIX_TIMESTAMP() - 86400*5, UNIX_TIMESTAMP() - 18000, '新人报道'),
+(5, 'user005', '资深玩家', 'https://picsum.photos/100/100?random=5', '13800138005', 'user5@example.com', 15000.00, 500.00, 5000, 10, 1, 3, UNIX_TIMESTAMP() + 86400*90, 1, '杭州', 1, 500, UNIX_TIMESTAMP() - 86400*60, UNIX_TIMESTAMP() - 3600, '资深游戏玩家');
 
 -- 虚拟用户
 INSERT INTO `xn_virtual_user` (`id`, `name`, `avatar`, `gender`, `age`, `region`, `tags`, `intro`, `price_per_hour`, `online_status`, `is_recommend`, `status`, `create_time`, `update_time`) VALUES
