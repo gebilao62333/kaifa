@@ -25,6 +25,20 @@ export const formatBalance = (balance) => {
   return Number(balance).toFixed(2)
 }
 
+// 分账比例：后端存 0~1 的小数，管理端以百分比(%)展示与编辑
+export const rateToPercent = (rate) => {
+  const n = Number(rate)
+  if (!Number.isFinite(n)) return 0
+  return Math.round(n * 1000) / 10
+}
+
+export const percentToRate = (percent) => {
+  const n = Number(percent)
+  if (!Number.isFinite(n)) return 0
+  const clamped = Math.min(100, Math.max(0, n))
+  return Math.round(clamped * 10) / 1000
+}
+
 export const validateRequired = (value, fieldName) => {
   if (!value && value !== 0 && value !== false) {
     throw new Error(`${fieldName}不能为空`)

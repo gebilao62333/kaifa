@@ -6,6 +6,8 @@ import {
   validateParams,
   formatBalance,
   formatTime,
+  rateToPercent,
+  percentToRate,
   RequestError
 } from '../src/common/common.js'
 
@@ -63,6 +65,24 @@ describe('管理后台 校验器与格式化', () => {
     it('缺失必填字段抛错', () => {
       const rules = { name: { required: true } }
       expect(() => validateParams({}, rules)).toThrow('name不能为空')
+    })
+  })
+
+  describe('分账比例转换', () => {
+    it('rateToPercent: 0~1 小数转百分比', () => {
+      expect(rateToPercent(0.7)).toBe(70)
+      expect(rateToPercent(1)).toBe(100)
+      expect(rateToPercent(0.705)).toBe(70.5)
+    })
+    it('percentToRate: 百分比转 0~1 小数并钳制', () => {
+      expect(percentToRate(70)).toBe(0.7)
+      expect(percentToRate(100)).toBe(1)
+      expect(percentToRate(150)).toBe(1)
+      expect(percentToRate(-5)).toBe(0)
+    })
+    it('非法输入回退 0', () => {
+      expect(rateToPercent('abc')).toBe(0)
+      expect(percentToRate(undefined)).toBe(0)
     })
   })
 
