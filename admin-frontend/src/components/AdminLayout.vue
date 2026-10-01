@@ -22,7 +22,7 @@
         </div>
       </div>
       <div class="content">
-        <slot />
+        <router-view />
       </div>
     </main>
   </div>
@@ -35,12 +35,26 @@ import { useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
 
-// 菜单与页面标题由路由 children 的 meta 自动生成，新增页面只需在 router 增加带 meta 的路由，无需改动此处
+// 当前登录管理员的权限（登录时写入 localStorage admin_user）
+const hasPerm = (perm) => {
+  try {
+    const user = JSON.parse(localStorage.getItem('admin_user') || '{}')
+    const perms = user.permissions || []
+    if (!Array.isArray(perms)) return false
+    if (perms.includes('all')) return true
+    return perms.includes(perm)
+  } catch (e) {
+    return false
+  }
+}
+
+// 菜单与页面标题由路由 children 的 meta 自动生成，并按 meta.perm 过滤无权菜单
 const menuItems = computed(() => {
   const layout = router.options.routes.find(r => r.children)
   if (!layout) return []
   return layout.children
-    .filter(c => c.meta && c.meta.title)
+    .filter(c => c.meta && c.meta.title && !c.meta.hidden)
+    .filter(c => !c.meta.perm || hasPerm(c.meta.perm))
     .map(c => ({
       page: c.name,
       path: c.path.startsWith('/') ? c.path : '/' + c.path,
@@ -66,7 +80,7 @@ const handleLogout = () => {
 <style scoped>
 .admin-layout {
   display: flex;
-  min-height: 100dvh;
+  min-height: 100vh;
   background: #f0f2f5;
 }
 
@@ -129,7 +143,7 @@ const handleLogout = () => {
 .main-content {
   flex: 1;
   margin-left: 240px;
-  min-height: 100dvh;
+  min-height: 100vh;
 }
 
 .top-bar {

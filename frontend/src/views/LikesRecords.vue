@@ -29,18 +29,9 @@ import EmptyState from '../components/EmptyState.vue'
 
 const router = useRouter()
 
-const totalLikes = ref(1024)
+const totalLikes = ref(0)
 
-const likesList = ref([
-  { id: '2001', avatar: 'https://picsum.photos/200/200?random=1', nickName: '游戏达人', time: '2026-05-18 14:30', content: '赞了你的帖子' },
-  { id: '2002', avatar: 'https://picsum.photos/200/200?random=2', nickName: '小猫咪', time: '2026-05-18 12:15', content: '赞了你的相册' },
-  { id: '2003', avatar: 'https://picsum.photos/200/200?random=3', nickName: '电竞王者', time: '2026-05-17 22:00', content: '赞了你的帖子「上分心得分享」' },
-  { id: '2004', avatar: 'https://picsum.photos/200/200?random=4', nickName: '快乐肥宅', time: '2026-05-17 18:45', content: '赞了你的评论' },
-  { id: '2005', avatar: 'https://picsum.photos/200/200?random=5', nickName: '午夜战神', time: '2026-05-16 09:20', content: '赞了你的帖子「五杀时刻」' },
-  { id: '2006', avatar: 'https://picsum.photos/200/200?random=6', nickName: '小甜心', time: '2026-05-15 20:10', content: '赞了你的相册' },
-  { id: '2007', avatar: 'https://picsum.photos/200/200?random=7', nickName: '技术流', time: '2026-05-14 16:30', content: '赞了你的帖子「新赛季上分攻略」' },
-  { id: '2008', avatar: 'https://picsum.photos/200/200?random=8', nickName: '萌新求带', time: '2026-05-13 11:00', content: '赞了你的评论' }
-])
+const likesList = ref([])
 
 const goBack = () => {
   router.back()

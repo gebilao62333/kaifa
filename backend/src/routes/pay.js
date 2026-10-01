@@ -13,6 +13,7 @@ router.post('/wx-callback', payController.wxCallback);
 router.get('/order-status', authMiddleware, payController.getOrderStatus);
 router.post('/validate-card', payController.validateCard);
 router.post('/use-card', authMiddleware, payController.useCard);
+router.post('/redeem-key', authMiddleware, payController.redeemCardByKey);
 router.get('/recharge/list', payController.getRechargeRecords);
 
 router.get('/wallet/balance', authMiddleware, payController.getWalletBalance);

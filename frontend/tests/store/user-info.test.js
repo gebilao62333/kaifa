@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useUserStore } from '@/store/user-info'
+import { DEFAULT_AVATAR } from '@/common/constants'
 
 describe('User Store', () => {
   beforeEach(() => {
@@ -13,7 +14,8 @@ describe('User Store', () => {
     expect(userStore.token).toBe('')
     expect(userStore.userId).toBe(0)
     expect(userStore.nickName).toBe('')
-    expect(userStore.avatar).toBe('')
+    // avatar 无值时由 getter 兜底为 DEFAULT_AVATAR
+    expect(userStore.avatar).toBe(DEFAULT_AVATAR)
   })
 
   it('should set token correctly', () => {

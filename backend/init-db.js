@@ -8,15 +8,16 @@ async function initDatabase() {
     port: 3306,
     user: 'root',
     password: 'fjbbsppp',
+    charset: 'utf8mb4',
     multipleStatements: true
   });
 
   console.log('✅ MySQL 连接成功');
 
-  await connection.query(`CREATE DATABASE IF NOT EXISTS duoke_peer CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
-  console.log('✅ 数据库 duoke_peer 创建成功');
+  await connection.query(`CREATE DATABASE IF NOT EXISTS eudazi_peer CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`);
+  console.log('✅ 数据库 eudazi_peer 创建成功');
 
-  await connection.changeUser({ database: 'duoke_peer' });
+  await connection.changeUser({ database: 'eudazi_peer' });
 
   const sqlFiles = [
     'init_schema.sql',

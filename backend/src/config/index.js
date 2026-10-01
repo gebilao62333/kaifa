@@ -2,6 +2,7 @@ const path = require('path');
 
 module.exports = {
   port: process.env.PORT || 3000,
+  baseUrl: (process.env.SERVER_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/+$/, ''),
   nodeEnv: process.env.NODE_ENV || 'development',
   useMockDb: process.env.USE_MOCK_DB === 'true',
   
@@ -13,11 +14,11 @@ module.exports = {
   
   db: {
     mysql: {
-      host: process.env.DB_HOST || 'localhost',
+      host: process.env.DB_HOST || '127.0.0.1',
       port: process.env.DB_PORT || 3306,
-      name: process.env.DB_NAME || 'duoke_peer',
+      name: process.env.DB_NAME || 'eudazi',
       user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
+      password: process.env.DB_PASSWORD || '123456',
       charset: process.env.DB_CHARSET || 'utf8mb4',
       pool: {
         max: parseInt(process.env.DB_POOL_MAX) || (process.env.NODE_ENV === 'production' ? 30 : 10),
@@ -32,10 +33,10 @@ module.exports = {
       }
     },
     mongo: {
-      uri: process.env.MONGO_URI || 'mongodb://localhost:27017/duoke_peer'
+      uri: process.env.MONGO_URI || 'mongodb://localhost:27017/eudazi_peer'
     },
     redis: {
-      host: process.env.REDIS_HOST || 'localhost',
+      host: process.env.REDIS_HOST || '127.0.0.1',
       port: process.env.REDIS_PORT || 6379,
       password: process.env.REDIS_PASSWORD || undefined
     }
@@ -73,7 +74,7 @@ module.exports = {
     appId: process.env.SMS_APP_ID,
     secretId: process.env.SMS_SECRET_ID,
     secretKey: process.env.SMS_SECRET_KEY,
-    sign: process.env.SMS_SIGN || '多客陪玩',
+    sign: process.env.SMS_SIGN || 'eu搭子',
     templateId: process.env.SMS_TEMPLATE_ID,
     notifyTemplateId: process.env.SMS_NOTIFY_TEMPLATE_ID
   },
@@ -81,6 +82,21 @@ module.exports = {
   trtc: {
     appId: process.env.TRTC_APP_ID,
     secretKey: process.env.TRTC_SECRET_KEY
+  },
+
+  llm: {
+    enabled: process.env.LLM_ENABLED === 'true',
+    apiKey: process.env.LLM_API_KEY || '',
+    baseUrl: (process.env.LLM_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, ''),
+    model: process.env.LLM_MODEL || 'gpt-3.5-turbo',
+    timeoutMs: parseInt(process.env.LLM_TIMEOUT_MS) || 15000,
+    maxRetries: parseInt(process.env.LLM_MAX_RETRIES) || 1,
+    maxContextMessages: parseInt(process.env.LLM_MAX_CONTEXT_MESSAGES) || 20
+  },
+
+  virtualUser: {
+    // 单个会话（虚拟用户+真实用户）保留的最大聊天记录条数，超出后自动裁剪最旧记录
+    chatHistoryLimit: parseInt(process.env.VIRTUAL_USER_CHAT_HISTORY_LIMIT) || 200
   },
   
   admin: {
@@ -93,7 +109,11 @@ module.exports = {
   },
   
   cors: {
-    origin: process.env.CORS_ORIGIN || '*'
+    // 支持逗号分隔的多个允许来源；生产环境务必填具体前端域名，禁用 '*'
+    origin: (process.env.CORS_ORIGIN || '*')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
   },
   
   paths: {

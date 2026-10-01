@@ -1,0 +1,71 @@
+# 依赖
+**/node_modules
+**/.pnpm-store
+
+# 构建产物
+frontend/dist
+admin-frontend/dist
+
+# 日志
+**/*.log
+**/logs
+**/npm-debug.log*
+
+# 环境文件（生产环境通过 docker-compose 注入）
+**/.env
+**/.env.local
+**/.env.development
+**/.env.production
+# 保留 .env.example
+!**/.env.example
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE & Editor
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# 测试
+**/coverage
+**/.nyc_output
+**/test-results
+**/playwright-report
+
+# 文档
+**/*.md
+!README.md
+**/docs
+**/CHANGELOG*
+
+# Docker
+Dockerfile
+docker-compose*
+.dockerignore
+
+# CI/CD
+.github
+.gitlab-ci.yml
+.travis.yml
+Jenkinsfile
+
+# 临时文件
+**/tmp
+**/temp
+**/.cache
+**/.DS_Store
+Thumbs.db
+
+# 测试截图
+test-screenshots
+
+# 备份 & 杂项
+*.sql
+*.tar.gz
+*.zip
+*.bak

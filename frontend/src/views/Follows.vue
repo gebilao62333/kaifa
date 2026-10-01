@@ -34,36 +34,7 @@ import EmptyState from '../components/EmptyState.vue'
 
 const router = useRouter()
 
-const follows = ref([
-  {
-    id: '2001',
-    avatar: 'https://picsum.photos/100/100?random=201',
-    name: '游戏大神',
-    desc: '专注王者荣耀，段位王者',
-    tags: ['王者荣耀', '王者']
-  },
-  {
-    id: '2002',
-    avatar: 'https://picsum.photos/100/100?random=202',
-    name: '吃鸡女王',
-    desc: '和平精英女主播',
-    tags: ['和平精英', '女主播']
-  },
-  {
-    id: '2003',
-    avatar: 'https://picsum.photos/100/100?random=203',
-    name: '陪玩小哥',
-    desc: 'LOL专业陪玩',
-    tags: ['英雄联盟', '新手友好']
-  },
-  {
-    id: '2004',
-    avatar: 'https://picsum.photos/100/100?random=204',
-    name: '声优小姐姐',
-    desc: '萝莉音御姐音都能驾驭',
-    tags: ['声音好听', '性格好']
-  }
-])
+const follows = ref([])
 
 const goBack = () => {
   router.back()

@@ -8,40 +8,40 @@ const OrderChong = sequelize.define('xn_order_chong', {
     autoIncrement: true
   },
   user_id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     allowNull: false
   },
   order_no: {
-    type: DataTypes.STRING(64),
+    type: DataTypes.STRING(50),
     unique: true,
     allowNull: false
   },
-  pay_no: {
-    type: DataTypes.STRING(64),
-    allowNull: true
-  },
-  money: {
+  amount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false
   },
-  money_zeng: {
-    type: DataTypes.DECIMAL(10, 2),
-    defaultValue: 0
+  coins: {
+    type: DataTypes.INTEGER,
+    allowNull: false
   },
   pay_type: {
-    type: DataTypes.TINYINT(1),
-    defaultValue: 0
+    type: DataTypes.STRING(20),
+    allowNull: true
   },
   status: {
     type: DataTypes.TINYINT(1),
     defaultValue: 0
   },
   pay_time: {
-    type: DataTypes.INTEGER(10),
-    defaultValue: 0
+    type: DataTypes.INTEGER,
+    allowNull: true
   },
   create_time: {
-    type: DataTypes.INTEGER(10),
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  update_time: {
+    type: DataTypes.INTEGER,
     defaultValue: 0
   }
 }, {
@@ -50,7 +50,6 @@ const OrderChong = sequelize.define('xn_order_chong', {
   indexes: [
     { fields: ['user_id'] },
     { fields: ['order_no'] },
-    { fields: ['pay_no'] },
     { fields: ['status'] }
   ]
 });

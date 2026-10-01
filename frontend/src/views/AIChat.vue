@@ -3,12 +3,16 @@
     <div class="header">
       <span class="back-btn" @click="goBack">←</span>
       <div class="header-info">
-        <span class="title">{{ chatUser.nickname }}</span>
-        <span class="status" :class="{ online: chatUser.isOnline }">
-          {{ chatUser.isOnline ? '在线' : '离线' }}
+        <span class="title">{{ chatUser.name }}</span>
+        <span class="status" :class="{ online: chatUser.online_status === 1 }">
+          {{ chatUser.online_status === 1 ? '在线' : '离线' }}
         </span>
       </div>
       <span class="more-btn" @click="showMore">⋮</span>
+    </div>
+
+    <div class="offline-tip" v-if="!isOnline">
+      <span>对方当前离线，暂时无法回复，请稍后再来</span>
     </div>
 
     <div class="messages-area" ref="messagesArea">
@@ -37,6 +41,7 @@
           v-for="reply in quickReplies"
           :key="reply"
           class="quick-reply"
+          :class="{ disabled: !isOnline }"
           @click="sendQuickReply(reply)"
         >
           {{ reply }}
@@ -48,9 +53,9 @@
           class="text-input"
           placeholder="输入消息..."
           @keyup.enter="sendMessage"
-          :disabled="sending"
+          :disabled="sending || !isOnline"
         />
-        <button class="send-btn" @click="sendMessage" :disabled="!inputText.trim() || sending">
+        <button class="send-btn" @click="sendMessage" :disabled="!inputText.trim() || sending || !isOnline">
           发送
         </button>
       </div>
@@ -72,28 +77,32 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, computed } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { virtualUserService } from '../services/virtualUserService'
+import { DEFAULT_AVATAR } from '@/common/constants'
 
 const router = useRouter()
 const route = useRoute()
 
+const defaultAvatar = DEFAULT_AVATAR
+
 const chatUser = ref({
   id: route.params.id,
-  nickname: 'AI助手',
-  avatar: '',
-  isOnline: true,
-  role: 'default',
-  dialogueStyle: 'friendly'
+  name: '虚拟人',
+  avatar: defaultAvatar,
+  online_status: 1,
+  gender: 0,
+  age: 0,
+  region: '',
+  intro: ''
 })
 const messages = ref([])
 const inputText = ref('')
 const sending = ref(false)
 const showMenu = ref(false)
 const messagesArea = ref(null)
-const myAvatar = ref('')
-const defaultAvatar = 'https://picsum.photos/200/200'
+const myAvatar = ref(defaultAvatar)
 
 const quickReplies = [
   '你好',
@@ -102,8 +111,12 @@ const quickReplies = [
   '推荐一首歌'
 ]
 
+const isOnline = computed(() => chatUser.value.online_status === 1)
+
 const formatTime = (timestamp) => {
+  if (!timestamp) return ''
   const date = new Date(timestamp * 1000)
+  if (Number.isNaN(date.getTime())) return ''
   const hours = date.getHours().toString().padStart(2, '0')
   const minutes = date.getMinutes().toString().padStart(2, '0')
   return `${hours}:${minutes}`
@@ -112,11 +125,13 @@ const formatTime = (timestamp) => {
 const loadChatHistory = async () => {
   try {
     const res = await virtualUserService.getChatHistory(chatUser.value.id)
-    if (res.data && res.data.list) {
-      messages.value = res.data.list.map(msg => ({
-        content: msg.content || msg.message,
-        isSelf: msg.isSelf || msg.role === 'user',
-        time: msg.createTime || msg.sendTime,
+    const list = res.data?.list || (Array.isArray(res.data) ? res.data : [])
+    if (list.length > 0) {
+      messages.value = list.map(msg => ({
+        content: msg.content || '',
+        // sender: 0-用户，1-虚拟人；兼容历史数据（sender 缺失时回退 type===0）
+        isSelf: msg.sender === 0 || (msg.sender === undefined && msg.type === 0),
+        time: msg.create_time,
         isLoading: false
       }))
       scrollToBottom()
@@ -130,7 +145,16 @@ const loadUserInfo = async () => {
   try {
     const res = await virtualUserService.getVirtualUser(chatUser.value.id)
     if (res.data) {
-      chatUser.value = { ...chatUser.value, ...res.data }
+      chatUser.value = {
+        id: res.data.id || chatUser.value.id,
+        name: res.data.name || '虚拟人',
+        avatar: res.data.avatar || defaultAvatar,
+        online_status: res.data.online_status === 1 ? 1 : 0,
+        gender: res.data.gender || 0,
+        age: res.data.age || 0,
+        region: res.data.region || '',
+        intro: res.data.intro || ''
+      }
     }
   } catch (error) {
     console.error('加载用户信息失败:', error)
@@ -138,14 +162,35 @@ const loadUserInfo = async () => {
 
   const userInfo = localStorage.getItem('userInfo')
   if (userInfo) {
-    const user = JSON.parse(userInfo)
-    myAvatar.value = user.avatar || defaultAvatar
+    try {
+      const user = JSON.parse(userInfo)
+      myAvatar.value = (user && user.avatar) || defaultAvatar
+    } catch (e) {
+      console.warn('解析本地用户信息失败:', e)
+    }
+  }
+}
+
+// 轻量轮询在线状态：随机在线调度器会动态上下线，需周期性同步
+let onlineTimer = null
+const refreshOnlineStatus = async () => {
+  try {
+    const res = await virtualUserService.getVirtualUser(chatUser.value.id)
+    if (res.data) {
+      chatUser.value.online_status = res.data.online_status === 1 ? 1 : 0
+    }
+  } catch (error) {
+    console.error('刷新在线状态失败:', error)
   }
 }
 
 const sendMessage = async () => {
   const text = inputText.value.trim()
   if (!text || sending.value) return
+  if (!isOnline.value) {
+    console.warn('对方离线，无法发送消息')
+    return
+  }
 
   inputText.value = ''
   messages.value.push({
@@ -169,17 +214,30 @@ const sendMessage = async () => {
     const res = await virtualUserService.chat(chatUser.value.id, text)
     const lastMsg = messages.value[messages.value.length - 1]
     if (lastMsg.isLoading) {
-      lastMsg.content = res.data?.message || res.data?.content || '好的'
-      lastMsg.time = Math.floor(Date.now() / 1000)
+      lastMsg.content = res.data?.content || '好的'
+      lastMsg.time = res.data?.create_time || Math.floor(Date.now() / 1000)
       lastMsg.isLoading = false
     }
   } catch (error) {
     console.error('发送消息失败:', error)
     const lastMsg = messages.value[messages.value.length - 1]
     if (lastMsg.isLoading) {
-      lastMsg.content = '抱歉，我遇到了一些问题，请稍后再试。'
-      lastMsg.time = Math.floor(Date.now() / 1000)
-      lastMsg.isLoading = false
+      const errMsg = (error && error.message) || ''
+      if (errMsg.includes('离线')) {
+        // 对方已下线：同步本地状态，提示消息未送达
+        chatUser.value.online_status = 0
+        messages.value.pop()
+        messages.value.push({
+          content: '对方离线，消息未送达，请稍后再试',
+          isSelf: false,
+          time: Math.floor(Date.now() / 1000),
+          isLoading: false
+        })
+      } else {
+        lastMsg.content = '抱歉，我遇到了一些问题，请稍后再试。'
+        lastMsg.time = Math.floor(Date.now() / 1000)
+        lastMsg.isLoading = false
+      }
     }
   } finally {
     sending.value = false
@@ -226,6 +284,14 @@ const goBack = () => {
 onMounted(() => {
   loadUserInfo()
   loadChatHistory()
+  onlineTimer = setInterval(refreshOnlineStatus, 30000)
+})
+
+onBeforeUnmount(() => {
+  if (onlineTimer) {
+    clearInterval(onlineTimer)
+    onlineTimer = null
+  }
 })
 </script>
 
@@ -277,6 +343,15 @@ onMounted(() => {
   cursor: pointer;
   width: 40px;
   text-align: right;
+}
+
+.offline-tip {
+  background: #fff7e6;
+  color: #d46b08;
+  font-size: 12px;
+  padding: 8px 16px;
+  text-align: center;
+  border-bottom: 1px solid #ffe7ba;
 }
 
 .messages-area {
@@ -378,6 +453,16 @@ onMounted(() => {
   background: #e0e0e0;
 }
 
+.quick-reply.disabled {
+  background: #f5f5f5;
+  color: #bbb;
+  cursor: not-allowed;
+}
+
+.quick-reply.disabled:hover {
+  background: #f5f5f5;
+}
+
 .input-row {
   display: flex;
   align-items: center;
@@ -447,5 +532,31 @@ onMounted(() => {
 
 .menu-icon {
   font-size: 16px;
+}
+
+/* PC 端与 ChatRoom 对齐：同宽居中、下拉菜单限宽 */
+@media (min-width: 768px) {
+  .ai-chat-page {
+    max-width: var(--layout-max-width-pc, 650px);
+    margin: 0 auto;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
+  }
+
+  .more-menu {
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: var(--layout-max-width-pc, 650px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .ai-chat-page {
+    max-width: var(--layout-max-width-pc-lg, 720px);
+  }
+
+  .more-menu {
+    max-width: var(--layout-max-width-pc-lg, 720px);
+  }
 }
 </style>

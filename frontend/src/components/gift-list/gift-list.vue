@@ -21,10 +21,15 @@
         <div
           v-for="gift in currentGifts"
           :key="gift.id"
-          :class="['gift-item', { selected: selectedGift?.id === gift.id }]"
+          :class="['gift-item', { selected: selectedGift?.id === gift.id, luxury: gift.giftType === 1 }]"
           @click="selectGift(gift)"
         >
-          <div class="gift-icon">{{ gift.icon }}</div>
+          <div class="gift-icon">
+            <img v-if="gift.icon" :src="gift.icon" class="gift-img" alt="">
+            <span v-else>🎁</span>
+            <span class="gift-badge" v-if="gift.giftType === 1">豪华</span>
+            <span class="gift-badge vip-badge" v-else-if="gift.isVip">VIP</span>
+          </div>
           <div class="gift-name">{{ gift.name }}</div>
           <div class="gift-price">
             <span class="coin-icon">🪙</span>
@@ -57,7 +62,13 @@
 
       <div class="gift-animation" v-if="showAnimation">
         <div class="animation-content">
-          <span class="animation-icon">{{ animatingGift?.icon }}</span>
+          <img
+            v-if="animatingGift?.icon && /^https?:/.test(animatingGift.icon)"
+            class="animation-icon-img"
+            :src="animatingGift.icon"
+            alt=""
+          />
+          <span v-else class="animation-icon">{{ animatingGift?.icon }}</span>
           <span class="animation-name">{{ animatingGift?.name }}</span>
           <span class="animation-count">x{{ animatingCount }}</span>
         </div>
@@ -67,7 +78,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import giftService from '../../services/giftService'
 
 const props = defineProps({
   visible: {
@@ -79,14 +91,14 @@ const props = defineProps({
     default: 128.50
   },
   receiverId: {
-    type: String,
+    type: [String, Number],
     default: ''
   }
 })
 
 const emit = defineEmits(['close', 'send'])
 
-const activeTab = ref('popular')
+const activeTab = ref('all')
 const selectedGift = ref(null)
 const giftCount = ref(1)
 const showAnimation = ref(false)
@@ -94,41 +106,55 @@ const animatingGift = ref(null)
 const animatingCount = ref(0)
 
 const tabs = [
+  { id: 'all', name: '全部' },
   { id: 'popular', name: '热门' },
-  { id: 'luxury', name: '豪华' },
-  { id: 'special', name: '特效' }
+  { id: 'luxury', name: '豪华' }
 ]
 
-const gifts = {
-  popular: [
-    { id: 1, icon: '🌹', name: '玫瑰', price: 10 },
-    { id: 2, icon: '🍫', name: '巧克力', price: 20 },
-    { id: 3, icon: '🎀', name: '蝴蝶结', price: 30 },
-    { id: 4, icon: '💎', name: '钻石', price: 50 },
-    { id: 5, icon: '👑', name: '皇冠', price: 100 },
-    { id: 6, icon: '🚀', name: '火箭', price: 200 }
-  ],
-  luxury: [
-    { id: 7, icon: '🏎️', name: '跑车', price: 500 },
-    { id: 8, icon: '✈️', name: '飞机', price: 800 },
-    { id: 9, icon: '🚀', name: '飞船', price: 1000 },
-    { id: 10, icon: '💯', name: '百分', price: 1500 },
-    { id: 11, icon: '🎉', name: '庆典', price: 2000 },
-    { id: 12, icon: '💥', name: '爆炸', price: 3000 }
-  ],
-  special: [
-    { id: 13, icon: '💜', name: '紫心', price: 66 },
-    { id: 14, icon: '🌸', name: '樱花', price: 88 },
-    { id: 15, icon: '⭐', name: '星星', price: 99 },
-    { id: 16, icon: '🎀', name: '丝带', price: 128 },
-    { id: 17, icon: '💫', name: '流星', price: 188 },
-    { id: 18, icon: '🌙', name: '月亮', price: 288 }
-  ]
+const gifts = ref([])
+
+// 接口失败时的兜底数据
+const fallbackGifts = [
+  { id: 1, icon: '🌹', name: '玫瑰', price: 10, giftType: 0, isVip: 0 },
+  { id: 2, icon: '🍫', name: '巧克力', price: 20, giftType: 0, isVip: 0 },
+  { id: 3, icon: '🎀', name: '蝴蝶结', price: 30, giftType: 0, isVip: 0 },
+  { id: 4, icon: '💎', name: '钻石', price: 50, giftType: 0, isVip: 1 },
+  { id: 5, icon: '👑', name: '皇冠', price: 100, giftType: 0, isVip: 1 },
+  { id: 6, icon: '🚀', name: '火箭', price: 200, giftType: 0, isVip: 0 },
+  { id: 7, icon: '🏎️', name: '豪华跑车', price: 500, giftType: 1, isVip: 1 },
+  { id: 8, icon: '✈️', name: '豪华飞机', price: 800, giftType: 1, isVip: 1 },
+  { id: 9, icon: '🚀', name: '飞船', price: 1000, giftType: 1, isVip: 1 }
+]
+
+const loadGifts = async () => {
+  try {
+    const res = await giftService.getGiftList()
+    const list = res?.data || []
+    if (list.length > 0) {
+      gifts.value = list.map(item => ({
+        id: item.giftId,
+        icon: item.image || '',
+        name: item.name,
+        price: Number(item.goldCoins),
+        giftType: Number(item.giftType) || 0,
+        isVip: Number(item.isVip) || 0,
+        animation: item.animation || ''
+      }))
+    } else {
+      gifts.value = fallbackGifts
+    }
+  } catch (e) {
+    gifts.value = fallbackGifts
+  }
 }
 
 const currentGifts = computed(() => {
-  return gifts[activeTab.value] || gifts.popular
+  if (activeTab.value === 'all') return gifts.value
+  const type = activeTab.value === 'luxury' ? 1 : 0
+  return gifts.value.filter(g => g.giftType === type)
 })
+
+onMounted(loadGifts)
 
 const totalPrice = computed(() => {
   if (!selectedGift.value) return 0
@@ -180,7 +206,10 @@ const sendGift = () => {
     gift: selectedGift.value,
     count: giftCount.value,
     totalPrice: totalPrice.value,
-    receiverId: props.receiverId
+    receiverId: props.receiverId,
+    giftType: selectedGift.value.giftType || 0,
+    isVip: selectedGift.value.isVip || 0,
+    animation: selectedGift.value.animation || ''
   })
 
   setTimeout(() => {
@@ -202,11 +231,13 @@ const sendGift = () => {
   background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: flex-end;
+  justify-content: center;
   z-index: 100;
 }
 
 .gift-list-panel {
   width: 100%;
+  max-width: var(--layout-max-width-pc, 650px);
   background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
   border-radius: 20px 20px 0 0;
   max-height: 70vh;
@@ -290,9 +321,50 @@ const sendGift = () => {
   background: rgba(102, 126, 234, 0.2);
 }
 
+.gift-item.luxury {
+  border-color: rgba(255, 215, 0, 0.4);
+  background: linear-gradient(180deg, rgba(255, 215, 0, 0.12) 0%, rgba(255, 180, 0, 0.05) 100%);
+}
+
+.gift-item.luxury.selected {
+  border-color: #ffd700;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
+}
+
 .gift-icon {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 36px;
   margin-bottom: 8px;
+}
+
+.gift-img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.gift-badge {
+  position: absolute;
+  top: -8px;
+  right: -14px;
+  font-size: 9px;
+  color: #fff;
+  background: linear-gradient(135deg, #ffd700, #ff9d00);
+  padding: 1px 5px;
+  border-radius: 8px;
+  font-weight: bold;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.gift-badge.vip-badge {
+  background: linear-gradient(135deg, #a855f7, #6366f1);
 }
 
 .gift-name {
@@ -423,6 +495,13 @@ const sendGift = () => {
 
 .animation-icon {
   font-size: 80px;
+  animation: giftBounce 0.5s ease-in-out infinite;
+}
+
+.animation-icon-img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
   animation: giftBounce 0.5s ease-in-out infinite;
 }
 

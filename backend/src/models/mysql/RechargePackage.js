@@ -3,27 +3,27 @@ const sequelize = require('../../config/mysql');
 
 const RechargePackage = sequelize.define('xn_recharge_package', {
   id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     primaryKey: true,
     autoIncrement: true
   },
-  title: {
+  name: {
     type: DataTypes.STRING(50),
     allowNull: false
   },
-  money: {
+  price: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false
   },
-  coin: {
+  coins: {
     type: DataTypes.INTEGER,
     allowNull: false
   },
-  coin_zeng: {
+  bonus_coins: {
     type: DataTypes.INTEGER,
     defaultValue: 0
   },
-  is_zeng: {
+  hot: {
     type: DataTypes.TINYINT(1),
     defaultValue: 0
   },
@@ -36,6 +36,10 @@ const RechargePackage = sequelize.define('xn_recharge_package', {
     defaultValue: 1
   },
   create_time: {
+    type: DataTypes.INTEGER(10),
+    defaultValue: 0
+  },
+  update_time: {
     type: DataTypes.INTEGER(10),
     defaultValue: 0
   }

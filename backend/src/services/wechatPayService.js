@@ -88,13 +88,13 @@ const createUnifiedOrder = async (userId, packageId) => {
   }
 
   const orderNo = generateOrderNo();
-  const totalFee = Math.round(Number(pkg.money) * 100);
+  const totalFee = Math.round(Number(pkg.price) * 100);
 
   const params = {
     appid: config.appid,
     mch_id: config.mchid,
     nonce_str: crypto.randomBytes(16).toString('hex').toUpperCase(),
-    body: `多客陪玩充值-${pkg.title}`,
+    body: `eu搭子充值-${pkg.name}`,
     out_trade_no: orderNo,
     total_fee: totalFee,
     spbill_create_ip: '127.0.0.1',
@@ -112,7 +112,7 @@ const createUnifiedOrder = async (userId, packageId) => {
       user_id: userId,
       order_no: orderNo,
       cid: packageId,
-      money: pkg.money,
+      money: pkg.price,
       pay_type: 1,
       status: 0,
       create_time: getTimestamp()
@@ -122,7 +122,7 @@ const createUnifiedOrder = async (userId, packageId) => {
       orderId: order.id,
       orderNo: orderNo,
       prepayId: result.prepay_id,
-      amount: Number(pkg.money)
+      amount: Number(pkg.price)
     };
   } catch (error) {
     throw error;
@@ -180,7 +180,7 @@ const handleNotify = async (xmlData) => {
       pay_time: getTimestamp()
     }, { transaction });
 
-    const totalCoins = pkg.coin + (pkg.coin_zeng || 0);
+    const totalCoins = pkg.coins + (pkg.bonus_coins || 0);
 
     await User.increment('money', {
       by: totalCoins,

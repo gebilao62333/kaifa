@@ -1,22 +1,37 @@
-const { up, convertData } = require('./20240101000000_add_currency_column');
-
+/**
+ * 数据库迁移执行器
+ * - 被 require 时仅导出 runMigrations() 函数，不会退出进程（供 server.js 启动时调用）
+ * - 以主模块方式运行（node runMigrations.js）时才执行并退出，便于 CI / 手动迁移
+ *
+ * 所有迁移均幂等：重复执行安全（字段存在则跳过、数据转换仅针对 NULL/空值）。
+ */
 const runMigrations = async () => {
   console.log('========== 开始执行数据库迁移 ==========');
-  
-  try {
-    console.log('\n1. 添加货币单位字段...');
-    await up();
-    
-    console.log('\n2. 转换历史数据...');
-    await convertData();
-    
-    console.log('\n========== 数据库迁移完成 ==========');
-    process.exit(0);
-  } catch (error) {
-    console.error('\n========== 数据库迁移失败 ==========');
-    console.error(error);
-    process.exit(1);
-  }
+
+  const { up: currencyUp, convertData } = require('./20240101000000_add_currency_column');
+  const { up: virtualUserUp } = require('./20260824000000_add_virtual_user_online_columns');
+
+  console.log('\n1. 添加货币单位字段...');
+  await currencyUp();
+
+  console.log('\n2. 转换历史数据...');
+  await convertData();
+
+  console.log('\n3. 补充虚拟人随机在线调度字段...');
+  await virtualUserUp();
+
+  console.log('\n========== 数据库迁移完成 ==========');
 };
 
-runMigrations();
+module.exports = { runMigrations };
+
+// 仅当作为独立脚本运行时才自动执行并决定退出码
+if (require.main === module) {
+  runMigrations()
+    .then(() => process.exit(0))
+    .catch((error) => {
+      console.error('\n========== 数据库迁移失败 ==========');
+      console.error(error);
+      process.exit(1);
+    });
+}

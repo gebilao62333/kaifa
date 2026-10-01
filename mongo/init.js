@@ -1,9 +1,9 @@
-db = db.getSiblingDB('duoke');
+db = db.getSiblingDB('eudazi');
 
 db.createUser({
-    user: 'duoke',
-    pwd: 'duoke123',
-    roles: [{ role: 'readWrite', db: 'duoke' }]
+    user: 'eudazi',
+    pwd: 'eudazi123',
+    roles: [{ role: 'readWrite', db: 'eudazi' }]
 });
 
 db.createCollection('chat_messages');

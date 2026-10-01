@@ -3,7 +3,7 @@
     <div class="header">
       <span class="back-btn" @click="goBack">←</span>
       <div class="avatar-mini avatar-frame" :style="avatarFrameStyle" @click="goUserProfile">
-        <img :src="userInfo.avatar" alt="" />
+        <img :src="userInfo.avatar" alt="" v-img-fallback="userInfo.nickName" />
       </div>
       <span class="nickname">{{ userInfo.nickName }}</span>
       <span class="badge-tag" v-if="selectedBadge" :style="selectedBadge.style">
@@ -18,10 +18,15 @@
       <div class="date-divider" v-if="showDateDivider">
         <span>{{ currentDateText }}</span>
       </div>
+
+      <div v-if="messages.length === 0 && !loadingMessages" class="empty-chat">
+        <span class="empty-icon">💬</span>
+        <p>暂无消息，发送一条消息开始聊天吧</p>
+      </div>
       
       <div v-for="(msg, index) in messages" :key="msg.id" :class="['message', msg.isOwn ? 'own' : 'other']">
         <div class="avatar-wrap-frame" :class="[msg.isOwn ? 'own' : 'other']" :style="msg.isOwn ? {} : avatarFrameStyle">
-          <img class="avatar" :src="msg.isOwn ? myInfo.avatar : userInfo.avatar" alt="" />
+          <img class="avatar" :src="msg.isOwn ? myInfo.avatar : userInfo.avatar" alt="" v-img-fallback="msg.isOwn ? myInfo.nickName : userInfo.nickName" />
         </div>
         <div class="content">
           <div class="time" v-if="shouldShowTime(index)">{{ formatTime(msg.createTime) }}</div>
@@ -66,8 +71,10 @@
               </div>
             </template>
             <template v-else-if="msg.type === 'gift'">
-              <div class="gift-msg">
-                <span class="gift-icon">{{ msg.icon }}</span>
+              <div class="gift-msg" :class="{ 'gift-msg-luxury': msg.giftType === 1 }">
+                <span class="gift-msg-badge" v-if="msg.giftType === 1">豪华</span>
+                <img v-if="msg.icon && /^https?:/.test(msg.icon)" class="gift-icon-img" :src="msg.icon" alt="" />
+                <span v-else class="gift-icon">{{ msg.icon }}</span>
                 <span class="gift-content">赠送了 {{ msg.count }} 个 {{ msg.name }}</span>
               </div>
             </template>
@@ -114,6 +121,7 @@
       <div class="more-menu">
         <div class="menu-item" @click="goUserProfile">查看资料</div>
         <div class="menu-item" @click="blockUser">拉黑</div>
+        <div class="menu-item" @click="openReport">举报</div>
         <div class="menu-item cancel" @click="showMoreMenu = false">取消</div>
       </div>
     </div>
@@ -222,10 +230,19 @@
               </select>
             </div>
             <div class="picker-row">
-              <select v-model="selectedDistrict" class="location-select">
+              <select v-model="selectedDistrict" @change="onDistrictChange" class="location-select">
                 <option value="">请选择区县</option>
                 <option v-for="d in districts" :key="d.code" :value="d.code">{{ d.name }}</option>
               </select>
+            </div>
+            <div class="picker-row">
+              <select v-model="selectedTown" @change="onTownChange" class="location-select">
+                <option value="">请选择乡镇</option>
+                <option v-for="t in towns" :key="t.code" :value="t.code">{{ t.name }}</option>
+              </select>
+            </div>
+            <div class="picker-row">
+              <input v-model="selectedStreet" class="location-select" placeholder="请输入街道（可自定义）" />
             </div>
           </div>
           <div class="current-location" @click="useCurrentLocation">
@@ -248,12 +265,38 @@
       @send="handleSendGift"
     />
     
+    <div v-if="giftEffect" class="gift-effect-overlay" @click="giftEffect = null">
+      <div class="gift-effect-content">
+        <div class="effect-rays"></div>
+        <div class="effect-icon">
+          <video v-if="giftEffect.animation && isVideoUrl(giftEffect.animation)" :src="giftEffect.animation" class="effect-video" autoplay loop muted playsinline></video>
+          <img v-else-if="giftEffect.animation" :src="giftEffect.animation" alt="">
+          <img v-else-if="giftEffect.icon" :src="giftEffect.icon" alt="">
+          <span v-else>👑</span>
+        </div>
+        <div class="effect-title">豪华礼物</div>
+        <div class="effect-name">{{ giftEffect.name }}</div>
+        <div class="effect-count">x{{ giftEffect.count }}</div>
+        <div class="effect-particles">
+          <span v-for="i in 16" :key="i" class="particle" :style="{ left: (5 + i * 6) + '%', animationDelay: (i * 0.08) + 's' }">✨</span>
+        </div>
+      </div>
+    </div>
+    
     <RedPacketPanel 
       :visible="showRedPacketPanel" 
       :user-balance="userBalance"
       :receiver-id="userInfo.userId"
       @close="showRedPacketPanel = false"
       @send="handleSendRedPacket"
+    />
+
+    <ReportModal
+      :visible="showReport"
+      :target-type="1"
+      :target-id="userInfo.userId"
+      @close="showReport = false"
+      @submitted="onReported"
     />
     
     <div v-if="showForwardPanel" class="modal" @click.self="showForwardPanel = false">
@@ -278,7 +321,7 @@
               class="forward-item"
               @click="confirmForward(friend)"
             >
-              <img :src="friend.avatar" class="forward-avatar" />
+              <img :src="friend.avatar" class="forward-avatar" v-img-fallback="friend.nickName" />
               <div class="forward-info">
                 <span class="forward-name">{{ friend.nickName }}</span>
                 <span class="forward-status" v-if="friend.isOnline">在线</span>
@@ -289,24 +332,48 @@
         </div>
       </div>
     </div>
+
+    <div v-if="confirmDialog.show" class="modal" @click.self="confirmDialog.onCancel">
+      <div class="confirm-dialog">
+        <div class="confirm-dialog-body">{{ confirmDialog.message }}</div>
+        <div class="confirm-dialog-actions">
+          <button class="cancel-btn" @click="confirmDialog.onCancel">取消</button>
+          <button class="confirm-btn" @click="confirmDialog.onConfirm">确定</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
-<script setup>import { ref, nextTick, onMounted, onUnmounted, computed } from 'vue';
+<script setup>import { ref, reactive, nextTick, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { useUserStore } from '../store/user-info';
 import chatService from '../services/chatService';
+import { uploadFile } from '../services/uploadService';
 import socketService from '../services/socketService';
 import authService from '../services/authService';
 import GiftList from '../components/gift-list/gift-list.vue';
 import RedPacketPanel from '../components/RedPacketPanel.vue';
+import ReportModal from '../components/report-modal/report-modal.vue';
 import { toast } from '../composables/useToast';
+import { DEFAULT_AVATAR, STORAGE_KEYS } from '../common/constants';
+import { provinceList, cityData as chinaCityData } from '../data/china-regions';
 
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
 const selectedBadge = ref(null);
 const avatarFrameStyle = ref({});
+
+const confirmDialog = reactive({ show: false, message: '', onConfirm: () => {}, onCancel: () => {} })
+const showConfirm = (message) => {
+  return new Promise((resolve) => {
+    confirmDialog.show = true
+    confirmDialog.message = message
+    confirmDialog.onConfirm = () => { confirmDialog.show = false; resolve(true) }
+    confirmDialog.onCancel = () => { confirmDialog.show = false; resolve(false) }
+  })
+}
 
 const loadVipItems = () => {
   try {
@@ -319,20 +386,21 @@ const loadVipItems = () => {
       const frame = JSON.parse(savedFrame);
       avatarFrameStyle.value = frame.style || {};
     }
-  } catch (e) {}
+  } catch (e) { console.warn('加载装扮信息失败:', e) }
 };
 
 const userInfo = ref({
- userId: 1,
- nickName: '小雪',
- avatar: '',
- isOnline: true
+ userId: 0,
+ nickName: '',
+ avatar: DEFAULT_AVATAR,
+ isOnline: false
 });
 const myInfo = ref({
- userId: 100001,
- nickName: '我',
- avatar: '',
+ userId: 0,
+ nickName: '',
+ avatar: DEFAULT_AVATAR,
 });
+const loadingMessages = ref(false);
 const messages = ref([]);
 const text = ref('');
 const isVoice = ref(false);
@@ -355,20 +423,14 @@ const showVideoPreview = ref(false);
 const showLocationSelector = ref(false);
 const showGiftPanel = ref(false);
 const showRedPacketPanel = ref(false);
+const showReport = ref(false);
 const showForwardPanel = ref(false);
 const previewImageUrl = ref('');
 const previewVideoUrl = ref('');
 const selectedMessage = ref(null);
 const contextMenuStyle = ref({});
 const forwardSearch = ref('');
-const forwardFriends = ref([
-  { id: 2, nickName: '游戏达人', avatar: 'https://picsum.photos/100/100?random=1', isOnline: true },
-  { id: 3, nickName: '小猫咪', avatar: 'https://picsum.photos/100/100?random=2', isOnline: true },
-  { id: 4, nickName: '电竞王者', avatar: 'https://picsum.photos/100/100?random=3', isOnline: false },
-  { id: 5, nickName: '午夜战神', avatar: 'https://picsum.photos/100/100?random=4', isOnline: true },
-  { id: 6, nickName: '小甜心', avatar: 'https://picsum.photos/100/100?random=5', isOnline: false },
-  { id: 7, nickName: '技术流', avatar: 'https://picsum.photos/100/100?random=6', isOnline: true },
-]);
+const forwardFriends = ref([]);
 const typing = ref(false);
 const playingAudioId = ref(null);
 const messagesRef = ref(null);
@@ -386,28 +448,14 @@ const locationSearch = ref('');
 const selectedProvince = ref('');
 const selectedCity = ref('');
 const selectedDistrict = ref('');
-const provinces = ref([
- { code: '110000', name: '北京市' },
- { code: '310000', name: '上海市' },
- { code: '440000', name: '广东省' },
- { code: '330000', name: '浙江省' },
- { code: '320000', name: '江苏省' },
- { code: '420000', name: '湖北省' },
- { code: '430000', name: '湖南省' },
- { code: '510000', name: '四川省' }
-]);
+const selectedTown = ref('');
+const selectedStreet = ref(''); // 街道为用户自由输入文本
+const provinces = ref(provinceList);
 const cities = ref([]);
 const districts = ref([]);
-const cityData = {
- '110000': [{ code: '110100', name: '北京市', districts: ['东城区', '西城区', '朝阳区', '海淀区', '丰台区'] }],
- '310000': [{ code: '310100', name: '上海市', districts: ['黄浦区', '徐汇区', '长宁区', '静安区', '浦东新区'] }],
- '440000': [{ code: '440100', name: '广州市', districts: ['天河区', '越秀区', '海珠区', '白云区', '番禺区'] }, { code: '440300', name: '深圳市', districts: ['南山区', '福田区', '罗湖区', '宝安区', '龙华区'] }],
- '330000': [{ code: '330100', name: '杭州市', districts: ['西湖区', '拱墅区', '江干区', '滨江区', '余杭区'] }, { code: '330200', name: '宁波市', districts: ['海曙区', '江北区', '北仑区', '镇海区'] }],
- '320000': [{ code: '320100', name: '南京市', districts: ['玄武区', '秦淮区', '鼓楼区', '建邺区'] }, { code: '320500', name: '苏州市', districts: ['姑苏区', '虎丘区', '吴中区', '相城区'] }],
- '420000': [{ code: '420100', name: '武汉市', districts: ['江岸区', '江汉区', '硚口区', '汉阳区', '武昌区'] }],
- '430000': [{ code: '430100', name: '长沙市', districts: ['芙蓉区', '天心区', '岳麓区', '开福区', '雨花区'] }],
- '510000': [{ code: '510100', name: '成都市', districts: ['锦江区', '青羊区', '金牛区', '武侯区', '成华区'] }]
-};
+const towns = ref([]);
+const streets = ref([]);
+const cityData = chinaCityData;
 let recordTimer = null;
 let typingTimer = null;
 
@@ -487,12 +535,20 @@ const goUserProfile = () => {
  showMoreMenu.value = false;
  router.push(`/user/${userInfo.value.userId}`);
 };
-const blockUser = () => {
- if (confirm(`确定要拉黑 ${userInfo.value.nickName} 吗？`)) {
- toast.success('已拉黑该用户');
+const blockUser = async () => {
  showMoreMenu.value = false;
+ if (await showConfirm(`确定要拉黑 ${userInfo.value.nickName} 吗？`)) {
+ toast.success('已拉黑该用户');
  router.back();
  }
+};
+const openReport = () => {
+ showMoreMenu.value = false;
+ showReport.value = true;
+};
+const onReported = () => {
+ showReport.value = false;
+ toast.success('举报已提交，我们会尽快处理');
 };
 const toggleVoice = () => {
  isVoice.value = !isVoice.value;
@@ -635,40 +691,41 @@ const selectImage = () => {
  input.accept = 'image/*';
  input.capture = 'environment';
  input.onchange = async (e) => {
- const file = e.target.files[0];
- if (file) {
- const reader = new FileReader();
- reader.onload = async (event) => {
- const imageUrl = event.target.result;
- const msgId = Date.now();
- const newMessage = {
- id: msgId,
- isOwn: true,
- type: 'image',
- content: imageUrl,
- showTime: messages.value.length === 0 ||
- (Date.now() - messages.value[messages.value.length - 1].createTime) > 300000,
- status: 'sending',
- createTime: Date.now()
- };
- messages.value.push(newMessage);
- scrollToBottom();
- try {
- await chatService.sendMessage(userInfo.value.userId, imageUrl, 2, imageUrl);
- const index = messages.value.findIndex(m => m.id === msgId);
- if (index > -1) {
- messages.value[index].status = 'sent';
- }
- }
- catch (error) {
- const index = messages.value.findIndex(m => m.id === msgId);
- if (index > -1) {
- messages.value[index].status = 'failed';
- }
- }
- };
- reader.readAsDataURL(file);
- }
+    const file = e.target.files[0];
+    if (file) {
+      // 本地预览用临时对象URL，避免把整图读入内存
+      const imageUrl = URL.createObjectURL(file);
+      const msgId = Date.now();
+      const newMessage = {
+        id: msgId,
+        isOwn: true,
+        type: 'image',
+        content: imageUrl,
+        showTime: messages.value.length === 0 ||
+        (Date.now() - messages.value[messages.value.length - 1].createTime) > 300000,
+        status: 'sending',
+        createTime: Date.now()
+      };
+      messages.value.push(newMessage);
+      scrollToBottom();
+      try {
+        // 前端直传 COS，消息体只存真实访问 URL（不再塞整图字节）
+        const result = await uploadFile(file, 'image');
+        const realUrl = result.data.url;
+        newMessage.content = realUrl;
+        await chatService.sendMessage(userInfo.value.userId, realUrl, 2, realUrl);
+        const index = messages.value.findIndex(m => m.id === msgId);
+        if (index > -1) {
+          messages.value[index].status = 'sent';
+        }
+      }
+      catch (error) {
+        const index = messages.value.findIndex(m => m.id === msgId);
+        if (index > -1) {
+          messages.value[index].status = 'failed';
+        }
+      }
+    }
  };
  input.click();
  showAdd.value = false;
@@ -681,39 +738,40 @@ const selectVideo = () => {
   input.onchange = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const videoUrl = event.target.result;
-        const msgId = Date.now();
-        const newMessage = {
-          id: msgId,
-          isOwn: true,
-          type: 'video',
-          content: videoUrl,
-          thumbnail: `https://picsum.photos/200/150?random=${msgId}`,
-          duration: '00:15',
-          showTime: messages.value.length === 0 ||
-            (Date.now() - messages.value[messages.value.length - 1].createTime) > 300000,
-          status: 'sending',
-          createTime: Date.now()
-        };
-        messages.value.push(newMessage);
-        scrollToBottom();
-        try {
-          await chatService.sendMessage(userInfo.value.userId, videoUrl, 3, videoUrl);
-          const index = messages.value.findIndex(m => m.id === msgId);
-          if (index > -1) {
-            messages.value[index].status = 'sent';
-          }
-        }
-        catch (error) {
-          const index = messages.value.findIndex(m => m.id === msgId);
-          if (index > -1) {
-            messages.value[index].status = 'failed';
-          }
-        }
+      const videoUrl = URL.createObjectURL(file);
+      const msgId = Date.now();
+      const newMessage = {
+        id: msgId,
+        isOwn: true,
+        type: 'video',
+        content: videoUrl,
+        thumbnail: videoUrl,
+        duration: '00:15',
+        showTime: messages.value.length === 0 ||
+          (Date.now() - messages.value[messages.value.length - 1].createTime) > 300000,
+        status: 'sending',
+        createTime: Date.now()
       };
-      reader.readAsDataURL(file);
+      messages.value.push(newMessage);
+      scrollToBottom();
+      try {
+        // 前端直传 COS，消息体只存真实访问 URL
+        const result = await uploadFile(file, 'video');
+        const realUrl = result.data.url;
+        newMessage.content = realUrl;
+        newMessage.thumbnail = realUrl;
+        await chatService.sendMessage(userInfo.value.userId, realUrl, 3, realUrl);
+        const index = messages.value.findIndex(m => m.id === msgId);
+        if (index > -1) {
+          messages.value[index].status = 'sent';
+        }
+      }
+      catch (error) {
+        const index = messages.value.findIndex(m => m.id === msgId);
+        if (index > -1) {
+          messages.value[index].status = 'failed';
+        }
+      }
     }
   };
   input.click();
@@ -728,57 +786,264 @@ const selectLocation = () => {
   showAdd.value = false;
 };
 const onProvinceChange = () => {
+  locationSearch.value = '';
   selectedCity.value = '';
   selectedDistrict.value = '';
+  selectedTown.value = '';
+  selectedStreet.value = '';
   if (selectedProvince.value) {
     cities.value = cityData[selectedProvince.value] || [];
   } else {
     cities.value = [];
   }
   districts.value = [];
+  towns.value = [];
+  streets.value = [];
 };
 const onCityChange = () => {
+  locationSearch.value = '';
   selectedDistrict.value = '';
+  selectedTown.value = '';
+  selectedStreet.value = '';
   if (selectedCity.value && selectedProvince.value) {
     const city = cities.value.find(c => c.code === selectedCity.value);
-    if (city) {
-      districts.value = city.districts.map((d, i) => ({ code: i, name: d }));
-    }
+    districts.value = city ? city.districts : [];
   } else {
     districts.value = [];
   }
+  towns.value = [];
+  streets.value = [];
+};
+// 选中区县后按需加载乡级数据（懒加载），按名称拆分：towns 用于乡镇下拉，streets 仅用于定位时自动填充街道输入框
+const onDistrictChange = async (keepSearch = false) => {
+  if (!keepSearch) locationSearch.value = '';
+  selectedTown.value = '';
+  selectedStreet.value = '';
+  towns.value = [];
+  streets.value = [];
+  if (!selectedDistrict.value) return;
+  try {
+    const mod = await import('../data/china-streets');
+    const names = (mod.streetData && mod.streetData[selectedDistrict.value]) || [];
+    const townNames = [];
+    const streetNames = [];
+    for (const n of names) {
+      if (n.endsWith('街道')) streetNames.push(n);
+      else townNames.push(n);
+    }
+    towns.value = townNames.map((n, i) => ({ code: 't' + i, name: n }));
+    streets.value = streetNames.map((n, i) => ({ code: 's' + i, name: n }));
+  } catch (e) {
+    // 乡级数据加载失败，不影响选择区县发送
+    towns.value = [];
+    streets.value = [];
+  }
+};
+// 选择乡镇后保留街道输入（街道为自定义文本，可与乡镇并存作为详细地址补充）
+const onTownChange = () => {
+  locationSearch.value = '';
+};
+// 清洗逆地理编码返回的完整地址文本：按逗号拆分、去掉国家、省→街道正序、去重
+const formatDisplayName = (raw) => {
+  if (!raw) return '';
+  let parts = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  if (parts.length && /^(中国|China)$/i.test(parts[parts.length - 1])) parts.pop();
+  parts.reverse();
+  const result = [];
+  for (const p of parts) {
+    if (!result.some((r) => r.includes(p) || p.includes(r))) result.push(p);
+  }
+  return result.join(' ');
 };
 const useCurrentLocation = () => {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition((position) => {
-      toast.success('已获取当前位置');
-      selectedProvince.value = '440000';
-      onProvinceChange();
-      selectedCity.value = '440300';
-      onCityChange();
-    }, () => {
-      toast.error('无法获取位置，请手动选择');
-    });
-  } else {
+  if (!navigator.geolocation) {
     toast.error('您的浏览器不支持定位');
-  }
-};
-const sendLocation = () => {
-  if (!selectedProvince.value || !selectedCity.value) {
-    toast.error('请选择完整地址');
     return;
   }
+  toast.info('正在获取当前位置...');
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const { latitude, longitude } = position.coords;
+      // 带超时的 JSON 请求
+      const fetchJson = async (url) => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 8000);
+        try {
+          const res = await fetch(url, { signal: controller.signal });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return await res.json();
+        } finally {
+          clearTimeout(timer);
+        }
+      };
+      // 依次尝试多个逆地理编码服务（国内高德/腾讯优先，需在 .env.local 配置 key），拿到中文地址
+      const AMAP_KEY = import.meta.env.VITE_AMAP_KEY || '';
+      const QQMAP_KEY = import.meta.env.VITE_QQMAP_KEY || '';
+      let addr = null;
+      let display = '';
+      const providers = [
+        {
+          name: 'amap',
+          build: () => (AMAP_KEY ? `https://restapi.amap.com/v3/geocode/regeo?location=${longitude},${latitude}&key=${AMAP_KEY}&extensions=base` : ''),
+          parse: (d) => {
+            if (!d || d.status !== '1' || !d.regeocode) throw new Error('amap empty');
+            const c = d.regeocode.addressComponent || {};
+            return {
+              addr: {
+                province: c.province || '',
+                city: c.city || c.province || '',
+                district: c.district || '',
+                township: c.township || '',
+                road: (c.streetNumber && c.streetNumber.street) || ''
+              },
+              display: d.regeocode.formatted_address || ''
+            };
+          }
+        },
+        {
+          name: 'qqmap',
+          build: () => (QQMAP_KEY ? `https://apis.map.qq.com/ws/geocoder/v1/?location=${latitude},${longitude}&key=${QQMAP_KEY}` : ''),
+          parse: (d) => {
+            if (!d || d.status !== 0 || !d.result) throw new Error('qqmap empty');
+            const c = d.result.address_component || {};
+            return {
+              addr: {
+                province: c.province || '',
+                city: c.city || c.province || '',
+                district: c.district || '',
+                township: c.street || '',
+                road: ''
+              },
+              display: d.result.address || ''
+            };
+          }
+        },
+        {
+          name: 'nominatim',
+          build: () => `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=zh`,
+          parse: (d) => ({ addr: d.address || {}, display: d.display_name || '' })
+        },
+        {
+          name: 'bigdatacloud',
+          build: () => `https://bigdatacloudapi.com/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=zh`,
+          parse: (d) => ({
+            addr: {
+              province: d.principalSubdivision || d.region || '',
+              city: d.subregion || d.city || '',
+              district: d.locality || d.city || ''
+            },
+            display: [d.locality, d.city, d.subregion, d.principalSubdivision].filter(Boolean).join(', ')
+          })
+        }
+      ];
+      for (const p of providers) {
+        const url = p.build();
+        if (!url) continue;
+        try {
+          const data = await fetchJson(url);
+          const r = p.parse(data);
+          addr = r.addr;
+          display = r.display;
+          break;
+        } catch (e) {
+          // 该服务失败，尝试下一个
+        }
+      }
+      const provinceName = (addr && (addr.province || addr.state || addr.region)) || '';
+      const cityName = (addr && (addr.city || addr.town || addr.county || addr.municipality)) || '';
+      const districtName = (addr && (addr.suburb || addr.district || addr.city_district || addr.quarter || addr.neighbourhood)) || '';
+      // 优先用服务返回的完整地址文本，否则手工拼接
+      const fullAddress = formatDisplayName(display) || [districtName, cityName, provinceName].filter(Boolean).join(' ');
+      if (!fullAddress) {
+        // 全部逆编码服务都失败，最后才回退为坐标
+        locationSearch.value = `${latitude.toFixed(4)}°N, ${longitude.toFixed(4)}°E`;
+        toast.info('逆地理编码服务不可用，已使用坐标，可手动修改地址');
+        return;
+      }
+      // 在本地省市联动数据中匹配（匹配不上也不影响发送）
+      const province = provinces.value.find(
+        (p) =>
+          p.name === provinceName ||
+          p.name.replace('省', '').replace('市', '') === provinceName.replace('省', '').replace('市', '')
+      );
+      if (province) {
+        selectedProvince.value = province.code;
+        onProvinceChange();
+        const city = (cityData[province.code] || []).find(
+          (c) => c.name === cityName || c.name.includes(cityName) || cityName.includes(c.name)
+        );
+        if (city) {
+          selectedCity.value = city.code;
+          onCityChange();
+          const district = (city.districts || []).find(
+            (d) => d.name === districtName || d.name.includes(districtName) || districtName.includes(d.name)
+          );
+          if (district) {
+            selectedDistrict.value = district.code;
+            // 加载乡镇/街道后尝试匹配（township 来自高德/腾讯的乡镇或街道名）
+            await onDistrictChange(true);
+            const streetName = (addr && (addr.road || addr.township || addr.neighbourhood || addr.quarter)) || '';
+            if (streetName) {
+              const match = (list) => list.find(
+                (s) => s.name === streetName || s.name.includes(streetName) || streetName.includes(s.name)
+              );
+              const inStreet = match(streets.value);
+              const inTown = match(towns.value);
+              if (inStreet) {
+                // 街道为自由输入，填入匹配到的街道名（可再修改）
+                selectedStreet.value = inStreet.name;
+              } else if (inTown) {
+                selectedTown.value = inTown.code;
+              } else {
+                // 匹配不到行政区划街道时，把逆地理编码的道路名作为默认值填入
+                selectedStreet.value = streetName;
+              }
+            }
+          }
+        }
+      }
+      // 完整地址填入搜索框，可直接发送
+      locationSearch.value = fullAddress;
+      toast.success('已获取当前位置，可直接发送');
+    },
+    (error) => {
+      let msg = '无法获取位置，请手动选择';
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          msg = '定位权限被拒绝，请在浏览器地址栏/系统设置中开启定位权限';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          msg = '暂时无法获取您的位置，请手动选择';
+          break;
+        case error.TIMEOUT:
+          msg = '定位超时，请重试或手动选择';
+          break;
+      }
+      toast.error(msg);
+    },
+    { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+  );
+};
+const sendLocation = () => {
   const provinceName = provinces.value.find(p => p.code === selectedProvince.value)?.name || '';
   const cityName = cities.value.find(c => c.code === selectedCity.value)?.name || '';
   const districtName = districts.value.find(d => d.code === selectedDistrict.value)?.name || '';
-  const address = [provinceName, cityName, districtName].filter(Boolean).join(' ');
+  const townName = towns.value.find(t => t.code === selectedTown.value)?.name || '';
+  const streetName = selectedStreet.value.trim() || '';
+  const address = [provinceName, cityName, districtName, townName, streetName].filter(Boolean).join(' ');
+  // 优先使用搜索框里的地址（定位/手动输入的详细地址），其次用省市区拼接
+  const content = locationSearch.value.trim() || address;
+  if (!content) {
+    toast.error('请先使用当前位置或搜索地址');
+    return;
+  }
   const msgId = Date.now();
   const newMessage = {
     id: msgId,
     isOwn: true,
     type: 'location',
     title: '我的位置',
-    content: address || locationSearch.value || '未知位置',
+    content,
     showTime: messages.value.length === 0 ||
       (Date.now() - messages.value[messages.value.length - 1].createTime) > 300000,
     status: 'sending',
@@ -828,8 +1093,16 @@ const handleSendRedPacket = (data) => {
     }
   }, 500);
 };
+const giftEffect = ref(null);
+const isVideoUrl = (url) => /\.mp4(\?|$)/i.test(url || '');
+const triggerGiftEffect = (gift, count) => {
+  giftEffect.value = { icon: gift.icon, name: gift.name, count, animation: gift.animation || gift.giftAnimation || '' };
+  setTimeout(() => {
+    giftEffect.value = null;
+  }, 3000);
+};
 const handleSendGift = (data) => {
-  const { gift, count } = data;
+  const { gift, count, giftType = 0, animation = '' } = data;
   const msgId = Date.now();
   const newMessage = {
     id: msgId,
@@ -838,6 +1111,7 @@ const handleSendGift = (data) => {
     icon: gift.icon,
     name: gift.name,
     count: count,
+    giftType: giftType,
     showTime: messages.value.length === 0 ||
       (Date.now() - messages.value[messages.value.length - 1].createTime) > 300000,
     status: 'sending',
@@ -846,6 +1120,9 @@ const handleSendGift = (data) => {
   messages.value.push(newMessage);
   scrollToBottom();
   userStore.setBalance(userStore.balance - gift.price * count);
+  if (Number(giftType) === 1 || animation) {
+    triggerGiftEffect(gift, count);
+  }
   setTimeout(() => {
     const index = messages.value.findIndex(m => m.id === msgId);
     if (index > -1) {
@@ -855,7 +1132,7 @@ const handleSendGift = (data) => {
 };
 const makeCall = () => {
   const saved = localStorage.getItem('callSettings')
-  const callSettings = saved ? JSON.parse(saved) : { voice: true, voicePrice: 0 }
+  const callSettings = saved ? JSON.parse(saved) : { voice: false, voicePrice: 0 }
   if (!callSettings.voice) {
     toast.info('对方已关闭语音通话功能')
     showAdd.value = false
@@ -866,7 +1143,7 @@ const makeCall = () => {
 };
 const makeVideoCall = () => {
   const saved = localStorage.getItem('callSettings')
-  const callSettings = saved ? JSON.parse(saved) : { video: true, videoPrice: 0 }
+  const callSettings = saved ? JSON.parse(saved) : { video: false, videoPrice: 0 }
   if (!callSettings.video) {
     toast.info('对方已关闭视频通话功能')
     showAdd.value = false
@@ -879,6 +1156,9 @@ const previewImage = (msg) => {
  previewImageUrl.value = msg.content;
  showImagePreview.value = true;
 };
+const MESSAGE_TYPE_MAP = { 0: 'text', 1: 'audio', 2: 'image' }
+const getMessageTypeName = (type) => MESSAGE_TYPE_MAP[type] || 'text'
+
 const handleMessageClick = (msg) => {
  console.log('点击消息:', msg);
 };
@@ -890,8 +1170,9 @@ const showMessageMenu = (msg, event) => {
  };
  showMessageContextMenu.value = true;
 };
-const revokeMessage = (msg) => {
- if (confirm('确定要撤回这条消息吗？')) {
+const revokeMessage = async (msg) => {
+ showMessageContextMenu.value = false;
+ if (await showConfirm('确定要撤回这条消息吗？')) {
  chatService.revokeMessage(msg.id);
  const index = messages.value.findIndex(m => m.id === msg.id);
  if (index > -1) {
@@ -899,16 +1180,18 @@ const revokeMessage = (msg) => {
  messages.value[index].type = 'system';
  }
  }
- showMessageContextMenu.value = false;
 };
-const copyMessage = (msg) => {
+const copyMessage = async (msg) => {
  if (msg.type === 'text') {
- navigator.clipboard.writeText(msg.content).then(() => {
- toast.success('已复制');
- });
+   try {
+     await navigator.clipboard.writeText(msg.content)
+     toast.success('已复制')
+   } catch {
+     toast.error('复制失败，请手动复制')
+   }
  }
- showMessageContextMenu.value = false;
-};
+ showMessageContextMenu.value = false
+}
 const forwardMessage = (msg) => {
  selectedMessage.value = msg;
  showMessageContextMenu.value = false;
@@ -968,38 +1251,30 @@ const handleScroll = () => {
 };
 const loadMessages = async () => {
  try {
+   loadingMessages.value = true
  const response = await chatService.getMessages(userInfo.value.userId);
  if (response.data && response.data.length > 0) {
  messages.value = response.data.map(item => ({
  id: item.id,
  isOwn: item.fromId === myInfo.value.userId,
- type: item.type === 0 ? 'text' : item.type === 1 ? 'audio' : item.type === 2 ? 'image' : 'text',
+ type: getMessageTypeName(item.type),
  content: item.content,
  duration: item.duration || 0,
  showTime: true,
  status: item.isRead ? 'read' : 'sent',
  createTime: item.sendTime ? item.sendTime * 1000 : Date.now()
  }));
- } else {
- const now = Date.now();
- messages.value = [
- { id: now - 50000, isOwn: true, type: 'text', content: '你好，在吗？', showTime: true, status: 'read', createTime: now - 50000 },
- { id: now - 40000, isOwn: false, type: 'text', content: '在的呢，有什么可以帮你的？', showTime: true, status: 'read', createTime: now - 40000 },
- { id: now - 30000, isOwn: true, type: 'text', content: '我想预约一下陪玩服务', showTime: true, status: 'read', createTime: now - 30000 },
- { id: now - 20000, isOwn: false, type: 'text', content: '好的，请问你想预约什么游戏呢？', showTime: true, status: 'read', createTime: now - 20000 }
- ];
- scrollToBottom();
- }
- }
- catch (error) {
- console.error('加载消息失败:', error);
- const now = Date.now();
- messages.value = [
- { id: now - 50000, isOwn: true, type: 'text', content: '你好，在吗？', showTime: true, status: 'read', createTime: now - 50000 },
- { id: now - 40000, isOwn: false, type: 'text', content: '在的呢，有什么可以帮你的？', showTime: true, status: 'read', createTime: now - 40000 }
- ];
- scrollToBottom();
- }
+    } else {
+      messages.value = []
+    }
+  }
+  catch (error) {
+    console.error('加载消息失败:', error)
+    messages.value = []
+    toast.error('消息加载失败，请稍后重试')
+  } finally {
+    loadingMessages.value = false
+  }
 };
 const setupSocketListeners = () => {
  socketService.on('private_message', (data) => {
@@ -1007,15 +1282,23 @@ const setupSocketListeners = () => {
  const newMessage = {
  id: data.id || Date.now(),
  isOwn: false,
- type: data.type === 0 ? 'text' : data.type === 1 ? 'audio' : data.type === 2 ? 'image' : 'text',
+ type: getMessageTypeName(data.type),
  content: data.content,
  duration: data.duration || 0,
+ giftType: Number(data.giftType) || 0,
+ icon: data.giftImage || data.icon || '',
+ name: data.giftName || '',
+ count: Number(data.giftCount) || 1,
+ animation: data.giftAnimation || '',
  showTime: messages.value.length === 0 ||
  (Date.now() - messages.value[messages.value.length - 1].createTime) > 300000,
  createTime: data.sendTime ? data.sendTime * 1000 : Date.now()
  };
  messages.value.push(newMessage);
  scrollToBottom();
+ if (Number(data.giftType) === 1 && (data.giftImage || data.giftAnimation)) {
+   triggerGiftEffect({ icon: data.giftImage, name: data.giftName || '豪华礼物', animation: data.giftAnimation || '' }, data.giftCount || 1);
+ }
  }
  });
  socketService.on('typing', (data) => {
@@ -1043,13 +1326,14 @@ onMounted(async () => {
  userInfo.value.userId = parseInt(targetId);
  }
  
- if (!localStorage.getItem('token')) {
- localStorage.setItem('token', 'mock-token-100001');
+ if (!localStorage.getItem(STORAGE_KEYS.TOKEN)) {
+ router.replace('/login');
+ return;
  }
- 
+
  const userRes = await authService.getUserInfo();
- if (userRes.code === 200 && userRes.data) {
- userStore.setUserInfo(userRes.data);
+ if (userRes?.code === 200 && userRes.data) {
+   userStore.setUserInfo(userRes.data);
  }
  
  await loadMessages();
@@ -1073,7 +1357,6 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-bottom: 70px;
   box-sizing: border-box;
 }
 
@@ -1185,6 +1468,22 @@ onUnmounted(() => {
   width: 0;
   height: 0;
   display: none;
+}
+
+.empty-chat {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #999;
+  font-size: 14px;
+}
+
+.empty-chat .empty-icon {
+  font-size: 48px;
+  opacity: 0.5;
 }
 
 .date-divider {
@@ -1359,7 +1658,7 @@ onUnmounted(() => {
 .bottom-bar {
   display: flex;
   align-items: center;
-  padding: 10px 16px;
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0));
   background: white;
   border-top: 1px solid #eee;
   gap: 10px;
@@ -1631,42 +1930,55 @@ onUnmounted(() => {
 
 .location-msg {
   display: flex;
-  gap: 10px;
-  padding: 8px;
+  align-items: center;
+  gap: 12px;
+  padding: 4px;
+  min-width: 170px;
 }
 
 .location-map {
-  width: 60px;
-  height: 60px;
-  background: var(--gradient-primary);
-  border-radius: 8px;
+  width: 54px;
+  height: 54px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
+.message.own .location-map {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .location-info {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  max-width: 150px;
+  gap: 3px;
+  min-width: 0;
 }
 
 .location-title {
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
 .location-address {
-  font-size: 12px;
-  color: #666;
+  font-size: 13px;
+  line-height: 1.45;
+  opacity: 0.85;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-all;
 }
 
 .gift-msg {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1675,12 +1987,164 @@ onUnmounted(() => {
   border-radius: 12px;
 }
 
+.gift-msg-luxury {
+  background: linear-gradient(135deg, #ffd70044 0%, #ff450044 100%);
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+}
+
+.gift-msg-badge {
+  font-size: 10px;
+  color: #fff;
+  background: linear-gradient(135deg, #ffd700, #ff9d00);
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-weight: bold;
+}
+
 .gift-icon {
   font-size: 24px;
+  line-height: 1;
+}
+
+.gift-icon-img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  border-radius: 4px;
+  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .gift-content {
   font-size: 14px;
+}
+
+.gift-effect-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  overflow: hidden;
+}
+
+.gift-effect-content {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: effectPop 0.5s ease-out;
+}
+
+.effect-rays {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 260px;
+  height: 260px;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(from 0deg, rgba(255, 215, 0, 0.35) 0deg, transparent 20deg, rgba(255, 215, 0, 0.35) 40deg, transparent 60deg, rgba(255, 215, 0, 0.35) 80deg, transparent 100deg, rgba(255, 215, 0, 0.35) 120deg, transparent 140deg, rgba(255, 215, 0, 0.35) 160deg, transparent 180deg, rgba(255, 215, 0, 0.35) 200deg, transparent 220deg, rgba(255, 215, 0, 0.35) 240deg, transparent 260deg, rgba(255, 215, 0, 0.35) 280deg, transparent 300deg, rgba(255, 215, 0, 0.35) 320deg, transparent 340deg);
+  border-radius: 50%;
+  animation: raysSpin 3s linear infinite;
+}
+
+.effect-icon {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 90px;
+  z-index: 2;
+  animation: effectBounce 0.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8));
+}
+
+.effect-icon img {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+}
+
+.effect-icon .effect-video {
+  width: 240px;
+  height: 240px;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 0 40px rgba(255, 215, 0, 0.5);
+}
+
+.effect-title {
+  z-index: 2;
+  margin-top: 12px;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ffd700;
+  letter-spacing: 4px;
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.8);
+}
+
+.effect-name {
+  z-index: 2;
+  margin-top: 8px;
+  font-size: 22px;
+  font-weight: bold;
+  color: #fff;
+}
+
+.effect-count {
+  z-index: 2;
+  margin-top: 6px;
+  font-size: 30px;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 16px rgba(255, 215, 0, 0.8);
+}
+
+.effect-particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  bottom: 30%;
+  font-size: 18px;
+  animation: particleUp 2.4s ease-in infinite;
+  opacity: 0;
+}
+
+@keyframes effectPop {
+  0% { transform: scale(0.3); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes effectBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+
+@keyframes raysSpin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes particleUp {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  15% { opacity: 1; }
+  100% { transform: translateY(-320px) scale(1.2); opacity: 0; }
 }
 
 .redpacket-msg {
@@ -1912,5 +2376,72 @@ onUnmounted(() => {
 
 .forward-status.offline {
   color: #999;
+}
+
+.confirm-dialog {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px 20px 16px;
+  width: 280px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+}
+
+.confirm-dialog-body {
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+
+.confirm-dialog-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.confirm-dialog-actions button {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.confirm-dialog-actions button:active {
+  opacity: 0.7;
+}
+
+.confirm-dialog-actions .cancel-btn {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.confirm-dialog-actions .confirm-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+
+/* PC 端与 /preferred 等 PageLayout 页面尺寸完全对齐：同宽居中、导航栏等高 */
+@media (min-width: 768px) {
+  .chat-room {
+    max-width: var(--layout-max-width-pc, 650px);
+    margin: 0 auto;
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
+  }
+
+  .header {
+    height: 50px;
+    padding: 0 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .chat-room {
+    max-width: var(--layout-max-width-pc-lg, 720px);
+  }
 }
 </style>

@@ -62,6 +62,10 @@ const Post = sequelize.define('xn_post', {
   create_time: {
     type: DataTypes.INTEGER(10),
     defaultValue: 0
+  },
+  update_time: {
+    type: DataTypes.INTEGER(10),
+    defaultValue: 0
   }
 }, {
   tableName: 'xn_post',

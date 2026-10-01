@@ -32,7 +32,7 @@ function t($method, $path, $body, $token, $expect=200, $desc="") {
   }
 }
 
-Write-Host "`n*** Duoke Full Test - All Modules (58 Users in DB) ***" -ForegroundColor Cyan
+Write-Host "`n*** Eudazi Full Test - All Modules (58 Users in DB) ***" -ForegroundColor Cyan
 
 # ============ 1. Auth ============
 Write-Host "`n--- Auth ---" -ForegroundColor Yellow

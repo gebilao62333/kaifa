@@ -50,6 +50,7 @@
           {{ isFollowed ? '已关注' : '+ 关注' }}
         </button>
         <button class="chat-btn" @click="goChat">💬 私信</button>
+        <button class="reserve-btn" @click="openReserve">📅 预约</button>
       </div>
 
       <div class="section">
@@ -114,14 +115,24 @@
         </div>
       </div>
     </div>
+
+    <ReserveModal
+      v-if="showReserve"
+      :visible="showReserve"
+      :companion="reserveCompanion"
+      @close="showReserve = false"
+      @submit="handleReserveSubmit"
+    />
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { genAvatar, genCover } from '../utils/placeholder'
+import { DEFAULT_AVATAR } from '@/common/constants'
 import PageLayout from '../components/PageLayout.vue'
+import ReserveModal from '../components/ReserveModal.vue'
+import reserveService from '../services/reserveService'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
@@ -146,101 +157,26 @@ const loadVipItems = () => {
 
 const isFollowed = ref(false)
 
-const mockUsers = {
-  '10001': {
-    id: '10001',
-    avatar: genAvatar('游戏大神'),
-    bgImage: genCover('10001'),
-    name: '游戏大神',
-    level: 28,
-    vip: true,
-    signature: '专注王者荣耀，带你上王者',
-    follows: 128,
-    fans: 2560,
-    likes: 12345,
-    gender: 'male',
-    age: 24,
-    height: 178,
-    region: '北京市朝阳区',
-    onlineService: true,
-    offlineService: false,
-    tags: ['游戏达人', '技术流', '声音好听', '段位高'],
-    games: [
-      { name: '王者荣耀', level: '荣耀王者' },
-      { name: '和平精英', level: '无敌战神' },
-      { name: '英雄联盟', level: '大师' }
-    ],
-    photos: [
-      'https://picsum.photos/200/200?random=1',
-      'https://picsum.photos/200/200?random=2',
-      'https://picsum.photos/200/200?random=3',
-      'https://picsum.photos/200/200?random=4',
-      'https://picsum.photos/200/200?random=5',
-      'https://picsum.photos/200/200?random=6'
-    ]
-  },
-  '10002': {
-    id: '10002',
-    avatar: genAvatar('小雪'),
-    bgImage: genCover('10002'),
-    name: '小雪',
-    level: 28,
-    vip: true,
-    signature: '热爱生活，热爱游戏~',
-    follows: 89,
-    fans: 1890,
-    likes: 8765,
-    gender: 'female',
-    age: 22,
-    height: 165,
-    region: '上海市浦东新区',
-    onlineService: true,
-    offlineService: true,
-    tags: ['萌妹子', '声音甜美', '技术流', '活泼可爱'],
-    games: [
-      { name: '王者荣耀', level: '王者' },
-      { name: '和平精英', level: '王牌' }
-    ],
-    photos: [
-      'https://picsum.photos/200/200?random=11',
-      'https://picsum.photos/200/200?random=12',
-      'https://picsum.photos/200/200?random=13'
-    ]
-  },
-  '10003': {
-    id: '10003',
-    avatar: genAvatar('阿杰'),
-    bgImage: genCover('10003'),
-    name: '阿杰',
-    level: 35,
-    vip: true,
-    signature: '新赛季更新了，感觉打野位又加强了！',
-    follows: 256,
-    fans: 3420,
-    likes: 15678,
-    gender: 'male',
-    age: 26,
-    height: 182,
-    region: '广州市天河区',
-    onlineService: true,
-    offlineService: false,
-    tags: ['职业选手', '意识流', '教学达人'],
-    games: [
-      { name: '英雄联盟', level: '王者' },
-      { name: '王者荣耀', level: '荣耀王者' }
-    ],
-    photos: [
-      'https://picsum.photos/200/200?random=21',
-      'https://picsum.photos/200/200?random=22',
-      'https://picsum.photos/200/200?random=23',
-      'https://picsum.photos/200/200?random=24'
-    ]
-  }
-}
-
-const user = computed(() => {
-  const userId = route.params.id || '10001'
-  return mockUsers[userId] || mockUsers['10001']
+const user = ref({
+  id: '',
+  avatar: DEFAULT_AVATAR,
+  bgImage: '',
+  name: '',
+  level: 0,
+  vip: false,
+  signature: '',
+  follows: 0,
+  fans: 0,
+  likes: 0,
+  gender: '',
+  age: null,
+  height: null,
+  region: '',
+  onlineService: false,
+  offlineService: false,
+  tags: [],
+  games: [],
+  photos: []
 })
 
 const goBack = () => {
@@ -253,6 +189,44 @@ const toggleFollow = () => {
 
 const goChat = () => {
   router.push({ name: 'ChatRoom', params: { id: user.value.id } })
+}
+
+const showReserve = ref(false)
+
+const reserveCompanion = computed(() => ({
+  id: user.value.id,
+  name: user.value.name,
+  avatar: user.value.avatar,
+  game: user.value.games?.[0]?.name || '',
+  onlineService: user.value.onlineService === true,
+  offlineService: !!user.value.offlineService,
+  offlineLocation: user.value.region || ''
+}))
+
+const openReserve = () => {
+  showReserve.value = true
+}
+
+// 后端仅接收 companionId/gameId/date/time，其余字段（时长、价格、线下地点）待接口扩展
+const handleReserveSubmit = async (data, done) => {
+  try {
+    const res = await reserveService.createReserve({
+      companionId: Number(data.companionId),
+      date: data.date,
+      time: data.startTime
+    })
+
+    if (res?.code === 200 || res?.code === 201) {
+      toast.success('预约成功，等待对方确认')
+      showReserve.value = false
+    } else {
+      toast.error(res?.message || '预约失败')
+    }
+  } catch (err) {
+    toast.error(err.message || '预约失败，请稍后重试')
+  } finally {
+    done?.()
+  }
 }
 
 onMounted(() => {
@@ -448,6 +422,16 @@ const viewPhoto = (url, index) => {
   background: white;
   color: #333;
   border: 1px solid #e5e5e5 !important;
+}
+
+.reserve-btn {
+  background: linear-gradient(135deg, #ff6b81, #ff8e53);
+  color: #fff;
+  border: none !important;
+}
+
+.reserve-btn:active {
+  opacity: 0.85;
 }
 
 .section {

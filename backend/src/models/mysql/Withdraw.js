@@ -3,7 +3,7 @@ const sequelize = require('../../config/mysql');
 
 const Withdraw = sequelize.define('xn_withdraw', {
   id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     primaryKey: true,
     autoIncrement: true
   },
@@ -13,60 +13,105 @@ const Withdraw = sequelize.define('xn_withdraw', {
   },
   money: {
     type: DataTypes.DECIMAL(10, 2),
+    allowNull: false,
+    field: 'money'
+  },
+  amount: {
+    type: DataTypes.DECIMAL(10, 2),
     allowNull: false
   },
   pay_money: {
     type: DataTypes.DECIMAL(10, 2),
-    allowNull: false
+    allowNull: false,
+    field: 'pay_money'
   },
   shouxufei: {
     type: DataTypes.DECIMAL(10, 2),
-    defaultValue: 0
+    defaultValue: 0,
+    field: 'shouxufei'
   },
   type: {
     type: DataTypes.TINYINT(1),
-    defaultValue: 1
+    defaultValue: 1,
+    field: 'type'
+  },
+  account: {
+    type: DataTypes.STRING(255),
+    allowNull: true
   },
   bank: {
     type: DataTypes.STRING(255),
-    allowNull: true
+    allowNull: true,
+    field: 'bank'
   },
   name: {
     type: DataTypes.STRING(50),
-    allowNull: true
+    allowNull: true,
+    field: 'name'
   },
   mobile: {
     type: DataTypes.STRING(16),
-    allowNull: true
+    allowNull: true,
+    field: 'mobile'
   },
   image: {
     type: DataTypes.STRING(255),
-    allowNull: true
+    allowNull: true,
+    field: 'image'
   },
   is_check: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0,
+    field: 'is_check'
+  },
+  status: {
     type: DataTypes.TINYINT(1),
     defaultValue: 0
   },
   state: {
     type: DataTypes.STRING(20),
-    allowNull: true
+    allowNull: true,
+    field: 'state'
   },
   wx_ti_id: {
     type: DataTypes.STRING(50),
-    allowNull: true
+    allowNull: true,
+    field: 'wx_ti_id'
   },
   lailu: {
     type: DataTypes.STRING(20),
-    allowNull: true
+    allowNull: true,
+    field: 'lailu'
   },
   channel: {
     type: DataTypes.STRING(20),
     defaultValue: 'gift',
-    comment: '提现渠道: gift(礼物金币) / wallet(钱包总资产)'
+    field: 'channel'
+  },
+  currency: {
+    type: DataTypes.STRING(10),
+    allowNull: true,
+    field: 'currency'
+  },
+  remark: {
+    type: DataTypes.TEXT,
+    allowNull: true
+  },
+  handle_admin_id: {
+    type: DataTypes.BIGINT,
+    allowNull: true
+  },
+  handle_time: {
+    type: DataTypes.INTEGER(10),
+    allowNull: true
   },
   create_time: {
-    type: DataTypes.DATE,
-    defaultValue: DataTypes.NOW
+    type: DataTypes.INTEGER(10),
+    defaultValue: 0
+  },
+  update_time: {
+    type: DataTypes.INTEGER(10),
+    defaultValue: 0
   }
 }, {
   tableName: 'xn_withdraw',

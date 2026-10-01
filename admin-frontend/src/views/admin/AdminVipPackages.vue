@@ -3,14 +3,15 @@
     <div class="page-actions">
       <button class="btn-primary" @click="openCreate">+ 新增VIP套餐</button>
     </div>
-    <table class="data-table">
+    <div v-if="loading" class="loading-wrap"><div class="spinner"></div><span>加载中...</span></div>
+    <table class="data-table" v-else>
       <thead><tr><th>ID</th><th>套餐名</th><th>价格</th><th>原价</th><th>天数</th><th>等级</th><th>热门</th><th>状态</th><th>操作</th></tr></thead>
       <tbody>
         <tr v-for="pkg in list" :key="pkg.id">
           <td>{{ pkg.id }}</td>
           <td>{{ pkg.name }}</td>
-          <td>¥{{ pkg.price }}</td>
-          <td>¥{{ pkg.originalPrice || 0 }}</td>
+          <td>{{ pkg.price }} 金币</td>
+          <td>{{ pkg.originalPrice || 0 }} 金币</td>
           <td>{{ pkg.duration }}天</td>
           <td>VIP{{ pkg.level || 1 }}</td>
           <td>{{ pkg.hot ? '🔥' : '-' }}</td>
@@ -31,11 +32,14 @@
 
     <div class="modal-overlay" v-if="showModal">
       <div class="modal">
-        <h3>{{ isEdit ? '编辑VIP套餐' : '新增VIP套餐' }}</h3>
+        <div class="modal-header">
+          <h3>{{ isEdit ? '编辑VIP套餐' : '新增VIP套餐' }}</h3>
+          <button class="modal-close" @click="showModal = false">&times;</button>
+        </div>
         <div class="form-grid">
           <label>名称: <input v-model="form.name" /></label>
-          <label>价格: <input v-model.number="form.price" type="number" /></label>
-          <label>原价: <input v-model.number="form.originalPrice" type="number" /></label>
+          <label>价格(金币): <input v-model.number="form.price" type="number" /></label>
+          <label>原价(金币): <input v-model.number="form.originalPrice" type="number" /></label>
           <label>天数: <input v-model.number="form.duration" type="number" /></label>
           <label>等级: <input v-model.number="form.level" type="number" /></label>
           <label>热门: <select v-model.number="form.hot"><option :value="1">是</option><option :value="0">否</option></select></label>
@@ -55,36 +59,45 @@
 import { ref, onMounted } from 'vue'
 import adminService from '../../services/adminService'
 import { useAdminApi } from '../../composables/useAdminApi'
+import { useToast } from '../../composables/useToast'
 const { page, pageSize, total, totalPages, getHost, getHeaders } = useAdminApi()
+const toast = useToast()
 const list = ref([])
+const loading = ref(false)
 const showModal = ref(false)
 const isEdit = ref(false)
 const form = ref({ id: '', name: '', price: 0, originalPrice: 0, duration: 30, level: 1, hot: 0, sort: 0, status: 1 })
 const loadList = async () => {
+  loading.value = true
   try {
     const res = await adminService.getVipPackages({ page: page.value, pageSize: pageSize.value })
     if (res.code === 200 || res.code === 0) { list.value = res.data.list || res.data || []; total.value = res.data.pagination?.total || list.value.length }
-  } catch (e) { console.error(e) }
+  } catch (e) { toast.error('加载失败: ' + (e.message || '网络错误')) }
+  finally { loading.value = false }
 }
 const openCreate = () => { isEdit.value = false; form.value = { id: '', name: '', price: 0, originalPrice: 0, duration: 30, level: 1, hot: 0, sort: 0, status: 1 }; showModal.value = true }
-const openEdit = (p) => { isEdit.value = true; form.value = { id: p.id, name: p.name, price: p.price, originalPrice: p.originalPrice || 0, duration: p.duration, level: p.level || 1, hot: p.hot || 0, sort: p.sort || 0, status: p.status }; showModal.value = true }
+const openEdit = (p) => { isEdit.value = true; form.value = { id: p.id, name: p.name, price: p.price, originalPrice: p.originalPrice || 0, duration: p.duration || 30, level: p.level || 1, hot: p.hot || 0, sort: p.sort || 0, status: p.status }; showModal.value = true }
 const save = async () => {
   try {
     const res = isEdit.value ? await adminService.updateVipPackage(form.value.id, form.value) : await adminService.createVipPackage(form.value)
-    if (res.code === 200 || res.code === 0) { alert('保存成功'); showModal.value = false; loadList() } else { alert(res.message || '保存失败') }
-  } catch (e) { console.error(e) }
+    if (res.code === 200 || res.code === 0) { toast.success('保存成功'); showModal.value = false; loadList() } else { toast.error(res.message || '保存失败') }
+  } catch (e) { toast.error('保存失败: ' + (e.message || '网络错误')) }
 }
-const toggle = async (p) => { try { await adminService.updateVipPackageStatus(p.id, p.status === 1 ? 0 : 1); loadList() } catch (e) { console.error(e) } }
-const remove = async (p) => { if (!confirm(`确定删除 ${p.name}?`)) return; try { await adminService.deleteVipPackage(p.id); loadList() } catch (e) { console.error(e) } }
+const toggle = async (p) => { try { await adminService.updateVipPackageStatus(p.id, p.status === 1 ? 0 : 1); toast.success(p.status === 1 ? '已禁用' : '已启用'); loadList() } catch (e) { toast.error('操作失败: ' + (e.message || '网络错误')) } }
+const remove = async (p) => { if (!confirm(`确定删除 ${p.name}?`)) return; try { await adminService.deleteVipPackage(p.id); toast.success('已删除'); loadList() } catch (e) { toast.error('删除失败: ' + (e.message || '网络错误')) } }
 onMounted(loadList)
 </script>
 
 <style scoped>
+.loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; color: #999; gap: 12px; }
+.spinner { width: 32px; height: 32px; border: 3px solid #f0f0f0; border-top-color: #1890ff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .page-actions { display: flex; gap: 12px; margin-bottom: 16px; }
 .btn-primary { padding: 8px 16px; background: #1890ff; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
 .data-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 .data-table th { text-align: left; padding: 12px; background: #fafafa; color: #666; font-size: 13px; font-weight: 600; }
 .data-table td { padding: 10px 12px; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+.empty-cell { text-align: center; color: #999; padding: 24px; }
 .status-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; }
 .status-tag.active { background: #f6ffed; color: #52c41a; }
 .status-tag.disabled { background: #fff1f0; color: #ff4d4f; }
@@ -96,10 +109,14 @@ onMounted(loadList)
 .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 200; }
 .modal { background: #fff; border-radius: 8px; padding: 24px; width: 480px; max-height: 80vh; overflow-y: auto; }
-.modal h3 { margin-bottom: 16px; }
-.form-grid { display: grid; gap: 12px; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.modal-header h3 { margin: 0; }
+.modal-close { width: 28px; height: 28px; border: none; background: transparent; font-size: 22px; color: #999; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; line-height: 1; }
+.modal-close:hover { color: #333; background: #f5f5f5; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .form-grid label { display: flex; flex-direction: column; font-size: 13px; color: #666; gap: 4px; }
 .form-grid input, .form-grid select { padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px; }
 .modal-actions { margin-top: 16px; display: flex; gap: 8px; justify-content: flex-end; }
 .modal-actions button { padding: 8px 20px; border: 1px solid #d9d9d9; border-radius: 4px; background: #fff; cursor: pointer; }
+.modal-actions .btn-primary { background: #1890ff; color: #fff; border: none; }
 </style>

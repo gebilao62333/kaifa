@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import chatService from '../services/chatService'
 import socketService from '../services/socketService'
+import { STORAGE_KEYS } from '../common/constants'
 
 export const useChatStore = defineStore('chat', {
   state: () => ({
@@ -20,10 +21,13 @@ export const useChatStore = defineStore('chat', {
 
   getters: {
     getTotalUnread: (state) => {
-      return state.totalUnread + state.noticeUnread
+      const chat = Number(state.totalUnread) || 0
+      const notice = Number(state.noticeUnread) || 0
+      return chat + notice
     },
     getChatUnread: (state) => (userId) => {
-      return state.unreadMap[userId] || 0
+      const count = Number(state.unreadMap?.[userId])
+      return Number.isFinite(count) && count > 0 ? count : 0
     }
   },
 
@@ -33,7 +37,7 @@ export const useChatStore = defineStore('chat', {
         this.loading = true
         const result = await chatService.getChatList(page, pageSize)
         
-        if (result.code === 200) {
+        if (result?.code === 200) {
           const list = result.data?.list || result.data || []
           if (page === 1) {
             this.chatList = list
@@ -42,7 +46,7 @@ export const useChatStore = defineStore('chat', {
           }
           return { success: true, data: list }
         }
-        return { success: false, message: result.message }
+        return { success: false, message: result?.message || '请求失败' }
       } catch (error) {
         console.error('获取聊天列表失败:', error)
         return { success: false, message: error.message }
@@ -56,7 +60,7 @@ export const useChatStore = defineStore('chat', {
         this.messageLoading = true
         const result = await chatService.getMessages(targetUserId, page, pageSize)
         
-        if (result.code === 200) {
+        if (result?.code === 200) {
           const list = result.data?.list || result.data || []
           this.hasMoreMessages = list.length >= pageSize
           this.currentPage = page
@@ -68,7 +72,7 @@ export const useChatStore = defineStore('chat', {
           }
           return { success: true, data: list }
         }
-        return { success: false, message: result.message }
+        return { success: false, message: result?.message || '请求失败' }
       } catch (error) {
         console.error('获取消息列表失败:', error)
         return { success: false, message: error.message }
@@ -81,9 +85,9 @@ export const useChatStore = defineStore('chat', {
       try {
         const result = await chatService.sendMessage(targetUserId, content, type, mediaUrl, duration)
         
-        if (result.code === 200) {
+        if (result?.code === 200) {
           const message = {
-            messageId: result.data?.messageId,
+            messageId: result?.data?.messageId,
             fromUserId: this.currentChatUser?.userId,
             toUserId: targetUserId,
             content,
@@ -94,16 +98,10 @@ export const useChatStore = defineStore('chat', {
             status: 'sent'
           }
           this.addMessage(message)
-          
-          socketService.emit('message:send', {
-            toUserId: targetUserId,
-            content,
-            type
-          })
-          
+
           return { success: true, data: message }
         }
-        return { success: false, message: result.message }
+        return { success: false, message: result?.message || '请求失败' }
       } catch (error) {
         console.error('发送消息失败:', error)
         return { success: false, message: error.message }
@@ -114,7 +112,7 @@ export const useChatStore = defineStore('chat', {
       try {
         const result = await chatService.revokeMessage(messageId)
         
-        if (result.code === 200) {
+        if (result?.code === 200) {
           const message = this.messageList.find(m => m.messageId === messageId)
           if (message) {
             message.content = '[消息已撤回]'
@@ -122,7 +120,7 @@ export const useChatStore = defineStore('chat', {
           }
           return { success: true }
         }
-        return { success: false, message: result.message }
+        return { success: false, message: result?.message || '请求失败' }
       } catch (error) {
         console.error('撤回消息失败:', error)
         return { success: false, message: error.message }
@@ -133,11 +131,11 @@ export const useChatStore = defineStore('chat', {
       try {
         const result = await chatService.markAsRead(targetUserId)
         
-        if (result.code === 200) {
+        if (result?.code === 200) {
           this.updateUnread(targetUserId, 0)
           socketService.emit('message:read', { fromUserId: targetUserId })
         }
-        return { success: result.code === 200, message: result.message }
+        return { success: result?.code === 200, message: result?.message || '请求失败' }
       } catch (error) {
         console.error('标记已读失败:', error)
         return { success: false, message: error.message }
@@ -145,26 +143,30 @@ export const useChatStore = defineStore('chat', {
     },
 
     setupSocketListeners() {
-      socketService.on('new_message', (data) => {
-        console.log('[Chat] 收到新消息:', data)
-        
-        const isCurrentChat = data.fromUserId === this.currentChatUser?.userId
-        
+      // 事件名与后端对齐：后端 socket 发送的是 private_message / fromId（见 backend/src/socket/index.js）
+      socketService.on('private_message', (data) => {
+        console.log('[Chat] 收到私聊消息:', data)
+        const fromId = data?.fromId ?? data?.fromUserId
+        if (fromId == null) return
+
+        const isCurrentChat = fromId === this.currentChatUser?.userId
+
         if (isCurrentChat) {
           this.addMessage(data)
           if (this.currentChatUser?.userId) {
             this.markAsRead(this.currentChatUser.userId)
           }
         } else {
-          this.updateUnread(data.fromUserId, (this.unreadMap[data.fromUserId] || 0) + 1)
+          const cur = Number(this.unreadMap[fromId]) || 0
+          this.updateUnread(fromId, cur + 1)
         }
-        
-        const chatItem = this.chatList.find(c => c.targetUserId === data.fromUserId)
+
+        const chatItem = this.chatList.find(c => c.targetUserId === fromId)
         if (chatItem) {
-          chatItem.lastMessage = data.content
-          chatItem.lastMessageTime = data.createTime
+          chatItem.lastMessage = data?.content ?? ''
+          chatItem.lastMessageTime = data?.sendTime ? data.sendTime * 1000 : Date.now()
           if (!isCurrentChat) {
-            chatItem.unreadCount = (chatItem.unreadCount || 0) + 1
+            chatItem.unreadCount = (Number(chatItem.unreadCount) || 0) + 1
           }
         }
       })
@@ -217,20 +219,23 @@ export const useChatStore = defineStore('chat', {
     },
 
     updateUnread(userId, count) {
-      this.unreadMap[userId] = count
+      this.unreadMap[userId] = Number(count) || 0
       this.calculateTotalUnread()
     },
 
     calculateTotalUnread() {
-      this.totalUnread = Object.values(this.unreadMap).reduce((sum, count) => sum + count, 0)
+      this.totalUnread = Object.values(this.unreadMap).reduce((sum, count) => {
+        const n = Number(count)
+        return sum + (Number.isFinite(n) && n > 0 ? n : 0)
+      }, 0)
     },
 
     setChatUnread(count) {
-      this.totalUnread = count
+      this.totalUnread = Number(count) || 0
     },
 
     setNoticeUnread(count) {
-      this.noticeUnread = count
+      this.noticeUnread = Number(count) || 0
     },
 
     clearMessages() {
@@ -250,7 +255,7 @@ export const useChatStore = defineStore('chat', {
     },
 
     initSocketConnection() {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem(STORAGE_KEYS.TOKEN)
       if (token) {
         socketService.connect()
         this.socketConnected = true

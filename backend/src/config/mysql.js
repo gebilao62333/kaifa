@@ -27,9 +27,16 @@ if (config.useMockDb) {
       port: config.db.mysql.port,
       dialect: 'mysql',
       charset: config.db.mysql.charset,
+      dialectOptions: {
+        charset: config.db.mysql.charset || 'utf8mb4',
+        // mysql2 不识别 collate，传了只会告警；建表排序规则由下方 define 控制
+        connectTimeout: 10000
+      },
       logging: config.nodeEnv === 'development' ? console.log : false,
       pool: config.db.mysql.pool,
       define: {
+        charset: 'utf8mb4',
+        collate: 'utf8mb4_unicode_ci',
         timestamps: false,
         underscored: true,
         freezeTableName: true

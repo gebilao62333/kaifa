@@ -50,7 +50,7 @@
         v-for="(item, idx) in companionList" 
         :key="idx"
         @click="goCompanionDetail(item)">
-        <img class="companion-avatar" :src="item.avatar" alt="" />
+        <img class="companion-avatar" :src="item.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200'" alt="" />
         <div class="online-dot" v-if="item.isOnline"></div>
         <div class="companion-info">
           <div class="name-row">
@@ -83,10 +83,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from '../composables/useToast'
 import PageLayout from '../components/PageLayout.vue'
+import gamesService from '../services/gamesService'
 
 const router = useRouter()
 
@@ -94,112 +95,139 @@ const activeCategory = ref(0)
 const activeFilter = ref('all')
 const loading = ref(false)
 const hasMore = ref(true)
+const currentPage = ref(1)
+const pageSize = 20
 
-const categories = ref([
-  { name: '全部', icon: '🎮' },
-  { name: '王者荣耀', icon: '👑' },
-  { name: '和平精英', icon: '🔫' },
-  { name: '英雄联盟', icon: '⚔️' },
-  { name: '原神', icon: '🌠' },
-  { name: '金铲铲', icon: '🏆' },
-  { name: '蛋仔派对', icon: '🥚' },
-  { name: '永劫无间', icon: '🗡️' }
-])
+const categories = ref([])
+
+const categoryIcons = ['🎮', '👑', '🔫', '⚔️', '🌠', '🏆', '🥚', '🗡️']
 
 const companionList = ref([])
 
-const loadCompanionList = async () => {
-  loading.value = true
-  await new Promise(resolve => setTimeout(resolve, 500))
-  
-  companionList.value = [
-    {
-      id: 1,
-      avatar: '',
-      nickname: '小雪',
-      level: 28,
-      vip: true,
-      tags: ['技术流', '带飞', '温柔'],
-      likes: 1234,
-      orders: 568,
-      price: 30,
-      isOnline: true,
-      isFollowed: false
-    },
-    {
-      id: 2,
-      avatar: '',
-      nickname: '阿杰',
-      level: 35,
-      vip: false,
-      tags: ['打野', '带躺', '幽默'],
-      likes: 892,
-      orders: 345,
-      price: 35,
-      isOnline: true,
-      isFollowed: true
-    },
-    {
-      id: 3,
-      avatar: '',
-      nickname: '小美',
-      level: 22,
-      vip: true,
-      tags: ['娱乐陪', '聊天', '唱歌'],
-      likes: 2341,
-      orders: 892,
-      price: 25,
-      isOnline: false,
-      isFollowed: false
-    },
-    {
-      id: 4,
-      avatar: '',
-      nickname: '大飞',
-      level: 42,
-      vip: true,
-      tags: ['技术陪', '教学', '野王'],
-      likes: 5689,
-      orders: 1567,
-      price: 50,
-      isOnline: true,
-      isFollowed: false
-    },
-    {
-      id: 5,
-      avatar: '',
-      nickname: '小萌',
-      level: 18,
-      vip: false,
-      tags: ['新人', '话多', '声音甜'],
-      likes: 234,
-      orders: 56,
-      price: 20,
-      isOnline: true,
-      isFollowed: false
+const loadCategories = async () => {
+  try {
+    const res = await gamesService.getCategories()
+    const list = res.data || res || []
+    if (list.length > 0) {
+      categories.value = [
+        { id: 0, name: '全部', icon: '🎮' },
+        ...list.map((item, idx) => ({
+          id: item.id,
+          name: item.name,
+          icon: categoryIcons[(idx + 1) % categoryIcons.length]
+        }))
+      ]
+    } else {
+      categories.value = [
+        { id: 0, name: '全部', icon: '🎮' },
+        { id: 1, name: '王者荣耀', icon: '👑' },
+        { id: 2, name: '和平精英', icon: '🔫' },
+        { id: 3, name: '英雄联盟', icon: '⚔️' },
+        { id: 4, name: '原神', icon: '🌠' },
+        { id: 5, name: '金铲铲', icon: '🏆' },
+        { id: 6, name: '蛋仔派对', icon: '🥚' },
+        { id: 7, name: '永劫无间', icon: '🗡️' }
+      ]
     }
-  ]
+  } catch (err) {
+    console.error('加载分类失败:', err)
+    categories.value = [
+      { id: 0, name: '全部', icon: '🎮' },
+      { id: 1, name: '王者荣耀', icon: '👑' },
+      { id: 2, name: '和平精英', icon: '🔫' },
+      { id: 3, name: '英雄联盟', icon: '⚔️' },
+      { id: 4, name: '原神', icon: '🌠' },
+      { id: 5, name: '金铲铲', icon: '🏆' },
+      { id: 6, name: '蛋仔派对', icon: '🥚' },
+      { id: 7, name: '永劫无间', icon: '🗡️' }
+    ]
+  }
+}
+
+const loadCompanionList = async (append = false) => {
+  if (loading.value) return
   
-  loading.value = false
-  hasMore.value = false
+  loading.value = true
+  try {
+    const cat = categories.value[activeCategory.value]
+    const params = {
+      page: append ? currentPage.value : 1,
+      pageSize,
+      sort: activeFilter.value
+    }
+    if (cat && cat.id !== 0) {
+      params.gameId = cat.id
+    }
+
+    const res = await gamesService.getCompanions(params)
+    const list = res.data || res || []
+
+    if (append) {
+      companionList.value = [...companionList.value, ...list]
+    } else {
+      companionList.value = list
+    }
+
+    hasMore.value = list.length >= pageSize
+    if (!append) currentPage.value = 1
+  } catch (err) {
+    console.error('加载陪玩师列表失败:', err)
+    if (!append) companionList.value = []
+    hasMore.value = false
+  } finally {
+    loading.value = false
+  }
 }
 
 const selectCategory = (idx) => {
+  if (activeCategory.value === idx) return
   activeCategory.value = idx
+  currentPage.value = 1
+  loadCompanionList()
+}
+
+const loadMore = () => {
+  if (loading.value || !hasMore.value) return
+  currentPage.value++
+  loadCompanionList(true)
 }
 
 const goCompanionDetail = (item) => {
-  console.log('陪玩师详情:', item.id)
-  toast.info('陪玩师详情功能开发中...')
+  if (item.id) {
+    router.push({ name: 'UserProfile', params: { id: item.id } })
+  } else {
+    toast.info('陪玩师详情功能开发中...')
+  }
 }
 
-const followCompanion = (item) => {
-  item.isFollowed = true
-  console.log('关注陪玩师:', item.id)
+const followCompanion = async (item) => {
+  try {
+    item.isFollowed = true
+    toast.success('关注成功')
+  } catch (err) {
+    toast.error('关注失败')
+  }
 }
+
+const handleScroll = () => {
+  const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+  const windowHeight = window.innerHeight
+  const documentHeight = document.documentElement.scrollHeight
+
+  if (scrollTop + windowHeight >= documentHeight - 200) {
+    loadMore()
+  }
+}
+
+watch(activeFilter, () => {
+  currentPage.value = 1
+  loadCompanionList()
+})
 
 onMounted(() => {
+  loadCategories()
   loadCompanionList()
+  window.addEventListener('scroll', handleScroll)
 })
 </script>
 

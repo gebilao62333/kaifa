@@ -19,15 +19,26 @@
     </div>
 
     <div class="user-list">
+      <div class="empty-state" v-if="loading">
+        <div class="empty-icon">⏳</div>
+        <div class="empty-text">加载中...</div>
+      </div>
+
+      <div class="empty-state" v-else-if="loadError">
+        <div class="empty-icon">⚠️</div>
+        <div class="empty-text">{{ loadError }}</div>
+        <button class="retry-btn" @click="loadUsers">重新加载</button>
+      </div>
+
       <div
-        v-for="(user, index) in filteredUsers"
+        v-for="(user, index) in (loading || loadError ? [] : filteredUsers)"
         :key="user.userId"
         :class="['user-item', { 'no-border': index === filteredUsers.length - 1 }]"
         @click="goUserProfile(user)"
       >
         <div class="avatar-wrap">
           <img class="avatar" :src="user.avatar" alt="" />
-          <div class="online-dot" v-if="user.isOnline"></div>
+          <div class="online-dot" v-if="user.online"></div>
         </div>
         <div class="user-info">
           <div class="name-row">
@@ -40,8 +51,8 @@
             <span v-for="tag in user.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
           </div>
           <div class="meta-row">
-            <span class="status-text" :class="{ online: user.isOnline }">
-              {{ user.isOnline ? '在线' : '离线' }}
+            <span class="status-text" :class="{ online: user.online }">
+              {{ user.online ? '在线' : '离线' }}
             </span>
             <span class="region-text" v-if="user.region">{{ user.region }}</span>
           </div>
@@ -49,7 +60,7 @@
         <button class="chat-btn" @click.stop="startChat(user)">聊天</button>
       </div>
 
-      <div class="empty-state" v-if="filteredUsers.length === 0">
+      <div class="empty-state" v-if="!loading && !loadError && filteredUsers.length === 0">
         <div class="empty-icon">👥</div>
         <div class="empty-text">暂无用户</div>
       </div>
@@ -63,6 +74,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import homeService from '../services/homeService'
 import { toast } from '../composables/useToast'
+import { STORAGE_KEYS, DEFAULT_AVATAR } from '../common/constants'
 
 const router = useRouter()
 const activeTab = ref('online')
@@ -96,68 +108,55 @@ const filteredUsers = computed(() => {
   }
 })
 
+const loadError = ref('')
+
 const loadUsers = async () => {
   loading.value = true
-  
+  loadError.value = ''
+
   const userStore = useUserStore()
-  const rawToken = localStorage.getItem('token')
+  const rawToken = localStorage.getItem(STORAGE_KEYS.TOKEN)
   const storeToken = userStore.token
   const validToken = rawToken && rawToken !== 'undefined' && rawToken !== 'null' ? rawToken : storeToken
-  const properlyLoggedIn = !!validToken && !!userStore.profile
 
-  if (properlyLoggedIn) {
-    try {
-      const result = await homeService.getRecommendCompanions({ page: 1, pageSize: 50 })
-      
-      if (result && result.code === 200 && result.data) {
-        const list = result.data.list || result.data
-        allUsers.value = list.map(user => ({
-          userId: user.userId || user.id,
-          nickName: user.nickName || user.nickname,
-          avatar: user.avatar || 'https://picsum.photos/200/200',
-          gender: user.gender || 'unknown',
-          level: user.level || 1,
-          online: user.online || false,
-          isVip: user.vip === 1 || user.vip === true,
-          isNewbie: user.level < 10,
-          activityScore: user.activityScore || 50,
-          tags: user.tags || [],
-          region: user.region || user.city || ''
-        }))
-        return
-      }
-    } catch (error) {
-      console.warn('加载用户列表失败，使用模拟数据:', error.message)
-    }
+  if (!validToken) {
+    loading.value = false
+    router.replace('/login')
+    return
   }
-  
-  useMockData()
-  loading.value = false
-}
 
-const useMockData = () => {
-    allUsers.value = [
-      {
-        userId: 1, nickName: '小雪', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=girl1',
-        gender: 'female', level: 28, online: true, isVip: true, isNewbie: false, activityScore: 95,
-        tags: ['温柔', '甜音', '技术好'], region: '北京'
-      },
-      {
-        userId: 2, nickName: '阿杰', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=boy1',
-        gender: 'male', level: 35, online: true, isVip: false, isNewbie: false, activityScore: 88,
-        tags: ['打野', '带飞', '幽默'], region: '上海'
-      },
-      {
-        userId: 3, nickName: '小美', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=girl2',
-        gender: 'female', level: 22, online: false, isVip: true, isNewbie: true, activityScore: 45,
-        tags: ['娱乐', '聊天', '唱歌'], region: '广州'
-      },
-      {
-        userId: 4, nickName: '大飞', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=boy2',
-        gender: 'male', level: 42, online: true, isVip: true, isNewbie: false, activityScore: 100,
-        tags: ['技术陪', '上分', '教学'], region: '深圳'
-      }
-    ]
+  try {
+    const result = await homeService.getRecommendCompanions({ page: 1, pageSize: 50 })
+
+    if (result && result.code === 200 && result.data) {
+      const list = result.data.list || result.data || []
+      allUsers.value = (Array.isArray(list) ? list : []).map(user => {
+        const level = Number(user.level) || 1
+        return {
+          userId: user.userId || user.id,
+          nickName: user.nickName || user.nickname || '用户',
+          avatar: user.avatar || DEFAULT_AVATAR,
+          gender: user.gender || 'unknown',
+          level,
+          online: user.online === 1 || user.online === true,
+          isVip: user.vip === 1 || user.vip === true,
+          isNewbie: level < 10,
+          activityScore: Number(user.activityScore) || 0,
+          tags: Array.isArray(user.tags) ? user.tags : [],
+          region: user.region || user.city || ''
+        }
+      })
+    } else {
+      allUsers.value = []
+      loadError.value = (result && result.message) || '加载用户列表失败'
+    }
+  } catch (error) {
+    allUsers.value = []
+    loadError.value = error?.message || '网络异常，请稍后重试'
+    console.warn('加载用户列表失败:', error?.message)
+  } finally {
+    loading.value = false
+  }
 }
 
 const switchTab = (tabKey) => {
@@ -220,8 +219,9 @@ onMounted(() => {
 .category-tabs {
   display: flex;
   background: white;
-  padding: 62px 12px 0;
+  padding: 8px 12px 0;
   overflow-x: auto;
+  overflow-y: hidden;
   gap: 8px;
   height: 70px;
 }
@@ -431,6 +431,21 @@ onMounted(() => {
   color: #999;
 }
 
+.retry-btn {
+  margin-top: 12px;
+  padding: 8px 24px;
+  font-size: 14px;
+  color: #fff;
+  background: #ff6b81;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+}
+
+.retry-btn:active {
+  opacity: 0.8;
+}
+
 @media (min-width: 768px) {
   .chat-users-page {
     max-width: 650px;
@@ -440,8 +455,7 @@ onMounted(() => {
 
   .header {
     max-width: 650px;
-    left: 50%;
-    transform: translateX(-50%);
+    width: 100%;
     padding: 14px 20px;
   }
 }
@@ -453,6 +467,8 @@ onMounted(() => {
 
   .header {
     max-width: 720px;
+    width: 100%;
+    padding: 14px 20px;
   }
 }
 </style>

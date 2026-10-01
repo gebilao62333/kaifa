@@ -1,15 +1,16 @@
 const swaggerJsdoc = require('swagger-jsdoc');
+const path = require('path');
 
 const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: '多客陪玩商业版 API',
+      title: 'eu搭子商业版 API',
       version: '3.0.0',
-      description: '多客陪玩商业版后端API接口文档',
+      description: 'eu搭子商业版后端API接口文档',
       contact: {
         name: '开发团队',
-        email: 'dev@duoke.com'
+        email: 'dev@eudazi.com'
       }
     },
     servers: [
@@ -18,7 +19,7 @@ const options = {
         description: '开发环境'
       },
       {
-        url: 'https://api.duoke.com',
+        url: 'https://api.eudazi.com',
         description: '生产环境'
       }
     ],
@@ -66,8 +67,8 @@ const options = {
     security: [{ bearerAuth: [] }]
   },
   apis: [
-    './src/routes/*.js',
-    './src/controllers/*.js'
+    path.resolve(__dirname, '../routes/*.js'),
+    path.resolve(__dirname, '../controllers/*.js')
   ]
 };
 

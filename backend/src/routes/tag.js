@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const tagController = require('../controllers/tag');
-const { authMiddleware } = require('../middlewares');
+const { authMiddleware, adminAuth } = require('../middlewares');
 
-router.post('/', authMiddleware, tagController.createTag);
+// 标签库为全局资源，增删改仅限管理员；查询对登录用户开放
+router.post('/', adminAuth, tagController.createTag);
 
 router.get('/', authMiddleware, tagController.getAllTags);
 
@@ -15,20 +16,20 @@ router.get('/category/:category', authMiddleware, tagController.getTagsByCategor
 
 router.get('/:id', authMiddleware, tagController.getTag);
 
-router.put('/:id', authMiddleware, tagController.updateTag);
+router.put('/:id', adminAuth, tagController.updateTag);
 
-router.delete('/:id', authMiddleware, tagController.deleteTag);
+router.delete('/:id', adminAuth, tagController.deleteTag);
 
-router.post('/init-defaults', authMiddleware, tagController.initDefaultTags);
+router.post('/init-defaults', adminAuth, tagController.initDefaultTags);
 
 router.get('/:tagId/users', authMiddleware, tagController.getTagUsers);
 
-router.post('/assign', authMiddleware, tagController.assignTag);
+router.post('/assign', adminAuth, tagController.assignTag);
 
-router.post('/remove', authMiddleware, tagController.removeTag);
+router.post('/remove', adminAuth, tagController.removeTag);
 
 router.get('/user/:virtualUserId', authMiddleware, tagController.getUserTags);
 
-router.post('/set-primary', authMiddleware, tagController.setPrimaryTag);
+router.post('/set-primary', adminAuth, tagController.setPrimaryTag);
 
 module.exports = router;

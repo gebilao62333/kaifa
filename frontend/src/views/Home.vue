@@ -33,7 +33,7 @@ import HomeQuickNav from '../components/HomeQuickNav.vue'
 import HomeRecommend from '../components/HomeRecommend.vue'
 import homeService from '../services/homeService'
 import { toast } from '../composables/useToast'
-import { genAvatar, genCover } from '../utils/placeholder'
+import { genCover } from '../utils/placeholder'
 
 const router = useRouter()
 
@@ -50,30 +50,7 @@ const loadError = ref(false)
 const currentPage = ref(1)
 const hasMore = ref(true)
 
-const getAdminRecommendUsers = () => {
-  try {
-    const stored = localStorage.getItem('admin_recommend_users')
-    if (!stored) return []
-    const list = JSON.parse(stored)
-    return list.map((u, idx) => ({
-      userId: u.userId,
-      nickName: u.nickname || '用户' + u.userId,
-      avatar: u.avatar || genAvatar('admin' + u.userId),
-      level: u.level || 1,
-      tags: u.tags || ['推荐'],
-      price: u.price || 50,
-      online: true,
-      location: u.location || '',
-      serviceType: 'both',
-      vip: u.vip || false,
-      vipLevel: u.vipLevel || 0,
-      isAdminRecommend: true
-    }))
-  } catch (e) {
-    return []
-  }
-}
-
+// 推荐列表全部来自后端 /api/games/companions 接口，不再读取管理端 localStorage 兜底数据
 const goSearch = () => {
   router.push('/search')
 }
@@ -139,15 +116,13 @@ const loadRecommendCompanions = async (reset = false) => {
     }
 
     const list = (result.data && (result.data.list || result.data)) || []
-    const adminUsers = reset ? getAdminRecommendUsers() : []
 
     if (list.length > 0) {
-      recommendList.value = [...adminUsers, ...recommendList.value, ...list]
+      recommendList.value = [...recommendList.value, ...list]
       currentPage.value++
       hasMore.value = list.length >= 10
     } else if (reset) {
-      // 接口无数据时用兜底数据，保证页面始终有内容
-      recommendList.value = adminUsers
+      recommendList.value = []
       hasMore.value = false
     } else {
       hasMore.value = false
@@ -155,15 +130,7 @@ const loadRecommendCompanions = async (reset = false) => {
   } catch (error) {
     console.error('加载推荐失败:', error)
     if (reset) {
-      // 请求失败（如未登录/网络异常）时回退到兜底数据，避免整页空白
-      const fallback = getAdminRecommendUsers()
-      if (fallback.length > 0) {
-        recommendList.value = fallback
-        hasMore.value = false
-        loadError.value = false
-      } else {
-        loadError.value = recommendList.value.length === 0
-      }
+      loadError.value = recommendList.value.length === 0
     }
   } finally {
     loadingCompanions.value = false
@@ -202,15 +169,7 @@ onMounted(async () => {
     await refreshHomeData()
   } catch (error) {
     console.error('加载首页数据失败:', error)
-    
-    const adminUsers = getAdminRecommendUsers()
-    const fallbackUsers = adminUsers.length ? adminUsers : [
-      { userId: 1, nickName: '小雪', avatar: genAvatar('小雪'), level: 28, tags: ['温柔', '甜音', '技术好'], price: 58, online: true, location: '北京', serviceType: 'both', vip: true, vipLevel: 2 },
-      { userId: 2, nickName: '阿杰', avatar: genAvatar('阿杰'), level: 35, tags: ['打野', '带飞', '幽默'], price: 65, online: true, location: '上海', serviceType: 'online', vip: true, vipLevel: 3 },
-      { userId: 3, nickName: '小美', avatar: genAvatar('小美'), level: 22, tags: ['娱乐', '聊天', '唱歌'], price: 45, online: false, location: '广州', serviceType: 'offline', vip: false },
-      { userId: 4, nickName: '大飞', avatar: genAvatar('大飞'), level: 42, tags: ['技术陪', '上分', '教学'], price: 78, online: true, location: '深圳', serviceType: 'both', vip: true, vipLevel: 4 }
-    ]
-    recommendList.value = fallbackUsers
+    recommendList.value = []
     loadingCompanions.value = false
   }
 })

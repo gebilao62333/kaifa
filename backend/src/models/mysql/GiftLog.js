@@ -8,48 +8,63 @@ const GiftLog = sequelize.define('xn_gift_log', {
     autoIncrement: true
   },
   user_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false
+    type: DataTypes.BIGINT,
+    allowNull: false,
+    field: 'user_id'
   },
   user_nickname: {
     type: DataTypes.STRING(50),
-    allowNull: true
+    allowNull: true,
+    field: 'user_nickname'
   },
   user_avatar: {
     type: DataTypes.STRING(255),
-    allowNull: true
+    allowNull: true,
+    field: 'user_avatar'
   },
   song_user_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false
+    type: DataTypes.BIGINT,
+    allowNull: false,
+    field: 'song_user_id'
   },
   song_user_nickname: {
     type: DataTypes.STRING(50),
-    allowNull: true
+    allowNull: true,
+    field: 'song_user_nickname'
   },
   song_user_avatar: {
     type: DataTypes.STRING(255),
-    allowNull: true
+    allowNull: true,
+    field: 'song_user_avatar'
   },
   gift_id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     allowNull: false
   },
   gift_name: {
     type: DataTypes.STRING(50),
-    allowNull: false
+    allowNull: false,
+    field: 'gift_name'
   },
   gift_image: {
     type: DataTypes.STRING(255),
-    allowNull: true
+    allowNull: true,
+    field: 'gift_image'
   },
   gift_num: {
     type: DataTypes.INTEGER,
-    defaultValue: 1
+    defaultValue: 1,
+    field: 'gift_num'
   },
   totalmoney: {
     type: DataTypes.DECIMAL(10, 2),
-    allowNull: false
+    allowNull: false,
+    field: 'totalmoney'
+  },
+  currency: {
+    type: DataTypes.STRING(10),
+    allowNull: true,
+    field: 'currency'
   },
   create_time: {
     type: DataTypes.INTEGER(10),

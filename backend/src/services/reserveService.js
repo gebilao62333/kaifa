@@ -265,6 +265,41 @@ const getReserveList = async (userId, role, page, pageSize) => {
   };
 };
 
+const getReserveDetail = async (reserveId) => {
+  const reserve = await Reserve.findByPk(reserveId);
+  if (!reserve) {
+    throw new Error('预约不存在');
+  }
+
+  const user = await User.findByPk(reserve.user_id);
+  const companion = await User.findByPk(reserve.target_user_id);
+  const game = await Game.findByPk(reserve.game_id);
+
+  return {
+    reserveId: reserve.id,
+    reserveNo: reserve.reserve_no,
+    user: {
+      userId: user?.id,
+      nickname: user?.nickname || '',
+      avatar: user?.avatar || ''
+    },
+    companion: {
+      userId: companion?.id,
+      nickname: companion?.nickname || '',
+      avatar: companion?.avatar || ''
+    },
+    gameId: reserve.game_id,
+    gameName: game?.name || '',
+    date: reserve.reserve_date,
+    time: reserve.reserve_time,
+    remark: reserve.remark,
+    status: reserve.status,
+    price: Number(reserve.price),
+    createTime: reserve.create_time,
+    updateTime: reserve.update_time
+  };
+};
+
 module.exports = {
   getAvailableSlots,
   batchCreateSlots,
@@ -274,5 +309,6 @@ module.exports = {
   rejectReserve,
   cancelReserve,
   completeReserve,
-  getReserveList
+  getReserveList,
+  getReserveDetail
 };

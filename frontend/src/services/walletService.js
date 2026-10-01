@@ -35,9 +35,9 @@ const walletService = {
     return request('/api/wallet/expense-overview', 'GET')
   },
 
-  // 从总资产提现
-  async withdraw({ amount, type, account }) {
-    const res = await request('/api/wallet/withdraw', 'POST', { amount, type, account })
+  // 从总资产提现（name=收款人 / image=收款二维码 / bank=银行卡号，随业务类型选传）
+  async withdraw({ amount, type, account, name = '', image = '', bank = '' }) {
+    const res = await request('/api/wallet/withdraw', 'POST', { amount, type, account, name, image, bank })
     if (res.code !== 200 && res.code !== 0) {
       throw new RequestError(res.message || '提现申请失败', res.code, 400)
     }

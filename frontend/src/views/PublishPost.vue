@@ -176,10 +176,13 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
+import circleService from '../services/circleService'
+import { uploadFile } from '../services/uploadService'
+import regionService from '../services/regionService'
 
 const router = useRouter()
 
@@ -201,24 +204,29 @@ const availableTopics = ref([
   '美妆', '穿搭', '萌宠', '科技', '电竞', '社交', '情感', '职场'
 ])
 
-const popularLocations = ref([
-  '北京市·朝阳区', '北京市·海淀区', '北京市·东城区', '北京市·西城区',
-  '上海市·浦东新区', '上海市·黄浦区', '上海市·静安区', '上海市·徐汇区',
-  '广州市·天河区', '广州市·越秀区', '广州市·海珠区',
-  '深圳市·南山区', '深圳市·福田区', '深圳市·龙岗区',
-  '杭州市·西湖区', '杭州市·滨江区', '杭州市·余杭区',
-  '成都市·锦江区', '成都市·武侯区', '成都市·高新区',
-  '重庆市·渝北区', '重庆市·江北区', '重庆市·渝中区',
-  '武汉市·洪山区', '武汉市·武昌区', '武汉市·江汉区',
-  '西安市·雁塔区', '西安市·碑林区', '西安市·新城区',
-  '南京市·鼓楼区', '南京市·玄武区', '南京市·秦淮区',
-  '长沙市·岳麓区', '长沙市·芙蓉区', '长沙市·天心区'
-])
+const popularLocations = ref([])
+
+// 从 API 加载省份列表作为初始位置显示
+const loadPopularLocations = async () => {
+  try {
+    const res = await regionService.getProvinces()
+    if (res.code === 0 || res.code === 200) {
+      const cities = res.data || res.list || []
+      popularLocations.value = cities.map(c => c.name || c.label || '')
+    }
+  } catch (e) {
+    console.error('加载热门位置失败:', e)
+  }
+}
+
+onMounted(() => {
+  loadPopularLocations()
+})
 
 const filteredLocations = computed(() => {
   if (!locationSearch.value) return popularLocations.value
   const search = locationSearch.value.toLowerCase()
-  return popularLocations.value.filter(loc => loc.toLowerCase().includes(search))
+  return popularLocations.value.filter(loc => (loc || '').toLowerCase().includes(search))
 })
 
 const goBack = () => {
@@ -320,7 +328,7 @@ const toggleTopic = (t) => {
   }
 }
 
-const publish = () => {
+const publish = async () => {
   if (!content.value.trim() && mediaItems.value.length === 0) {
     toast.error('请输入内容或添加图片')
     return
@@ -341,32 +349,39 @@ const publish = () => {
     'password': 3,
     'pay': 4
   }
-  
-  const images = mediaItems.value
-    .filter(item => item.type === 'image')
-    .map(item => item.url)
-  
-  const videos = mediaItems.value
-    .filter(item => item.type === 'video')
-    .map(item => item.url)
-  
-  const postData = { 
-    content: content.value, 
-    images, 
-    videos,
-    location: location.value, 
-    tagIds: topics.value.map(t => t), 
-    visibility: visibilityMap[visibility.value] || 0
+
+  // 媒体文件优先前端直传 COS，拿到真实访问 URL 写库（不再存 blob: 本地临时地址）
+  const imageItems = mediaItems.value.filter(item => item.type === 'image')
+  const videoItems = mediaItems.value.filter(item => item.type === 'video')
+
+  try {
+    const [images, videos] = await Promise.all([
+      Promise.all(imageItems.map(item => uploadFile(item.file, 'image').then(r => r.data.url))),
+      Promise.all(videoItems.map(item => uploadFile(item.file, 'video').then(r => r.data.url)))
+    ])
+
+    const postData = {
+      content: content.value,
+      images,
+      videos,
+      location: location.value,
+      tagIds: topics.value.map(t => t),
+      visibility: visibilityMap[visibility.value] || 0
+    }
+    if (visibility.value === 'password') {
+      postData.password = viewPassword.value
+    }
+    if (visibility.value === 'pay') {
+      postData.price = parseFloat(viewPrice.value)
+    }
+
+    await circleService.createPost(postData)
+    toast.success('发布成功')
+    router.back()
+  } catch (error) {
+    console.error('发布动态错误:', error)
+    toast.error(error.message || '发布失败，请重试')
   }
-  if (visibility.value === 'password') {
-    postData.password = viewPassword.value
-  }
-  if (visibility.value === 'pay') {
-    postData.price = parseFloat(viewPrice.value)
-  }
-  console.log('发布动态:', postData)
-  toast.success('发布成功')
-  router.back()
 }
 </script>
 
@@ -584,11 +599,13 @@ const publish = () => {
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: flex-end;
+  justify-content: center;
   z-index: 1000;
 }
 
 .topic-modal-content {
   width: 100%;
+  max-width: var(--layout-max-width-pc, 650px);
   background: white;
   border-radius: 16px 16px 0 0;
   max-height: 70vh;
@@ -699,11 +716,13 @@ const publish = () => {
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: flex-end;
+  justify-content: center;
   z-index: 1000;
 }
 
 .location-modal-content {
   width: 100%;
+  max-width: var(--layout-max-width-pc, 650px);
   background: white;
   border-radius: 16px 16px 0 0;
   max-height: 70vh;

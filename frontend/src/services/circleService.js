@@ -52,7 +52,8 @@ const circleService = {
     validateParams({ postId }, {
       postId: { required: true, label: '帖子ID', type: 'number' }
     })
-    return request('/api/circle/unlike', 'POST', { postId })
+    // 后端 /api/circle/like 是 toggle 模式，重复调用即为取消点赞
+    return request('/api/circle/like', 'POST', { postId })
   },
 
   async commentPost(postId, content, replyId = null) {
@@ -84,12 +85,11 @@ const circleService = {
     return request('/api/circle/share', 'POST', { postId })
   },
 
-  async reportPost(postId, reason, description = '') {
-    validateParams({ postId, reason }, {
-      postId: { required: true, label: '帖子ID', type: 'number' },
-      reason: { required: true, label: '举报原因', type: 'string' }
+  async repostPost(postId, comment = '') {
+    validateParams({ postId }, {
+      postId: { required: true, label: '帖子ID', type: 'number' }
     })
-    return request('/api/report', 'POST', { type: 'post', targetId: postId, reason, description })
+    return request('/api/circle/repost', 'POST', { postId, comment })
   }
 }
 

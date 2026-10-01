@@ -22,7 +22,7 @@
               class="type-item"
               :class="{ active: formData.serviceType === 'online' }"
               @click="formData.serviceType = 'online'"
-              v-if="companion.onlineService !== false"
+              v-if="companion.onlineService === true"
             >
               <span class="type-icon">💻</span>
               <span class="type-name">线上陪玩</span>
@@ -282,6 +282,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue';
+import { DEFAULT_AVATAR } from '../common/constants';
 
 const props = defineProps({
   visible: Boolean,
@@ -290,7 +291,7 @@ const props = defineProps({
     default: () => ({
       id: '',
       name: '',
-      avatar: '',
+      avatar: DEFAULT_AVATAR,
       game: '',
       offlineService: false,
       offlineLocation: '',

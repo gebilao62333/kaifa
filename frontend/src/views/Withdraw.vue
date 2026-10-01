@@ -179,6 +179,7 @@ import { getWithdrawMethods } from '../common/payMethods'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
 import walletService from '../services/walletService'
+import payService from '../services/payService'
 import { isLoggedIn } from '@/common/common'
 
 const router = useRouter()
@@ -280,9 +281,10 @@ const goRecords = () => {
 
 const fetchBalance = async () => {
   try {
-    const res = await walletService.getOverview()
+    // 可提现余额以钱包真实余额为准（getOverview 返回的是总资产，含不可提现部分）
+    const res = await payService.getWalletBalance()
     const data = res.data || res
-    balance.value = data.totalAssets || 0
+    balance.value = Number(data.balance) || 0
   } catch (err) {
     console.error('获取可提现余额失败:', err)
   }
@@ -330,11 +332,18 @@ const doWithdraw = async () => {
     const account = payMethod.value === 'card'
       ? cardNo.value
       : (payMethod.value === 'alipay' ? alipayAccount.value : wechatAccount.value)
+    const image = payMethod.value === 'alipay'
+      ? alipayQrUrl.value
+      : (payMethod.value === 'wechat' ? wechatQrUrl.value : '')
 
+    // 提交完整收款信息：收款人姓名、收款二维码、开户银行
     await walletService.withdraw({
       amount: Number(withdrawAmount.value),
       type,
-      account
+      account,
+      name: receiverName.value.trim(),
+      image,
+      bank: payMethod.value === 'card' ? bankName.value : ''
     })
     toast.success('提现申请已提交')
     setTimeout(() => {
@@ -342,7 +351,7 @@ const doWithdraw = async () => {
     }, 1500)
   } catch (error) {
     console.error('提现错误:', error)
-    toast.error('网络错误，请重试')
+    toast.error(error.message || '网络错误，请重试')
   } finally {
     submitting.value = false
   }
@@ -641,11 +650,13 @@ const doWithdraw = async () => {
   background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: flex-end;
+  justify-content: center;
   z-index: 100;
 }
 
 .bank-picker-content {
   width: 100%;
+  max-width: var(--layout-max-width-pc, 650px);
   background: white;
   border-radius: 20px 20px 0 0;
   max-height: 70vh;

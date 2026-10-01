@@ -1,5 +1,6 @@
 const { walletService } = require('../services');
 const response = require('../utils/response');
+const logger = require('../utils/logger');
 
 // 钱包总览：总资产 / 累计收入 / 已提现 / 今日收益
 const getOverview = async (req, res) => {
@@ -7,7 +8,7 @@ const getOverview = async (req, res) => {
     const data = await walletService.getWalletOverview(req.userId);
     response.success(res, data);
   } catch (error) {
-    console.error('获取钱包总览错误:', error);
+    logger.error('获取钱包总览错误:', error);
     response.error(res, error.message);
   }
 };
@@ -22,7 +23,7 @@ const getIncomeRecords = async (req, res) => {
     });
     response.success(res, data);
   } catch (error) {
-    console.error('获取收入明细错误:', error);
+    logger.error('获取收入明细错误:', error);
     response.error(res, error.message);
   }
 };
@@ -33,7 +34,7 @@ const getIncomeBreakdown = async (req, res) => {
     const data = await walletService.getIncomeBreakdown(req.userId);
     response.success(res, data);
   } catch (error) {
-    console.error('获取收入构成错误:', error);
+    logger.error('获取收入构成错误:', error);
     response.error(res, error.message);
   }
 };
@@ -44,7 +45,7 @@ const getWithdrawRecords = async (req, res) => {
     const data = await walletService.getWithdrawRecords(req.userId);
     response.success(res, data);
   } catch (error) {
-    console.error('获取提现记录错误:', error);
+    logger.error('获取提现记录错误:', error);
     response.error(res, error.message);
   }
 };
@@ -52,18 +53,21 @@ const getWithdrawRecords = async (req, res) => {
 // 从总资产提现
 const applyWithdraw = async (req, res) => {
   try {
-    const { amount, type, account } = req.body;
+    const { amount, type, account, name, image, bank } = req.body;
     if (!amount || amount <= 0) {
       return response.badRequest(res, '提现金额必须大于0');
     }
     const result = await walletService.applyWithdraw(req.userId, {
       amount: parseFloat(amount),
       type,
-      account
+      account,
+      name: typeof name === 'string' ? name : '',
+      image: typeof image === 'string' ? image : '',
+      bank: typeof bank === 'string' ? bank : ''
     });
     response.success(res, result, '提现申请已提交');
   } catch (error) {
-    console.error('钱包提现错误:', error);
+    logger.error('钱包提现错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -78,7 +82,7 @@ const getExpenseRecords = async (req, res) => {
     });
     response.success(res, data);
   } catch (error) {
-    console.error('获取支出明细错误:', error);
+    logger.error('获取支出明细错误:', error);
     response.error(res, error.message);
   }
 };
@@ -89,7 +93,7 @@ const getExpenseOverview = async (req, res) => {
     const data = await walletService.getExpenseOverview(req.userId);
     response.success(res, data);
   } catch (error) {
-    console.error('获取支出总览错误:', error);
+    logger.error('获取支出总览错误:', error);
     response.error(res, error.message);
   }
 };

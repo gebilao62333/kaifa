@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const config = require('../config');
+const logger = require('../utils/logger');
 
 const generateUserSig = (userId) => {
   if (!config.trtc.appId || !config.trtc.secretKey) {
@@ -85,7 +86,7 @@ const verifyUserSig = (userSig) => {
     
     return sigPart === expectedSig;
   } catch (error) {
-    console.error('[TRTC] 验证UserSig失败:', error);
+    logger.error('[TRTC] 验证UserSig失败:', error);
     return false;
   }
 };

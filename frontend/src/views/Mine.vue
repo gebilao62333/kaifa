@@ -117,6 +117,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import { useUserStore } from '../store/user-info'
+import { DEFAULT_AVATAR } from '@/common/constants'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -124,7 +125,7 @@ const userStore = useUserStore()
 const userInfo = computed(() => ({
   userId: userStore.profile?.userId || 100001,
   nickName: userStore.profile?.nickName || '多客用户',
-  avatar: userStore.profile?.avatar || 'https://picsum.photos/200/200',
+  avatar: userStore.profile?.avatar || DEFAULT_AVATAR,
   level: userStore.profile?.level || 0,
   vip: userStore.profile?.vip || 0,
   vipLevel: userStore.profile?.vipLevel || 0,
@@ -309,6 +310,10 @@ onMounted(() => {
   font-size: 20px;
   font-weight: bold;
   color: #fff;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .level-tag {

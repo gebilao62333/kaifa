@@ -124,6 +124,7 @@ import PageLayout from '../components/PageLayout.vue'
 import { useChatStore } from '../store/chat'
 import { notificationService } from '../services/notificationService'
 import socketService from '../services/socketService'
+import { DEFAULT_AVATAR } from '../common/constants'
 
 const router = useRouter()
 const chatStore = useChatStore()
@@ -140,7 +141,7 @@ let noticeUnsubscribe = null
 
 // ============ 消息已读状态的本地持久化 ============
 // 消息页使用 mock 数据，refresh 时会重新初始化未读状态，导致刷新前用户已做的
-// “已读”操作被抹掉。这里把“已读会话/已读通知”的 id 集合持久化到 localStorage，
+// "已读"操作被抹掉。这里把"已读会话/已读通知"的 id 集合持久化到 localStorage，
 // 刷新后据此把对应条目的未读归零，从而保证刷新前后状态、角标完全一致。
 const MSG_STATE_KEY = 'preferred_message_state'
 
@@ -208,7 +209,7 @@ const loadChatList = async () => {
         id: 1,
         toId: 2,
         nickName: '小雪',
-        avatar: '',
+        avatar: DEFAULT_AVATAR,
         content: '你好呀，今晚一起开黑吗？',
         sendTime: Date.now() - 1800000,
         unreadCount: 2,
@@ -218,7 +219,7 @@ const loadChatList = async () => {
         id: 2,
         toId: 3,
         nickName: '阿杰',
-        avatar: '',
+        avatar: DEFAULT_AVATAR,
         content: '好的，那晚上8点见！',
         sendTime: Date.now() - 7200000,
         unreadCount: 0,
@@ -228,7 +229,7 @@ const loadChatList = async () => {
         id: 3,
         toId: 4,
         nickName: '小美',
-        avatar: '',
+        avatar: DEFAULT_AVATAR,
         content: '谢谢你的礼物~',
         sendTime: Date.now() - 86400000,
         unreadCount: 1,
@@ -238,7 +239,7 @@ const loadChatList = async () => {
         id: 4,
         toId: 5,
         nickName: '大飞',
-        avatar: '',
+        avatar: DEFAULT_AVATAR,
         content: '收到，你的预约已确认',
         sendTime: Date.now() - 172800000,
         unreadCount: 0,
@@ -246,15 +247,36 @@ const loadChatList = async () => {
       }
     ]
 
-    // 关键：应用本地持久化的已读状态，使刷新后未读会话数与刷新前完全一致
+    // 应用本地持久化的已读状态，使刷新后未读会话数与刷新前完全一致
     chatList.value.forEach(item => {
       if (msgState.readChatIds.includes(item.id)) {
         item.unreadCount = 0
       }
     })
 
-    // 角标按“未读会话数”统计，使其与列表中带红点的会话条数一致（而非未读消息总和）
-    chatUnread.value = chatList.value.filter(item => (item.unreadCount || 0) > 0).length
+    // 合并 Socket unreadMap 未读数：取 mock 数据与 socket 中的较大值
+    const unreadMap = chatStore.unreadMap || {}
+    // 防御：持久化恢复的 unreadMap 可能含脏数据（对象/字符串），只保留有效数字计数
+    const safeUnread = {}
+    for (const [userId, count] of Object.entries(unreadMap)) {
+      const n = Number(count)
+      if (Number.isFinite(n) && n > 0) {
+        safeUnread[userId] = n
+      }
+    }
+    chatList.value.forEach(item => {
+      const socketUnread = safeUnread[item.toId] || 0
+      if (socketUnread > (Number(item.unreadCount) || 0)) {
+        item.unreadCount = socketUnread
+      }
+    })
+
+    // 角标：mock 列表中未读消息总数 + Socket 中有未读但不在 mock 列表中的额外消息数
+    const inListCount = chatList.value.reduce((sum, item) => sum + (Number(item.unreadCount) || 0), 0)
+    const extraFromSocket = Object.entries(safeUnread)
+      .filter(([userId, count]) => !chatList.value.some(c => c.toId === parseInt(userId)))
+      .reduce((sum, [userId, count]) => sum + count, 0)
+    chatUnread.value = inListCount + extraFromSocket
     chatStore.setChatUnread(chatUnread.value)
   } catch (error) {
     console.error('加载聊天列表失败:', error)
@@ -304,10 +326,17 @@ const goKefu = () => {
 
 const goChat = (item) => {
   item.unreadCount = 0
-  // 持久化“已读会话”，刷新后仍记为已读
+  // 持久化"已读会话"，刷新后仍记为已读
   markChatRead(item.id)
-  // 按未读会话数统计，与列表中带红点的会话条数保持一致
-  chatUnread.value = chatList.value.filter(c => (c.unreadCount || 0) > 0).length
+  // 清除 Socket 中的未读计数
+  chatStore.updateUnread(item.toId, 0)
+  // 角标：mock 列表中未读消息总数 + Socket 中有未读但不在 mock 列表中的额外消息数
+  const unreadMap = chatStore.unreadMap || {}
+  const inListCount = chatList.value.reduce((sum, c) => sum + (Number(c.unreadCount) || 0), 0)
+  const extraFromSocket = Object.entries(unreadMap)
+    .filter(([userId, count]) => Number(count) > 0 && !chatList.value.some(c => c.toId === parseInt(userId)))
+    .reduce((sum, [userId, count]) => sum + (Number(count) || 0), 0)
+  chatUnread.value = inListCount + extraFromSocket
   chatStore.setChatUnread(chatUnread.value)
   router.push(`/chat-room/${item.toId}`)
 }
@@ -315,7 +344,7 @@ const goChat = (item) => {
 const readNotice = (item) => {
   if (item.isRead) return
   item.isRead = true
-  // 持久化“已读通知”，刷新后仍记为已读
+  // 持久化"已读通知"，刷新后仍记为已读
   markNoticeRead(item.id)
   noticeUnread.value = noticeList.value.filter(item => !item.isRead).length
   chatStore.setNoticeUnread(noticeUnread.value)
@@ -346,9 +375,9 @@ const getNoticeIcon = (type) => {
 }
 
 const handleAvatarError = (event, item) => {
-  // 图片加载失败时，将 avatar 设置为空以显示占位符
+  // 图片加载失败时，回退到默认头像
   console.warn('头像加载失败:', item.nickName)
-  item.avatar = ''
+  item.avatar = DEFAULT_AVATAR
 }
 
 onMounted(() => {
@@ -389,11 +418,15 @@ onUnmounted(() => {
   border-bottom: 1px solid #f0f0f0;
   position: static;
   z-index: 10;
+  height: 70px;
+  box-sizing: border-box;
 }
 
 .tab-item {
   flex: 1;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 16px 0;
   position: relative;
   cursor: pointer;
@@ -403,6 +436,8 @@ onUnmounted(() => {
 .tab-item span {
   font-size: 16px;
   color: #666;
+  /* 内容整体上移 10px */
+  transform: translateY(-10px);
 }
 
 .tab-item.active span {
@@ -423,14 +458,10 @@ onUnmounted(() => {
 }
 
 .badge {
-  position: absolute;
-  top: 8px;
-  right: 50%;
-  transform: translateX(25px);
   background-color: #ff4757;
   color: #fff;
   font-size: 11px;
-  padding: 2px 0;
+  padding: 2px 6px;
   border-radius: 10px;
   min-width: 20px;
   height: 20px;
@@ -438,14 +469,17 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 4px -15px;
+  margin-left: 6px;
+  flex-shrink: 0;
 }
 
 .content {
   padding-top: 20px;
-  width: 100% !important;
+  width: calc(100% + 40px) !important;
   height: auto !important;
   box-sizing: border-box;
+  margin-left: -20px;
+  margin-right: -20px;
 }
 
 .chat-list {
@@ -723,6 +757,12 @@ onUnmounted(() => {
 
   .title {
     font-size: 18px;
+  }
+
+  .content {
+    width: calc(100% + 48px) !important;
+    margin-left: -24px;
+    margin-right: -24px;
   }
 }
 

@@ -241,11 +241,7 @@ const buyVip = async () => {
   const dur = pkg?.durations.find(d => d.months === months)
   
   try {
-    const order = await createVipOrder({
-      packageId: selectedPkgId.value,
-      months: months,
-      price: dur?.price || '0'
-    })
+    const order = await createVipOrder(selectedPkgId.value, months, dur?.price || '0')
     console.log('创建订单成功:', order)
 
     await completeVipOrder(order.orderNo)
@@ -301,8 +297,11 @@ onMounted(() => {
   padding-top: 8px;
   padding-bottom: 8px;
   text-align: center;
-  color: white;
-  border-radius: 16px 16px 0 0;
+  color: #FFFFFF;
+  border-radius: 0px;
+  width: 650px;
+  max-width: 100%;
+  box-sizing: border-box;
   height: 80px;
 }
 
@@ -327,9 +326,10 @@ onMounted(() => {
 .privilege-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-  padding: 20px 20px;
+  padding: 20px;
   background: white;
-  margin: 0 20px;
+  /* 负 margin 抵消外层 padding，水平铺满页面限制框 */
+  margin: 0;
   border-radius: 0px;
   gap: 16px 0;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
@@ -394,6 +394,8 @@ onMounted(() => {
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  /* 负 margin 抵消 .package-list 的 20px padding，水平铺满页面限制框 */
+  margin: 0 -20px;
 }
 
 .package-item.active {

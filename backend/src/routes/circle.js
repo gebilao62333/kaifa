@@ -11,7 +11,11 @@ router.get('/my-posts', authMiddleware, circleController.getMyPosts);
 router.get('/comments', circleController.getComments);
 router.post('/create', authMiddleware, circleController.createPost);
 router.post('/unlock', authMiddleware, circleController.unlockPost);
+router.post('/delete', authMiddleware, circleController.deletePost);
 router.post('/like', authMiddleware, circleController.likePost);
 router.post('/comment', authMiddleware, circleController.commentPost);
+router.post('/share', authMiddleware, circleController.sharePost);
+router.post('/repost', authMiddleware, circleController.repostPost);
+router.get('/share-status', circleController.getShareStatus);
 
 module.exports = router;

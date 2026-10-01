@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const response = require('../utils/response');
+const logger = require('../utils/logger');
 
 // 公告 / 通知列表（公开）
 router.get('/list', (req, res) => {
@@ -31,7 +32,7 @@ router.get('/list', (req, res) => {
     ];
     response.success(res, { list });
   } catch (error) {
-    console.error('获取公告列表错误:', error);
+    logger.error('获取公告列表错误:', error);
     response.error(res, error.message);
   }
 });

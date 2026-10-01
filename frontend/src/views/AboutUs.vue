@@ -9,7 +9,7 @@
     <div class="content">
       <div class="logo-card">
         <div class="logo-icon">🎮</div>
-        <div class="app-name">多客陪玩</div>
+        <div class="app-name">eu搭子</div>
         <div class="app-version">版本 1.0.0</div>
       </div>
 
@@ -49,7 +49,7 @@
         </div>
         <div class="info-item">
           <span class="info-label">官方网站</span>
-          <span class="info-value">www.duoke.com</span>
+          <span class="info-value">www.eudazi.com</span>
         </div>
       </div>
 
@@ -70,10 +70,10 @@
           <div class="modal-text" v-if="modalType === 'contact'">
             <p>客服热线：400-888-8888</p>
             <p>服务时间：9:00-21:00</p>
-            <p>客服邮箱：service@duoke.com</p>
+            <p>客服邮箱：service@eudazi.com</p>
           </div>
           <div class="modal-text" v-else>
-            <p>欢迎使用多客陪玩平台！</p>
+            <p>欢迎使用eu搭子平台！</p>
             <p>在使用我们的服务前，请仔细阅读并理解本协议的全部内容。</p>
             <p>我们将严格保护用户的个人信息安全。</p>
             <p>更多详细内容请查看完整协议文档。</p>

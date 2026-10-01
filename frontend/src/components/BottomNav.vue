@@ -151,26 +151,35 @@ const goTo = (path) => {
   color: #999;
 }
 
-/* PC端底部导航优化 */
+/* 桌面端：使用 margin: 0 auto 居中，与 PageLayout 完全一致，
+   避免 left:50% + transform 在浏览器缩放下产生亚像素偏移。
+   width 必须明确指定，position:fixed + left:0/right:0 + margin:auto 才能正确居中 */
+:root {
+  --layout-max-width-pc: 650px;
+  --layout-max-width-pc-lg: 720px;
+}
+
 @media (min-width: 768px) {
   .bottom-nav {
-    max-width: 650px;
-    left: 50%;
-    transform: translateX(-50%);
+    width: 100%;
+    max-width: var(--layout-max-width-pc, 650px);
+    left: 0;
+    right: 0;
+    margin: 0 auto;
     border-radius: 0;
     height: 64px;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08);
     background: linear-gradient(135deg, #ffffff 0%, #fafafa 100%);
   }
-  
+
   .nav-items {
-    max-width: 650px;
+    max-width: var(--layout-max-width-pc, 650px);
   }
-  
+
   .nav-icon {
     font-size: 24px;
   }
-  
+
   .nav-text {
     font-size: 12px;
   }
@@ -178,11 +187,11 @@ const goTo = (path) => {
 
 @media (min-width: 1024px) {
   .bottom-nav {
-    max-width: 720px;
+    max-width: var(--layout-max-width-pc-lg, 720px);
   }
-  
+
   .nav-items {
-    max-width: 720px;
+    max-width: var(--layout-max-width-pc-lg, 720px);
   }
 }
 </style>

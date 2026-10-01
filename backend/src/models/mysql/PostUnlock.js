@@ -15,12 +15,8 @@ const PostUnlock = sequelize.define('xn_post_unlock', {
     type: DataTypes.INTEGER,
     allowNull: false
   },
-  unlock_type: {
-    type: DataTypes.TINYINT(1),
-    allowNull: false
-  },
-  amount: {
-    type: DataTypes.INTEGER,
+  price: {
+    type: DataTypes.DECIMAL(10, 2),
     defaultValue: 0
   },
   create_time: {

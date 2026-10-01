@@ -13,11 +13,20 @@ const orderService = {
   },
 
   async cancelOrder(orderId, reason = '') {
-    return request('/api/games/cancel', 'POST', { orderId, reason })
+    // 后端按 { orderId, role } 校验权限：role=user 仅允许订单所属用户取消
+    return request('/api/games/cancel', 'POST', { orderId, role: 'user' })
   },
 
   async evaluateOrder(orderId, rating, comment = '') {
     return request('/api/games/evaluate', 'POST', { orderId, rating, comment })
+  },
+
+  async startService(orderId) {
+    return request('/api/games/start', 'POST', { orderId })
+  },
+
+  async completeService(orderId) {
+    return request('/api/games/complete', 'POST', { orderId })
   },
 
   async getStatistics() {

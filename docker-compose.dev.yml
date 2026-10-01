@@ -1,0 +1,90 @@
+# ============================================
+# eu搭子 开发环境覆盖配置
+# 使用方式（叠加运行）:
+#   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# 单独启动后端热更新:
+#   docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d backend
+# 停止:
+#   docker-compose -f docker-compose.yml -f docker-compose.dev.yml down
+# ============================================
+
+services:
+  # ============================================
+  # Nginx - 开发模式保持不变（无需覆盖）
+  # ============================================
+
+  # ============================================
+  # Backend - 开发模式：nodemon 热更新
+  # ============================================
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev    # 使用包含 nodemon 的开发镜像
+    container_name: eudazi-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=development                    # 切换为开发模式
+      - LOG_TO_CONSOLE=true
+      - LOGS_PATH=/var/log/eudazi
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - MONGO_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-admin123}@mongo:27017/${MONGO_DATABASE:-eudazi}?authSource=admin
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      # ── 热更新核心：挂载源码目录 ──
+      - ./backend/src:/app/src                  # 改业务代码自动重启
+      - ./backend/server.js:/app/server.js      # 改入口文件自动重启
+      # ── 持久化数据 ──
+      - eudazi_logs:/var/log/eudazi
+      - ./backend/public/uploads:/app/public/uploads
+    # 暴露 3000 端口方便直接用 Postman 等工具调试
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - eudazi_net
+    # 开发模式放宽安全限制
+    security_opt: []
+    read_only: false
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  # ============================================
+  # Admin Vite Dev Server - 前端 HMR 热更新
+  # 访问地址: http://localhost:5175/admin/
+  # API 请求通过 Vite proxy → nginx → backend
+  # ============================================
+  admin-vite:
+    image: node:18-alpine
+    container_name: eudazi-admin-vite
+    working_dir: /app
+    ports:
+      - "5175:5175"
+    volumes:
+      # 挂载前端源码
+      - ./admin-frontend:/app
+      # 匿名卷：保留容器内的 node_modules，避免被宿主机覆盖
+      - /app/node_modules
+    environment:
+      - VITE_API_TARGET=http://nginx:80          # Vite proxy 指向 Nginx 容器
+    command: >
+      sh -c "npm install && npx vite --host 0.0.0.0"
+    networks:
+      - eudazi_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

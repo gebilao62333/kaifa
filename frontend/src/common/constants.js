@@ -77,6 +77,11 @@ export const PAGINATION = {
   MAX_PAGE_SIZE: 100
 }
 
+export const STORAGE_KEYS = {
+  TOKEN: 'token',
+  PINIA_STATE: 'pinia-app-state'
+}
+
 export const REGEX = {
   MOBILE: /^1[3-9]\d{9}$/,
   EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
@@ -93,3 +98,18 @@ export const MESSAGE_TYPES = {
   REDPACKET: 'redpacket',
   SYSTEM: 'system'
 }
+
+// 默认头像 SVG Data URI，防止空 src 导致浏览器加载当前页为图片
+export const DEFAULT_AVATAR = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">' +
+  '<rect fill="#e8e8e8" width="100" height="100" rx="12"/>' +
+  '<circle fill="#c0c0c0" cx="50" cy="38" r="18"/>' +
+  '<ellipse fill="#c0c0c0" cx="50" cy="80" rx="28" ry="22"/>' +
+  '</svg>'
+)
+
+// 无需登录即可访问的路由名称列表
+export const PUBLIC_ROUTE_NAMES = ['Login', 'Home', 'Search', 'Square', 'PostDetail', 'Preferred', 'Mine', 'Friend']
+
+// 无需登录即可访问的路由路径前缀
+export const PUBLIC_ROUTE_PATHS = ['/', '/login', '/home', '/search', '/square', '/friend']

@@ -187,55 +187,5 @@ export const notificationService = {
     return () => notificationListeners.delete(callback)
   },
 
-  generateDemoData() {
-    const demos = [
-      {
-        type: NOTIFICATION_TYPES.ORDER,
-        title: '订单完成提醒',
-        content: '您有一笔线上陪玩订单已完成，请及时评价',
-        createTime: Date.now() - 1800000
-      },
-      {
-        type: NOTIFICATION_TYPES.GIFT,
-        title: '收到礼物',
-        content: '小雪送给您一个爱心礼物',
-        createTime: Date.now() - 3600000
-      },
-      {
-        type: NOTIFICATION_TYPES.RESERVE,
-        title: '预约已确认',
-        content: '您预约的阿杰已确认，请按时上线',
-        createTime: Date.now() - 7200000
-      },
-      {
-        type: NOTIFICATION_TYPES.SYSTEM,
-        title: 'VIP升级通知',
-        content: '恭喜您升级为VIP会员，享受更多特权',
-        createTime: Date.now() - 86400000
-      },
-      {
-        type: NOTIFICATION_TYPES.ACTIVITY,
-        title: '周末活动',
-        content: '周末开黑活动即将开始，组队参与赢取限定皮肤',
-        createTime: Date.now() - 172800000
-      }
-    ]
 
-    demos.forEach((demo, i) => {
-      const exists = notificationList.some(n => n.title === demo.title && n.content === demo.content)
-      if (!exists) {
-        notificationList.push({
-          id: Date.now() - i * 1000,
-          ...demo,
-          isRead: false
-        })
-        unreadCount++
-      }
-    })
-
-    notificationList.sort((a, b) => b.createTime - a.createTime)
-    saveToStorage()
-    notifyListeners()
-    return { list: [...notificationList], unreadCount }
-  }
 }

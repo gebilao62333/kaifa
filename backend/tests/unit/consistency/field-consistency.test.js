@@ -19,6 +19,20 @@ jest.mock('../../../src/models', () => ({
     findAndCountAll: jest.fn(),
     findOrCreate: jest.fn(),
     update: jest.fn()
+  },
+  ChatLog: {
+    findAndCountAll: jest.fn(),
+    create: jest.fn()
+  },
+  ChatRoom: {
+    findOne: jest.fn(),
+    create: jest.fn()
+  },
+  ChatSession: {
+    findAndCountAll: jest.fn()
+  },
+  VirtualUser: {
+    findByPk: jest.fn()
   }
 }));
 
@@ -83,31 +97,29 @@ describe('数据模型字段一致性测试', () => {
 
   describe('ChatService 字段映射', () => {
     it('getChatList 应返回 nickname 字段（非 nickName）', async () => {
+      // 与 chatService.getChatList 实际读取的字段保持一致（xn_chat_room 表结构）
       const mockSession = {
         id: 1,
-        userId: 1,
-        peerId: 2,
-        peerName: '聊天对象',
-        peerAvatar: 'https://example.com/peer.png',
-        lastMessage: '你好',
-        lastMessageTime: 1234567890,
-        unreadCount: 0
+        user_id: 1,
+        virtual_user_id: 2,
+        last_message: '你好',
+        last_message_time: 1234567890,
+        unread_count: 0
       };
 
       const mockPeerUser = {
         id: 2,
-        nickname: '聊天对象',
+        name: '聊天对象',
         avatar: 'https://example.com/peer.png',
-        lv: 2,
-        vip: 1
+        status: 1
       };
 
-      const { User, UserSession } = require('../../../src/models');
-      UserSession.findAndCountAll.mockResolvedValue({
+      const { ChatSession, VirtualUser } = require('../../../src/models');
+      ChatSession.findAndCountAll.mockResolvedValue({
         count: 1,
         rows: [mockSession]
       });
-      User.findByPk.mockResolvedValue(mockPeerUser);
+      VirtualUser.findByPk.mockResolvedValue(mockPeerUser);
 
       const result = await chatService.getChatList(1, 1, 20);
 

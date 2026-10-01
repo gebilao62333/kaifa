@@ -3,18 +3,18 @@
     <div class="login-container">
       <div class="login-header">
         <div class="logo">🎮</div>
-        <div class="title">多客陪玩</div>
+        <div class="title">eu搭子</div>
         <div class="subtitle">连接游戏玩家与陪玩师</div>
       </div>
 
       <form class="login-form" @submit.prevent="handleLogin">
         <div class="form-group">
-          <label class="form-label">用户名</label>
+          <label class="form-label">手机号</label>
           <input 
-            v-model="username" 
-            type="text" 
+            v-model="phone" 
+            type="tel" 
             class="form-input" 
-            placeholder="请输入用户名"
+            placeholder="请输入手机号"
           />
         </div>
 
@@ -58,6 +58,10 @@
                   <input v-model="regCode" type="text" class="form-input" placeholder="请输入验证码" />
                   <button class="code-btn" :disabled="codeSending" @click="sendCode">{{ codeSending ? '发送中' : '获取验证码' }}</button>
                 </div>
+                <div v-if="sentCode" class="code-tip">
+                  🧪 开发模式 — 验证码：<strong>{{ sentCode }}</strong>
+                  <span class="code-tip-action" @click="regCode = sentCode">点击填入</span>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">设置密码</label>
@@ -87,6 +91,10 @@
                   <input v-model="forgotCode" type="text" class="form-input" placeholder="请输入验证码" />
                   <button class="code-btn" :disabled="codeSending" @click="sendCode">{{ codeSending ? '发送中' : '获取验证码' }}</button>
                 </div>
+                <div v-if="sentCode" class="code-tip">
+                  🧪 开发模式 — 验证码：<strong>{{ sentCode }}</strong>
+                  <span class="code-tip-action" @click="forgotCode = sentCode">点击填入</span>
+                </div>
               </div>
               <div class="form-group">
                 <label class="form-label">新密码</label>
@@ -102,7 +110,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
@@ -111,7 +119,7 @@ import { RequestError } from '../common/common'
 const router = useRouter()
 const userStore = useUserStore()
 
-const username = ref('')
+const phone = ref('')
 const password = ref('')
 const isLoading = ref(false)
 const showRegister = ref(false)
@@ -123,15 +131,16 @@ const forgotPhone = ref('')
 const forgotCode = ref('')
 const forgotPwd = ref('')
 const codeSending = ref(false)
+const sentCode = ref('')
+const codeCountdown = ref(0)
 
 const handleFieldErrors = (error) => {
   if (error.fieldErrors && typeof error.fieldErrors === 'object') {
     const errorMessages = []
     for (const [field, messages] of Object.entries(error.fieldErrors)) {
       const fieldNames = {
-        username: '用户名',
-        password: '密码',
         phone: '手机号',
+        password: '密码',
         code: '验证码',
         email: '邮箱'
       }
@@ -154,14 +163,14 @@ const handleFieldErrors = (error) => {
 
 const handleLogin = async () => {
   // 增强表单验证
-  if (!username.value.trim()) {
-    toast.warning('请输入用户名')
+  if (!phone.value.trim()) {
+    toast.warning('请输入手机号')
     return
   }
 
-  // 用户名格式验证（支持手机号、邮箱、字母数字组合）
-  if (!/^[\w\u4e00-\u9fa5@.-]{2,20}$/.test(username.value.trim())) {
-    toast.warning('用户名格式不正确（2-20位字符）')
+  // 手机号格式验证
+  if (!/^1[3-9]\d{9}$/.test(phone.value.trim())) {
+    toast.warning('手机号格式不正确')
     return
   }
 
@@ -184,7 +193,7 @@ const handleLogin = async () => {
 
   try {
     const result = await userStore.login({
-      username: username.value.trim(),
+      phone: phone.value.trim(),
       password: password.value
     })
 
@@ -229,7 +238,7 @@ const handleLogin = async () => {
         return
       }
       if (error.status === 422) {
-        toast.error('登录信息验证失败，请检查用户名和密码格式')
+        toast.error('登录信息验证失败，请检查手机号和密码格式')
         return
       }
     }
@@ -253,17 +262,22 @@ const sendCode = async () => {
   }
 
   codeSending.value = true
+  sentCode.value = ''
   
   try {
     const type = showRegister.value ? 'register' : 'reset'
     const result = await userStore.sendSms(phone, type)
     
     if (result.success) {
-      toast.success('验证码已发送')
+      sentCode.value = result.code || ''
+      const codeTip = result.code ? `（验证码: ${result.code}）` : ''
+      toast.success(`验证码已发送${codeTip}`, 5000)
       
       let countdown = 60
+      codeCountdown.value = countdown
       const timer = setInterval(() => {
         countdown--
+        codeCountdown.value = countdown
         if (countdown <= 0) {
           clearInterval(timer)
           codeSending.value = false
@@ -279,6 +293,10 @@ const sendCode = async () => {
     codeSending.value = false
   }
 }
+
+// 关闭弹窗时清除验证码显示
+watch(showRegister, (val) => { if (!val) sentCode.value = '' })
+watch(showForgot, (val) => { if (!val) sentCode.value = '' })
 
 const handleRegister = async () => {
   // 增强注册表单验证
@@ -385,7 +403,7 @@ const handleResetPwd = async () => {
     if (result.success) {
       toast.success('密码重置成功，请登录')
       showForgot.value = false
-      username.value = forgotPhone.value
+      phone.value = forgotPhone.value
     } else {
       toast.error(result.message || '重置失败')
     }
@@ -608,6 +626,37 @@ const handleResetPwd = async () => {
 .code-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.code-tip {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #166534;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.code-tip strong {
+  font-size: 16px;
+  letter-spacing: 2px;
+  color: #15803d;
+}
+
+.code-tip-action {
+  margin-left: auto;
+  font-size: 12px;
+  color: #2563eb;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.code-tip-action:hover {
+  color: #1d4ed8;
 }
 
 .submit-btn {

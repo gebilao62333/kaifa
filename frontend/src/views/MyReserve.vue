@@ -128,15 +128,7 @@ const currentTab = ref('pending')
 const showDetail = ref(false)
 const currentOrder = ref(null)
 
-const orders = ref([
-  { id: 'RS20240520001', type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'pending', statusText: '待确认', avatar: 'https://picsum.photos/100/100?random=101', name: '小明同学', isVip: true, gameName: '王者荣耀', gameIcon: '🎮', date: '2024-05-22', time: '14:00-16:00', duration: '2小时', location: '王者荣耀', price: 88, createTime: '2024-05-20 10:30', countdown: 1800 },
-  { id: 'RS20240520002', type: 'offline', typeText: '线下陪玩', typeIcon: '🏠', status: 'confirmed', statusText: '已确认', avatar: 'https://picsum.photos/100/100?random=102', name: '游戏达人', isVip: false, gameName: '和平精英', gameIcon: '🔫', date: '2024-05-25', time: '18:00-20:00', duration: '2小时', location: '北京市朝阳区 XX 网咖', price: 288, createTime: '2024-05-20 09:15' },
-  { id: 'RS20240520004', type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'pending', statusText: '待确认', avatar: 'https://picsum.photos/100/100?random=104', name: '王者大神', isVip: false, gameName: '英雄联盟', gameIcon: '⚔️', date: '2024-05-23', time: '19:00-21:00', duration: '2小时', location: '英雄联盟', price: 99, createTime: '2024-05-20 11:45', countdown: 3600 },
-  { id: 'RS20240520005', type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'confirmed', statusText: '已确认', avatar: 'https://picsum.photos/100/100?random=105', name: '吃鸡狂魔', isVip: true, gameName: '永劫无间', gameIcon: '🗡️', date: '2024-05-26', time: '15:00-17:00', duration: '2小时', location: '永劫无间', price: 120, createTime: '2024-05-19 20:30' },
-  { id: 'RS20240520008', type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'confirmed', statusText: '已确认', avatar: 'https://picsum.photos/100/100?random=108', name: '云顶高手', isVip: true, gameName: '云顶之弈', gameIcon: '♟️', date: '2024-05-24', time: '21:00-23:00', duration: '2小时', location: '云顶之弈', price: 78, createTime: '2024-05-20 08:50' },
-  { id: 'RS20240520009', type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'pending', statusText: '待确认', avatar: 'https://picsum.photos/100/100?random=109', name: '声优陪玩', isVip: true, gameName: '王者荣耀', gameIcon: '🎮', date: '2024-05-27', time: '20:00-22:30', duration: '2.5小时', location: '王者荣耀', price: 110, createTime: '2024-05-20 13:20', countdown: 7200 },
-  { id: 'RS20240520011', type: 'online', typeText: '线上陪玩', typeIcon: '💻', status: 'confirmed', statusText: '已确认', avatar: 'https://picsum.photos/100/100?random=111', name: '原神导游', isVip: true, gameName: '原神', gameIcon: '✨', date: '2024-05-28', time: '10:00-13:00', duration: '3小时', location: '原神', price: 150, createTime: '2024-05-20 14:10' }
-])
+const orders = ref([])
 
 let timer = null
 

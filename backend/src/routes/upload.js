@@ -8,4 +8,8 @@ router.post('/image', authMiddleware, uploadLimiter, upload.single('image'), upl
 router.post('/audio', authMiddleware, uploadLimiter, upload.single('audio'), uploadController.uploadAudio);
 router.post('/video', authMiddleware, uploadLimiter, upload.single('video'), uploadController.uploadVideo);
 
+// 前端直传流程：先拿预签名凭证，直传 COS 后回传 URL 登记
+router.get('/token', authMiddleware, uploadLimiter, uploadController.getUploadToken);
+router.post('/register', authMiddleware, uploadLimiter, uploadController.registerUpload);
+
 module.exports = router;

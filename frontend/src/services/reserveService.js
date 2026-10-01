@@ -24,13 +24,13 @@ const reserveService = {
     return request('/api/reserve/slots/toggle', 'POST', { slotId, enabled })
   },
 
+  // 后端契约：{ companionId, gameId, date, time }
   async createReserve(params) {
     validateParams(params, {
       companionId: { required: true, label: '陪玩师ID', type: 'number' },
-      slotId: { required: true, label: '时间段ID', type: 'number' },
-      gameId: { required: true, label: '游戏ID', type: 'number' },
-      serviceType: { required: true, label: '服务类型', type: 'string' },
-      remark: { required: false, label: '备注', type: 'string' }
+      date: { required: true, label: '预约日期', type: 'string' },
+      time: { required: true, label: '预约时间', type: 'string' },
+      gameId: { required: false, label: '游戏ID', type: 'number' }
     })
     return request('/api/reserve/create', 'POST', params)
   },

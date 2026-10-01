@@ -92,30 +92,30 @@ body {
 }
 @media (min-width: 768px) {
   .route-shell--frame {
-    max-width: 650px;
+    max-width: var(--layout-max-width-pc, 650px);
     margin: 0 auto;
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.06);
   }
 }
 @media (min-width: 1024px) {
   .route-shell--frame {
-    max-width: 720px;
+    max-width: var(--layout-max-width-pc-lg, 720px);
   }
 }
 
 /* 桌面端把通用弹窗遮罩约束进 650/720 列，与页面内容对齐（仅非全屏页） */
 @media (min-width: 768px) {
   .route-shell--frame .modal-overlay {
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
+    right: 0;
+    margin: 0 auto;
     width: 100%;
-    max-width: 650px;
-    right: auto;
+    max-width: var(--layout-max-width-pc, 650px);
   }
 }
 @media (min-width: 1024px) {
   .route-shell--frame .modal-overlay {
-    max-width: 720px;
+    max-width: var(--layout-max-width-pc-lg, 720px);
   }
 }
 

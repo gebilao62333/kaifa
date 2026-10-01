@@ -4,17 +4,21 @@ import { validateMobile, validatePassword, validateParams } from '../common/comm
 const authService = {
   async getUserInfo(userId = '') {
     const url = userId ? `/api/user/get?userId=${userId}` : `/api/user/get`
-    return request(url, 'GET')
+    // 缩短超时 + 静默失败：后端偶发慢响应时返回 null，由调用方判空处理，避免页面长时间阻塞
+    return request(url, 'GET', {}, {}, 5000, { silentAbort: true })
   },
 
-  async login(username, password) {
-    validateParams({ username, password }, {
-      username: {
+  async updateUserInfo(data = {}) {
+    return request('/api/user/update', 'POST', data)
+  },
+
+  async login(phone, password) {
+    validateParams({ phone, password }, {
+      phone: {
         required: true,
-        label: '用户名',
+        label: '手机号',
         type: 'string',
-        minLength: 1,
-        maxLength: 50
+        pattern: /^1[3-9]\d{9}$/
       },
       password: {
         required: true,
@@ -24,7 +28,7 @@ const authService = {
         maxLength: 32
       }
     })
-    return request('/api/user/login', 'POST', { username, password })
+    return request('/api/user/login', 'POST', { mobile: phone, password })
   },
 
   async loginMobile(phone, code) {
@@ -146,7 +150,7 @@ const authService = {
         type: 'number'
       }
     })
-    return request('/api/user/follow', 'POST', { userId })
+    return request('/api/user/follow', 'POST', { targetUserId: userId, action: 1 })
   },
 
   async unfollow(userId) {
@@ -157,7 +161,7 @@ const authService = {
         type: 'number'
       }
     })
-    return request('/api/user/unfollow', 'POST', { userId })
+    return request('/api/user/follow', 'POST', { targetUserId: userId, action: 0 })
   },
 
   async getFans(params = {}) {

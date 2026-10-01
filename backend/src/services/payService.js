@@ -11,14 +11,15 @@ const getPackages = async () => {
   });
   
   return packages.map(pkg => ({
-    packageId: pkg.id,
-    title: pkg.title,
-    fiatAmount: Number(pkg.money),
-    goldCoins: pkg.coin,
-    bonusCoins: pkg.coin_zeng || 0,
-    totalCoins: pkg.coin + (pkg.coin_zeng || 0),
-    currencyUnit: CURRENCY_UNIT,
-    isHot: pkg.coin_zeng > 0
+    id: pkg.id,
+    coins: pkg.coins,
+    price: Number(pkg.price),
+    tag: pkg.hot ? '热门' : '',
+    bonus: pkg.bonus_coins || 0,
+    name: pkg.name,
+    hot: pkg.hot || 0,
+    sort: pkg.sort || 0,
+    status: pkg.status
   }));
 };
 
@@ -35,8 +36,8 @@ const createOrder = async (userId, packageId, payType = 1) => {
     user_id: userId,
     order_no: orderNo,
     cid: packageId,
-    money: pkg.money,
-    gold_coins: pkg.coin + (pkg.coin_zeng || 0),
+    money: pkg.price,
+    gold_coins: pkg.coins + (pkg.bonus_coins || 0),
     pay_type: payType,
     status: 0,
     currency: CURRENCY_UNIT,
@@ -46,8 +47,8 @@ const createOrder = async (userId, packageId, payType = 1) => {
   return {
     orderId: order.id,
     orderNo: order.order_no,
-    fiatAmount: Number(pkg.money),
-    goldCoins: pkg.coin + (pkg.coin_zeng || 0),
+    fiatAmount: Number(pkg.price),
+    goldCoins: pkg.coins + (pkg.bonus_coins || 0),
     currencyUnit: CURRENCY_UNIT
   };
 };
@@ -72,7 +73,7 @@ const wxPayCallback = async (payNo, transactionId) => {
       pay_time: getTimestamp()
     }, { transaction });
     
-    const totalCoins = pkg.coin + (order.money_zeng || 0);
+    const totalCoins = pkg.coins + (pkg.bonus_coins || 0);
     
     await User.increment('money', {
       by: totalCoins,
@@ -118,14 +119,10 @@ const validateCard = async (cardCode) => {
     throw new Error('密卡已被使用或已禁用');
   }
 
-  if (card.expire_time > 0 && card.expire_time < getTimestamp()) {
-    throw new Error('密卡已过期');
-  }
-
   return {
     cardId: card.id,
-    faceValue: Number(card.face_value),
-    coinAmount: card.coin_amount
+    faceValue: Number(card.value),
+    coinAmount: Math.floor(Number(card.value))
   };
 };
 
@@ -141,11 +138,8 @@ const useCard = async (userId, cardCode) => {
   if (card.status !== 0) {
     throw new Error('密卡已被使用或已禁用');
   }
-
-  if (card.expire_time > 0 && card.expire_time < getTimestamp()) {
-    throw new Error('密卡已过期');
-  }
   
+  const amount = Math.floor(Number(card.value));
   const transaction = await User.sequelize.transaction();
   
   try {
@@ -156,16 +150,53 @@ const useCard = async (userId, cardCode) => {
     }, { transaction });
     
     await User.increment('money', {
-      by: card.coin_amount,
+      by: amount,
       where: { id: userId },
       transaction
     });
     
     await transaction.commit();
     
-    return {
-      coins: card.coin_amount
-    };
+    return { amount };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
+};
+
+// 通过 25 位密钥一键充值（不需要卡号+密码）
+const redeemCardByKey = async (userId, key) => {
+  const card = await Card.findOne({
+    where: { card_key: key }
+  });
+
+  if (!card) {
+    throw new Error('密钥无效，请检查是否输入正确');
+  }
+
+  if (card.status !== 0) {
+    throw new Error('该密钥已被使用');
+  }
+
+  const amount = Math.floor(Number(card.value));
+  const transaction = await User.sequelize.transaction();
+
+  try {
+    await card.update({
+      status: 1,
+      use_time: getTimestamp(),
+      use_user_id: userId
+    }, { transaction });
+
+    await User.increment('money', {
+      by: amount,
+      where: { id: userId },
+      transaction
+    });
+
+    await transaction.commit();
+
+    return { amount };
   } catch (error) {
     await transaction.rollback();
     throw error;
@@ -243,6 +274,7 @@ module.exports = {
   getOrderStatus,
   validateCard,
   useCard,
+  redeemCardByKey,
   getWalletBalance,
   rechargeWallet,
   getPaymentHistory

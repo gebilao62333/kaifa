@@ -37,48 +37,7 @@ import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
-const fans = ref([
-  {
-    id: '3001',
-    avatar: 'https://picsum.photos/100/100?random=301',
-    name: '小粉丝01',
-    desc: '你的作品很棒！',
-    tags: ['活跃粉丝'],
-    isFollow: true
-  },
-  {
-    id: '3002',
-    avatar: 'https://picsum.photos/100/100?random=302',
-    name: '游戏玩家',
-    desc: '求带飞',
-    tags: ['游戏达人'],
-    isFollow: false
-  },
-  {
-    id: '3003',
-    avatar: 'https://picsum.photos/100/100?random=303',
-    name: '陪玩爱好者',
-    desc: '期待合作',
-    tags: ['新手友好'],
-    isFollow: true
-  },
-  {
-    id: '3004',
-    avatar: 'https://picsum.photos/100/100?random=304',
-    name: '王者粉丝',
-    desc: '大神666',
-    tags: ['段位高'],
-    isFollow: false
-  },
-  {
-    id: '3005',
-    avatar: 'https://picsum.photos/100/100?random=305',
-    name: '颜值控',
-    desc: '声音好好听',
-    tags: ['声音好听'],
-    isFollow: false
-  }
-])
+const fans = ref([])
 
 const goBack = () => {
   router.back()

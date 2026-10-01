@@ -1,14 +1,20 @@
-import { request } from '../common/common'
-import { validateParams } from '../common/common'
+import { request, validateParams } from '../common/common'
+
+// 与后端 xn_report.target_type 枚举一致
+export const REPORT_TARGET = {
+  USER: 1,
+  POST: 2,
+  COMMENT: 3
+}
 
 const reportService = {
-  async submitReport(params) {
-    validateParams(params, {
-      type: { required: true, label: '举报类型', type: 'string' },
+  async submitReport({ targetType, targetId, reason, images = [] }) {
+    validateParams({ targetType, targetId, reason }, {
+      targetType: { required: true, label: '举报类型', type: 'number' },
       targetId: { required: true, label: '目标ID', type: 'number' },
-      reason: { required: true, label: '举报原因', type: 'string' }
+      reason: { required: true, label: '举报原因', type: 'string', maxLength: 255 }
     })
-    return request('/api/report', 'POST', params)
+    return request('/api/report', 'POST', { targetType, targetId, reason, images })
   },
 
   async getReportList(params = {}) {

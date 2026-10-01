@@ -38,7 +38,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useAdminApi } from '../../composables/useAdminApi'
+import { useToast } from '../../composables/useToast'
 const { page, pageSize, total, totalPages, getHost, getHeaders, formatTime } = useAdminApi()
+const toast = useToast()
 const tab = ref('system')
 const newUserId = ref('')
 const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
@@ -59,7 +61,7 @@ const loadSystem = async () => {
     const res = await fetch(`${getHost()}/api/admin/users?page=${page.value}&pageSize=${pageSize.value}`, { headers: getHeaders() })
     const result = await res.json()
     if (result.code === 200 || result.code === 0) { systemList.value = result.data.list || result.data || []; total.value = result.data.pagination?.total || systemList.value.length }
-  } catch (e) { console.error(e) }
+  } catch (e) { toast.error('加载推荐用户失败') }
 }
 
 const addManual = async () => {
@@ -73,15 +75,15 @@ const addManual = async () => {
       const u = result.data
       userInfo = { userId: u.userId || uid, nickname: u.nickname || u.nickName || '用户' + uid, avatar: u.avatar || defaultAvatar, level: u.level || 1, tags: u.tags || ['推荐'], price: u.servicePrice || u.price || 50, isTop: false }
     }
-  } catch (e) { console.error(e) }
+  } catch (e) { toast.error('获取用户信息失败') }
   const existing = getManualStorage()
   if (!existing.find(u => u.userId === userInfo.userId)) {
     existing.push(userInfo)
     setManualStorage(existing)
     manualList.value = existing
     newUserId.value = ''
-    alert('添加成功')
-  }
+    toast.success('添加成功')
+  } else { toast.info('该用户已在推荐列表中') }
 }
 
 const removeManual = (u) => {
@@ -104,7 +106,7 @@ const saveToFrontend = () => {
     level: u.level || 1, tags: u.tags || [], price: u.price || 50, vip: u.vip || false, vipLevel: u.vipLevel || 0
   }))
   setManualStorage(list)
-  alert('已保存到前端，推荐将在首页显示')
+  toast.success('已保存到前端，推荐将在首页显示')
 }
 
 onMounted(() => {

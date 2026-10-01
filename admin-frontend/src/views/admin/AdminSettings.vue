@@ -36,6 +36,22 @@
           <span>视频通话</span>
           <div class="switch-toggle" :class="{ active: settings.videoChatEnabled }" @click="settings.videoChatEnabled = !settings.videoChatEnabled"></div>
         </label>
+        <label class="switch-item">
+          <span>分享功能</span>
+          <div class="switch-toggle" :class="{ active: settings.shareEnabled }" @click="settings.shareEnabled = !settings.shareEnabled"></div>
+        </label>
+      </div>
+    </div>
+    <div class="settings-card" v-if="settings.shareEnabled">
+      <h3>分享奖励设置</h3>
+      <div class="switch-grid">
+        <label class="switch-item">
+          <span>开启分享奖励</span>
+          <div class="switch-toggle" :class="{ active: settings.shareRewardEnabled }" @click="settings.shareRewardEnabled = !settings.shareRewardEnabled"></div>
+        </label>
+      </div>
+      <div class="form-grid" v-if="settings.shareRewardEnabled">
+        <label>每次分享奖励金额: <input v-model.number="settings.shareRewardAmount" type="number" step="0.01" min="0" /></label>
       </div>
     </div>
     <button class="btn-primary save-btn" @click="saveSettings">保存设置</button>
@@ -45,13 +61,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import adminService from '../../services/adminService'
+import { useToast } from '../../composables/useToast'
+const toast = useToast()
 
 const settings = ref({
-  siteName: '多客陪玩', siteDescription: '专业游戏陪玩平台',
-  contactPhone: '400-888-8888', contactEmail: 'admin@duoke.com',
+  siteName: 'eu搭子', siteDescription: '专业游戏陪玩平台',
+  contactPhone: '400-888-8888', contactEmail: 'admin@eudazi.com',
   userInitBalance: 0, withdrawMinAmount: 50, withdrawFeeRate: 0.02,
   registerEnabled: true, giftEnabled: true,
-  voiceChatEnabled: true, videoChatEnabled: true
+  voiceChatEnabled: false, videoChatEnabled: false,
+  shareEnabled: true, shareRewardEnabled: false, shareRewardAmount: 0
 })
 
 const loadSettings = async () => {
@@ -60,18 +79,18 @@ const loadSettings = async () => {
     if (res.code === 200 || res.code === 0) {
       settings.value = { ...settings.value, ...res.data }
     }
-  } catch (e) { console.error('加载设置失败:', e) }
+  } catch (e) { toast.error('加载设置失败: ' + (e.message || '网络错误')) }
 }
 
 const saveSettings = async () => {
   try {
     const res = await adminService.updateSystemSettings(settings.value)
     if (res.code === 200 || res.code === 0) {
-      alert('设置保存成功')
+      toast.success('设置保存成功')
     } else {
-      alert(res.message || '保存失败')
+      toast.error(res.message || '保存失败')
     }
-  } catch (e) { console.error('保存设置失败:', e); alert('保存失败') }
+  } catch (e) { toast.error('保存失败: ' + (e.message || '网络错误')) }
 }
 
 onMounted(loadSettings)

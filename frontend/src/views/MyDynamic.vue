@@ -60,6 +60,9 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
+import circleService from '../services/circleService'
+import { toast } from '../composables/useToast'
+import { DEFAULT_AVATAR } from '@/common/constants'
 
 const router = useRouter()
 
@@ -67,7 +70,7 @@ const activeTab = ref('all')
 
 const userInfo = ref({
   nickName: '多客用户',
-  avatar: 'https://picsum.photos/200/200'
+  avatar: DEFAULT_AVATAR
 })
 
 const tabs = ref([
@@ -166,11 +169,18 @@ const goDetail = (id) => {
   router.push(`/post-detail/${id}`)
 }
 
-const deletePost = (post) => {
-  const idx = allPosts.value.findIndex(p => p.id === post.id)
-  if (idx > -1) {
-    allPosts.value.splice(idx, 1)
-    updateTabCounts()
+const deletePost = async (post) => {
+  if (!confirm('确定要删除这条动态吗？相关图片/视频也会一并删除')) return
+  try {
+    await circleService.deletePost(post.id)
+    const idx = allPosts.value.findIndex(p => p.id === post.id)
+    if (idx > -1) {
+      allPosts.value.splice(idx, 1)
+      updateTabCounts()
+    }
+    toast.success('删除成功')
+  } catch (error) {
+    toast.error(error.message || '删除失败')
   }
 }
 

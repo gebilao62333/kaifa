@@ -128,8 +128,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { usePermissions } from '../composables/usePermissions'
+import regionService from '../services/regionService'
 
 defineProps({
   modelValue: { type: Object, required: true },
@@ -150,19 +151,30 @@ const showSourceMenu = ref(false)
 const showPermissionGuide = ref(false)
 const permissionError = ref({ type: 'camera', errorType: 'denied', message: '' })
 
-const cityOptions = [
-  { value: 'beijing', label: '北京市' },
-  { value: 'shanghai', label: '上海市' },
-  { value: 'guangzhou', label: '广州市' },
-  { value: 'shenzhen', label: '深圳市' },
-  { value: 'chengdu', label: '成都市' },
-  { value: 'hangzhou', label: '杭州市' },
-  { value: 'wuhan', label: '武汉市' },
-  { value: 'xian', label: '西安市' }
-]
+const cityOptions = ref([])
+
+// 从 API 加载省份列表作为城市选项
+const loadCities = async () => {
+  try {
+    const res = await regionService.getProvinces()
+    if (res.code === 0 || res.code === 200) {
+      const cities = res.data || res.list || []
+      cityOptions.value = cities.map(c => ({
+        value: c.code || c.id,
+        label: c.name
+      }))
+    }
+  } catch (e) {
+    console.error('加载城市失败:', e)
+  }
+}
+
+onMounted(() => {
+  loadCities()
+})
 
 const getCityLabel = (value) => {
-  const item = cityOptions.find(opt => opt.value === value)
+  const item = cityOptions.value.find(opt => opt.value === value)
   return item ? item.label : ''
 }
 

@@ -145,6 +145,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { toast } from '../composables/useToast'
 import PageLayout from '../components/PageLayout.vue'
+import { DEFAULT_AVATAR } from '../common/constants'
 
 const router = useRouter()
 
@@ -232,7 +233,7 @@ const loadOrders = async () => {
   orderList.value = [
     {
       id: 1,
-      avatar: '',
+      avatar: DEFAULT_AVATAR,
       nickname: '玩家小李',
       level: 18,
       title: '王者荣耀排位上分',
@@ -246,7 +247,7 @@ const loadOrders = async () => {
     },
     {
       id: 2,
-      avatar: '',
+      avatar: DEFAULT_AVATAR,
       nickname: '菜鸟玩家',
       level: 12,
       title: '和平精英娱乐局',
@@ -260,7 +261,7 @@ const loadOrders = async () => {
     },
     {
       id: 3,
-      avatar: '',
+      avatar: DEFAULT_AVATAR,
       nickname: '原神玩家',
       level: 30,
       title: '原神刷本组队',
@@ -274,7 +275,7 @@ const loadOrders = async () => {
     },
     {
       id: 4,
-      avatar: '',
+      avatar: DEFAULT_AVATAR,
       nickname: '电竞小王子',
       level: 45,
       title: 'LOL灵活组排',

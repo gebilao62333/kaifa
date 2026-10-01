@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const config = require('../config');
+const logger = require('../utils/logger');
 
 let cosClient = null;
 
@@ -74,6 +75,10 @@ const uploadLocal = async (file, folder) => {
   };
 };
 
+const isCosAvailable = () => {
+  return !!(config.storage.cos.secretId && config.storage.cos.secretKey);
+};
+
 const uploadImage = async (file) => {
   const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
   const ext = path.extname(file.originalname).toLowerCase();
@@ -82,7 +87,7 @@ const uploadImage = async (file) => {
     throw new Error('不支持的图片格式');
   }
   
-  if (config.storage.provider === 'cos') {
+  if (config.storage.provider === 'cos' && isCosAvailable()) {
     return await uploadToCos(file, 'images');
   }
   
@@ -97,7 +102,7 @@ const uploadAudio = async (file) => {
     throw new Error('不支持的音频格式');
   }
   
-  if (config.storage.provider === 'cos') {
+  if (config.storage.provider === 'cos' && isCosAvailable()) {
     return await uploadToCos(file, 'audios');
   }
   
@@ -112,7 +117,7 @@ const uploadVideo = async (file) => {
     throw new Error('不支持的视频格式');
   }
   
-  if (config.storage.provider === 'cos') {
+  if (config.storage.provider === 'cos' && isCosAvailable()) {
     return await uploadToCos(file, 'videos');
   }
   
@@ -122,7 +127,7 @@ const uploadVideo = async (file) => {
 const uploadFile = async (file) => {
   const ext = path.extname(file.originalname).toLowerCase();
   
-  if (config.storage.provider === 'cos') {
+  if (config.storage.provider === 'cos' && isCosAvailable()) {
     return await uploadToCos(file, 'files');
   }
   
@@ -130,7 +135,7 @@ const uploadFile = async (file) => {
 };
 
 const deleteFile = async (filePath) => {
-  if (config.storage.provider === 'cos') {
+  if (config.storage.provider === 'cos' && isCosAvailable()) {
     return await deleteFromCos(filePath);
   }
   
@@ -160,7 +165,7 @@ const deleteFromCos = async (key) => {
       Key: actualKey
     }, (err) => {
       if (err) {
-        console.error('[COS] 删除文件失败:', err);
+        logger.error('[COS] 删除文件失败:', err);
         resolve(false);
       } else {
         resolve(true);
@@ -185,20 +190,33 @@ const getContentType = (ext) => {
   return contentTypeMap[ext] || 'application/octet-stream';
 };
 
-const getUploadToken = async () => {
+const FOLDER_MAP = {
+  image: 'images',
+  audio: 'audios',
+  video: 'videos',
+  file: 'files'
+};
+
+// 生成前端直传 COS 的预签名 PUT URL（绕过后端文件流中转，节省服务器带宽）
+const getDirectUploadToken = async (type = 'file', ext = '') => {
   const cos = initCosClient();
-  
+
   if (!cos) {
     return null;
   }
-  
+
+  const folder = FOLDER_MAP[type] || 'files';
+  const safeExt = ext && ext.startsWith('.') ? ext.toLowerCase() : (ext ? `.${ext.toLowerCase()}` : '');
+  const filename = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}${safeExt}`;
+  const key = `uploads/${folder}/${filename}`;
+
   const params = {
     Bucket: config.storage.cos.bucket,
     Region: config.storage.cos.region,
-    Key: `uploads/temp/${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    Key: key,
     Expires: 3600
   };
-  
+
   return new Promise((resolve, reject) => {
     cos.getPresignedUrl({
       Method: 'PUT',
@@ -209,12 +227,55 @@ const getUploadToken = async () => {
       } else {
         resolve({
           url: data.Url,
-          key: params.Key,
+          key,
+          filename,
+          accessUrl: `https://${config.storage.cos.bucket}.cos.${config.storage.cos.region}.myqcloud.com/${key}`,
           expires: params.Expires
         });
       }
     });
   });
+};
+
+// 判断给定 URL 是否为 COS 存储（用于删除时区分后端落地方式）
+const isCosUrl = (url) => {
+  if (!url) return false;
+  return url.includes('.cos.') && url.includes('.myqcloud.com');
+};
+
+// 兼容直传场景：根据最终访问 URL 删除文件（COS 或本地）
+const deleteByUrl = async (url) => {
+  if (!url) return false;
+
+  if (isCosUrl(url)) {
+    const cos = initCosClient();
+    if (!cos) return false;
+
+    const prefix = `https://${config.storage.cos.bucket}.cos.${config.storage.cos.region}.myqcloud.com/`;
+    const actualKey = url.startsWith(prefix) ? url.substring(prefix.length) : url;
+
+    return new Promise((resolve) => {
+      cos.deleteObject({
+        Bucket: config.storage.cos.bucket,
+        Region: config.storage.cos.region,
+        Key: actualKey
+      }, (err) => {
+        if (err) {
+          logger.error('[COS] 删除文件失败:', err);
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+      });
+    });
+  }
+
+  const absolutePath = path.join(config.paths.root, 'public', url);
+  if (fs.existsSync(absolutePath)) {
+    fs.unlinkSync(absolutePath);
+    return true;
+  }
+  return false;
 };
 
 module.exports = {
@@ -223,5 +284,7 @@ module.exports = {
   uploadVideo,
   uploadFile,
   deleteFile,
-  getUploadToken
+  deleteByUrl,
+  isCosUrl,
+  getDirectUploadToken
 };

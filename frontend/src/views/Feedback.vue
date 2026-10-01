@@ -68,10 +68,12 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
+import { uploadFile } from '../services/uploadService'
+import feedbackService from '../services/feedbackService'
 
 const router = useRouter()
 
@@ -80,6 +82,8 @@ const feedbackContent = ref('')
 const contact = ref('')
 const uploadImages = ref([])
 const fileInput = ref(null)
+const uploading = ref(false)
+const submitting = ref(false)
 
 const typeList = [
   { label: '功能问题', value: 'bug', icon: '⚠️' },
@@ -88,10 +92,31 @@ const typeList = [
   { label: '其他问题', value: 'other', icon: '❓' },
 ]
 
-const historyList = ref([
-  { type: '功能问题', status: 'done', statusText: '已处理', content: '充值后金币未到账', time: '2024-05-15 10:30' },
-  { type: '意见建议', status: 'pending', statusText: '处理中', content: '希望能增加更多游戏分类', time: '2024-05-18 15:20' },
-])
+const historyList = ref([])
+
+const formatTime = (sec) => {
+  if (!sec) return ''
+  return new Date(Number(sec) * 1000).toLocaleString()
+}
+
+const loadHistory = async () => {
+  try {
+    const res = await feedbackService.getMyFeedbacks({ page: 1, pageSize: 20 })
+    if (res?.code === 200 && res.data) {
+      historyList.value = (res.data.list || []).map(item => ({
+        type: item.typeText || '其他问题',
+        status: item.status,
+        statusText: item.statusText,
+        content: item.content,
+        time: formatTime(item.createTime)
+      }))
+    }
+  } catch (e) {
+    console.warn('加载反馈历史失败:', e?.message)
+  }
+}
+
+onMounted(loadHistory)
 
 const goBack = () => {
   router.back()
@@ -101,17 +126,42 @@ const uploadImage = () => {
   fileInput.value?.click()
 }
 
-const handleFileChange = (e) => {
-  const files = e.target.files
-  if (files) {
-    Array.from(files).forEach(file => {
-      if (uploadImages.value.length >= 6) return
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        uploadImages.value.push(event.target?.result || '')
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024
+
+// 截图选中后立即上传，列表中保存的是可提交的URL而非base64
+const handleFileChange = async (e) => {
+  const files = Array.from(e.target.files || [])
+  e.target.value = ''
+  if (!files.length || uploading.value) return
+
+  uploading.value = true
+  try {
+    for (const file of files) {
+      if (uploadImages.value.length >= 6) {
+        toast.error('最多上传6张图片')
+        break
       }
-      reader.readAsDataURL(file)
-    })
+      if (!file.type?.startsWith('image/')) {
+        toast.error(`${file.name} 不是图片文件`)
+        continue
+      }
+      if (file.size > MAX_IMAGE_SIZE) {
+        toast.error(`${file.name} 超过10MB`)
+        continue
+      }
+      try {
+        const res = await uploadFile(file, 'image')
+        if (res?.code === 200 && res.data?.url) {
+          uploadImages.value.push(res.data.url)
+        } else {
+          toast.error(res?.message || '图片上传失败')
+        }
+      } catch (err) {
+        toast.error(err.message || '图片上传失败')
+      }
+    }
+  } finally {
+    uploading.value = false
   }
 }
 
@@ -119,24 +169,41 @@ const removeImage = (index) => {
   uploadImages.value.splice(index, 1)
 }
 
-const submitFeedback = () => {
+const submitFeedback = async () => {
+  if (submitting.value) return
+
   if (!feedbackContent.value.trim()) {
     toast.error('请输入反馈内容')
     return
   }
-  
-  historyList.value.unshift({
-    type: typeList.find(t => t.value === feedbackType.value)?.label || '其他',
-    status: 'pending',
-    statusText: '处理中',
-    content: feedbackContent.value,
-    time: new Date().toLocaleString()
-  })
-  
-  toast.success('感谢您的反馈，我们会尽快处理！')
-  feedbackContent.value = ''
-  contact.value = ''
-  uploadImages.value = []
+  if (uploading.value) {
+    toast.error('图片上传中，请稍候')
+    return
+  }
+
+  submitting.value = true
+  try {
+    const res = await feedbackService.submitFeedback({
+      type: feedbackType.value,
+      content: feedbackContent.value.trim(),
+      images: uploadImages.value,
+      contact: contact.value.trim()
+    })
+
+    if (res?.code === 200) {
+      toast.success('感谢您的反馈，我们会尽快处理！')
+      feedbackContent.value = ''
+      contact.value = ''
+      uploadImages.value = []
+      await loadHistory()
+    } else {
+      toast.error(res?.message || '提交失败')
+    }
+  } catch (err) {
+    toast.error(err.message || '提交失败，请稍后重试')
+  } finally {
+    submitting.value = false
+  }
 }
 </script>
 

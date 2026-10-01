@@ -1,12 +1,13 @@
 const { payService, wechatPayService } = require('../services');
 const response = require('../utils/response');
+const logger = require('../utils/logger');
 
 const getPackages = async (req, res) => {
   try {
     const result = await payService.getPackages();
     response.success(res, result);
   } catch (error) {
-    console.error('获取充值套餐错误:', error);
+    logger.error('获取充值套餐错误:', error);
     response.error(res, error.message);
   }
 };
@@ -26,7 +27,7 @@ const createOrder = async (req, res) => {
     );
     response.success(res, result);
   } catch (error) {
-    console.error('创建订单错误:', error);
+    logger.error('创建订单错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -49,7 +50,7 @@ const createWxOrder = async (req, res) => {
       jsApiParams
     });
   } catch (error) {
-    console.error('创建微信支付订单错误:', error);
+    logger.error('创建微信支付订单错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -73,7 +74,7 @@ const wxNotify = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('微信支付回调错误:', error);
+    logger.error('微信支付回调错误:', error);
     res.set('Content-Type', 'text/xml');
     res.send('<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[ERROR]]></return_msg></xml>');
   }
@@ -90,7 +91,7 @@ const queryWxOrder = async (req, res) => {
     const result = await wechatPayService.queryOrder(orderNo);
     response.success(res, result);
   } catch (error) {
-    console.error('查询微信订单错误:', error);
+    logger.error('查询微信订单错误:', error);
     response.error(res, error.message);
   }
 };
@@ -106,7 +107,7 @@ const closeWxOrder = async (req, res) => {
     const result = await wechatPayService.closeOrder(orderNo);
     response.success(res, result);
   } catch (error) {
-    console.error('关闭微信订单错误:', error);
+    logger.error('关闭微信订单错误:', error);
     response.error(res, error.message);
   }
 };
@@ -122,7 +123,7 @@ const wxCallback = async (req, res) => {
     await payService.wxPayCallback(payNo, transactionId);
     response.success(res, {}, '支付成功');
   } catch (error) {
-    console.error('微信支付回调错误:', error);
+    logger.error('微信支付回调错误:', error);
     response.error(res, error.message);
   }
 };
@@ -138,7 +139,7 @@ const getOrderStatus = async (req, res) => {
     const result = await payService.getOrderStatus(orderNo);
     response.success(res, result);
   } catch (error) {
-    console.error('查询订单状态错误:', error);
+    logger.error('查询订单状态错误:', error);
     response.error(res, error.message);
   }
 };
@@ -154,7 +155,7 @@ const validateCard = async (req, res) => {
     const result = await payService.validateCard(cardCode);
     response.success(res, result);
   } catch (error) {
-    console.error('验证密卡错误:', error);
+    logger.error('验证密卡错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -170,7 +171,7 @@ const useCard = async (req, res) => {
     const result = await payService.useCard(req.userId, cardCode);
     response.success(res, result, '充值成功');
   } catch (error) {
-    console.error('使用密卡错误:', error);
+    logger.error('使用密卡错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -178,86 +179,46 @@ const useCard = async (req, res) => {
 const getRechargeRecords = async (req, res) => {
   try {
     const { page = 1, pageSize = 20, userId, status } = req.query;
-    
-    const mockRecords = [
-      {
-        id: 1,
-        order_no: 'R20240101100001',
-        user_id: 1001,
-        username: '张三',
-        amount: 100,
-        pay_type: 1,
-        status: 'completed',
-        create_time: '2024-01-01 10:00:00'
-      },
-      {
-        id: 2,
-        order_no: 'R20240101100002',
-        user_id: 1002,
-        username: '李四',
-        amount: 50,
-        pay_type: 2,
-        status: 'completed',
-        create_time: '2024-01-01 11:00:00'
-      },
-      {
-        id: 3,
-        order_no: 'R20240101100003',
-        user_id: 1003,
-        username: '王五',
-        amount: 200,
-        pay_type: 1,
-        status: 'pending',
-        create_time: '2024-01-01 12:00:00'
-      },
-      {
-        id: 4,
-        order_no: 'R20240101100004',
-        user_id: 1004,
-        username: '赵六',
-        amount: 150,
-        pay_type: 3,
-        status: 'failed',
-        create_time: '2024-01-01 13:00:00'
-      },
-      {
-        id: 5,
-        order_no: 'R20240101100005',
-        user_id: 1005,
-        username: '孙七',
-        amount: 300,
-        pay_type: 1,
-        status: 'completed',
-        create_time: '2024-01-01 14:00:00'
-      }
-    ];
-    
-    let filtered = [...mockRecords];
-    
-    if (userId) {
-      filtered = filtered.filter(r => r.user_id === parseInt(userId));
-    }
-    
-    if (status) {
-      filtered = filtered.filter(r => r.status === status);
-    }
-    
-    const total = filtered.length;
-    const start = (parseInt(page) - 1) * parseInt(pageSize);
-    const end = start + parseInt(pageSize);
-    const list = filtered.slice(start, end);
-    
+    const { OrderChong, User } = require('../models');
+
+    const where = {};
+    if (userId) where.user_id = parseInt(userId);
+    if (status) where.status = status;
+
+    const { count, rows } = await OrderChong.findAndCountAll({
+      where,
+      order: [['id', 'DESC']],
+      limit: parseInt(pageSize),
+      offset: (parseInt(page) - 1) * parseInt(pageSize),
+      include: [{
+        model: User,
+        as: 'user',
+        attributes: ['id', 'username', 'nickname']
+      }]
+    });
+
+    const list = rows.map(r => ({
+      id: r.id,
+      order_no: r.order_no,
+      user_id: r.user_id,
+      username: r.user?.username || '',
+      amount: parseFloat(r.amount) || 0,
+      pay_type: r.pay_type,
+      status: r.status,
+      create_time: r.create_time
+    }));
+
     response.success(res, {
       list,
       pagination: {
         page: parseInt(page),
         pageSize: parseInt(pageSize),
-        total,
-        totalPages: Math.ceil(total / parseInt(pageSize))
+        total: count,
+        totalPages: Math.ceil(count / parseInt(pageSize))
       }
     });
   } catch (error) {
-    console.error('获取充值记录错误:', error);
+    logger.error('获取充值记录错误:', error);
     response.error(res, error.message);
   }
 };
@@ -267,7 +228,7 @@ const getWalletBalance = async (req, res) => {
     const result = await payService.getWalletBalance(req.userId);
     response.success(res, result);
   } catch (error) {
-    console.error('获取钱包余额错误:', error);
+    logger.error('获取钱包余额错误:', error);
     response.error(res, error.message);
   }
 };
@@ -287,7 +248,7 @@ const rechargeWallet = async (req, res) => {
     );
     response.success(res, result, '充值成功');
   } catch (error) {
-    console.error('充值错误:', error);
+    logger.error('充值错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -302,7 +263,7 @@ const getPaymentHistory = async (req, res) => {
     );
     response.success(res, result);
   } catch (error) {
-    console.error('获取支付记录错误:', error);
+    logger.error('获取支付记录错误:', error);
     response.error(res, error.message);
   }
 };
@@ -323,7 +284,7 @@ const createPayment = async (req, res) => {
     
     response.success(res, result, '支付订单创建成功');
   } catch (error) {
-    console.error('创建支付订单错误:', error);
+    logger.error('创建支付订单错误:', error);
     response.unprocessableEntity(res, error.message);
   }
 };
@@ -343,8 +304,29 @@ const handlePaymentNotify = async (req, res) => {
       response.badRequest(res, '支付失败');
     }
   } catch (error) {
-    console.error('支付回调处理错误:', error);
+    logger.error('支付回调处理错误:', error);
     response.error(res, error.message);
+  }
+};
+
+const redeemCardByKey = async (req, res) => {
+  try {
+    const { key } = req.body;
+
+    if (!key || typeof key !== 'string') {
+      return response.badRequest(res, '请输入充值密钥');
+    }
+
+    const cleanKey = key.replace(/[\s-]/g, '');
+    if (cleanKey.length !== 25) {
+      return response.badRequest(res, '密钥格式不正确，应为25位字符');
+    }
+
+    const result = await payService.redeemCardByKey(req.userId, cleanKey);
+    response.success(res, result, '充值成功');
+  } catch (error) {
+    logger.error('密钥充值错误:', error);
+    response.unprocessableEntity(res, error.message);
   }
 };
 
@@ -359,6 +341,7 @@ module.exports = {
   getOrderStatus,
   validateCard,
   useCard,
+  redeemCardByKey,
   getRechargeRecords,
   getWalletBalance,
   rechargeWallet,

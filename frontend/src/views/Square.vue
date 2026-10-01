@@ -36,6 +36,14 @@
           <span class="post-tag" v-if="post.tagName">{{ post.tagName }}</span>
         </div>
         <div class="post-content">{{ post.content }}</div>
+        <!-- 转发展示 -->
+        <div class="repost-card" v-if="post.repostId && post.repostContent" @click.stop="goPostDetail({ postId: post.repostId, id: post.repostId })">
+          <div class="repost-header">
+            <span class="repost-icon">🔄</span>
+            <span class="repost-nickname">{{ post.repostNickname || '原作者' }}</span>
+          </div>
+          <div class="repost-content">{{ post.repostContent }}</div>
+        </div>
         <div class="post-images" v-if="post.images && post.images.length > 0">
           <img
             v-for="(img, idx) in post.images.slice(0, 3)"
@@ -55,8 +63,8 @@
             <span>💬</span>
             <span>{{ post.comments || 0 }}</span>
           </span>
-          <span class="action-item">
-            <span>🔄</span>
+          <span class="action-item" @click.stop="openSharePopup(post)">
+            <span>📤</span>
             <span>{{ post.shares || 0 }}</span>
           </span>
         </div>
@@ -67,6 +75,17 @@
 
     <div class="loading-more" v-if="loading">加载中...</div>
     <div class="no-more" v-if="!hasMore && postList.length > 0">没有更多了</div>
+
+    <SharePopup
+      :visible="shareVisible"
+      :postId="sharePostId"
+      :postNickname="sharePostNickname"
+      :postContent="sharePostContent"
+      :postShareUrl="sharePostUrl"
+      @close="shareVisible = false"
+      @shared="onShared"
+      @reposted="onReposted"
+    />
   </PageLayout>
 </template>
 
@@ -75,6 +94,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
+import SharePopup from '../components/SharePopup.vue'
 import circleService from '../services/circleService'
 import { genAvatar } from '../utils/placeholder'
 
@@ -161,6 +181,33 @@ const handleLike = async (post) => {
   } catch (e) {
     console.error('点赞操作失败:', e)
   }
+}
+
+// 分享弹窗状态
+const shareVisible = ref(false)
+const sharePostId = ref(null)
+const sharePostNickname = ref('')
+const sharePostContent = ref('')
+const sharePostUrl = ref('')
+
+const openSharePopup = (post) => {
+  const id = post.postId || post.id
+  sharePostId.value = id
+  sharePostNickname.value = post.nickName || post.nickname || ''
+  sharePostContent.value = post.content || ''
+  sharePostUrl.value = `${window.location.origin}/post-detail/${id}`
+  shareVisible.value = true
+}
+
+const onShared = () => {
+  // 更新列表中的分享数
+  const post = postList.value.find(p => (p.postId || p.id) === sharePostId.value)
+  if (post) post.shares = (post.shares || 0) + 1
+}
+
+const onReposted = () => {
+  const post = postList.value.find(p => (p.postId || p.id) === sharePostId.value)
+  if (post) post.shares = (post.shares || 0) + 1
 }
 
 const formatTime = (time) => {
@@ -357,6 +404,46 @@ onMounted(async () => {
   font-size: 13px;
   color: #999;
   cursor: pointer;
+}
+
+/* 转发卡片 */
+.repost-card {
+  margin: 8px 0 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 3px solid #667eea;
+  cursor: pointer;
+}
+
+.repost-card:active {
+  background: #e9ecef;
+}
+
+.repost-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.repost-icon {
+  font-size: 13px;
+}
+
+.repost-nickname {
+  font-size: 12px;
+  color: #667eea;
+  font-weight: 500;
+}
+
+.repost-content {
+  font-size: 13px;
+  color: #666;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .loading-more,

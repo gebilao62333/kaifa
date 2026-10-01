@@ -1,5 +1,12 @@
 import { defineStore } from 'pinia'
 import authService from '../services/authService'
+import { DEFAULT_AVATAR, STORAGE_KEYS } from '../common/constants'
+
+// 数字规范化：对象/NaN/null/undefined 一律兜底为 0，字符串数字转为数字
+const toNumber = (value) => {
+  const num = Number(value)
+  return Number.isFinite(num) ? num : 0
+}
 
 export const useUserStore = defineStore('user', {
   state: () => ({
@@ -19,12 +26,12 @@ export const useUserStore = defineStore('user', {
     isHomeSearchOpen: (state) => state.configInfo?.isHomeSearchOpen === 1,
     userId: (state) => state.profile?.userId || 0,
     nickName: (state) => state.profile?.nickName || '',
-    avatar: (state) => state.profile?.avatar || '',
+    avatar: (state) => state.profile?.avatar || DEFAULT_AVATAR,
     level: (state) => state.profile?.level || 0,
     vip: (state) => state.profile?.vip || 0,
     vipLevel: (state) => state.profile?.vipLevel || 0,
-    balance: (state) => state.profile?.balance || 0,
-    score: (state) => state.profile?.score || 0,
+    balance: (state) => toNumber(state.profile?.balance),
+    score: (state) => toNumber(state.profile?.score),
     fansCount: (state) => state.profile?.fansCount || 0,
     followCount: (state) => state.profile?.followCount || 0,
     likeCount: (state) => state.profile?.likeCount || 0,
@@ -38,9 +45,9 @@ export const useUserStore = defineStore('user', {
     setToken(token) {
       this.token = token
       if (token) {
-        localStorage.setItem('token', token)
+        localStorage.setItem(STORAGE_KEYS.TOKEN, token)
       } else {
-        localStorage.removeItem('token')
+        localStorage.removeItem(STORAGE_KEYS.TOKEN)
       }
     },
 
@@ -57,12 +64,12 @@ export const useUserStore = defineStore('user', {
         level: userInfo.level || userInfo.lv || 0,
         vip: userInfo.vip || 0,
         vipLevel: userInfo.vipLevel || userInfo.vip_lv || 0,
-        balance: userInfo.balance || userInfo.money || 0,
-        score: userInfo.score || 0,
+        balance: toNumber(userInfo.balance ?? userInfo.money),
+        score: toNumber(userInfo.score),
         fansCount: userInfo.fansCount || userInfo.fans_num || 0,
         followCount: userInfo.followCount || userInfo.follow_num || 0,
         likeCount: userInfo.likeCount || userInfo.like_num || 0,
-        gender: userInfo.gender || userInfo.sex === 1 ? 'male' : userInfo.sex === 2 ? 'female' : 'unknown',
+        gender: userInfo.gender || (userInfo.sex === 1 ? 'male' : userInfo.sex === 2 ? 'female' : 'unknown'),
         region: userInfo.region || userInfo.city || '',
         signature: userInfo.signature || userInfo.dec || '',
         phone: userInfo.phone || userInfo.mobile || ''
@@ -76,7 +83,7 @@ export const useUserStore = defineStore('user', {
     async login(credentials) {
       try {
         this.loading = true
-        const result = await authService.login(credentials.username, credentials.password)
+        const result = await authService.login(credentials.phone, credentials.password)
         
         if (result.code === 200 && result.data) {
           const token = this.extractToken(result.data)
@@ -143,7 +150,7 @@ export const useUserStore = defineStore('user', {
     async sendSms(phone, type = 'login') {
       try {
         const result = await authService.sendSms(phone, type)
-        return { success: result.code === 200, message: result.message }
+        return { success: result.code === 200, message: result.message, code: result.data?.code }
       } catch (error) {
         console.error('发送短信失败:', error)
         return { success: false, message: error.message || '发送失败' }
@@ -249,7 +256,7 @@ export const useUserStore = defineStore('user', {
 
     updateBalance(delta) {
       if (this.profile) {
-        this.profile.balance = (this.profile.balance || 0) + delta
+        this.profile.balance = toNumber(this.profile.balance) + delta
       }
     },
 
@@ -257,14 +264,14 @@ export const useUserStore = defineStore('user', {
       if (!this.profile) {
         this.profile = {}
       }
-      this.profile.balance = balance
+      this.profile.balance = toNumber(balance)
     },
 
     setScore(score) {
       if (!this.profile) {
         this.profile = {}
       }
-      this.profile.score = score
+      this.profile.score = toNumber(score)
     },
 
     setConfigInfo(info) {
@@ -279,18 +286,23 @@ export const useUserStore = defineStore('user', {
       this.token = ''
       this.profile = null
       this.configInfo = {}
-      localStorage.removeItem('token')
+      localStorage.removeItem(STORAGE_KEYS.TOKEN)
     },
 
     initFromStorage() {
-      const rawToken = localStorage.getItem('token')
+      const rawToken = localStorage.getItem(STORAGE_KEYS.TOKEN)
       if (rawToken && rawToken !== 'undefined' && rawToken !== 'null') {
         this.token = rawToken
+        // 自愈：持久化恢复的 profile.balance/score 可能是历史遗留的对象/脏类型，强制修正为数字
+        if (this.profile) {
+          if (!Number.isFinite(Number(this.profile.balance))) this.profile.balance = 0
+          if (!Number.isFinite(Number(this.profile.score))) this.profile.score = 0
+        }
       } else {
         this.token = ''
         this.profile = null
-        localStorage.removeItem('token')
-        localStorage.removeItem('pinia-app-state')
+        localStorage.removeItem(STORAGE_KEYS.TOKEN)
+        localStorage.removeItem(STORAGE_KEYS.PINIA_STATE)
       }
     },
 

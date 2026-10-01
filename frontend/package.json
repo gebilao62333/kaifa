@@ -1,7 +1,7 @@
 {
-  "name": "duoke-companion-frontend",
+  "name": "eudazi-companion-frontend",
   "version": "3.0.0",
-  "description": "多客陪玩商业版前端 - 语音版",
+  "description": "eu搭子商业版前端 - 语音版",
   "type": "module",
   "scripts": {
     "dev": "vite",

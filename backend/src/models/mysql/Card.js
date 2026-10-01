@@ -3,52 +3,63 @@ const sequelize = require('../../config/mysql');
 
 const Card = sequelize.define('xn_card', {
   id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     primaryKey: true,
     autoIncrement: true
   },
   card_no: {
     type: DataTypes.STRING(50),
-    unique: true,
     allowNull: false
   },
-  card_pwd: {
+  card_password: {
     type: DataTypes.STRING(50),
     allowNull: false
   },
-  face_value: {
+  type: {
+    type: DataTypes.TINYINT(1),
+    allowNull: false
+  },
+  value: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: false
   },
   coin_amount: {
     type: DataTypes.INTEGER,
-    allowNull: false
+    allowNull: true,
+    defaultValue: 0,
+    comment: '金币数'
   },
   status: {
     type: DataTypes.TINYINT(1),
     defaultValue: 0
   },
-  use_time: {
-    type: DataTypes.INTEGER(10),
-    defaultValue: 0
-  },
   use_user_id: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0
+    type: DataTypes.BIGINT,
+    allowNull: true
   },
-  expire_time: {
-    type: DataTypes.INTEGER(10),
-    defaultValue: 0
+  use_time: {
+    type: DataTypes.INTEGER,
+    allowNull: true
+  },
+  admin_id: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    comment: '负责管理员ID'
+  },
+  admin_name: {
+    type: DataTypes.STRING(60),
+    allowNull: true,
+    comment: '负责管理员名称'
   },
   create_time: {
-    type: DataTypes.INTEGER(10),
+    type: DataTypes.INTEGER,
     defaultValue: 0
   }
 }, {
   tableName: 'xn_card',
   timestamps: false,
   indexes: [
-    { fields: ['card_no'], unique: true },
+    { fields: ['card_no'] },
     { fields: ['status'] }
   ]
 });

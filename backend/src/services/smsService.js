@@ -1,8 +1,13 @@
 const { getRedisClient } = require('../config/redis');
 const config = require('../config');
+const logger = require('../utils/logger');
 
 const SMS_COOLDOWN = 60;
 const SMS_EXPIRE = 300;
+
+// Redis 命令超时兜底：Redis 卡顿/断连时最多等待 2 秒，绝不挂死业务
+const withRedisTimeout = (promise, ms = 2000) =>
+  Promise.race([promise, new Promise((resolve) => setTimeout(() => resolve(null), ms))]);
 
 const sendSMS = async (mobile, templateId = 1) => {
   const redis = getRedisClient();
@@ -12,7 +17,7 @@ const sendSMS = async (mobile, templateId = 1) => {
   }
   
   const cooldownKey = `sms:cooldown:${mobile}`;
-  const exists = await redis.get(cooldownKey);
+  const exists = await withRedisTimeout(redis.get(cooldownKey));
   
   if (exists) {
     throw new Error('发送过于频繁，请稍后再试');
@@ -21,10 +26,10 @@ const sendSMS = async (mobile, templateId = 1) => {
   const code = Math.random().toString().substr(2, 6);
   const codeKey = `sms:code:${mobile}`;
   
-  await redis.setEx(codeKey, SMS_EXPIRE, code);
-  await redis.setEx(cooldownKey, SMS_COOLDOWN, '1');
+  await withRedisTimeout(redis.setEx(codeKey, SMS_EXPIRE, code));
+  await withRedisTimeout(redis.setEx(cooldownKey, SMS_COOLDOWN, '1'));
   
-  console.log(`[SMS] 验证码已发送至 ${mobile}: ${code}`);
+  logger.info(`[SMS] 验证码已发送至 ${mobile}: ${code}`);
   
   if (config.nodeEnv === 'production' && config.sms.appId) {
     return await sendViaTencentCloud(mobile, code, templateId);
@@ -66,7 +71,7 @@ const sendViaTencentCloud = async (mobile, code, templateId) => {
       throw new Error(result.SendStatusSet[0].Message || '短信发送失败');
     }
   } catch (error) {
-    console.error('[SMS] 腾讯云短信发送失败:', error);
+    logger.error('[SMS] 腾讯云短信发送失败:', error);
     throw new Error('短信发送失败，请稍后重试');
   }
 };
@@ -79,7 +84,7 @@ const verifyCode = async (mobile, code) => {
   }
   
   const codeKey = `sms:code:${mobile}`;
-  const storedCode = await redis.get(codeKey);
+  const storedCode = await withRedisTimeout(redis.get(codeKey));
   
   if (!storedCode) {
     throw new Error('验证码已过期');
@@ -89,7 +94,7 @@ const verifyCode = async (mobile, code) => {
     throw new Error('验证码错误');
   }
   
-  await redis.del(codeKey);
+  await withRedisTimeout(redis.del(codeKey));
   
   return true;
 };
@@ -105,7 +110,7 @@ const sendNotification = async (mobile, message) => {
     return await sendNotificationViaTencentCloud(mobile, message);
   }
   
-  console.log(`[SMS] 通知已发送至 ${mobile}: ${message}`);
+  logger.info(`[SMS] 通知已发送至 ${mobile}: ${message}`);
   return { success: true };
 };
 
@@ -142,7 +147,7 @@ const sendNotificationViaTencentCloud = async (mobile, message) => {
       throw new Error(result.SendStatusSet[0].Message || '通知发送失败');
     }
   } catch (error) {
-    console.error('[SMS] 腾讯云通知发送失败:', error);
+    logger.error('[SMS] 腾讯云通知发送失败:', error);
     throw new Error('通知发送失败，请稍后重试');
   }
 };

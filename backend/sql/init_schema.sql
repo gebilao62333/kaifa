@@ -1,5 +1,5 @@
 -- ============================================
--- 多客陪玩 - 数据库初始化脚本
+-- eu搭子 - 数据库初始化脚本
 -- ============================================
 
 SET NAMES utf8mb4;
@@ -561,18 +561,24 @@ CREATE TABLE IF NOT EXISTS `xn_album_photo` (
 
 -- 陪玩师资料表
 CREATE TABLE IF NOT EXISTS `xn_companion_profile` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `user_id` BIGINT NOT NULL,
-  `game_ids` TEXT,
-  `skill_level` VARCHAR(50),
-  `price_per_hour` DECIMAL(10, 2) DEFAULT 0,
-  `intro` TEXT,
-  `online_status` TINYINT(1) DEFAULT 0,
+  `id` INTEGER NOT NULL AUTO_INCREMENT,
+  `user_id` INTEGER NOT NULL,
+  `game_id` INTEGER DEFAULT 0,
+  `price` DECIMAL(10,2) DEFAULT 0,
+  `tags` VARCHAR(255) DEFAULT NULL,
+  `voice_intro` VARCHAR(255) DEFAULT NULL,
+  `voice_time` INTEGER DEFAULT 0,
+  `order_num` INTEGER DEFAULT 0,
+  `income_total` DECIMAL(12,2) DEFAULT 0,
+  `pingjia_num` INTEGER DEFAULT 0,
+  `star` DECIMAL(3,2) DEFAULT 5.00,
   `status` TINYINT(1) DEFAULT 0,
   `create_time` INT(10) DEFAULT 0,
   `update_time` INT(10) DEFAULT 0,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_user_id` (`user_id`)
+  UNIQUE KEY `idx_user_id` (`user_id`),
+  KEY `idx_game_status` (`game_id`, `status`),
+  KEY `idx_price` (`price`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='陪玩师资料表';
 
 -- 游戏订单表
@@ -598,5 +604,23 @@ CREATE TABLE IF NOT EXISTS `xn_game_order` (
   KEY `idx_user_id` (`user_id`),
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='游戏订单表';
+
+-- 用户意见反馈表
+CREATE TABLE IF NOT EXISTS `xn_feedback` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `user_id` BIGINT NOT NULL COMMENT '提交用户ID',
+  `type` VARCHAR(32) NOT NULL DEFAULT 'other' COMMENT '反馈类型 bug/suggestion/complaint/other',
+  `content` TEXT NOT NULL COMMENT '反馈内容',
+  `images` TEXT COMMENT '截图URL，逗号分隔',
+  `contact` VARCHAR(64) COMMENT '联系方式',
+  `status` TINYINT(1) DEFAULT 0 COMMENT '状态 0-处理中 1-已处理 2-已关闭',
+  `reply` TEXT COMMENT '管理员回复',
+  `create_time` INT(10) DEFAULT 0 COMMENT '创建时间',
+  `update_time` INT(10) DEFAULT 0 COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  KEY `idx_user_id` (`user_id`),
+  KEY `idx_status` (`status`),
+  KEY `idx_create_time` (`create_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户意见反馈表';
 
 SET FOREIGN_KEY_CHECKS = 1;

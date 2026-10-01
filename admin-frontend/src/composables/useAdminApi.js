@@ -1,4 +1,5 @@
 import { ref, computed } from 'vue'
+import { host } from '@/common/config'
 
 export function useAdminApi() {
   const page = ref(1)
@@ -10,7 +11,7 @@ export function useAdminApi() {
   const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
 
   const getHost = () => {
-    return import.meta.env.VITE_API_BASE || 'http://localhost:3000'
+    return host
   }
 
   const getToken = () => {

@@ -1,50 +1,78 @@
-version: "3.8"
+# ============================================
+# eu搭子 Docker Compose 配置
+# 启动: docker-compose up -d
+# 停止: docker-compose down
+# 查看日志: docker-compose logs -f backend
+# ============================================
 
 services:
+  # ============================================
+  # Nginx - 反向代理 + 静态文件服务
+  # ============================================
   nginx:
-    image: nginx:1.24-alpine
-    container_name: duoke-nginx
+    image: nginx:1.26-alpine
+    container_name: eudazi-nginx
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/conf.d:/etc/nginx/conf.d:ro
       - ./nginx/logs:/var/log/nginx
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/certbot/www:/var/www/certbot:ro
       - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./admin-frontend/dist:/usr/share/nginx/admin:ro
+      - ./backend/public/uploads:/usr/share/nginx/uploads:ro
     depends_on:
       - backend
     networks:
-      - duoke_net
+      - eudazi_net
     deploy:
       resources:
         limits:
           memory: 128M
         reservations:
           memory: 64M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ============================================
+  # Backend - Node.js API 服务
+  # ============================================
   backend:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: duoke-backend
+    container_name: eudazi-backend
     restart: unless-stopped
     env_file:
       - .env
     environment:
+      # 生产模式（通过 LOG_TO_CONSOLE=true 确保 docker logs 可见）
       - NODE_ENV=production
-      - USE_MOCK_DB=false
+      - LOG_TO_CONSOLE=true
+      - LOGS_PATH=/var/log/eudazi
+      # 数据库连接使用 Docker 内部服务名
       - DB_HOST=mysql
       - DB_PORT=3306
-      - DB_USER=duoke
-      - DB_PASSWORD=duoke123
-      - DB_NAME=duoke
-      - MONGO_URI=mongodb://admin:admin123@mongo:27017/duoke?authSource=admin
+      - MONGO_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-admin123}@mongo:27017/${MONGO_DATABASE:-eudazi}?authSource=admin
       - REDIS_HOST=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD=redis123
+      # 连接凭据兜底：与下方 mysql/mongo/redis 服务默认值对齐；
+      # 当根 .env 缺失对应键时，使用与对应数据库服务一致的默认值，避免连不上。
+      - DB_NAME=${MYSQL_DATABASE:-eudazi}
+      - DB_USER=${MYSQL_USER:-eudazi}
+      - DB_PASSWORD=${MYSQL_PASSWORD:-eudazi123}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis123}
     volumes:
-      - duoke_logs:/var/log/duoke
+      # 日志持久化
+      - eudazi_logs:/var/log/eudazi
+      # 上传文件持久化
       - ./backend/public/uploads:/app/public/uploads
     depends_on:
       mysql:
@@ -54,23 +82,35 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - duoke_net
+      - eudazi_net
     deploy:
       resources:
         limits:
           memory: 512M
         reservations:
           memory: 256M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+    # 安全加固：禁止提权、只读根文件系统（日志/上传目录通过 volume 挂载写入）
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
 
+  # ============================================
+  # MySQL 8.0 - 主数据库
+  # ============================================
   mysql:
     image: mysql:8.0
-    container_name: duoke-mysql
+    container_name: eudazi-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-duoke}
-      MYSQL_USER: ${MYSQL_USER:-duoke}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-duoke123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-eudazi}
+      MYSQL_USER: ${MYSQL_USER:-eudazi}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-eudazi123}
       TZ: Asia/Shanghai
     command:
       - --character-set-server=utf8mb4
@@ -82,12 +122,12 @@ services:
       - --innodb_flush_log_at_trx_commit=2
       - --performance_schema=OFF
     volumes:
-      - duoke_mysql_data:/var/lib/mysql
+      - eudazi_mysql_data:/var/lib/mysql
       - ./backend/sql:/docker-entrypoint-initdb.d:ro
     ports:
       - "127.0.0.1:3307:3306"
     networks:
-      - duoke_net
+      - eudazi_net
     deploy:
       resources:
         limits:
@@ -95,30 +135,38 @@ services:
         reservations:
           memory: 256M
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root123456}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD:-root123456}"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ============================================
+  # MongoDB 6.0 - 文档数据库（聊天/动态等）
+  # ============================================
   mongo:
     image: mongo:6.0
-    container_name: duoke-mongo
+    container_name: eudazi-mongo
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin123}
-      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-duoke}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-eudazi}
       TZ: Asia/Shanghai
     command:
       - --wiredTigerCacheSizeGB=0.25
     volumes:
-      - duoke_mongo_data:/data/db
+      - eudazi_mongo_data:/data/db
       - ./mongo/init.js:/docker-entrypoint-initdb.d/init.js:ro
     ports:
       - "127.0.0.1:27017:27017"
     networks:
-      - duoke_net
+      - eudazi_net
     deploy:
       resources:
         limits:
@@ -126,23 +174,38 @@ services:
         reservations:
           memory: 192M
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh --quiet localhost:27017/test
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.runCommand('ping').ok"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 30s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ============================================
+  # Redis 7 - 缓存 / Session / 消息队列
+  # ============================================
   redis:
     image: redis:7-alpine
-    container_name: duoke-redis
+    container_name: eudazi-redis
     restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123} --maxmemory 128mb --maxmemory-policy allkeys-lru
+    command:
+      - redis-server
+      - --appendonly yes
+      - --requirepass ${REDIS_PASSWORD:-redis123}
+      - --maxmemory 128mb
+      - --maxmemory-policy allkeys-lru
+      - --save 900 1
+      - --save 300 10
     volumes:
-      - duoke_redis_data:/data
+      - eudazi_redis_data:/data
     ports:
       - "127.0.0.1:6380:6379"
     networks:
-      - duoke_net
+      - eudazi_net
     deploy:
       resources:
         limits:
@@ -155,13 +218,47 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
+  # ============================================
+  # Certbot - Let's Encrypt 证书签发与自动续期
+  # 默认不启动（profiles: certbot）。前置条件：域名 DNS A 记录已指向本服务器公网 IP，且 80/443 已开放。
+  # 首次签发:
+  #   docker compose --profile certbot run --rm --entrypoint certbot certbot certonly \
+  #     --webroot -w /var/www/certbot -d 你的域名 --email 你的邮箱 --agree-tos --non-interactive
+  # 自动续期（每 12h 检查，到期前 30 天自动续）:
+  #   docker compose --profile certbot up -d certbot
+  # 详细步骤见 .workbuddy/生产证书部署指南.md
+  # ============================================
+  certbot:
+    image: certbot/certbot:latest
+    container_name: eudazi-certbot
+    profiles: ["certbot"]
+    volumes:
+      - ./nginx/ssl:/etc/letsencrypt
+      - ./nginx/certbot/www:/var/www/certbot
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $$!; done;'"
+
+# ============================================
+# 数据卷
+# ============================================
 volumes:
-  duoke_mysql_data:
-  duoke_mongo_data:
-  duoke_redis_data:
-  duoke_logs:
+  eudazi_mysql_data:
+    driver: local
+  eudazi_mongo_data:
+    driver: local
+  eudazi_redis_data:
+    driver: local
+  eudazi_logs:
+    driver: local
 
+# ============================================
+# 网络
+# ============================================
 networks:
-  duoke_net:
+  eudazi_net:
     driver: bridge

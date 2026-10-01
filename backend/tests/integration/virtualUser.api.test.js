@@ -10,19 +10,24 @@ jest.mock('../../src/middlewares', () => {
     authMiddleware: (req, res, next) => {
       req.userId = 1;
       next();
+    },
+    adminAuth: (req, res, next) => {
+      req.admin = { id: 0, username: 'admin', role: 'admin', role_id: 1, permissions: ['all'] };
+      next();
     }
   };
 });
 
 jest.mock('../../src/services/virtualUserService', () => ({
-  createVirtualUser: jest.fn().mockResolvedValue({ id: 1, username: 'test-virtual' }),
+  createVirtualUser: jest.fn().mockResolvedValue({ id: 1, name: 'test-virtual' }),
   getAllVirtualUsers: jest.fn().mockResolvedValue({ list: [], total: 0, page: 1, pageSize: 10 }),
-  getVirtualUserById: jest.fn().mockResolvedValue({ id: 1, username: 'test-virtual' }),
-  updateVirtualUser: jest.fn().mockResolvedValue({ id: 1, username: 'updated-virtual' }),
+  getVirtualUserById: jest.fn().mockResolvedValue({ id: 1, name: 'test-virtual' }),
+  updateVirtualUser: jest.fn().mockResolvedValue({ id: 1, name: 'updated-virtual' }),
   deleteVirtualUser: jest.fn().mockResolvedValue(true),
-  toggleOnlineStatus: jest.fn().mockResolvedValue({ id: 1, isOnline: 1 }),
-  generateResponse: jest.fn().mockResolvedValue({ response: 'Hello!', contextId: 'ctx-123' }),
+  toggleOnlineStatus: jest.fn().mockResolvedValue({ id: 1, online_status: 1 }),
+  addChatRecord: jest.fn().mockResolvedValue({ id: 1, content: 'Hello!', type: 0, sender: 0 }),
   getChatHistory: jest.fn().mockResolvedValue([]),
+  chatWithVirtualUser: jest.fn().mockResolvedValue({ id: 2, content: 'Hello!', type: 0, sender: 1, create_time: 1234567890, history: [] }),
   clearContext: jest.fn().mockResolvedValue(true)
 }));
 
@@ -43,41 +48,42 @@ describe('Integration - Virtual User API', () => {
       const response = await request(app)
         .post('/api/virtual-user')
         .send({
-          username: 'test-virtual',
-          nickname: '测试虚拟用户',
-          role: 'assistant',
-          dialogueStyle: 'friendly'
+          name: '测试虚拟用户',
+          avatar: 'https://example.com/avatar.png',
+          gender: 1,
+          age: 25,
+          region: '上海'
         });
 
       expect(response.status).toBe(201);
       expect(response.body.code).toBe(201);
-      expect(response.body.data.username).toBe('test-virtual');
+      expect(response.body.data.name).toBe('test-virtual');
       expect(virtualUserService.createVirtualUser).toHaveBeenCalled();
     });
 
-    it('should return 400 when username is missing', async () => {
+    it('should return 400 when name is missing', async () => {
       const response = await request(app)
         .post('/api/virtual-user')
         .send({
-          nickname: '测试虚拟用户'
+          avatar: 'https://example.com/avatar.png'
         });
 
       expect(response.status).toBe(400);
       expect(response.body.code).toBe(400);
     });
 
-    it('should return 422 when username exists', async () => {
-      virtualUserService.createVirtualUser.mockRejectedValue(new Error('用户名已存在'));
+    it('should return 422 when name exists', async () => {
+      virtualUserService.createVirtualUser.mockRejectedValue(new Error('姓名已存在'));
 
       const response = await request(app)
         .post('/api/virtual-user')
         .send({
-          username: 'existing-user',
-          nickname: '测试虚拟用户'
+          name: 'existing-user',
+          avatar: 'https://example.com/avatar.png'
         });
 
       expect(response.status).toBe(422);
-      expect(response.body.message).toBe('用户名已存在');
+      expect(response.body.message).toBe('姓名已存在');
     });
   });
 
@@ -91,10 +97,10 @@ describe('Integration - Virtual User API', () => {
     });
 
     it('should get virtual user list with filters', async () => {
-      await request(app).get('/api/virtual-user?status=1&role=assistant');
+      await request(app).get('/api/virtual-user?status=1&is_recommend=1');
 
       expect(virtualUserService.getAllVirtualUsers).toHaveBeenCalledWith(
-        expect.objectContaining({ status: '1', role: 'assistant' })
+        expect.objectContaining({ status: '1', is_recommend: '1' })
       );
     });
   });
@@ -122,11 +128,11 @@ describe('Integration - Virtual User API', () => {
     it('should update virtual user successfully', async () => {
       const response = await request(app)
         .put('/api/virtual-user/1')
-        .send({ nickname: '新昵称' });
+        .send({ name: '新名字' });
 
       expect(response.status).toBe(200);
-      expect(response.body.data.username).toBe('updated-virtual');
-      expect(virtualUserService.updateVirtualUser).toHaveBeenCalledWith(1, { nickname: '新昵称' });
+      expect(response.body.data.name).toBe('updated-virtual');
+      expect(virtualUserService.updateVirtualUser).toHaveBeenCalledWith(1, { name: '新名字' });
     });
 
     it('should return 422 when update fails', async () => {
@@ -134,7 +140,7 @@ describe('Integration - Virtual User API', () => {
 
       const response = await request(app)
         .put('/api/virtual-user/1')
-        .send({ nickname: '新昵称' });
+        .send({ name: '新名字' });
 
       expect(response.status).toBe(422);
     });
@@ -165,7 +171,7 @@ describe('Integration - Virtual User API', () => {
         .send({ isOnline: true });
 
       expect(response.status).toBe(200);
-      expect(response.body.data.isOnline).toBe(1);
+      expect(response.body.data.online_status).toBe(1);
       expect(virtualUserService.toggleOnlineStatus).toHaveBeenCalledWith(1, true);
     });
   });
@@ -177,8 +183,10 @@ describe('Integration - Virtual User API', () => {
         .send({ message: 'Hello' });
 
       expect(response.status).toBe(200);
-      expect(response.body.data.response).toBe('Hello!');
-      expect(virtualUserService.generateResponse).toHaveBeenCalledWith(1, 1, 'Hello', undefined);
+      expect(response.body.data.content).toBe('Hello!');
+      expect(response.body.data.type).toBe(0);
+      expect(response.body.data.sender).toBe(1);
+      expect(virtualUserService.chatWithVirtualUser).toHaveBeenCalledWith(1, 1, 'Hello');
     });
 
     it('should return 400 when message is empty', async () => {

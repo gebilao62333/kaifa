@@ -287,6 +287,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
+import { STORAGE_KEYS } from '../common/constants'
 import { notificationService } from '../services/notificationService'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
@@ -296,8 +297,8 @@ const userStore = useUserStore()
 
 const darkMode = ref(false)
 const callSettings = ref({
-  voice: true,
-  video: true,
+  voice: false,
+  video: false,
   voicePrice: 30,
   videoPrice: 60
 })
@@ -515,8 +516,8 @@ watch(showCallPrice, (val) => {
 const handleLogout = () => {
   if (confirm('确定要退出登录吗？')) {
     userStore.logout()
-    localStorage.removeItem('token')
-    localStorage.removeItem('pinia-app-state')
+    localStorage.removeItem(STORAGE_KEYS.TOKEN)
+    localStorage.removeItem(STORAGE_KEYS.PINIA_STATE)
     router.push('/login')
   }
 }
@@ -545,7 +546,8 @@ const handleLogout = () => {
 
 .section {
   background: white;
-  margin: 12px 20px 0;
+  /* 去掉左右 margin，水平铺满页面限制框 */
+  margin: 12px 0 0;
   border-radius: 0px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);

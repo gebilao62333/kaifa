@@ -1,6 +1,7 @@
 const { User, Gift, GiftLog, GiftBag, RedPacket, RedPacketLog, Withdraw } = require('../models');
 const { getTimestamp, generatePacketNo } = require('../utils/helper');
 const { CURRENCY_UNIT, WITHDRAW_FEE_RATE, calculateWithdrawFee } = require('../utils/currency');
+const { toFullUrl } = require('../utils/url');
 const { Op } = require('sequelize');
 const sequelize = require('../config/mysql');
 
@@ -74,9 +75,12 @@ const sendGift = async (senderId, receiverId, giftId, roomId = 0) => {
     return {
       giftId: gift.id,
       giftName: gift.title,
-      giftImage: gift.image,
+      giftImage: toFullUrl(gift.image),
       goldCoins: totalCost,
-      currencyUnit: CURRENCY_UNIT
+      currencyUnit: CURRENCY_UNIT,
+      giftType: gift.type,
+      isVip: gift.is_vip,
+      animation: toFullUrl(gift.svga)
     };
   } catch (error) {
     await transaction.rollback();
@@ -99,8 +103,8 @@ const getGiftList = async (type = null) => {
   return gifts.map(gift => ({
     giftId: gift.id,
     name: gift.title,
-    image: gift.image,
-    animation: gift.svga,
+    image: toFullUrl(gift.image),
+    animation: toFullUrl(gift.svga),
     goldCoins: Number(gift.money),
     currencyUnit: CURRENCY_UNIT,
     giftType: gift.type,

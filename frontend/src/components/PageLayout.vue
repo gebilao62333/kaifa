@@ -52,15 +52,16 @@
 }
 
 /* PC 端居中，与首页 /home 保持一致的宽度体验 */
+/* 宽度与 BottomNav 使用相同的 CSS 变量，确保缩放下尺寸完全对齐 */
 @media (min-width: 768px) {
   .page-layout {
-    max-width: 650px;
+    max-width: var(--layout-max-width-pc, 650px);
     margin: 0 auto;
     padding-bottom: 20px;
   }
 
   .page-nav {
-    max-width: 650px;
+    max-width: var(--layout-max-width-pc, 650px);
     margin: 0 auto;
   }
 
@@ -71,11 +72,11 @@
 
 @media (min-width: 1024px) {
   .page-layout {
-    max-width: 720px;
+    max-width: var(--layout-max-width-pc-lg, 720px);
   }
 
   .page-nav {
-    max-width: 720px;
+    max-width: var(--layout-max-width-pc-lg, 720px);
   }
 }
 

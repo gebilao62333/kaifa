@@ -3,17 +3,19 @@ const sequelize = require('../../config/mysql');
 
 const UserFollow = sequelize.define('xn_user_follow', {
   id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     primaryKey: true,
     autoIncrement: true
   },
-  user_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false
+  follower_id: {
+    type: DataTypes.BIGINT,
+    allowNull: false,
+    field: 'follower_id'
   },
-  target_user_id: {
-    type: DataTypes.INTEGER,
-    allowNull: false
+  following_id: {
+    type: DataTypes.BIGINT,
+    allowNull: false,
+    field: 'following_id'
   },
   create_time: {
     type: DataTypes.INTEGER(10),
@@ -23,8 +25,8 @@ const UserFollow = sequelize.define('xn_user_follow', {
   tableName: 'xn_user_follow',
   timestamps: false,
   indexes: [
-    { fields: ['user_id', 'target_user_id'], unique: true },
-    { fields: ['target_user_id'] }
+    { fields: ['follower_id', 'following_id'], unique: true },
+    { fields: ['following_id'] }
   ]
 });
 

@@ -51,17 +51,19 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import adminService from '../../services/adminService'
+import { useToast } from '../../composables/useToast'
+import { host } from '@/common/config'
+const toast = useToast()
+const router = useRouter()
 
 const stats = ref({})
 const recentOrders = ref([])
 
 const token = () => localStorage.getItem('admin_token')
 
-const getHost = () => {
-  const v = import.meta.env.VITE_API_BASE
-  return v || 'http://localhost:3000'
-}
+const getHost = () => host
 
 const formatTime = (time) => {
   if (!time) return ''
@@ -78,31 +80,57 @@ const getStatusClass = (status) => {
   return map[status] || 'pending'
 }
 
+const handleAuth = () => {
+  localStorage.removeItem('admin_token')
+  // 使用 window.location 跳转更可靠（不依赖 vue-router 上下文）
+  const base = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/admin/'
+  setTimeout(() => {
+    window.location.href = base + 'login'
+  }, 300)
+}
+
 const loadStats = async () => {
   try {
+    const t = token()
+    if (!t) { handleAuth(); return }
     const res = await fetch(`${getHost()}/api/admin/dashboard`, {
-      headers: { 'Authorization': `Bearer ${token()}` }
+      headers: { 'Authorization': `Bearer ${t}` }
     })
+    if (res.status === 401 || res.status === 403) { handleAuth(); return }
     const result = await res.json()
     if (result.code === 200 || result.code === 0) {
-      stats.value = result.data || {}
+      const d = result.data || {}
+      // 映射后端字段到前端模板期望的字段名
+      stats.value = {
+        userCount: d.totalUsers,
+        orderCount: d.todayOrders,
+        todayIncome: d.todayIncome || 0,
+        totalIncome: d.totalIncome || 0
+      }
+    } else if (result.code === 401 || result.code === 403) {
+      handleAuth()
     }
   } catch (err) {
-    console.error('加载统计数据失败:', err)
+    toast.error('加载统计数据失败')
   }
 }
 
 const loadRecentOrders = async () => {
   try {
+    const t = token()
+    if (!t) { handleAuth(); return }
     const res = await fetch(`${getHost()}/api/admin/orders?page=1&pageSize=10`, {
-      headers: { 'Authorization': `Bearer ${token()}` }
+      headers: { 'Authorization': `Bearer ${t}` }
     })
+    if (res.status === 401 || res.status === 403) { handleAuth(); return }
     const result = await res.json()
     if (result.code === 200 || result.code === 0) {
       recentOrders.value = result.data.list || result.data || []
+    } else if (result.code === 401 || result.code === 403) {
+      handleAuth()
     }
   } catch (err) {
-    console.error('加载订单失败:', err)
+    toast.error('加载订单失败')
   }
 }
 

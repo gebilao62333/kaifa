@@ -1,19 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const virtualUserController = require('../controllers/virtualUser');
-const { authMiddleware } = require('../middlewares');
+const { authMiddleware, adminAuth } = require('../middlewares');
 
-router.post('/', authMiddleware, virtualUserController.createVirtualUser);
+// 虚拟用户属于运营配置，增删改与状态切换仅限管理员；查询与聊天对登录用户开放
+router.post('/', adminAuth, virtualUserController.createVirtualUser);
 
 router.get('/', authMiddleware, virtualUserController.getAllVirtualUsers);
 
 router.get('/:id', authMiddleware, virtualUserController.getVirtualUser);
 
-router.put('/:id', authMiddleware, virtualUserController.updateVirtualUser);
+router.put('/:id', adminAuth, virtualUserController.updateVirtualUser);
 
-router.delete('/:id', authMiddleware, virtualUserController.deleteVirtualUser);
+router.delete('/:id', adminAuth, virtualUserController.deleteVirtualUser);
 
-router.post('/:id/status', authMiddleware, virtualUserController.toggleOnlineStatus);
+router.post('/:id/status', adminAuth, virtualUserController.toggleOnlineStatus);
 
 router.post('/:virtualUserId/chat', authMiddleware, virtualUserController.chatWithVirtualUser);
 

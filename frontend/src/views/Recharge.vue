@@ -62,49 +62,78 @@ import { useRouter } from 'vue-router'
 import { getRechargeMethods } from '../common/payMethods'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
+import payService from '../services/payService'
 
 const router = useRouter()
 
-const loadBalance = () => {
-  try {
-    const saved = localStorage.getItem('userInfo')
-    if (saved) {
-      const data = JSON.parse(saved)
-      return data.balance || 0
-    }
-  } catch {}
-  return 0
-}
-
-const balance = ref(loadBalance())
-
-const saveBalance = () => {
-  try {
-    const saved = localStorage.getItem('userInfo')
-    const data = saved ? JSON.parse(saved) : {}
-    data.balance = balance.value
-    localStorage.setItem('userInfo', JSON.stringify(data))
-  } catch {}
-}
-
-onMounted(() => {
-  balance.value = loadBalance()
-})
+const balance = ref(0)
+const options = ref([])
 const selectedId = ref(3)
 const payMethod = ref('alipay')
 const submitting = ref(false)
+const loadingBalance = ref(false)
 
-const options = ref([
-  { id: 1, coins: '60', price: '6', tag: '', bonus: '' },
-  { id: 2, coins: '180', price: '18', tag: '', bonus: '10' },
-  { id: 3, coins: '300', price: '30', tag: '', bonus: '30' },
-  { id: 4, coins: '680', price: '68', tag: '', bonus: '80' },
-  { id: 5, coins: '1280', price: '128', tag: '', bonus: '200' },
-  { id: 6, coins: '3280', price: '328', tag: '', bonus: '500' },
-])
+const loadBalance = async () => {
+  loadingBalance.value = true
+  try {
+    const res = await payService.getWalletBalance()
+    balance.value = res.data?.balance || res.balance || 0
+  } catch (err) {
+    console.error('加载余额失败:', err)
+    try {
+      const saved = localStorage.getItem('userInfo')
+      if (saved) {
+        const data = JSON.parse(saved)
+        balance.value = data.balance || 0
+      }
+    } catch {}
+  } finally {
+    loadingBalance.value = false
+  }
+}
+
+const loadPackages = async () => {
+  try {
+    const res = await payService.getPackages()
+    const list = res.data || res || []
+    if (list.length > 0) {
+      options.value = list.map((item, idx) => ({
+        id: item.id || idx + 1,
+        coins: String(item.coins || item.amount || 0),
+        price: String(item.price || 0),
+        tag: item.tag || '',
+        bonus: item.bonus ? String(item.bonus) : ''
+      }))
+    } else {
+      options.value = [
+        { id: 1, coins: '60', price: '6', tag: '', bonus: '' },
+        { id: 2, coins: '180', price: '18', tag: '', bonus: '10' },
+        { id: 3, coins: '300', price: '30', tag: '', bonus: '30' },
+        { id: 4, coins: '680', price: '68', tag: '', bonus: '80' },
+        { id: 5, coins: '1280', price: '128', tag: '', bonus: '200' },
+        { id: 6, coins: '3280', price: '328', tag: '', bonus: '500' }
+      ]
+    }
+  } catch (err) {
+    console.error('加载充值套餐失败:', err)
+    options.value = [
+      { id: 1, coins: '60', price: '6', tag: '', bonus: '' },
+      { id: 2, coins: '180', price: '18', tag: '', bonus: '10' },
+      { id: 3, coins: '300', price: '30', tag: '', bonus: '30' },
+      { id: 4, coins: '680', price: '68', tag: '', bonus: '80' },
+      { id: 5, coins: '1280', price: '128', tag: '', bonus: '200' },
+      { id: 6, coins: '3280', price: '328', tag: '', bonus: '500' }
+    ]
+  }
+}
+
+onMounted(() => {
+  loadBalance()
+  loadPackages()
+})
 
 const formatAmount = (num) => {
-  return num.toFixed(2)
+  return Number(num).toFixed(2)
 }
 
 const payMethodsList = computed(() => {
@@ -136,37 +165,24 @@ const doRecharge = async () => {
   if (payMethod.value === 'card') {
     router.push('/card-recharge')
     return
-  } else if (payMethod.value === 'balance') {
-    const selected = options.value.find(o => o.id === selectedId.value)
-    const costCoins = parseInt(selected.amount)
+  }
 
-    if (balance.value < costCoins) {
-      toast.warning('余额不足')
-      return
-    }
+  submitting.value = true
 
-    submitting.value = true
-
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      balance.value = Number(balance.value) - costCoins + (parseInt(selected.bonus) || 0)
-      saveBalance()
-      toast.success(`充值成功！花费 ${costCoins} 币，获得 ${selected.amount} 币`)
-    } catch (error) {
-      console.error('余额支付错误:', error)
-      toast.error('网络错误，请重试')
-    } finally {
-      submitting.value = false
-    }
-  } else {
+  try {
+    // 支付单由支付网关按所选支付方式创建（微信统一下单 / 支付宝充值单），此处仅透传套餐ID
     const params = new URLSearchParams({
       type: 'recharge',
       method: payMethod.value,
       amount: selectedPrice.value,
-      balance: balance.value
+      balance: balance.value,
+      packageId: String(selectedId.value)
     })
     router.push(`/payment-gateway?${params.toString()}`)
+  } catch (err) {
+    toast.error('创建订单失败，请重试')
+  } finally {
+    submitting.value = false
   }
 }
 </script>

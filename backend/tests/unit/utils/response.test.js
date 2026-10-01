@@ -5,6 +5,7 @@ describe('Utils - Response Helper', () => {
 
   beforeEach(() => {
     mockRes = {
+      setHeader: jest.fn(),
       status: jest.fn().mockReturnThis(),
       json: jest.fn()
     };

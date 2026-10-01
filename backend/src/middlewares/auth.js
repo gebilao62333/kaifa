@@ -2,6 +2,7 @@ const { verifyToken } = require('../config/jwt');
 const { User } = require('../models');
 const { getRedisClient } = require('../config/redis');
 const config = require('../config');
+const logger = require('../utils/logger');
 
 const authMiddleware = async (req, res, next) => {
   try {
@@ -27,7 +28,11 @@ const authMiddleware = async (req, res, next) => {
     
     const redis = getRedisClient();
     if (redis) {
-      const isBlacklisted = await redis.get(`blacklist:${token}`);
+      // Redis 不可用时 2 秒兜底，绝不让认证流程被 Redis 卡死
+      const isBlacklisted = await Promise.race([
+        redis.get(`blacklist:${token}`),
+        new Promise((resolve) => setTimeout(() => resolve(null), 2000))
+      ]).catch(() => null);
       if (isBlacklisted) {
         return res.status(401).json({
           code: 401,
@@ -45,7 +50,16 @@ const authMiddleware = async (req, res, next) => {
       });
     }
     
-    if (user.status === 1) {
+    // status: 1=正常，其余=禁用；jinyan_time: 禁言截止时间戳，大于当前时间说明仍在禁言
+    if (user.status !== 1) {
+      return res.status(403).json({
+        code: 403,
+        message: '账号已被禁用'
+      });
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (user.jinyan_time && user.jinyan_time > now) {
       return res.status(403).json({
         code: 403,
         message: '用户已被禁言'
@@ -58,7 +72,7 @@ const authMiddleware = async (req, res, next) => {
     
     next();
   } catch (error) {
-    console.error('认证中间件错误:', error);
+    logger.error('认证中间件错误:', error);
     return res.status(500).json({
       code: 500,
       message: '服务器内部错误'
@@ -89,7 +103,7 @@ const optionalAuth = async (req, res, next) => {
     
     next();
   } catch (error) {
-    console.error('可选认证中间件错误:', error);
+    logger.error('可选认证中间件错误:', error);
     next();
   }
 };
@@ -106,7 +120,7 @@ const adminAuth = (req, res, next) => {
   for (const token of candidates) {
     // 应急固定管理员令牌：仅当通过 ADMIN_TOKEN 环境变量显式配置强随机密文时生效
     if (config.admin && config.admin.token && token === config.admin.token) {
-      req.admin = { id: 0, username: 'admin', role: 'admin', role_id: 1 };
+      req.admin = { id: 0, username: 'admin', role: 'admin', role_id: 1, permissions: ['all'] };
       return next();
     }
 

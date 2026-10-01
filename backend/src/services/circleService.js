@@ -1,7 +1,23 @@
 const { Post, PostLike, PostComment, PostUnlock, User, UserFollow } = require('../models');
+const mediaAssetService = require('./mediaAssetService');
 const { getTimestamp, parseQuery } = require('../utils/helper');
+const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
+
+// 兼容逗号分隔字符串和 JSON 数组两种 images 存储格式
+const parseImages = (raw) => {
+  if (!raw) return [];
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (trimmed.startsWith('[')) {
+      try { const arr = JSON.parse(trimmed); return Array.isArray(arr) ? arr.filter(Boolean) : []; } catch {}
+    }
+    return trimmed.split(',').map(s => s.trim()).filter(Boolean);
+  }
+  if (Array.isArray(raw)) return raw.filter(Boolean);
+  return [];
+};
 
 const createPost = async (userId, content, images, videos, tagIds, location, visibility, password, price) => {
   const post = await Post.create({
@@ -15,15 +31,48 @@ const createPost = async (userId, content, images, videos, tagIds, location, vis
     visibility: visibility || 0,
     password: password ? crypto.createHash('md5').update(password).digest('hex') : null,
     price: price || 0,
-    is_private: visibility === 2 ? 1 : 0,
+    is_private: visibility === 3 ? 1 : (visibility === 4 ? 2 : 0),
     private_password: visibility === 3 ? crypto.createHash('md5').update(password).digest('hex') : null,
     private_price: visibility === 4 ? price : 0,
     create_time: getTimestamp()
   });
-  
+
+  // 登记媒体资，供 deletePost 级联清理底层存储，避免 COS 孤儿文件
+  const mediaItems = [];
+  (images || []).forEach(url => mediaItems.push({ userId, url, fileType: 'image', bizType: 'circle', bizId: post.id }));
+  if (videos) mediaItems.push({ userId, url: videos, fileType: 'video', bizType: 'circle', bizId: post.id });
+  if (mediaItems.length) {
+    try {
+      await mediaAssetService.registerBatch(mediaItems);
+    } catch (e) {
+      logger.error('[动态] 登记媒资失败:', e.message);
+    }
+  }
+
   return {
     postId: post.id
   };
+};
+
+const repostPost = async (userId, repostId, comment = '') => {
+  // 找原帖
+  const original = await Post.findByPk(repostId);
+  if (!original) throw new Error('原帖不存在或已删除');
+  if (original.is_private === 1) throw new Error('不能转发私密帖子');
+
+  // 创建转发帖子
+  const post = await Post.create({
+    user_id: userId,
+    content: comment || '转发动态',
+    repost_id: repostId,
+    create_time: getTimestamp(),
+    status: 1
+  });
+
+  // 原帖分享数 +1
+  await Post.increment('share_num', { by: 1, where: { id: repostId } });
+
+  return { postId: post.id, repostId };
 };
 
 const getPosts = async (userId, tagId, page, pageSize) => {
@@ -50,6 +99,25 @@ const getPosts = async (userId, tagId, page, pageSize) => {
     const isLiked = userId ? await PostLike.findOne({
       where: { post_id: post.id, user_id: userId }
     }) : false;
+
+    // 如果是转发贴，获取原帖信息
+    let repostInfo = {};
+    if (post.repost_id && post.repost_id > 0) {
+      try {
+        const original = await Post.findByPk(post.repost_id);
+        if (original) {
+          const originalAuthor = await User.findByPk(original.user_id);
+          repostInfo = {
+            repostId: post.repost_id,
+            repostContent: original.content || '',
+            repostNickname: originalAuthor?.nickname || '',
+            repostUserId: original.user_id
+          };
+        }
+      } catch (e) {
+        // 原帖可能已删除
+      }
+    }
     
     return {
       postId: post.id,
@@ -58,11 +126,14 @@ const getPosts = async (userId, tagId, page, pageSize) => {
       avatar: author?.avatar || '',
       level: author?.lv || 1,
       content: post.content,
-      images: post.images ? post.images.split(',').filter(Boolean) : [],
+      images: parseImages(post.images),
       videos: post.videos || '',
       likes: post.thumb_num,
       comments: post.comment_num,
       shares: post.share_num,
+      repostId: post.repost_id || 0,
+      repostContent: repostInfo.repostContent || '',
+      repostNickname: repostInfo.repostNickname || '',
       tagId: post.tag_id,
       type: post.type,
       isLiked: !!isLiked,
@@ -74,6 +145,46 @@ const getPosts = async (userId, tagId, page, pageSize) => {
     total: count,
     list: posts
   };
+};
+
+// 关键词搜索公开动态（仅 status=1 且非私密），按时间倒序
+const searchPosts = async (userId, keyword, page, pageSize) => {
+  const { offset, limit } = parseQuery({ page, pageSize });
+
+  const kw = String(keyword || '').trim();
+  if (!kw) {
+    return { total: 0, list: [] };
+  }
+
+  const { count, rows } = await Post.findAndCountAll({
+    where: {
+      status: 1,
+      is_private: 0,
+      visibility: 0,
+      content: { [Op.like]: `%${kw}%` }
+    },
+    offset,
+    limit,
+    order: [['create_time', 'DESC']]
+  });
+
+  const posts = await Promise.all(rows.map(async (post) => {
+    const author = await User.findByPk(post.user_id);
+    return {
+      postId: post.id,
+      userId: post.user_id,
+      nickname: author?.nickname || '',
+      avatar: author?.avatar || '',
+      content: post.content,
+      images: parseImages(post.images),
+      videos: post.videos || '',
+      likes: post.thumb_num,
+      comments: post.comment_num,
+      createTime: post.create_time
+    };
+  }));
+
+  return { total: count, list: posts };
 };
 
 const getPostDetail = async (userId, postId) => {
@@ -172,8 +283,7 @@ const unlockPost = async (userId, postId, unlockType, password) => {
   await PostUnlock.create({
     post_id: postId,
     user_id: userId,
-    unlock_type: unlockType,
-    amount: post.private_price,
+    price: post.private_price,
     create_time: getTimestamp()
   });
   
@@ -301,12 +411,33 @@ const getTags = async () => {
   return [];
 };
 
+// 删除动态：同时级联清理底层存储（COS/本地）与媒资登记，避免孤儿文件
+const deletePost = async (userId, postId) => {
+  const post = await Post.findOne({ where: { id: postId, user_id: userId } });
+
+  if (!post) {
+    throw new Error('动态不存在或无权删除');
+  }
+
+  try {
+    await mediaAssetService.removeByBiz('circle', postId);
+  } catch (e) {
+    logger.error('[动态] 清理媒资失败:', e.message);
+  }
+
+  await post.destroy();
+  return true;
+};
+
 module.exports = {
   createPost,
+  repostPost,
   getPosts,
+  searchPosts,
   getPostDetail,
   unlockPost,
   getMyPosts,
+  deletePost,
   likePost,
   commentPost,
   getComments,

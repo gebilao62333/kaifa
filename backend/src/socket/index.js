@@ -1,53 +1,96 @@
 const { verifyToken } = require('../config/jwt');
-const { User, UserSession, ChatMessage } = require('../models');
+const { User } = require('../models');
+const chatService = require('../services/chatService');
 const logger = require('../utils/logger');
+const config = require('../config');
+const { Redis } = require('ioredis');
 
 let io = null;
 
+/**
+ * 配置 Socket.IO Redis 适配器，使多 backend 副本间的实时事件可跨实例广播（横向扩展）。
+ * Redis 不可用时防御式降级：保留默认内存 adapter，单实例照常工作。
+ */
+function setupRedisAdapter(socketIo) {
+  if (config.useMockDb) {
+    logger.info('[Socket] Mock 模式：跳过 Redis adapter');
+    return;
+  }
+  try {
+    // autoConnect：ioredis 自行连接并按 retryStrategy 重试，
+    // 避免启动早期瞬时抖动导致 connect() 误 reject 而永久降级为内存 adapter。
+    const opts = {
+      host: config.db.redis.host,
+      port: config.db.redis.port,
+      password: config.db.redis.password || undefined,
+      maxRetriesPerRequest: 2,
+      retryStrategy: (times) => Math.min(times * 200, 2000)
+    };
+    const pubClient = new Redis(opts);
+    const subClient = pubClient.duplicate();
+    const { createAdapter } = require('@socket.io/redis-adapter');
+    socketIo.adapter(createAdapter(pubClient, subClient));
+
+    let warned = false;
+    pubClient.on('ready', () => {
+      logger.info('[Socket] Redis adapter 已启用（支持多实例横向扩展）');
+    });
+    pubClient.on('error', (e) => {
+      if (!warned) {
+        warned = true;
+        logger.warn('[Socket] Redis adapter 连接异常，正在自动重试:', (e && (e.stack || e.message)) || e);
+      }
+    });
+  } catch (e) {
+    logger.warn('[Socket] 未启用 Redis adapter，使用默认内存 adapter（单实例）:', (e && (e.stack || e.message)) || e);
+  }
+}
+
+const onlineUsers = new Set(); // 内存在线用户集合，用于P2P可达性探测
+
 const initializeSocket = (socketIO) => {
   io = socketIO;
-  
+
+  // 横向扩展：Redis adapter 让多副本间的 Socket 事件（私聊/通话/房间广播）跨实例同步
+  setupRedisAdapter(io);
+
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token || socket.handshake.query.token;
-      
+
+      // Socket 承载私聊、通话与信令，必须严格鉴权，禁止任何匿名/Mock 放行
       if (!token) {
-        console.log('[Socket] 未提供认证令牌，跳过认证（开发模式）');
-        socket.userId = 1;
-        socket.user = { id: 1, nickname: '测试用户' };
-        return next();
+        logger.warn('[Socket] 拒绝连接：未提供认证令牌');
+        return next(new Error('UNAUTHORIZED'));
       }
-      
+
       const decoded = verifyToken(token);
-      
+
       if (!decoded) {
-        console.log('[Socket] Token验证失败，尝试Mock模式');
-        const mockUserId = parseInt(token.split('-')[1]) || 1;
-        socket.userId = mockUserId;
-        socket.user = { id: mockUserId, nickname: 'Mock用户' };
-        return next();
+        logger.warn('[Socket] 拒绝连接：令牌无效或已过期');
+        return next(new Error('UNAUTHORIZED'));
       }
-      
+
       const userId = decoded.userId || decoded.id;
-      const user = await User.findByPk(userId);
-      
-      if (!user) {
-        console.log('[Socket] 用户不存在，使用Mock模式');
-        socket.userId = userId;
-        socket.user = { id: userId, nickname: '未知用户' };
-        return next();
+      if (!userId) {
+        logger.warn('[Socket] 拒绝连接：令牌缺少用户标识');
+        return next(new Error('UNAUTHORIZED'));
       }
-      
+
+      const user = await User.findByPk(userId);
+
+      if (!user) {
+        logger.warn(`[Socket] 拒绝连接：用户不存在 userId=${userId}`);
+        return next(new Error('UNAUTHORIZED'));
+      }
+
       socket.userId = userId;
       socket.user = user;
-      
+
       next();
     } catch (error) {
       logger.error('Socket认证错误:', error);
-      console.log('[Socket] 认证错误，使用Mock模式:', error.message);
-      socket.userId = 1;
-      socket.user = { id: 1, nickname: '测试用户' };
-      next();
+      next(new Error('UNAUTHORIZED'));
     }
   });
   
@@ -62,20 +105,18 @@ const initializeSocket = (socketIO) => {
       try {
         const { toId, content, type = 0, mediaUrl, duration } = data;
         
-        const message = await ChatMessage.create({
-          roomId: `private_${Math.min(socket.userId, toId)}_${Math.max(socket.userId, toId)}`,
-          senderId: socket.userId,
-          senderName: socket.user.nickname,
-          senderAvatar: socket.user.avatar,
+        // 复用 chatService.sendMessage：落 MySQL xn_chat_log + 更新双端会话与未读数
+        const result = await chatService.sendMessage(
+          socket.userId,
+          parseInt(toId),
           content,
           type,
-          mediaUrl: mediaUrl || '',
-          duration: duration || 0,
-          sendTime: Math.floor(Date.now() / 1000)
-        });
+          mediaUrl || '',
+          duration || 0
+        );
         
         const messageData = {
-          id: message._id,
+          id: result.messageId,
           fromId: socket.userId,
           toId: parseInt(toId),
           fromName: socket.user.nickname,
@@ -84,20 +125,20 @@ const initializeSocket = (socketIO) => {
           type,
           mediaUrl: mediaUrl || '',
           duration: duration || 0,
-          sendTime: message.sendTime,
+          sendTime: result.sendTime,
           isRevoked: false
         };
         
         io.to(`user:${toId}`).emit('private_message', messageData);
         socket.emit('private_message_ack', {
-          id: message._id,
-          sendTime: message.sendTime
+          id: result.messageId,
+          sendTime: result.sendTime
         });
         
         logger.info(`私聊消息: ${socket.userId} -> ${toId}`);
       } catch (error) {
         logger.error('发送私聊消息错误:', error);
-        socket.emit('error', { message: '发送消息失败' });
+        socket.emit('error', { message: error.message || '发送消息失败' });
       }
     });
     
@@ -105,20 +146,9 @@ const initializeSocket = (socketIO) => {
       try {
         const { roomId, content, type = 0, mediaUrl, duration } = data;
         
-        const message = await ChatMessage.create({
-          roomId: `room_${roomId}`,
-          senderId: socket.userId,
-          senderName: socket.user.nickname,
-          senderAvatar: socket.user.avatar,
-          content,
-          type,
-          mediaUrl: mediaUrl || '',
-          duration: duration || 0,
-          sendTime: Math.floor(Date.now() / 1000)
-        });
-        
+        // 房间消息暂不落库（当前无对应 MySQL 表，前端也未使用该事件），仅实时广播
         const messageData = {
-          id: message._id,
+          id: `${Date.now()}`,
           roomId: parseInt(roomId),
           fromId: socket.userId,
           fromName: socket.user.nickname,
@@ -127,13 +157,13 @@ const initializeSocket = (socketIO) => {
           type,
           mediaUrl: mediaUrl || '',
           duration: duration || 0,
-          sendTime: message.sendTime
+          sendTime: Math.floor(Date.now() / 1000)
         };
         
         socket.to(`room:${roomId}`).emit('room_message', messageData);
         socket.emit('room_message_ack', {
-          id: message._id,
-          sendTime: message.sendTime
+          id: messageData.id,
+          sendTime: messageData.sendTime
         });
         
         logger.info(`房间消息: 用户${socket.userId} 在房间${roomId}`);
@@ -308,18 +338,97 @@ const initializeSocket = (socketIO) => {
       logger.info(`用户 ${socket.userId} 已断开连接`);
       await updateUserOnlineStatus(socket.userId, false);
     });
+
+    // P2P 热内容取回流：请求方 -> 拥有方 的取数请求（如头像/缩略图）
+    socket.on('p2p_fetch_request', async (data) => {
+      try {
+        const { toId, requestId, url, type } = data;
+        io.to(`user:${toId}`).emit('p2p_fetch_request', {
+          fromId: socket.userId,
+          requestId,
+          url,
+          type
+        });
+      } catch (error) {
+        logger.error('P2P取数请求错误:', error);
+      }
+    });
+
+    // 拥有方 -> 请求方 的取数响应（回传经DataChannel转发的字节或回退签名URL）
+    socket.on('p2p_fetch_response', async (data) => {
+      try {
+        const { toId, requestId, payload, fallbackUrl } = data;
+        io.to(`user:${toId}`).emit('p2p_fetch_response', {
+          fromId: socket.userId,
+          requestId,
+          payload,
+          fallbackUrl
+        });
+      } catch (error) {
+        logger.error('P2P取数响应错误:', error);
+      }
+    });
+
+    // P2P DataChannel 建连信令转发（offer/answer/ice），复用与WebRTC一致的转发模式
+    socket.on('p2p_offer', async (data) => {
+      try {
+        const { toId, requestId, offer, url, type } = data;
+        io.to(`user:${toId}`).emit('p2p_offer', {
+          fromId: socket.userId,
+          requestId,
+          offer,
+          url,
+          type
+        });
+      } catch (error) {
+        logger.error('P2P offer转发错误:', error);
+      }
+    });
+
+    socket.on('p2p_answer', async (data) => {
+      try {
+        const { toId, requestId, answer } = data;
+        io.to(`user:${toId}`).emit('p2p_answer', {
+          fromId: socket.userId,
+          requestId,
+          answer
+        });
+      } catch (error) {
+        logger.error('P2P answer转发错误:', error);
+      }
+    });
+
+    socket.on('p2p_ice_candidate', async (data) => {
+      try {
+        const { toId, requestId, candidate } = data;
+        io.to(`user:${toId}`).emit('p2p_ice_candidate', {
+          fromId: socket.userId,
+          requestId,
+          candidate
+        });
+      } catch (error) {
+        logger.error('P2P ICE转发错误:', error);
+      }
+    });
   });
-  
+
   return io;
 };
 
 const updateUserOnlineStatus = async (userId, isOnline) => {
   try {
+    if (isOnline) {
+      onlineUsers.add(userId);
+    } else {
+      onlineUsers.delete(userId);
+    }
     logger.info(`更新用户 ${userId} 在线状态: ${isOnline}`);
   } catch (error) {
     logger.error('更新在线状态错误:', error);
   }
 };
+
+const isUserOnline = (userId) => onlineUsers.has(userId);
 
 const sendToUser = (userId, event, data) => {
   if (io) {
@@ -346,5 +455,6 @@ module.exports = {
   sendToUser,
   sendToRoom,
   sendToAll,
-  getIO
+  getIO,
+  isUserOnline
 };

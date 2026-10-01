@@ -7,28 +7,34 @@
 
     <div class="card-form">
       <div class="form-icon">🎫</div>
-      <p class="form-desc">输入卡号和密码进行充值</p>
+      <p class="form-desc">输入25位充值密钥即可充值</p>
 
-      <div class="input-group">
-        <label>卡号</label>
+      <div class="key-input-wrapper">
         <input
-          v-model="cardNo"
+          v-model="displayKey"
           type="text"
-          placeholder="请输入卡号"
-          class="form-input"
+          inputmode="numeric"
+          placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
+          class="key-input"
+          maxlength="29"
           :disabled="loading"
+          @input="onKeyInput"
         />
-      </div>
-
-      <div class="input-group">
-        <label>密码</label>
-        <input
-          v-model="cardPwd"
-          type="text"
-          placeholder="请输入密码"
-          class="form-input"
-          :disabled="loading"
-        />
+        <div class="key-blocks">
+          <span
+            v-for="(group, gi) in keyGroups"
+            :key="gi"
+            class="key-block"
+            :class="{ filled: group.length === 5 }"
+          >
+            <span
+              v-for="(ch, ci) in group.padEnd(5, ' ')"
+              :key="ci"
+              class="key-char"
+              :class="{ placeholder: ch === ' ' }"
+            >{{ ch }}</span>
+          </span>
+        </div>
       </div>
 
       <button
@@ -36,25 +42,26 @@
         :disabled="!canSubmit || loading"
         @click="submitRecharge"
       >
+        <span v-if="loading" class="btn-loading"></span>
         {{ loading ? '验证中...' : '立即充值' }}
       </button>
 
       <div class="tips">
         <h4>使用说明</h4>
         <ul>
-          <li>卡号和密码由平台发放，请勿泄露</li>
-          <li>每张卡密仅可使用一次</li>
-          <li>充值成功后金币将立即到账</li>
-          <li>如有疑问请联系客服</li>
+          <li>输入平台发放的25位充值密钥</li>
+          <li>每张密钥仅可使用一次</li>
+          <li>充值成功后余额将立即到账</li>
+          <li>无需区分卡号密码，一键充值</li>
         </ul>
       </div>
     </div>
 
-    <div class="result-modal" v-if="showResult">
+    <div class="result-modal" v-if="showResult" @click.self="closeResult">
       <div class="result-content">
         <div class="result-icon">{{ resultSuccess ? '✅' : '❌' }}</div>
         <h3>{{ resultSuccess ? '充值成功' : '充值失败' }}</h3>
-        <p v-if="resultSuccess">已到账 <strong>{{ resultAmount }}</strong> 金币</p>
+        <p v-if="resultSuccess">已到账 <strong>{{ resultAmount }}</strong> 元余额</p>
         <p v-else>{{ resultMsg }}</p>
         <button class="result-btn" @click="closeResult">确定</button>
       </div>
@@ -69,15 +76,39 @@ import payService from '../services/payService'
 import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
-const cardNo = ref('')
-const cardPwd = ref('')
+const displayKey = ref('')
+const rawKey = ref('')
 const loading = ref(false)
 const showResult = ref(false)
 const resultSuccess = ref(false)
 const resultMsg = ref('')
 const resultAmount = ref(0)
 
-const canSubmit = computed(() => cardNo.value.trim() && cardPwd.value.trim())
+const keyGroups = computed(() => {
+  const clean = rawKey.value.replace(/\D/g, '')
+  const groups = []
+  for (let i = 0; i < 5; i++) {
+    groups.push(clean.substring(i * 5, (i + 1) * 5))
+  }
+  return groups
+})
+
+const canSubmit = computed(() => rawKey.value.replace(/\D/g, '').length === 25)
+
+const onKeyInput = () => {
+  // 只保留数字
+  const digits = displayKey.value.replace(/\D/g, '').slice(0, 25)
+
+  // 自动加分隔符
+  let formatted = ''
+  for (let i = 0; i < digits.length; i++) {
+    if (i > 0 && i % 5 === 0) formatted += '-'
+    formatted += digits[i]
+  }
+
+  rawKey.value = digits
+  displayKey.value = formatted
+}
 
 const goBack = () => window.history.length > 1 ? router.back() : router.push('/wallet')
 
@@ -86,11 +117,12 @@ const submitRecharge = async () => {
 
   loading.value = true
   try {
-    const amount = await payService.redeemCard(cardNo.value.trim(), cardPwd.value.trim())
+    const key = rawKey.value.replace(/\D/g, '')
+    const amount = await payService.redeemCardByKey(key)
     resultAmount.value = amount
     showResultModal(true, '')
   } catch (err) {
-    console.error('卡密充值失败:', err)
+    console.error('密钥充值失败:', err)
     showResultModal(false, err.message || '网络错误，请稍后重试')
   } finally {
     loading.value = false
@@ -102,8 +134,8 @@ const showResultModal = (success, msg) => {
   resultMsg.value = msg
   showResult.value = true
   if (success) {
-    cardNo.value = ''
-    cardPwd.value = ''
+    displayKey.value = ''
+    rawKey.value = ''
   }
 }
 
@@ -131,54 +163,76 @@ const closeResult = () => {
   margin: 12px 0 0;
   background: #fff;
   border-radius: 0px;
-  padding: 20px;
+  padding: 32px 20px 20px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.04);
 }
 
 .form-icon {
   font-size: 48px;
   text-align: center;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .form-desc {
   text-align: center;
   color: #999;
   font-size: 14px;
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
-.input-group {
-  margin-bottom: 16px;
+.key-input-wrapper {
+  position: relative;
+  margin-bottom: 20px;
 }
 
-.input-group label {
-  display: block;
-  font-size: 14px;
-  color: #333;
-  font-weight: 500;
-  margin-bottom: 8px;
-}
-
-.form-input {
+.key-input {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
-  padding: 14px 16px;
-  border: 1px solid #e0e0e0;
-  border-radius: 12px;
+  height: 100%;
+  opacity: 0;
   font-size: 16px;
-  outline: none;
-  transition: border-color 0.2s;
-  background: #fafafa;
+  z-index: 2;
+  cursor: text;
 }
 
-.form-input:focus {
-  border-color: var(--color-primary);
-  background: #fff;
+.key-blocks {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
 }
 
-.form-input:disabled {
+.key-block {
+  display: flex;
+  gap: 2px;
+  padding: 14px 8px;
   background: #f5f5f5;
-  color: #999;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.key-block.filled {
+  border-color: #667eea;
+  background: #f0f0ff;
+}
+
+.key-char {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 28px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #333;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+}
+
+.key-char.placeholder {
+  color: #ccc;
 }
 
 .submit-btn {
@@ -193,6 +247,10 @@ const closeResult = () => {
   font-weight: 600;
   cursor: pointer;
   transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .submit-btn:disabled {
@@ -203,6 +261,19 @@ const closeResult = () => {
 .submit-btn:active:not(:disabled) {
   opacity: 0.9;
   transform: scale(0.98);
+}
+
+.btn-loading {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .tips {

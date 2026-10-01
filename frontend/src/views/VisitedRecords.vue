@@ -30,18 +30,7 @@ import EmptyState from '../components/EmptyState.vue'
 
 const router = useRouter()
 
-const visitorsList = ref([
-  { id: '4001', avatar: 'https://picsum.photos/200/200?random=10', nickName: '路人甲', time: '5分钟前', isFollowed: false },
-  { id: '4002', avatar: 'https://picsum.photos/200/200?random=11', nickName: '游戏高手', time: '30分钟前', isFollowed: true },
-  { id: '4003', avatar: 'https://picsum.photos/200/200?random=12', nickName: '小萝莉', time: '1小时前', isFollowed: false },
-  { id: '4004', avatar: 'https://picsum.photos/200/200?random=13', nickName: '最强王者', time: '2小时前', isFollowed: true },
-  { id: '4005', avatar: 'https://picsum.photos/200/200?random=14', nickName: '打野达人', time: '3小时前', isFollowed: false },
-  { id: '4006', avatar: 'https://picsum.photos/200/200?random=15', nickName: '休闲玩家', time: '5小时前', isFollowed: false },
-  { id: '4007', avatar: 'https://picsum.photos/200/200?random=16', nickName: '萌妹', time: '昨天', isFollowed: true },
-  { id: '4008', avatar: 'https://picsum.photos/200/200?random=17', nickName: '战术大师', time: '昨天', isFollowed: false },
-  { id: '4009', avatar: 'https://picsum.photos/200/200?random=18', nickName: '吃鸡达人', time: '2天前', isFollowed: false },
-  { id: '4010', avatar: 'https://picsum.photos/200/200?random=19', nickName: '小可爱', time: '3天前', isFollowed: true }
-])
+const visitorsList = ref([])
 
 const goBack = () => {
   router.back()

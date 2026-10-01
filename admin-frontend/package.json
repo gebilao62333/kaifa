@@ -1,12 +1,14 @@
 {
-  "name": "duoke-admin-frontend",
+  "name": "eudazi-admin-frontend",
   "version": "1.0.0",
-  "description": "多客陪玩管理后台",
+  "description": "eu搭子管理后台",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:unit": "vitest run"
   },
   "dependencies": {
     "vue": "^3.4.21",
@@ -14,7 +16,10 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
+    "@vue/test-utils": "^2.4.11",
+    "happy-dom": "^14.12.3",
     "terser": "^5.47.1",
-    "vite": "^5.2.6"
+    "vite": "^5.2.6",
+    "vitest": "^1.6.1"
   }
 }

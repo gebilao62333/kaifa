@@ -1,0 +1,50 @@
+-- 修复 xn_post 全部 12 条帖子
+UPDATE xn_post SET content='今天和陪玩师一起打王者荣耀，太开心了！配合默契，连赢五把，强烈推荐！' WHERE id=1;
+UPDATE xn_post SET content='晒一下今天的游戏成果，吃鸡三连！' WHERE id=2;
+UPDATE xn_post SET content='有没有一起玩原神的小伙伴？周末可以组队！' WHERE id=3;
+UPDATE xn_post SET content='这个陪玩师技术太好了，带飞全场，必须五星好评！' WHERE id=4;
+UPDATE xn_post SET content='今天带老板上了王者，开心！有没有需要上分的小伙伴滴滴我~' WHERE id=5;
+UPDATE xn_post SET content='新赛季冲分攻略：当前版本强势英雄和Ban位分析，学会轻松上50星！' WHERE id=6;
+UPDATE xn_post SET content='一个人打游戏太无聊了，有没有小伙伴一起开黑呀🥺' WHERE id=7;
+UPDATE xn_post SET content='今晚直播打排位，欢迎大家来看~' WHERE id=8;
+UPDATE xn_post SET content='这个配玩小姐姐声音太好听了，打了两小时全程欢乐，强烈推荐！' WHERE id=9;
+UPDATE xn_post SET content='刚打了一把19杀的吃鸡局，分享一下这局的路线和打法思路' WHERE id=10;
+UPDATE xn_post SET content='永劫无间新赛季更新了，有没有一起冲分的？' WHERE id=11;
+UPDATE xn_post SET content='求助！卡在钻石段位上不去了，有没有大佬指点一下QAQ' WHERE id=12;
+
+-- 修复 xn_post_comment 全部 11 条评论
+UPDATE xn_post_comment SET content='厉害厉害！带我一起呀' WHERE id=1;
+UPDATE xn_post_comment SET content='恭喜上星耀！' WHERE id=2;
+UPDATE xn_post_comment SET content='加油！一起冲！' WHERE id=3;
+UPDATE xn_post_comment SET content='新赛季一起玩啊' WHERE id=4;
+UPDATE xn_post_comment SET content='666' WHERE id=5;
+UPDATE xn_post_comment SET content='新版本嗨起来！' WHERE id=6;
+UPDATE xn_post_comment SET content='加油加油，你带的老板肯定满意！' WHERE id=7;
+UPDATE xn_post_comment SET content='老K的攻略必看，收藏了！' WHERE id=8;
+UPDATE xn_post_comment SET content='我来！加我好友一起上分' WHERE id=9;
+UPDATE xn_post_comment SET content='在哪在哪，我也想吃鸡！' WHERE id=10;
+UPDATE xn_post_comment SET content='厉害啊兄dei，19杀是什么神仙操作' WHERE id=11;
+
+-- 修复 xn_chat_log 全部 10 条聊天记录
+UPDATE xn_chat_log SET content='你好，在吗？' WHERE id=1;
+UPDATE xn_chat_log SET content='在的呢，有什么可以帮到您？' WHERE id=2;
+UPDATE xn_chat_log SET content='想找你一起玩王者荣耀' WHERE id=3;
+UPDATE xn_chat_log SET content='好的呀，什么时候开始呢？' WHERE id=4;
+UPDATE xn_chat_log SET content='英雄联盟能带我上分吗？' WHERE id=5;
+UPDATE xn_chat_log SET content='没问题，我打野很稳的' WHERE id=6;
+UPDATE xn_chat_log SET content='你好，我看到你的帖子了，一起上分吗？' WHERE id=7;
+UPDATE xn_chat_log SET content='好啊好啊，我最近一直在找靠谱队友' WHERE id=8;
+UPDATE xn_chat_log SET content='你好，想学打野怎么玩，可以教一下吗？' WHERE id=9;
+UPDATE xn_chat_log SET content='当然可以！你先选个简单英雄开始练' WHERE id=10;
+
+-- 修复 xn_banner 全部 3 条
+UPDATE xn_banner SET title='新用户注册送好礼' WHERE id=1;
+UPDATE xn_banner SET title='VIP会员限时特惠' WHERE id=2;
+UPDATE xn_banner SET title='热门游戏推荐' WHERE id=3;
+
+-- 修复 xn_companion_profile 标签 (IDs 9-13)
+UPDATE xn_companion_profile SET tags='王者荣耀,百星王者,全能位置' WHERE id=9;
+UPDATE xn_companion_profile SET tags='王者荣耀,声音甜美,心态好' WHERE id=10;
+UPDATE xn_companion_profile SET tags='王者荣耀,职业教练,段位教学' WHERE id=11;
+UPDATE xn_companion_profile SET tags='英雄联盟,大师ADC,女玩家' WHERE id=12;
+UPDATE xn_companion_profile SET tags='和平精英,KD4.5,带吃鸡' WHERE id=13;

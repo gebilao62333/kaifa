@@ -10,7 +10,8 @@
       </select>
       <button class="btn-primary" @click="openCreate">+ 新增分类</button>
     </div>
-    <table class="data-table">
+    <div v-if="loading" class="loading-wrap"><div class="spinner"></div><span>加载中...</span></div>
+    <table class="data-table" v-else>
       <thead><tr><th>ID</th><th>图标</th><th>名称</th><th>描述</th><th>排序</th><th>状态</th><th>操作</th></tr></thead>
       <tbody>
         <tr v-for="g in list" :key="g.id">
@@ -36,7 +37,10 @@
 
     <div class="modal-overlay" v-if="showModal">
       <div class="modal">
-        <h3>{{ isEdit ? '编辑分类' : '新增分类' }}</h3>
+        <div class="modal-header">
+          <h3>{{ isEdit ? '编辑分类' : '新增分类' }}</h3>
+          <button class="modal-close" @click="showModal = false">&times;</button>
+        </div>
         <div class="form-grid">
           <label>名称: <input v-model="form.name" /></label>
           <label>图标URL: <input v-model="form.icon" /></label>
@@ -57,32 +61,40 @@
 import { ref, onMounted } from 'vue'
 import adminService from '../../services/adminService'
 import { useAdminApi } from '../../composables/useAdminApi'
+import { useToast } from '../../composables/useToast'
 const { page, pageSize, total, totalPages, searchKeyword, filterStatus, getHost, getHeaders } = useAdminApi()
+const toast = useToast()
 const list = ref([])
+const loading = ref(false)
 const showModal = ref(false)
 const isEdit = ref(false)
 const defaultIcon = 'https://api.dicebear.com/7.x/icons/svg?seed=game'
 const form = ref({ id: '', name: '', icon: '', description: '', sort: 0, status: 1 })
 const loadList = async () => {
+  loading.value = true
   try {
     const res = await adminService.getGames({ page: page.value, pageSize: pageSize.value, keyword: searchKeyword.value || undefined, serviceType: filterStatus.value || undefined })
     if (res.code === 200 || res.code === 0) { list.value = res.data.list || res.data || []; total.value = res.data.pagination?.total || list.value.length }
-  } catch (e) { console.error(e) }
+  } catch (e) { toast.error('加载失败: ' + (e.message || '网络错误')) }
+  finally { loading.value = false }
 }
 const openCreate = () => { isEdit.value = false; form.value = { id: '', name: '', icon: '', description: '', sort: 0, status: 1 }; showModal.value = true }
 const openEdit = (g) => { isEdit.value = true; form.value = { id: g.id, name: g.name || g.gameName, icon: g.icon || '', description: g.description || '', sort: g.sort || 0, status: g.status }; showModal.value = true }
 const save = async () => {
   try {
     const res = isEdit.value ? await adminService.updateGame(form.value.id, form.value) : await adminService.createGame(form.value)
-    if (res.code === 200 || res.code === 0) { alert('保存成功'); showModal.value = false; loadList() } else { alert(res.message || '保存失败') }
-  } catch (e) { console.error(e) }
+    if (res.code === 200 || res.code === 0) { toast.success('保存成功'); showModal.value = false; loadList() } else { toast.error(res.message || '保存失败') }
+  } catch (e) { toast.error('保存失败: ' + (e.message || '网络错误')) }
 }
-const toggle = async (g) => { try { await adminService.updateGameStatus(g.id, g.status === 1 ? 0 : 1); loadList() } catch (e) { console.error(e) } }
-const remove = async (g) => { if (!confirm(`确定删除 ${g.name}?`)) return; try { await adminService.deleteGame(g.id); loadList() } catch (e) { console.error(e) } }
+const toggle = async (g) => { try { await adminService.updateGameStatus(g.id, g.status === 1 ? 0 : 1); toast.success(g.status === 1 ? '已禁用' : '已启用'); loadList() } catch (e) { toast.error('操作失败: ' + (e.message || '网络错误')) } }
+const remove = async (g) => { if (!confirm(`确定删除 ${g.name}?`)) return; try { await adminService.deleteGame(g.id); toast.success('已删除'); loadList() } catch (e) { toast.error('删除失败: ' + (e.message || '网络错误')) } }
 onMounted(loadList)
 </script>
 
 <style scoped>
+.loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; color: #999; gap: 12px; }
+.spinner { width: 32px; height: 32px; border: 3px solid #f0f0f0; border-top-color: #1890ff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .page-actions { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
 .search-input { padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; width: 200px; }
 .status-select { padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; }
@@ -102,10 +114,14 @@ onMounted(loadList)
 .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; z-index: 200; }
 .modal { background: #fff; border-radius: 8px; padding: 24px; width: 480px; max-height: 80vh; overflow-y: auto; }
-.modal h3 { margin-bottom: 16px; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.modal-header h3 { margin: 0; }
+.modal-close { width: 28px; height: 28px; border: none; background: transparent; font-size: 22px; color: #999; cursor: pointer; display: flex; align-items: center; justify-content: center; border-radius: 4px; line-height: 1; }
+.modal-close:hover { color: #333; background: #f5f5f5; }
 .form-grid { display: grid; gap: 12px; }
 .form-grid label { display: flex; flex-direction: column; font-size: 13px; color: #666; gap: 4px; }
 .form-grid input, .form-grid select { padding: 8px; border: 1px solid #d9d9d9; border-radius: 4px; }
 .modal-actions { margin-top: 16px; display: flex; gap: 8px; justify-content: flex-end; }
 .modal-actions button { padding: 8px 20px; border: 1px solid #d9d9d9; border-radius: 4px; background: #fff; cursor: pointer; }
+.modal-actions .btn-primary { background: #1890ff; color: #fff; border: none; }
 </style>

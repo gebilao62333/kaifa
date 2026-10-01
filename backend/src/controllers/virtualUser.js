@@ -5,35 +5,37 @@ const logger = require('../utils/logger');
 const createVirtualUser = async (req, res) => {
   try {
     const {
-      username,
-      nickname,
+      name,
       avatar,
-      role = 'default',
-      personality,
-      dialogueStyle = 'friendly',
-      description,
-      modelConfig = {},
-      contextExpireTime = 3600,
-      maxContextLength = 50,
-      permissions = []
+      gender = 0,
+      age = 0,
+      region,
+      tags,
+      intro,
+      price_per_hour = 0,
+      online_status = 0,
+      is_recommend = 0,
+      status = 1,
+      tagIds = []
     } = req.body;
 
-    if (!username || !nickname) {
-      return response.badRequest(res, '用户名和昵称不能为空');
+    if (!name) {
+      return response.badRequest(res, '姓名不能为空');
     }
 
     const result = await virtualUserService.createVirtualUser({
-      username,
-      nickname,
+      name,
       avatar,
-      role,
-      personality,
-      dialogueStyle,
-      description,
-      modelConfig,
-      contextExpireTime,
-      maxContextLength,
-      permissions
+      gender,
+      age,
+      region,
+      tags,
+      intro,
+      price_per_hour,
+      online_status,
+      is_recommend,
+      status,
+      tagIds
     });
 
     response.created(res, result, '虚拟用户创建成功');
@@ -101,18 +103,17 @@ const toggleOnlineStatus = async (req, res) => {
 const chatWithVirtualUser = async (req, res) => {
   try {
     const { virtualUserId } = req.params;
-    const { message, contextId } = req.body;
+    const { message } = req.body;
+    const userId = req.userId || 0;
 
     if (!message) {
       return response.badRequest(res, '消息内容不能为空');
     }
 
-    const userId = req.userId || 0;
-    const result = await virtualUserService.generateResponse(
+    const result = await virtualUserService.chatWithVirtualUser(
       parseInt(virtualUserId),
       userId,
-      message,
-      contextId
+      message
     );
 
     response.success(res, result);
@@ -153,9 +154,9 @@ const clearContext = async (req, res) => {
       contextId
     );
 
-    response.success(res, {}, '上下文已清除');
+    response.success(res, {}, '内容已清除');
   } catch (error) {
-    logger.error(`清除上下文失败: ${error.message}`);
+    logger.error(`清除内容失败: ${error.message}`);
     response.error(res, error.message);
   }
 };

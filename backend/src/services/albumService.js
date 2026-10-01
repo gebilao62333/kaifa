@@ -1,4 +1,6 @@
 const path = require('path');
+const mediaAssetService = require('./mediaAssetService');
+const logger = require('../utils/logger');
 
 let photos = []
 let photoIdCounter = 1
@@ -26,14 +28,16 @@ const getPhotos = async (userId, page = 1, pageSize = 12) => {
   }
 }
 
-const uploadPhoto = async (userId, file, description, privacy) => {
+const uploadPhoto = async (userId, url, description, privacy, password, price) => {
   const photo = {
     id: photoIdCounter++,
     userId,
-    url: `/uploads/${file.filename}`,
-    thumbnail: `/uploads/${file.filename}`,
+    url,
+    thumbnail: url,
     description: description || '',
     privacy: privacy || 'public',
+    password: password || '',
+    price: price ? parseFloat(price) : 0,
     likeCount: 0,
     likedBy: [],
     createTime: Date.now()
@@ -41,17 +45,38 @@ const uploadPhoto = async (userId, file, description, privacy) => {
 
   photos.unshift(photo)
 
+  // 登记媒资，便于审计与级联删除
+  try {
+    await mediaAssetService.register({
+      userId,
+      url,
+      fileType: 'image',
+      bizType: 'album',
+      bizId: photo.id,
+      storage: url.includes('.myqcloud.com') ? 'cos' : 'local'
+    })
+  } catch (e) {
+    logger.error('[相册] 登记媒资失败:', e.message)
+  }
+
   return { id: photo.id, url: photo.url }
 }
 
 const deletePhoto = async (userId, photoId) => {
-  const index = photos.findIndex(p => p.id === photoId && p.userId === userId)
+  const photo = photos.find(p => p.id === photoId && p.userId === userId)
 
-  if (index === -1) {
+  if (!photo) {
     throw new Error('照片不存在或无权删除')
   }
 
-  photos.splice(index, 1)
+  // 同步清理底层存储（COS或本地）与媒资登记表，避免孤儿文件
+  try {
+    await mediaAssetService.removeByBiz('album', photoId)
+  } catch (e) {
+    logger.error('[相册] 清理媒资失败:', e.message)
+  }
+
+  photos = photos.filter(p => p.id !== photoId)
   return true
 }
 

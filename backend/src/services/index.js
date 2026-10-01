@@ -10,15 +10,17 @@ const reportService = require('./reportService');
 const trtcService = require('./trtcService');
 const callBillingService = require('./callBillingService');
 const uploadService = require('./uploadService');
+const mediaAssetService = require('./mediaAssetService');
+const cosSignedUrlService = require('./cosSignedUrlService');
 const smsService = require('./smsService');
 const vipService = require('./vipService');
 const virtualUserService = require('./virtualUserService');
 const tagService = require('./tagService');
 const albumService = require('./albumService');
 const demandService = require('./demandService');
-const projectService = require('./projectService');
 const regionService = require('./regionService');
 const walletService = require('./walletService');
+const feedbackService = require('./feedbackService');
 
 module.exports = {
   authService,
@@ -33,13 +35,15 @@ module.exports = {
   trtcService,
   callBillingService,
   uploadService,
+  mediaAssetService,
+  cosSignedUrlService,
   smsService,
   vipService,
   virtualUserService,
   tagService,
   albumService,
   demandService,
-  projectService,
   regionService,
-  walletService
+  walletService,
+  feedbackService
 };

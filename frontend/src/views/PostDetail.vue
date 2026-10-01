@@ -3,17 +3,40 @@
     <template #nav>
       <span class="back-btn" @click="goBack">←</span>
       <span class="nav-title">动态详情</span>
-      <span class="more-btn">•••</span>
+      <span class="more-btn" @click="showReport = true">•••</span>
     </template>
     
-    <div class="post-content">
+    <div class="post-content" v-if="!loading">
+      <div class="locked-view" v-if="postData.locked">
+        <div class="lock-icon">🔒</div>
+        <div class="lock-title">该动态为私密内容</div>
+        <div class="lock-desc" v-if="postData.privateType === 2">
+          解锁需 {{ postData.privatePrice }} 金币
+        </div>
+        <div class="lock-desc" v-else>
+          输入密码即可查看
+        </div>
+        <input 
+          class="lock-input" 
+          v-if="postData.privateType !== 2" 
+          v-model="unlockPassword"
+          type="password" 
+          placeholder="请输入解锁密码"
+          @keyup.enter="handleUnlock"
+        />
+        <button class="unlock-btn" :disabled="unlocking" @click="handleUnlock">
+          {{ unlocking ? '解锁中...' : (postData.privateType === 2 ? '支付解锁' : '立即解锁') }}
+        </button>
+      </div>
+
+      <template v-else>
       <div class="user-info" @click="goUserProfile">
-        <img class="avatar" :src="postData.avatar" alt="" />
+        <img class="avatar" :src="postData.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200'" alt="" />
         <div class="info">
           <div class="nickname">{{ postData.nickName }}</div>
           <div class="time">{{ formatTime(postData.createTime) }}</div>
         </div>
-        <span class="follow-btn" v-if="!postData.isFollow">已关注</span>
+        <span class="follow-btn" v-if="postData.isFollow">已关注</span>
         <span class="follow-btn not-follow" v-else @click="follow">+ 关注</span>
       </div>
       
@@ -33,19 +56,25 @@
       <div class="post-tag" v-if="postData.tagName">#{{ postData.tagName }}</div>
       
       <div class="action-bar">
-        <div class="action-item">
+        <div class="action-item" @click="toggleLike">
           <span class="icon">{{ postData.isLike ? '❤️' : '🤍' }}</span>
-          <span class="count">{{ postData.likes }}</span>
+          <span class="count">{{ postData.likes || 0 }}</span>
         </div>
         <div class="action-item">
           <span class="icon">💬</span>
-          <span class="count">{{ postData.comments }}</span>
+          <span class="count">{{ postData.comments || 0 }}</span>
         </div>
-        <div class="action-item">
-          <span class="icon">🔗</span>
+        <div class="action-item" @click="openSharePopup">
+          <span class="icon">📤</span>
           <span class="text">分享</span>
         </div>
       </div>
+      </template>
+    </div>
+    
+    <div class="loading-state" v-else>
+      <div class="loading-spinner"></div>
+      <p>加载中...</p>
     </div>
     
     <div class="comments-section">
@@ -92,70 +121,54 @@
         </div>
       </div>
     </div>
+
+    <SharePopup
+      :visible="shareVisible"
+      :postId="postId"
+      :postNickname="postData.nickName || ''"
+      :postContent="postData.content || ''"
+      :postShareUrl="shareUrl"
+      @close="shareVisible = false"
+      @shared="onShared"
+      @reposted="onReposted"
+    />
+
+    <ReportModal
+      :visible="showReport"
+      :target-type="2"
+      :target-id="postId"
+      @close="showReport = false"
+      @submitted="onReported"
+    />
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
+import SharePopup from '../components/SharePopup.vue'
+import ReportModal from '../components/report-modal/report-modal.vue'
+import circleService from '../services/circleService'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
+const route = useRoute()
 
-const postData = ref({
-  postId: 1,
-  userId: 1,
-  nickName: '小雪',
-  avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200',
-  level: 28,
-  vip: true,
-  content: '今天王者连赢五局，超开心！分享一下今天的战绩～',
-  images: [
-    'https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=400',
-    'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400'
-  ],
-  tagName: '游戏',
-  likes: 128,
-  comments: 32,
-  isLike: false,
-  isFollow: false,
-  createTime: Date.now() - 3600000
-})
-
-const commentList = ref([
-  {
-    id: 1,
-    userId: 2,
-    nickName: '阿杰',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100',
-    content: '厉害啊，带我飞！',
-    likes: 12,
-    isLike: false,
-    createTime: Date.now() - 3000000,
-    replyList: [
-      {
-        id: 1,
-        userId: 1,
-        nickName: '小雪',
-        content: '好呀！',
-        createTime: Date.now() - 2400000
-      }
-    ]
-  },
-  {
-    id: 2,
-    userId: 3,
-    nickName: '小美',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100',
-    content: '666，大佬带带我！',
-    likes: 8,
-    isLike: false,
-    createTime: Date.now() - 2000000,
-    replyList: []
-  }
-])
-
+const loading = ref(true)
+const postId = ref(null)
+const postData = ref({})
+const commentList = ref([])
 const commentText = ref('')
+const replyToId = ref(null)
+const unlockPassword = ref('')
+const unlocking = ref(false)
+const showReport = ref(false)
+
+const onReported = () => {
+  showReport.value = false
+  toast.success('举报已提交，我们会尽快处理')
+}
 
 const formatTime = (timestamp) => {
   if (!timestamp) return ''
@@ -173,48 +186,133 @@ const formatTime = (timestamp) => {
   return `${date.getMonth() + 1}-${date.getDate()}`
 }
 
+const loadPostDetail = async () => {
+  try {
+    loading.value = true
+    const res = await circleService.getPostDetail(postId.value)
+    postData.value = res.data || res
+  } catch (err) {
+    console.error('加载帖子详情失败:', err)
+    toast.error('加载帖子详情失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadComments = async () => {
+  try {
+    const res = await circleService.getComments(postId.value)
+    commentList.value = res.data || res || []
+  } catch (err) {
+    console.error('加载评论失败:', err)
+  }
+}
+
+const handleUnlock = async () => {
+  try {
+    if (postData.value.privateType !== 2 && !unlockPassword.value.trim()) {
+      toast.error('请输入解锁密码')
+      return
+    }
+    unlocking.value = true
+    await circleService.unlockPost(postId.value, unlockPassword.value.trim())
+    toast.success('解锁成功')
+    unlockPassword.value = ''
+    await loadPostDetail()
+    await loadComments()
+  } catch (err) {
+    toast.error(err.message || '解锁失败，请重试')
+  } finally {
+    unlocking.value = false
+  }
+}
+
 const goBack = () => {
   router.back()
 }
 
 const goUserProfile = () => {
-  console.log('查看用户资料')
-  router.push({ name: 'UserProfile', params: { id: postData.value.userId } })
+  if (postData.value.userId) {
+    router.push({ name: 'UserProfile', params: { id: postData.value.userId } })
+  }
 }
 
 const follow = () => {
   postData.value.isFollow = true
 }
 
+const toggleLike = async () => {
+  try {
+    if (postData.value.isLike) {
+      await circleService.unlikePost(postId.value)
+      postData.value.isLike = false
+      postData.value.likes = Math.max(0, (postData.value.likes || 0) - 1)
+    } else {
+      await circleService.likePost(postId.value)
+      postData.value.isLike = true
+      postData.value.likes = (postData.value.likes || 0) + 1
+    }
+  } catch (err) {
+    toast.error('操作失败，请重试')
+  }
+}
+
+// 分享弹窗状态
+const shareVisible = ref(false)
+const shareUrl = window.location.href
+
+const openSharePopup = () => {
+  shareVisible.value = true
+}
+
+const onShared = () => {
+  postData.value.shares = (postData.value.shares || 0) + 1
+  toast.success('分享成功')
+}
+
+const onReposted = () => {
+  postData.value.shares = (postData.value.shares || 0) + 1
+  toast.success('转发成功，已发布到你的动态')
+}
+
 const previewImage = (img) => {
-  console.log('预览图片:', img)
+  window.open(img, '_blank')
 }
 
 const replyTo = (comment) => {
+  replyToId.value = comment.id
   commentText.value = `回复 ${comment.nickName}：`
 }
 
-const sendComment = () => {
+const sendComment = async () => {
   if (!commentText.value.trim()) return
-  
-  commentList.value.unshift({
-    id: Date.now(),
-    userId: 100001,
-    nickName: '我',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100',
-    content: commentText.value,
-    likes: 0,
-    isLike: false,
-    createTime: Date.now(),
-    replyList: []
-  })
-  
-  postData.value.comments++
-  commentText.value = ''
+
+  const content = commentText.value.replace(/^回复\s*\S+[：:]\s*/, '')
+  if (!content.trim()) return
+
+  try {
+    await circleService.commentPost(postId.value, content, replyToId.value)
+    toast.success('评论成功')
+    commentText.value = ''
+    replyToId.value = null
+    await loadComments()
+    if (postData.value.comments !== undefined) {
+      postData.value.comments++
+    }
+  } catch (err) {
+    toast.error('评论失败，请重试')
+  }
 }
 
 onMounted(() => {
-  console.log('动态详情页加载完成')
+  postId.value = Number(route.params.id)
+  if (postId.value) {
+    loadPostDetail()
+    loadComments()
+  } else {
+    toast.error('帖子不存在')
+    router.back()
+  }
 })
 </script>
 
@@ -236,6 +334,65 @@ onMounted(() => {
 .title {
   font-size: 18px;
   font-weight: bold;
+}
+
+.locked-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px;
+  text-align: center;
+}
+
+.lock-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+
+.lock-title {
+  font-size: 17px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 8px;
+}
+
+.lock-desc {
+  font-size: 14px;
+  color: #999;
+  margin-bottom: 20px;
+}
+
+.lock-input {
+  width: 100%;
+  max-width: 260px;
+  padding: 10px 14px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 15px;
+  outline: none;
+  margin-bottom: 20px;
+  box-sizing: border-box;
+}
+
+.lock-input:focus {
+  border-color: var(--color-primary);
+}
+
+.unlock-btn {
+  width: 100%;
+  max-width: 260px;
+  padding: 11px 0;
+  border: none;
+  border-radius: 22px;
+  background: var(--gradient-primary);
+  color: white;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.unlock-btn:disabled {
+  opacity: 0.6;
 }
 
 .post-content {
@@ -480,5 +637,29 @@ onMounted(() => {
   border-radius: 16px;
   font-size: 14px;
   cursor: pointer;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #999;
+  font-size: 14px;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f0f0f0;
+  border-top-color: var(--color-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 12px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 </style>

@@ -26,8 +26,8 @@ const sanitizeInput = (input) => {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;')
-    .replace(/\//g, '&#x2F;');
+    .replace(/'/g, '&#x27;');
+  // 注意：不要转义 '/'，否则会破坏所有 URL 字段（下载链接、Banner 跳转地址等）
   
   return sanitized;
 };

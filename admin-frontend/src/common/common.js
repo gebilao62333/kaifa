@@ -108,6 +108,13 @@ export const isLoggedIn = () => {
   return !!localStorage.getItem('admin_token')
 }
 
+// 强制以 UTF-8 解码响应体，防止后端 Content-Type 缺失 charset 导致中文乱码
+const readResponseText = async (response) => {
+  const buf = await response.arrayBuffer()
+  const decoder = new TextDecoder('utf-8')
+  return decoder.decode(buf)
+}
+
 export const request = async (url, method = 'GET', data = {}, headers = {}, timeout = DEFAULT_TIMEOUT, options = {}) => {
   const { silentAbort = true } = options
 
@@ -142,15 +149,17 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
     const response = await fetch(url, requestOptions)
     clearTimeout(timeoutId)
 
-    if (response.status === 401) {
+    if (response.status === 401 || response.status === 403) {
       if (!isRedirecting) {
         isRedirecting = true
         localStorage.removeItem('admin_token')
         setTimeout(() => {
-          window.location.href = '/login'
+          // 开发模式 base='/'，生产模式 base='/admin/'
+          const base = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/admin/'
+          window.location.href = base + 'login'
         }, 100)
       }
-      throw new RequestError('登录失效，请重新登录', -1, 401)
+      throw new RequestError('登录已过期，请重新登录', -1, response.status)
     }
 
     if (response.status === 500) {
@@ -162,7 +171,7 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
     }
 
     if (response.status === 422) {
-      const text = await response.text()
+      const text = await readResponseText(response)
       let fieldErrors = {}
       let errorMessage = '请求参数验证失败'
       try {
@@ -180,7 +189,7 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
       throw new RequestError(`请求失败 (${response.status})`, -1, response.status)
     }
 
-    const text = await response.text()
+    const text = await readResponseText(response)
     if (!text) {
       return { code: 200, data: null, message: 'success' }
     }

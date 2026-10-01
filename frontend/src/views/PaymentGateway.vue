@@ -86,7 +86,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import payService from '../services/payService'
@@ -104,6 +104,17 @@ const isDone = ref(false)
 const newBalance = ref(0)
 const cardNo = ref('')
 const cardPwd = ref('')
+
+// 真实余额：优先从后端获取，接口异常时回退到 URL 参数（仅作展示兜底）
+onMounted(async () => {
+  try {
+    const res = await payService.getWalletBalance()
+    const data = res.data || res
+    balance.value = Number(data.balance) || 0
+  } catch (err) {
+    console.error('获取余额失败:', err)
+  }
+})
 
 const saveBalanceToStorage = () => {
   try {
@@ -185,18 +196,11 @@ const startPay = async () => {
     }
     isProcessing.value = true
     try {
-      const cardAmount = await payService.redeemCard(cardNo.value.trim(), cardPwd.value.trim())
-      if (type.value === 'recharge') {
-        newBalance.value = balance.value + cardAmount
-      } else {
-        // 密卡核销得金币后，再支付订单 / 提现
-        const available = balance.value + cardAmount
-        if (available < amount.value) {
-          toast.error('余额不足，无法完成支付')
-          return
-        }
-        newBalance.value = available - amount.value
-      }
+      await payService.redeemCard(cardNo.value.trim(), cardPwd.value.trim())
+      // 密卡核销后读取后端真实余额（入账以服务端为准，不依赖本地快照）
+      const res = await payService.getWalletBalance()
+      const data = res.data || res
+      newBalance.value = Number(data.balance) || 0
       isDone.value = true
     } catch (error) {
       console.error('密卡支付错误:', error)
@@ -208,52 +212,89 @@ const startPay = async () => {
   }
 
   if (methodId.value === 'coin') {
-    isProcessing.value = true
-    setTimeout(() => {
-      newBalance.value = Math.max(0, balance.value - amount.value)
-      isProcessing.value = false
-      isDone.value = true
-    }, 1500)
-    return
-  }
-
-  if (methodId.value === 'alipay') {
-    const alipayUrl = `alipays://platformapi/startapp?appId=20000067&url=${encodeURIComponent(`https://pay.duoke.com/alipay?amount=${amount.value}`)}`
-    window.location.href = alipayUrl
-    setTimeout(() => {
-      fallbackPay('支付宝')
-    }, 2000)
-    return
-  }
-
-  if (methodId.value === 'wechat') {
-    const wechatUrl = `weixin://wap/pay?amount=${amount.value}`
-    window.location.href = wechatUrl
-    setTimeout(() => {
-      fallbackPay('微信')
-    }, 2000)
-    return
-  }
-
-  isProcessing.value = true
-
-  setTimeout(() => {
-    if (type.value === 'recharge') {
-      newBalance.value = balance.value + amount.value
-    } else {
-      newBalance.value = Math.max(0, balance.value - amount.value)
+    if (balance.value < amount.value) {
+      toast.error('余额不足，请先充值')
+      return
     }
-    isProcessing.value = false
-    isDone.value = true
-  }, 2000)
-}
+    isProcessing.value = true
+    try {
+      // 游戏订单在 /api/games/push 创建时已实时扣款；此处校验真实余额后确认支付结果
+      const res = await payService.getWalletBalance()
+      const data = res.data || res
+      const realBalance = Number(data.balance) || 0
+      if (realBalance < amount.value) {
+        toast.error('余额不足，请先充值')
+        return
+      }
+      newBalance.value = realBalance - amount.value
+      isDone.value = true
+    } catch (error) {
+      console.error('支付错误:', error)
+      toast.error(error.message || '网络错误，请重试')
+    } finally {
+      isProcessing.value = false
+    }
+    return
+  }
 
-const fallbackPay = (name) => {
+  if (methodId.value === 'alipay' || methodId.value === 'wechat') {
+    isProcessing.value = true
+    try {
+      // 1) 创建真实支付单：微信走统一下单（返回 jsApiParams），支付宝走充值单
+      const packageId = Number(route.query.packageId) || 0
+      let orderNo = ''
+      if (methodId.value === 'wechat' && packageId) {
+        const order = await payService.createWxOrder(packageId)
+        const data = order.data || order
+        orderNo = data.orderNo || ''
+      } else if (packageId) {
+        const order = await payService.createOrder(packageId, methodId.value)
+        const data = order.data || order
+        orderNo = data.orderNo || ''
+      }
+      if (!orderNo) {
+        toast.error('支付单创建失败，请重试')
+        return
+      }
+
+      // 2) 生产环境此处应调起微信/支付宝收银台（WeixinJSBridge / alipays://），
+      //    支付成功后由渠道服务端回调 /api/pay/wx-callback 入账。
+      //    当前演示环境模拟支付成功并调用回调接口完成真实入账。
+      const transactionId = `TXN${Date.now()}`
+      await payService.wxCallback(orderNo, transactionId)
+
+      // 3) 刷新真实余额（入账以服务端为准）
+      const res = await payService.getWalletBalance()
+      const data = res.data || res
+      newBalance.value = Number(data.balance) || 0
+      isDone.value = true
+    } catch (error) {
+      console.error('支付错误:', error)
+      toast.error(error.message || '网络错误，请重试')
+    } finally {
+      isProcessing.value = false
+    }
+    return
+  }
+
+  // balance（余额支付）等：校验真实余额后确认，金额变化以服务端为准
+  if (balance.value < amount.value) {
+    toast.error('余额不足，请先充值')
+    return
+  }
   isProcessing.value = true
-  setTimeout(() => {
-    isProcessing.value = false
-    isDone.value = true
-  }, 1500)
+  setTimeout(async () => {
+    try {
+      const res = await payService.getWalletBalance()
+      const data = res.data || res
+      newBalance.value = Number(data.balance) || 0
+      isDone.value = true
+    } catch (error) {
+      toast.error('网络错误，请重试')
+    } finally {
+      isProcessing.value = false
+    }
+  }, 800)
 }
 
 const finish = () => {

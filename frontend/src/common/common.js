@@ -1,3 +1,5 @@
+import { STORAGE_KEYS } from './constants'
+
 export const getLevelName = (level) => {
   const levelMap = {
     1: '新手',
@@ -139,11 +141,11 @@ export const validateEmail = (email) => {
 }
 
 export const validatePassword = (password) => {
-  return password && password.length >= 6 && password.length <= 32
+  return !!(password && password.length >= 6 && password.length <= 32)
 }
 
 export const validateNickname = (nickname) => {
-  return nickname && nickname.length >= 2 && nickname.length <= 20
+  return !!(nickname && nickname.length >= 2 && nickname.length <= 20)
 }
 
 export const validateRequired = (value, fieldName) => {
@@ -226,33 +228,14 @@ export class RequestError extends Error {
 }
 
 export const isLoggedIn = () => {
-  return !!localStorage.getItem('token')
+  return !!localStorage.getItem(STORAGE_KEYS.TOKEN)
 }
 
-// 开发/预览模式：用演示账号静默登录，自动获取有效 JWT。
-// 解决预览环境无登录态、或残留项目内 mock 假 token（如 ChatRoom 写入的
-// 'mock-token-100001'）导致钱包等真实后端接口返回 401「登录失效」的问题。
-// 仅 import.meta.env.DEV 为 true 时启用，生产构建不受影响。
-const DEV_DEMO_MOBILE = '13800138001'
-export const devAutoLogin = async () => {
-  try {
-    const res = await fetch('/api/user/login-mobile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mobile: DEV_DEMO_MOBILE, code: '000000' })
-    })
-    const text = await res.text()
-    if (!text) return false
-    const result = JSON.parse(text)
-    const token = result?.data?.accessToken || result?.data?.token
-    if (token) {
-      localStorage.setItem('token', token)
-      return true
-    }
-    return false
-  } catch (e) {
-    return false
-  }
+// 强制以 UTF-8 解码响应体，防止后端 Content-Type 缺失 charset 导致中文乱码
+const readResponseText = async (response) => {
+  const buf = await response.arrayBuffer()
+  const decoder = new TextDecoder('utf-8')
+  return decoder.decode(buf)
 }
 
 export const checkLoginStatus = (requireLogin = false) => {
@@ -284,7 +267,7 @@ const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout =
     signal: controller.signal
   }
 
-  const token = localStorage.getItem('token')
+  const token = localStorage.getItem(STORAGE_KEYS.TOKEN)
   if (token) {
     requestOptions.headers['Authorization'] = `Bearer ${token}`
   }
@@ -303,19 +286,11 @@ const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout =
     clearTimeout(timeoutId)
 
     if (response.status === 401) {
-      // 开发/预览模式：无效或残留假 token 导致 401 时，自动用演示账号登录并重试一次，
-      // 让钱包等真实后端页面在预览中无需手动登录即可查看。
-      if (import.meta.env.DEV && !options.skipAuthRetry && attempt === 0 && url.includes('/api/')) {
-        const ok = await devAutoLogin()
-        if (ok) {
-          return doRequest(url, method, data, headers, timeout, { ...options, skipAuthRetry: true }, 1)
-        }
-      }
-      // 仅对“需要登录”的请求才强制跳转登录页，公开页面（如首页）应交给调用方优雅处理
+      // 仅对"需要登录"的请求才强制跳转登录页，公开页面（如首页）应交给调用方优雅处理
       if (requireLogin && !isRedirecting) {
         isRedirecting = true
-        localStorage.removeItem('token')
-        localStorage.removeItem('pinia-app-state')
+        localStorage.removeItem(STORAGE_KEYS.TOKEN)
+        localStorage.removeItem(STORAGE_KEYS.PINIA_STATE)
         setTimeout(() => {
           window.location.href = '/login'
         }, 100)
@@ -324,7 +299,20 @@ const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout =
     }
 
     if (response.status === 500) {
-      throw new RequestError('服务器繁忙，请稍后重试', -1, 500)
+      // 尝试读取后端返回的实际错误信息，提供更有意义的提示
+      let errorMessage = '服务器繁忙，请稍后重试'
+      try {
+        const text = await readResponseText(response)
+        if (text) {
+          const result = JSON.parse(text)
+          if (result.message) {
+            errorMessage = result.message
+          }
+        }
+      } catch (e) {
+        // 读取失败时使用默认消息
+      }
+      throw new RequestError(errorMessage, -1, 500)
     }
 
     if (response.status === 404) {
@@ -332,7 +320,7 @@ const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout =
     }
 
     if (response.status === 422) {
-      const text = await response.text()
+      const text = await readResponseText(response)
       let fieldErrors = {}
       let errorMessage = '请求参数验证失败'
       try {
@@ -350,12 +338,17 @@ const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout =
       throw new RequestError(`请求失败 (${response.status})`, -1, response.status)
     }
 
-    const text = await response.text()
+    const text = await readResponseText(response)
     if (!text) {
       return { code: 200, data: null, message: 'success' }
     }
 
     const result = JSON.parse(text)
+
+    // 防御：后端可能返回 null/非对象内容，避免 "Cannot read properties of null (reading 'code')"
+    if (!result || typeof result !== 'object') {
+      return { code: 200, data: null, message: 'success' }
+    }
 
     if (result.code !== 0 && result.code !== 200) {
       throw new RequestError(result.message || '请求失败', result.code, response.status)

@@ -1,4 +1,4 @@
-db = db.getSiblingDB('duoke');
+db = db.getSiblingDB('eudazi');
 
 // 聊天消息数据
 db.chat_messages.insertMany([

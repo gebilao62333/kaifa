@@ -55,13 +55,20 @@
               :key="index"
               class="evidence-item"
             >
-              <img :src="img" class="evidence-img" />
+              <img :src="img.url" class="evidence-img" />
               <span class="evidence-remove" @click="removeEvidence(index)">✕</span>
             </div>
-            <div class="evidence-add" @click="addEvidence" v-if="evidenceImages.length < 3">
-              <span class="add-icon">+</span>
-              <span class="add-text">添加图片</span>
+            <div class="evidence-add" @click="triggerFileInput" v-if="evidenceImages.length < 3">
+              <span class="add-icon">{{ uploading ? '…' : '+' }}</span>
+              <span class="add-text">{{ uploading ? '上传中' : '添加图片' }}</span>
             </div>
+            <input
+              ref="fileInputRef"
+              type="file"
+              accept="image/*"
+              class="evidence-file-input"
+              @change="handleFileChange"
+            />
           </div>
         </div>
       </div>
@@ -87,25 +94,36 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import reportService from '../../services/reportService'
+import { uploadImage } from '../../services/uploadService'
+import { toast } from '../../composables/useToast'
 
 const props = defineProps({
   visible: {
     type: Boolean,
     default: false
   },
-  reportTarget: {
-    type: Object,
-    default: () => ({})
+  // 与后端 xn_report.target_type 一致：1=用户 2=动态 3=评论
+  targetType: {
+    type: Number,
+    required: true
+  },
+  targetId: {
+    type: [Number, String],
+    required: true
   }
 })
 
-const emit = defineEmits(['close', 'submit'])
+const emit = defineEmits(['close', 'submitted'])
 
+const fileInputRef = ref(null)
 const selectedType = ref('')
 const selectedReason = ref('')
 const description = ref('')
 const evidenceImages = ref([])
 const showSuccess = ref(false)
+const submitting = ref(false)
+const uploading = ref(false)
 
 const reportTypes = [
   { id: 'spam', name: '垃圾广告' },
@@ -128,7 +146,7 @@ const reasons = [
 ]
 
 const canSubmit = computed(() => {
-  return selectedType.value && selectedReason.value
+  return !!selectedType.value && !!selectedReason.value && !!props.targetId && !submitting.value
 })
 
 watch(() => props.visible, (newVal) => {
@@ -142,43 +160,71 @@ const resetForm = () => {
   selectedReason.value = ''
   description.value = ''
   evidenceImages.value = []
+  showSuccess.value = false
+  submitting.value = false
 }
 
 const close = () => {
   emit('close')
 }
 
-const addEvidence = () => {
-  if (evidenceImages.value.length >= 3) return
-  const mockImages = [
-    '',
-    '',
-    ''
-  ]
-  const randomImg = mockImages[Math.floor(Math.random() * mockImages.length)]
-  evidenceImages.value.push(randomImg)
+const triggerFileInput = () => {
+  fileInputRef.value?.click()
+}
+
+const handleFileChange = async (event) => {
+  const files = Array.from(event.target.files || [])
+  event.target.value = ''
+  if (!files.length) return
+
+  uploading.value = true
+  try {
+    for (const file of files) {
+      if (evidenceImages.value.length >= 3) break
+      const res = await uploadImage(file)
+      const url = res?.data?.url
+      if (url) evidenceImages.value.push({ url })
+    }
+  } catch (err) {
+    toast.error(err.message || '图片上传失败')
+  } finally {
+    uploading.value = false
+  }
 }
 
 const removeEvidence = (index) => {
   evidenceImages.value.splice(index, 1)
 }
 
-const submitReport = () => {
+// 后端 xn_report 仅有 reason 字段（255 字符），将类型/原因/补充说明合并写入
+const buildReason = () => {
+  const typeName = reportTypes.find(t => t.id === selectedType.value)?.name || ''
+  const reasonName = reasons.find(r => r.id === selectedReason.value)?.name || ''
+  let reason = `${typeName}：${reasonName}`
+  if (description.value.trim()) {
+    reason += `（${description.value.trim()}）`
+  }
+  return reason.slice(0, 255)
+}
+
+const submitReport = async () => {
   if (!canSubmit.value) return
 
-  const reportData = {
-    type: selectedType.value,
-    reason: selectedReason.value,
-    description: description.value,
-    evidence: evidenceImages.value,
-    target: props.reportTarget,
-    timestamp: new Date().toISOString()
+  submitting.value = true
+  try {
+    await reportService.submitReport({
+      targetType: props.targetType,
+      targetId: Number(props.targetId),
+      reason: buildReason(),
+      images: evidenceImages.value.map(img => img.url)
+    })
+    showSuccess.value = true
+    emit('submitted')
+  } catch (err) {
+    toast.error(err.message || '举报提交失败，请稍后重试')
+  } finally {
+    submitting.value = false
   }
-
-  console.log('提交举报:', reportData)
-  emit('submit', reportData)
-
-  showSuccess.value = true
 }
 
 const confirmSuccess = () => {
@@ -405,6 +451,10 @@ const confirmSuccess = () => {
 
 .evidence-add:hover {
   border-color: var(--color-primary);
+}
+
+.evidence-file-input {
+  display: none;
 }
 
 .add-icon {

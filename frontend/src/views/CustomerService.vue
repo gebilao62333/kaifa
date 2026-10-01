@@ -71,6 +71,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
+import { DEFAULT_AVATAR } from '../common/constants'
 
 const router = useRouter()
 
@@ -79,7 +80,7 @@ const agentList = ref([
     id: 1,
     userId: 1001,
     name: '小雪',
-    avatar: '',
+    avatar: DEFAULT_AVATAR,
     online: true,
     role: 'senior'
   },
@@ -87,7 +88,7 @@ const agentList = ref([
     id: 2,
     userId: 1002,
     name: '阿杰',
-    avatar: '',
+    avatar: DEFAULT_AVATAR,
     online: true,
     role: 'normal'
   },
@@ -95,7 +96,7 @@ const agentList = ref([
     id: 3,
     userId: 1003,
     name: '小美',
-    avatar: '',
+    avatar: DEFAULT_AVATAR,
     online: false,
     role: 'normal'
   },
@@ -103,7 +104,7 @@ const agentList = ref([
     id: 4,
     userId: 1004,
     name: '大飞',
-    avatar: '',
+    avatar: DEFAULT_AVATAR,
     online: true,
     role: 'senior'
   },
@@ -111,7 +112,7 @@ const agentList = ref([
     id: 5,
     userId: 1005,
     name: '小鹿',
-    avatar: '',
+    avatar: DEFAULT_AVATAR,
     online: false,
     role: 'normal'
   }

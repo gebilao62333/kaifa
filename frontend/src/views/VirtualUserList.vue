@@ -2,7 +2,7 @@
   <PageLayout>
     <template #nav>
       <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">AI 陪聊</span>
+      <span class="nav-title">虚拟人</span>
       <span class="placeholder"></span>
     </template>
 
@@ -10,7 +10,7 @@
       <input
         v-model="searchKeyword"
         class="search-input"
-        placeholder="搜索AI助手..."
+        placeholder="搜索虚拟人..."
         @input="handleSearch"
       />
     </div>
@@ -36,18 +36,21 @@
       >
         <div class="avatar-wrap">
           <img class="avatar" :src="user.avatar || defaultAvatar" alt="" />
-          <div class="online-dot" :class="{ online: user.isOnline }"></div>
+          <div class="online-dot" :class="{ online: user.online_status === 1 }"></div>
         </div>
         <div class="user-info">
           <div class="name-row">
-            <span class="nickname">{{ user.nickname }}</span>
-            <span class="role-tag" :class="user.role">{{ getRoleName(user.role) }}</span>
+            <span class="nickname">{{ user.name }}</span>
+            <span class="gender-tag" v-if="user.gender">{{ genderText(user.gender) }}</span>
+            <span class="age-tag" v-if="user.age">{{ user.age }}岁</span>
+            <span class="recommend-tag" v-if="user.is_recommend === 1">推荐</span>
           </div>
-          <div class="style-row" v-if="user.dialogueStyle">
-            <span class="style-tag">{{ getStyleName(user.dialogueStyle) }}</span>
+          <div class="region-row" v-if="user.region">
+            <span class="region-text">📍 {{ user.region }}</span>
+            <span class="price-text" v-if="user.price_per_hour">¥{{ user.price_per_hour }}/小时</span>
           </div>
-          <div class="desc-row" v-if="user.description">
-            <span class="desc-text">{{ user.description }}</span>
+          <div class="desc-row" v-if="user.intro">
+            <span class="desc-text">{{ user.intro }}</span>
           </div>
         </div>
         <div class="action-btn">
@@ -61,7 +64,7 @@
 
       <div class="empty-state" v-if="!loading && filteredUsers.length === 0">
         <div class="empty-icon">🤖</div>
-        <div class="empty-text">暂无AI助手</div>
+        <div class="empty-text">暂无虚拟人</div>
         <div class="empty-hint">稍后再来看看吧</div>
       </div>
     </div>
@@ -85,45 +88,29 @@ const defaultAvatar = genAvatar('default')
 const categoryTabs = [
   { key: 'all', label: '全部', icon: '🤖' },
   { key: 'online', label: '在线', icon: '🟢' },
-  { key: 'companion', label: '陪玩', icon: '🎮' },
-  { key: 'assistant', label: '助手', icon: '💼' },
-  { key: 'guide', label: '向导', icon: '🧭' }
+  { key: 'recommend', label: '推荐', icon: '⭐' }
 ]
 
-const getRoleName = (role) => {
-  const roleMap = {
-    'default': '默认',
-    'companion': '陪玩师',
-    'guide': '向导',
-    'assistant': '助手'
-  }
-  return roleMap[role] || '默认'
-}
-
-const getStyleName = (style) => {
-  const styleMap = {
-    'friendly': '友好亲切',
-    'professional': '专业严谨',
-    'humorous': '幽默风趣',
-    'cute': '可爱俏皮'
-  }
-  return styleMap[style] || '友好亲切'
+const genderText = (gender) => {
+  const genderMap = { 0: '保密', 1: '男', 2: '女' }
+  return genderMap[gender] || '保密'
 }
 
 const filteredUsers = computed(() => {
   let users = allUsers.value
 
   if (activeTab.value === 'online') {
-    users = users.filter(u => u.isOnline)
-  } else if (activeTab.value !== 'all') {
-    users = users.filter(u => u.role === activeTab.value)
+    users = users.filter(u => u.online_status === 1)
+  } else if (activeTab.value === 'recommend') {
+    users = users.filter(u => u.is_recommend === 1)
   }
 
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase()
     users = users.filter(u =>
-      u.nickname.toLowerCase().includes(keyword) ||
-      (u.description && u.description.toLowerCase().includes(keyword))
+      (u.name && u.name.toLowerCase().includes(keyword)) ||
+      (u.intro && u.intro.toLowerCase().includes(keyword)) ||
+      (u.region && u.region.toLowerCase().includes(keyword))
     )
   }
 
@@ -133,7 +120,7 @@ const filteredUsers = computed(() => {
 const loadUsers = async () => {
   loading.value = true
   try {
-    const res = await virtualUserService.getVirtualUsers()
+    const res = await virtualUserService.getVirtualUsers({ pageSize: 100, status: 1 })
     if (res.data && res.data.list) {
       allUsers.value = res.data.list
     } else if (Array.isArray(res.data)) {
@@ -297,36 +284,46 @@ onMounted(() => {
   color: #333;
 }
 
-.role-tag {
+.gender-tag {
   font-size: 10px;
   padding: 2px 6px;
   border-radius: 4px;
-  background: #e8f5e9;
-  color: #4caf50;
-}
-
-.role-tag.companion {
   background: #e3f2fd;
   color: #2196f3;
 }
 
-.role-tag.guide {
+.age-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #f0f0f0;
+  color: #666;
+}
+
+.recommend-tag {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 4px;
   background: #fff3e0;
   color: #ff9800;
 }
 
-.role-tag.assistant {
-  background: #f3e5f5;
-  color: #9c27b0;
-}
-
-.style-row {
+.region-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 4px;
 }
 
-.style-tag {
+.region-text {
   font-size: 12px;
   color: #666;
+}
+
+.price-text {
+  font-size: 12px;
+  color: #e91e63;
+  font-weight: 500;
 }
 
 .desc-row {

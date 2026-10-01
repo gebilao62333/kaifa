@@ -328,7 +328,7 @@ CREATE TABLE IF NOT EXISTS `xn_call_billing` (
   `call_id` BIGINT NOT NULL COMMENT '通话记录ID',
   `caller_id` BIGINT NOT NULL,
   `callee_id` BIGINT NOT NULL,
-  `duration` INT DEFAULT 0 COMMENT '计费时长秒`,
+  `duration` INT DEFAULT 0 COMMENT '计费时长秒',
   `rate` DECIMAL(10, 2) DEFAULT 0 COMMENT '费率',
   `amount` DECIMAL(10, 2) DEFAULT 0 COMMENT '费用',
   `billing_type` TINYINT DEFAULT 1 COMMENT '1计时 2计次',

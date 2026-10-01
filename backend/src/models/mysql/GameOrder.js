@@ -18,19 +18,34 @@ const GameOrder = sequelize.define('xn_game_order', {
   },
   target_user_id: {
     type: DataTypes.BIGINT,
-    allowNull: false
+    allowNull: false,
+    field: 'target_user_id'
+  },
+  companion_id: {
+    type: DataTypes.BIGINT,
+    allowNull: true,
+    defaultValue: 0
+  },
+  companion_name: {
+    type: DataTypes.STRING(50),
+    allowNull: true
+  },
+  duration: {
+    type: DataTypes.INTEGER,
+    defaultValue: 1
+  },
+  amount: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+    defaultValue: 0
   },
   game_id: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.BIGINT,
     allowNull: false
   },
   game_name: {
     type: DataTypes.STRING(50),
     allowNull: true
-  },
-  type: {
-    type: DataTypes.TINYINT(1),
-    defaultValue: 0
   },
   price: {
     type: DataTypes.DECIMAL(10, 2),
@@ -38,63 +53,94 @@ const GameOrder = sequelize.define('xn_game_order', {
   },
   num: {
     type: DataTypes.INTEGER,
-    defaultValue: 1
+    defaultValue: 1,
+    field: 'num'
   },
   total_price: {
     type: DataTypes.DECIMAL(10, 2),
-    allowNull: false
+    allowNull: false,
+    field: 'total_price'
   },
   status: {
     type: DataTypes.TINYINT(1),
-    defaultValue: 0
+    defaultValue: 0,
+    field: 'status'
   },
-  status_zong: {
-    type: DataTypes.TINYINT(1),
-    defaultValue: 0
-  },
-  user_time: {
-    type: DataTypes.INTEGER(10),
-    defaultValue: 0
-  },
-  add_time: {
-    type: DataTypes.INTEGER(10),
-    defaultValue: 0
-  },
-  end_time: {
-    type: DataTypes.INTEGER(10),
-    defaultValue: 0
+  remark: {
+    type: DataTypes.TEXT,
+    allowNull: true
   },
   create_time: {
     type: DataTypes.INTEGER(10),
     defaultValue: 0
   },
-  pingjia_status: {
-    type: DataTypes.TINYINT(1),
-    defaultValue: 0
+  add_time: {
+    type: DataTypes.INTEGER(10),
+    defaultValue: 0,
+    field: 'add_time'
   },
-  pingjia_time: {
+  start_time: {
+    type: DataTypes.INTEGER(10),
+    allowNull: true
+  },
+  end_time: {
     type: DataTypes.INTEGER(10),
     defaultValue: 0
   },
+  user_time: {
+    type: DataTypes.INTEGER(10),
+    defaultValue: 0,
+    field: 'user_time'
+  },
+  star: {
+    type: DataTypes.DECIMAL(2, 1),
+    allowNull: true,
+    field: 'star'
+  },
+  content: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    field: 'content'
+  },
+  status_zong: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0,
+    field: 'status_zong'
+  },
+  pingjia_status: {
+    type: DataTypes.TINYINT(1),
+    defaultValue: 0,
+    field: 'pingjia_status'
+  },
+  pingjia_time: {
+    type: DataTypes.INTEGER(10),
+    defaultValue: 0,
+    field: 'pingjia_time'
+  },
   games_server_id: {
     type: DataTypes.INTEGER,
-    defaultValue: 0
+    defaultValue: 0,
+    field: 'games_server_id'
   },
   games_server_name: {
     type: DataTypes.STRING(50),
-    allowNull: true
+    allowNull: true,
+    field: 'games_server_name'
   },
   game_role_id: {
     type: DataTypes.STRING(50),
-    allowNull: true
+    allowNull: true,
+    field: 'game_role_id'
   },
   game_role_name: {
     type: DataTypes.STRING(50),
-    allowNull: true
+    allowNull: true,
+    field: 'game_role_name'
   },
   voice_url: {
     type: DataTypes.STRING(255),
-    allowNull: true
+    allowNull: true,
+    field: 'voice_url'
   }
 }, {
   tableName: 'xn_game_order',

@@ -218,24 +218,22 @@ const followUser = async (userId, targetUserId) => {
   }
   
   const existingFollow = await UserFollow.findOne({
-    where: { user_id: userId, target_user_id: targetUserId }
+    where: { follower_id: userId, following_id: targetUserId }
   });
   
   if (existingFollow) {
     await existingFollow.destroy();
     await User.decrement('fans_num', { where: { id: targetUserId } });
-    await User.decrement('fans_num', { where: { id: userId } });
     return { isFollow: false };
   }
   
   await UserFollow.create({
-    user_id: userId,
-    target_user_id: targetUserId,
+    follower_id: userId,
+    following_id: targetUserId,
     create_time: getTimestamp()
   });
   
   await User.increment('fans_num', { where: { id: targetUserId } });
-  await User.increment('fans_num', { where: { id: userId } });
   
   return { isFollow: true };
 };
@@ -251,7 +249,7 @@ const getUserInfo = async (userId, targetUserId) => {
   
   if (userId) {
     const follow = await UserFollow.findOne({
-      where: { user_id: userId, target_user_id: targetUserId }
+      where: { follower_id: userId, following_id: targetUserId }
     });
     isFollow = !!follow;
   }

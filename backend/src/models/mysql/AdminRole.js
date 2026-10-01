@@ -13,6 +13,17 @@ const AdminRole = sequelize.define('xn_admin_role', {
     allowNull: false,
     comment: '角色名称'
   },
+  username: {
+    type: DataTypes.STRING(60),
+    allowNull: true,
+    unique: true,
+    comment: '角色登录账号（角色账号）'
+  },
+  password: {
+    type: DataTypes.STRING(255),
+    allowNull: true,
+    comment: '角色登录密码（bcrypt）'
+  },
   description: {
     type: DataTypes.STRING(255),
     allowNull: true,

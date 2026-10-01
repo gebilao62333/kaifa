@@ -1,116 +1,107 @@
 const { VirtualUser, VirtualChatHistory, VirtualUserTag, VirtualUserTagRelation } = require('../models');
-const { getTimestamp, generateUUID, parseQuery, formatPaginatedResponse } = require('../utils/helper');
+const { getTimestamp, parseQuery, formatPaginatedResponse } = require('../utils/helper');
 const logger = require('../utils/logger');
+const config = require('../config');
+const sequelize = require('../config/mysql');
+const llmService = require('./llmService');
 
-let mockVirtualUsers = [
-  { id: 1, username: 'xiaoxin', nickname: '小新', avatar: '', role: 'companion', personality: '活泼开朗，喜欢游戏', dialogueStyle: 'friendly', description: '游戏陪玩师，擅长各种游戏', modelConfig: '{}', status: 1, isOnline: 1, contextExpireTime: 3600, maxContextLength: 50, permissions: '[]', createTime: Date.now() - 86400000, updateTime: Date.now() - 86400000 },
-  { id: 2, username: 'xiaomei', nickname: '小美', avatar: '', role: 'guide', personality: '温柔体贴，耐心细致', dialogueStyle: 'professional', description: '平台向导，熟悉平台功能', modelConfig: '{}', status: 1, isOnline: 1, contextExpireTime: 3600, maxContextLength: 50, permissions: '[]', createTime: Date.now() - 172800000, updateTime: Date.now() - 172800000 },
-  { id: 3, username: 'xiaolong', nickname: '小龙', avatar: '', role: 'assistant', personality: '幽默风趣，热爱运动', dialogueStyle: 'humorous', description: 'AI助手，提供各种服务', modelConfig: '{}', status: 1, isOnline: 0, contextExpireTime: 3600, maxContextLength: 50, permissions: '[]', createTime: Date.now() - 259200000, updateTime: Date.now() - 259200000 },
-  { id: 4, username: 'xiaoxue', nickname: '小雪', avatar: '', role: 'default', personality: '可爱甜美，喜欢聊天', dialogueStyle: 'cute', description: '虚拟好友，陪你聊天', modelConfig: '{}', status: 0, isOnline: 0, contextExpireTime: 3600, maxContextLength: 50, permissions: '[]', createTime: Date.now() - 345600000, updateTime: Date.now() - 345600000 }
-];
+const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-let nextMockId = 5;
+// 事务辅助：真实数据库模式下使用 Sequelize 事务；Mock 模式下无事务能力，直接执行
+const withTransaction = async (fn) => {
+  if (sequelize && typeof sequelize.transaction === 'function') {
+    return sequelize.transaction(fn);
+  }
+  return fn({});
+};
 
-const AI_MODELS = {
-  OPENAI: 'openai',
-  DOUBAO: 'doubao',
-  QWEN: 'qwen',
-  CLAUDE: 'claude',
-  DEEPSEEK: 'deepseek'
+const validateRandomOnline = (data) => {
+  const start = data.online_time_start;
+  const end = data.online_time_end;
+  if (start !== undefined && start !== '' && !TIME_PATTERN.test(start)) {
+    throw new Error('在线时段开始时间格式应为 HH:mm，例如 09:00');
+  }
+  if (end !== undefined && end !== '' && !TIME_PATTERN.test(end)) {
+    throw new Error('在线时段结束时间格式应为 HH:mm，例如 23:00');
+  }
+  const min = data.online_duration_min;
+  const max = data.online_duration_max;
+  if (min !== undefined && (!Number.isInteger(Number(min)) || Number(min) < 1)) {
+    throw new Error('随机在线最短时长应为不小于 1 的整数（分钟）');
+  }
+  if (max !== undefined && (!Number.isInteger(Number(max)) || Number(max) < 1)) {
+    throw new Error('随机在线最长时长应为不小于 1 的整数（分钟）');
+  }
+  if (min !== undefined && max !== undefined && Number(min) > Number(max)) {
+    throw new Error('随机在线最短时长不能大于最长时长');
+  }
 };
 
 const createVirtualUser = async (data) => {
   const {
-    username,
-    nickname,
+    name,
     avatar,
-    role = 'default',
-    personality,
-    dialogueStyle = 'friendly',
-    description,
-    modelConfig = {},
-    contextExpireTime = 3600,
-    maxContextLength = 50,
-    permissions = [],
+    gender = 0,
+    age = 0,
+    region,
+    tags,
+    intro,
+    price_per_hour = 0,
+    online_status = 0,
+    random_online = 0,
+    online_time_start = '09:00',
+    online_time_end = '23:00',
+    online_duration_min = 30,
+    online_duration_max = 90,
+    is_recommend = 0,
+    status = 1,
     tagIds = []
   } = data;
 
-  if (!username || !nickname) {
-    throw new Error('用户名和昵称不能为空');
+  if (!name) {
+    throw new Error('姓名不能为空');
   }
 
-  let existing = null;
-  try {
-    existing = await VirtualUser.findOne({ where: { username } });
-    if (existing) {
-      throw new Error('用户名已存在');
-    }
+  validateRandomOnline(data);
 
+  try {
     const virtualUser = await VirtualUser.create({
-      username,
-      nickname,
+      name,
       avatar,
-      role,
-      personality,
-      dialogueStyle,
-      description,
-      modelConfig: typeof modelConfig === 'string' ? modelConfig : JSON.stringify(modelConfig),
-      status: 1,
-      isOnline: 1,
-      contextExpireTime,
-      maxContextLength,
-      permissions: typeof permissions === 'string' ? permissions : JSON.stringify(permissions),
-      createTime: getTimestamp(),
-      updateTime: getTimestamp()
+      gender,
+      age,
+      region,
+      tags: typeof tags === 'object' && tags !== null ? JSON.stringify(tags) : tags,
+      intro,
+      price_per_hour,
+      online_status,
+      random_online,
+      online_time_start,
+      online_time_end,
+      online_duration_min,
+      online_duration_max,
+      online_until: 0,
+      is_recommend,
+      status,
+      create_time: getTimestamp(),
+      update_time: getTimestamp()
     });
 
     if (tagIds && tagIds.length > 0) {
-      for (let i = 0; i < tagIds.length; i++) {
+      for (const tagId of tagIds) {
         await VirtualUserTagRelation.create({
-          virtualUserId: virtualUser.id,
-          tagId: tagIds[i],
-          isPrimary: i === 0 ? 1 : 0,
-          customConfig: '{}',
-          createTime: getTimestamp()
+          virtual_user_id: virtualUser.id,
+          tag_id: tagId,
+          create_time: getTimestamp()
         });
-        await VirtualUserTag.increment('usageCount', { where: { id: tagIds[i] } });
       }
     }
 
-    logger.info(`虚拟用户创建成功: ${username} (ID: ${virtualUser.id})`);
+    logger.info(`虚拟用户创建成功: ${name} (ID: ${virtualUser.id})`);
     return getVirtualUserById(virtualUser.id);
   } catch (dbError) {
-    console.warn('虚拟用户数据库操作失败，使用Mock数据:', dbError.message);
-    
-    if (existing || mockVirtualUsers.find(u => u.username === username)) {
-      throw new Error('用户名已存在');
-    }
-
-    const newUser = {
-      id: nextMockId++,
-      username,
-      nickname,
-      avatar: avatar || '',
-      role,
-      personality,
-      dialogueStyle,
-      description,
-      modelConfig: typeof modelConfig === 'string' ? modelConfig : JSON.stringify(modelConfig),
-      status: 1,
-      isOnline: 1,
-      contextExpireTime,
-      maxContextLength,
-      permissions: typeof permissions === 'string' ? permissions : JSON.stringify(permissions),
-      createTime: getTimestamp(),
-      updateTime: getTimestamp()
-    };
-
-    mockVirtualUsers.push(newUser);
-    logger.info(`虚拟用户创建成功(Mock): ${username} (ID: ${newUser.id})`);
-    
-    const result = formatVirtualUser(newUser);
-    result.tags = [];
-    return result;
+    logger.error('虚拟用户数据库操作失败:', dbError.message);
+    throw dbError;
   }
 };
 
@@ -124,75 +115,96 @@ const getVirtualUserById = async (id) => {
     result.tags = await getUserTagDetails(user.id);
     return result;
   } catch (dbError) {
-    console.warn('虚拟用户数据库查询失败，使用Mock数据:', dbError.message);
-    const user = mockVirtualUsers.find(u => u.id === parseInt(id));
-    if (!user) {
-      throw new Error('虚拟用户不存在');
-    }
-    const result = formatVirtualUser(user);
-    result.tags = [];
-    return result;
+    logger.error('虚拟用户数据库查询失败:', dbError.message);
+    throw dbError;
   }
-};
-
-const getVirtualUserByUsername = async (username) => {
-  const user = await VirtualUser.findOne({ where: { username } });
-  if (!user) {
-    throw new Error('虚拟用户不存在');
-  }
-  const result = formatVirtualUser(user);
-  result.tags = await getUserTagDetails(user.id);
-  return result;
 };
 
 const getUserTagDetails = async (virtualUserId) => {
   const relations = await VirtualUserTagRelation.findAll({
-    where: { virtualUserId },
-    order: [['isPrimary', 'DESC'], ['createTime', 'DESC']]
+    where: { virtual_user_id: virtualUserId },
+    order: [['create_time', 'DESC']]
   });
 
   const tags = [];
   for (const relation of relations) {
-    const tag = await VirtualUserTag.findByPk(relation.tagId);
+    const tag = await VirtualUserTag.findByPk(relation.tag_id);
     if (tag && tag.status === 1) {
       tags.push({
         id: tag.id,
         name: tag.name,
-        code: tag.code,
-        description: tag.description,
-        category: tag.category,
         icon: tag.icon,
-        color: tag.color,
-        personality: tag.personality ? JSON.parse(tag.personality) : [],
-        expertise: tag.expertise ? JSON.parse(tag.expertise) : [],
-        communicationStyle: tag.communicationStyle,
-        knowledgeScope: tag.knowledgeScope ? JSON.parse(tag.knowledgeScope) : [],
-        responseStrategy: tag.responseStrategy ? JSON.parse(tag.responseStrategy) : {},
-        promptTemplate: tag.promptTemplate,
-        temperature: parseFloat(tag.temperature),
-        maxTokens: tag.maxTokens,
-        isPrimary: relation.isPrimary === 1,
-        customConfig: relation.customConfig ? JSON.parse(relation.customConfig) : {}
+        sort_order: tag.sort_order,
+        status: tag.status
       });
     }
   }
   return tags;
 };
 
+// 批量查询多个虚拟用户的标签（2 次查询替代 N+1）
+const getBatchUserTagMap = async (userIds) => {
+  const map = {};
+  if (!userIds || userIds.length === 0) {
+    return map;
+  }
+  const Op = require('sequelize').Op;
+
+  const relations = await VirtualUserTagRelation.findAll({
+    where: { virtual_user_id: { [Op.in]: userIds } },
+    order: [['create_time', 'DESC']]
+  });
+  if (relations.length === 0) {
+    return map;
+  }
+
+  const tagIds = [...new Set(relations.map(r => r.tag_id))];
+  const tags = await VirtualUserTag.findAll({
+    where: { id: { [Op.in]: tagIds } }
+  });
+  const tagMap = new Map(tags.map(t => [t.id, t]));
+
+  for (const relation of relations) {
+    const tag = tagMap.get(relation.tag_id);
+    if (tag && tag.status === 1) {
+      if (!map[relation.virtual_user_id]) {
+        map[relation.virtual_user_id] = [];
+      }
+      map[relation.virtual_user_id].push({
+        id: tag.id,
+        name: tag.name,
+        icon: tag.icon,
+        sort_order: tag.sort_order,
+        status: tag.status
+      });
+    }
+  }
+  return map;
+};
+
 const getAllVirtualUsers = async (query) => {
   const { page, pageSize, offset, limit } = parseQuery(query);
   const where = {};
+  const Op = require('sequelize').Op;
 
-  if (query.status !== undefined) {
+  if (query.status !== undefined && query.status !== '') {
     where.status = parseInt(query.status);
   }
 
-  if (query.isOnline !== undefined) {
-    where.isOnline = parseInt(query.isOnline);
+  if (query.online_status !== undefined && query.online_status !== '') {
+    where.online_status = parseInt(query.online_status);
   }
 
-  if (query.role) {
-    where.role = query.role;
+  if (query.is_recommend !== undefined && query.is_recommend !== '') {
+    where.is_recommend = parseInt(query.is_recommend);
+  }
+
+  if (query.keyword) {
+    where[Op.or] = [
+      { name: { [Op.like]: `%${query.keyword}%` } },
+      { region: { [Op.like]: `%${query.keyword}%` } },
+      { intro: { [Op.like]: `%${query.keyword}%` } }
+    ];
   }
 
   let users = [];
@@ -203,40 +215,20 @@ const getAllVirtualUsers = async (query) => {
       where,
       offset,
       limit,
-      order: [['createTime', 'DESC']]
+      order: [['create_time', 'DESC']]
     });
 
+    // 批量查询标签，避免逐用户 N+1 查询
+    const tagMap = await getBatchUserTagMap(rows.map(u => u.id));
     for (const user of rows) {
       const result = formatVirtualUser(user);
-      result.tags = await getUserTagDetails(user.id);
+      result.tags = tagMap[user.id] || [];
       users.push(result);
     }
     total = count;
   } catch (dbError) {
-    console.warn('虚拟用户数据库查询失败，使用Mock数据:', dbError.message);
-    
-    let filteredUsers = [...mockVirtualUsers];
-    
-    if (query.status !== undefined) {
-      filteredUsers = filteredUsers.filter(u => u.status === parseInt(query.status));
-    }
-    
-    if (query.isOnline !== undefined) {
-      filteredUsers = filteredUsers.filter(u => u.isOnline === parseInt(query.isOnline));
-    }
-    
-    if (query.role) {
-      filteredUsers = filteredUsers.filter(u => u.role === query.role);
-    }
-    
-    filteredUsers.sort((a, b) => b.createTime - a.createTime);
-    
-    users = filteredUsers.slice(offset, offset + parseInt(limit)).map(u => {
-      const result = formatVirtualUser(u);
-      result.tags = [];
-      return result;
-    });
-    total = filteredUsers.length;
+    logger.error('虚拟用户数据库查询失败:', dbError.message);
+    throw dbError;
   }
 
   return formatPaginatedResponse(users, total, page, pageSize);
@@ -249,99 +241,52 @@ const updateVirtualUser = async (id, data) => {
       throw new Error('虚拟用户不存在');
     }
 
-    const updateData = { updateTime: getTimestamp() };
+    validateRandomOnline(data);
 
-    if (data.username !== undefined) {
-      const existing = await VirtualUser.findOne({
-        where: { username: data.username, id: { [VirtualUser.sequelize.Op.ne]: id } }
-      });
-      if (existing) {
-        throw new Error('用户名已存在');
-      }
-      updateData.username = data.username;
-    }
+    const updateData = { update_time: getTimestamp() };
 
-    if (data.nickname !== undefined) updateData.nickname = data.nickname;
+    if (data.name !== undefined) updateData.name = data.name;
     if (data.avatar !== undefined) updateData.avatar = data.avatar;
-    if (data.role !== undefined) updateData.role = data.role;
-    if (data.personality !== undefined) updateData.personality = data.personality;
-    if (data.dialogueStyle !== undefined) updateData.dialogueStyle = data.dialogueStyle;
-    if (data.description !== undefined) updateData.description = data.description;
-    if (data.modelConfig !== undefined) {
-      updateData.modelConfig = typeof data.modelConfig === 'string'
-        ? data.modelConfig
-        : JSON.stringify(data.modelConfig);
+    if (data.gender !== undefined) updateData.gender = data.gender;
+    if (data.age !== undefined) updateData.age = data.age;
+    if (data.region !== undefined) updateData.region = data.region;
+    if (data.tags !== undefined) {
+      updateData.tags = typeof data.tags === 'object' && data.tags !== null
+        ? JSON.stringify(data.tags)
+        : data.tags;
     }
-    if (data.status !== undefined) updateData.status = data.status;
-    if (data.isOnline !== undefined) updateData.isOnline = data.isOnline;
-    if (data.contextExpireTime !== undefined) updateData.contextExpireTime = data.contextExpireTime;
-    if (data.maxContextLength !== undefined) updateData.maxContextLength = data.maxContextLength;
-    if (data.permissions !== undefined) {
-      updateData.permissions = typeof data.permissions === 'string'
-        ? data.permissions
-        : JSON.stringify(data.permissions);
+    if (data.intro !== undefined) updateData.intro = data.intro;
+    if (data.price_per_hour !== undefined) updateData.price_per_hour = data.price_per_hour;
+    if (data.online_status !== undefined) updateData.online_status = data.online_status;
+    if (data.random_online !== undefined) updateData.random_online = data.random_online;
+    if (data.online_time_start !== undefined) updateData.online_time_start = data.online_time_start;
+    if (data.online_time_end !== undefined) updateData.online_time_end = data.online_time_end;
+    if (data.online_duration_min !== undefined) updateData.online_duration_min = data.online_duration_min;
+    if (data.online_duration_max !== undefined) updateData.online_duration_max = data.online_duration_max;
+
+    // 关闭随机在线时，清掉调度器遗留的到期时间，恢复手动管理
+    if (data.random_online === 0) {
+      updateData.online_until = 0;
     }
 
     await user.update(updateData);
 
     if (data.tagIds !== undefined) {
-      await VirtualUserTagRelation.destroy({ where: { virtualUserId: id } });
-      for (let i = 0; i < data.tagIds.length; i++) {
+      await VirtualUserTagRelation.destroy({ where: { virtual_user_id: id } });
+      for (const tagId of data.tagIds) {
         await VirtualUserTagRelation.create({
-          virtualUserId: id,
-          tagId: data.tagIds[i],
-          isPrimary: i === 0 ? 1 : 0,
-          customConfig: '{}',
-          createTime: getTimestamp()
+          virtual_user_id: id,
+          tag_id: tagId,
+          create_time: getTimestamp()
         });
-        await VirtualUserTag.increment('usageCount', { where: { id: data.tagIds[i] } });
       }
     }
 
-    logger.info(`虚拟用户更新成功: ${user.username} (ID: ${user.id})`);
+    logger.info(`虚拟用户更新成功: ${user.name} (ID: ${user.id})`);
     return getVirtualUserById(id);
   } catch (dbError) {
-    console.warn('虚拟用户数据库操作失败，使用Mock数据:', dbError.message);
-    
-    const userIndex = mockVirtualUsers.findIndex(u => u.id === parseInt(id));
-    if (userIndex === -1) {
-      throw new Error('虚拟用户不存在');
-    }
-
-    const user = mockVirtualUsers[userIndex];
-
-    if (data.username !== undefined) {
-      const existing = mockVirtualUsers.find(u => u.username === data.username && u.id !== parseInt(id));
-      if (existing) {
-        throw new Error('用户名已存在');
-      }
-      user.username = data.username;
-    }
-
-    if (data.nickname !== undefined) user.nickname = data.nickname;
-    if (data.avatar !== undefined) user.avatar = data.avatar;
-    if (data.role !== undefined) user.role = data.role;
-    if (data.personality !== undefined) user.personality = data.personality;
-    if (data.dialogueStyle !== undefined) user.dialogueStyle = data.dialogueStyle;
-    if (data.description !== undefined) user.description = data.description;
-    if (data.modelConfig !== undefined) {
-      user.modelConfig = typeof data.modelConfig === 'string' ? data.modelConfig : JSON.stringify(data.modelConfig);
-    }
-    if (data.status !== undefined) user.status = data.status;
-    if (data.isOnline !== undefined) user.isOnline = data.isOnline;
-    if (data.contextExpireTime !== undefined) user.contextExpireTime = data.contextExpireTime;
-    if (data.maxContextLength !== undefined) user.maxContextLength = data.maxContextLength;
-    if (data.permissions !== undefined) {
-      user.permissions = typeof data.permissions === 'string' ? data.permissions : JSON.stringify(data.permissions);
-    }
-
-    user.updateTime = getTimestamp();
-
-    logger.info(`虚拟用户更新成功(Mock): ${user.username} (ID: ${user.id})`);
-    
-    const result = formatVirtualUser(user);
-    result.tags = [];
-    return result;
+    logger.error('虚拟用户数据库操作失败:', dbError.message);
+    throw dbError;
   }
 };
 
@@ -352,456 +297,256 @@ const deleteVirtualUser = async (id) => {
       throw new Error('虚拟用户不存在');
     }
 
-    await VirtualChatHistory.destroy({ where: { virtualUserId: id } });
-    await VirtualUserTagRelation.destroy({ where: { virtualUserId: id } });
+    await VirtualChatHistory.destroy({ where: { virtual_user_id: id } });
+    await VirtualUserTagRelation.destroy({ where: { virtual_user_id: id } });
     await user.destroy();
 
-    logger.info(`虚拟用户删除成功: ${user.username} (ID: ${id})`);
+    logger.info(`虚拟用户删除成功: ${user.name} (ID: ${id})`);
     return true;
   } catch (dbError) {
-    console.warn('虚拟用户数据库操作失败，使用Mock数据:', dbError.message);
-    
-    const userIndex = mockVirtualUsers.findIndex(u => u.id === parseInt(id));
-    if (userIndex === -1) {
-      throw new Error('虚拟用户不存在');
-    }
-
-    const user = mockVirtualUsers[userIndex];
-    mockVirtualUsers.splice(userIndex, 1);
-
-    logger.info(`虚拟用户删除成功(Mock): ${user.username} (ID: ${id})`);
-    return true;
+    logger.error('虚拟用户数据库操作失败:', dbError.message);
+    throw dbError;
   }
 };
 
-const toggleOnlineStatus = async (id, isOnline) => {
+const toggleOnlineStatus = async (id, onlineStatus) => {
   try {
     const user = await VirtualUser.findByPk(id);
     if (!user) {
       throw new Error('虚拟用户不存在');
     }
 
-    await user.update({ isOnline: isOnline ? 1 : 0, updateTime: getTimestamp() });
-    logger.info(`虚拟用户状态更新: ${user.username} -> ${isOnline ? '在线' : '离线'}`);
+    await user.update({
+      online_status: onlineStatus ? 1 : 0,
+      update_time: getTimestamp()
+    });
+    logger.info(`虚拟用户状态更新: ${user.name} -> ${onlineStatus ? '在线' : '离线'}`);
     return getVirtualUserById(id);
   } catch (dbError) {
-    console.warn('虚拟用户数据库操作失败，使用Mock数据:', dbError.message);
-    
-    const userIndex = mockVirtualUsers.findIndex(u => u.id === parseInt(id));
-    if (userIndex === -1) {
-      throw new Error('虚拟用户不存在');
-    }
-
-    const user = mockVirtualUsers[userIndex];
-    user.isOnline = isOnline ? 1 : 0;
-    user.updateTime = getTimestamp();
-
-    logger.info(`虚拟用户状态更新(Mock): ${user.username} -> ${isOnline ? '在线' : '离线'}`);
-    
-    const result = formatVirtualUser(user);
-    result.tags = [];
-    return result;
+    logger.error('虚拟用户数据库操作失败:', dbError.message);
+    throw dbError;
   }
 };
 
-const generateResponse = async (virtualUserId, userId, message, contextId) => {
-  const virtualUser = await VirtualUser.findByPk(virtualUserId);
-  if (!virtualUser || virtualUser.status !== 1 || virtualUser.isOnline !== 1) {
-    throw new Error('虚拟用户不可用');
-  }
-
-  if (!contextId) {
-    contextId = generateUUID();
-  }
-
-  const modelConfig = JSON.parse(virtualUser.modelConfig || '{}');
-  const permissions = JSON.parse(virtualUser.permissions || '[]');
-
-  if (!hasPermission(virtualUser, 'chat')) {
-    throw new Error('虚拟用户无聊天权限');
-  }
-
-  const context = await getContext(virtualUserId, userId, contextId, virtualUser.maxContextLength);
-  const tags = await getUserTagDetails(virtualUserId);
-  const systemPrompt = buildSystemPrompt(virtualUser, tags);
-
-  const messages = [
-    { role: 'system', content: systemPrompt },
-    ...context.map(c => ({ role: c.role, content: c.message })),
-    { role: 'user', content: message }
-  ];
-
-  const effectiveConfig = applyTagConfig(modelConfig, tags);
-
-  let responseText;
-  try {
-    responseText = await callAI(effectiveConfig, messages);
-  } catch (error) {
-    logger.error(`AI调用失败: ${error.message}`);
-    responseText = '抱歉，我现在有点忙，稍后再和你聊吧~';
-  }
-
-  await saveMessage(virtualUserId, userId, message, 'user', contextId);
-  await saveMessage(virtualUserId, userId, responseText, 'assistant', contextId);
-
-  logger.info(`虚拟用户聊天: ${virtualUser.username} -> 用户${userId}`);
-
-  return {
-    response: responseText,
-    contextId,
-    virtualUser: await getVirtualUserById(virtualUserId)
-  };
-};
-
-const getContext = async (virtualUserId, userId, contextId, maxLength) => {
-  const messages = await VirtualChatHistory.findAll({
-    where: {
-      virtualUserId,
-      userId,
-      contextId
-    },
-    order: [['createTime', 'ASC']],
-    limit: maxLength
-  });
-
-  return messages;
-};
-
-const saveMessage = async (virtualUserId, userId, message, role, contextId) => {
-  await VirtualChatHistory.create({
-    virtualUserId,
-    userId,
-    message,
-    role,
-    contextId,
-    createTime: getTimestamp()
-  });
-};
-
-const buildSystemPrompt = (virtualUser, tags) => {
-  const roleMap = {
-    default: '一个友好的助手',
-    companion: '一位专业的游戏陪玩师',
-    guide: '一位贴心的向导',
-    assistant: '一位智能助手'
-  };
-
-  const styleMap = {
-    friendly: '友好亲切',
-    professional: '专业严谨',
-    humorous: '幽默风趣',
-    cute: '可爱俏皮'
-  };
-
-  let prompt = `你是${roleMap[virtualUser.role] || '一个AI助手'}，`;
-  prompt += `性格${styleMap[virtualUser.dialogueStyle] || '友好'}。`;
-
-  const primaryTag = tags.find(t => t.isPrimary) || tags[0];
-  if (primaryTag) {
-    if (primaryTag.promptTemplate) {
-      prompt = primaryTag.promptTemplate;
-    }
-
-    if (primaryTag.personality && primaryTag.personality.length > 0) {
-      prompt += `你的性格特点：${primaryTag.personality.join('、')}。`;
-    }
-
-    if (primaryTag.expertise && primaryTag.expertise.length > 0) {
-      prompt += `你的专业领域：${primaryTag.expertise.join('、')}。`;
-    }
-
-    if (primaryTag.knowledgeScope && primaryTag.knowledgeScope.length > 0) {
-      prompt += `你擅长的知识范围包括：${primaryTag.knowledgeScope.join('、')}。`;
-    }
-  }
-
-  if (virtualUser.personality) {
-    prompt += `你的性格特点：${virtualUser.personality}。`;
-  }
-
-  if (virtualUser.description) {
-    prompt += `角色描述：${virtualUser.description}。`;
-  }
-
-  if (primaryTag && primaryTag.communicationStyle) {
-    const styleDesc = styleMap[primaryTag.communicationStyle] || '友好亲切';
-    prompt += `沟通风格：${styleDesc}。`;
-  } else {
-    prompt += '请用自然、友好的语言回复用户的消息。';
-  }
-
-  return prompt;
-};
-
-const applyTagConfig = (modelConfig, tags) => {
-  const effectiveConfig = { ...modelConfig };
-
-  const primaryTag = tags.find(t => t.isPrimary) || tags[0];
-  if (primaryTag) {
-    if (primaryTag.customConfig && Object.keys(primaryTag.customConfig).length > 0) {
-      Object.assign(effectiveConfig, primaryTag.customConfig);
-    } else {
-      if (primaryTag.temperature) {
-        effectiveConfig.temperature = primaryTag.temperature;
-      }
-      if (primaryTag.maxTokens) {
-        effectiveConfig.maxTokens = primaryTag.maxTokens;
-      }
-    }
-
-    if (primaryTag.responseStrategy && primaryTag.responseStrategy.mode) {
-      effectiveConfig.responseMode = primaryTag.responseStrategy.mode;
-    }
-  }
-
-  return effectiveConfig;
-};
-
-const callAI = async (modelConfig, messages) => {
-  const modelType = modelConfig.type || AI_MODELS.OPENAI;
-
-  switch (modelType) {
-    case AI_MODELS.OPENAI:
-      return await callOpenAI(modelConfig, messages);
-    case AI_MODELS.DOUBAO:
-      return await callDoubao(modelConfig, messages);
-    case AI_MODELS.QWEN:
-      return await callQwen(modelConfig, messages);
-    case AI_MODELS.CLAUDE:
-      return await callClaude(modelConfig, messages);
-    case AI_MODELS.DEEPSEEK:
-      return await callDeepSeek(modelConfig, messages);
-    default:
-      return await callMockAI(messages);
-  }
-};
-
-const callOpenAI = async (config, messages) => {
-  const { apiKey, model = 'gpt-3.5-turbo', apiBase } = config;
-
-  if (!apiKey) {
-    return await callMockAI(messages);
-  }
-
-  const response = await fetch(`${apiBase || 'https://api.openai.com'}/v1/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: config.temperature || 0.7,
-      max_tokens: config.maxTokens || 1024
-    })
-  });
-
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || '未获取到响应';
-};
-
-const callDoubao = async (config, messages) => {
-  const { apiKey, secretKey, model = 'doubao-3' } = config;
-
-  if (!apiKey || !secretKey) {
-    return await callMockAI(messages);
-  }
-
-  const response = await fetch('https://aip.baidubce.com/rpc/2.0/ai_custom/v1/wenxinworkshop/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${await getDoubaoAccessToken(apiKey, secretKey)}`
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: config.temperature || 0.7
-    })
-  });
-
-  const data = await response.json();
-  return data.result || '未获取到响应';
-};
-
-const getDoubaoAccessToken = async (apiKey, secretKey) => {
-  const response = await fetch(`https://aip.baidubce.com/oauth/2.0/token?grant_type=client_credentials&client_id=${apiKey}&client_secret=${secretKey}`, {
-    method: 'POST'
-  });
-  const data = await response.json();
-  return data.access_token;
-};
-
-const callQwen = async (config, messages) => {
-  const { apiKey, model = 'qwen-turbo', apiBase } = config;
-
-  if (!apiKey) {
-    return await callMockAI(messages);
-  }
-
-  const response = await fetch(`${apiBase || 'https://dashscope.aliyuncs.com'}/api/text/v1/generation`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model,
-      input: { messages },
-      parameters: {
-        temperature: config.temperature || 0.7,
-        max_tokens: config.maxTokens || 1024
-      }
-    })
-  });
-
-  const data = await response.json();
-  return data.output?.text || '未获取到响应';
-};
-
-const callClaude = async (config, messages) => {
-  const { apiKey, model = 'claude-3-sonnet', apiBase } = config;
-
-  if (!apiKey) {
-    return await callMockAI(messages);
-  }
-
-  const anthropicMessages = messages.map(m => ({
-    role: m.role === 'assistant' ? 'assistant' : m.role,
-    content: m.content
-  }));
-
-  const response = await fetch(`${apiBase || 'https://api.anthropic.com'}/v1/messages`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model,
-      messages: anthropicMessages,
-      temperature: config.temperature || 0.7,
-      max_tokens: config.maxTokens || 1024
-    })
-  });
-
-  const data = await response.json();
-  return data.content?.[0]?.text || '未获取到响应';
-};
-
-const callDeepSeek = async (config, messages) => {
-  const { apiKey, model = 'deepseek-chat', apiBase } = config;
-
-  if (!apiKey) {
-    return await callMockAI(messages);
-  }
-
-  const response = await fetch(`${apiBase || 'https://api.deepseek.com'}/v1/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: config.temperature || 0.7,
-      max_tokens: config.maxTokens || 1024
-    })
-  });
-
-  const data = await response.json();
-
-  if (data.error) {
-    throw new Error(data.error.message || 'DeepSeek API调用失败');
-  }
-
-  return data.choices?.[0]?.message?.content || '未获取到响应';
-};
-
-const callMockAI = async (messages) => {
-  const userMessage = messages[messages.length - 1]?.content || '';
-
-  const responses = [
-    `我收到了你的消息："${userMessage}"。很高兴能和你聊天！`,
-    `你说的是：${userMessage}，这很有趣呢~`,
-    `好的，我理解了。关于"${userMessage}"，我觉得...`,
-    `嗯嗯，${userMessage}，让我想想...`,
-    `谢谢你的分享！${userMessage}确实值得探讨。`
-  ];
-
-  return responses[Math.floor(Math.random() * responses.length)];
-};
-
-const getChatHistory = async (virtualUserId, userId, contextId) => {
-  const where = { virtualUserId, userId };
+const getChatHistory = async (virtualUserId, userId, contextId, options = {}) => {
+  const where = { virtual_user_id: virtualUserId, user_id: userId };
   if (contextId) {
-    where.contextId = contextId;
+    where.id = contextId;
   }
 
   const history = await VirtualChatHistory.findAll({
     where,
-    order: [['createTime', 'ASC']]
+    order: [['create_time', 'ASC']],
+    ...options
   });
 
   return history.map(h => ({
     id: h.id,
-    message: h.message,
-    role: h.role,
-    createTime: h.createTime
+    content: h.content,
+    type: h.type,
+    sender: h.sender,
+    sort_order: h.sort_order,
+    create_time: h.create_time
   }));
 };
 
+const addChatRecord = async (virtualUserId, userId, content, type = 0, sender = 0, options = {}) => {
+  const record = await VirtualChatHistory.create({
+    virtual_user_id: virtualUserId,
+    user_id: userId,
+    content,
+    type,
+    sender,
+    sort_order: 0,
+    create_time: getTimestamp()
+  }, options);
+  return record;
+};
+
+// 裁剪超限的聊天历史，仅保留每个会话最近 chatHistoryLimit 条记录
+const trimChatHistory = async (virtualUserId, userId, options = {}) => {
+  const limit = config.virtualUser.chatHistoryLimit;
+  if (!limit || limit <= 0) {
+    return;
+  }
+
+  const history = await getChatHistory(virtualUserId, userId, null, options);
+  const overflow = history.length - limit;
+  if (overflow <= 0) {
+    return;
+  }
+
+  const oldestIds = history.slice(0, overflow).map(h => h.id);
+  await VirtualChatHistory.destroy({
+    where: { id: { [require('sequelize').Op.in]: oldestIds } },
+    ...options
+  });
+  logger.info(`虚拟用户聊天历史裁剪: 虚拟用户${virtualUserId}, 用户${userId}, 删除${oldestIds.length}条最旧记录`);
+};
+
 const clearContext = async (virtualUserId, userId, contextId) => {
-  const where = { virtualUserId, userId };
+  const where = { virtual_user_id: virtualUserId, user_id: userId };
   if (contextId) {
-    where.contextId = contextId;
+    where.id = contextId;
   }
 
   await VirtualChatHistory.destroy({ where });
-  logger.info(`上下文已清除: 虚拟用户${virtualUserId} -> 用户${userId}`);
+  logger.info(`虚拟用户内容已清除: 虚拟用户${virtualUserId}, 用户${userId}`);
   return true;
 };
 
-const hasPermission = (virtualUser, permission) => {
-  const permissions = JSON.parse(virtualUser.permissions || '[]');
-  return permissions.includes(permission);
+const generateAiReply = (virtualUser, userMessage) => {
+  const name = (virtualUser && virtualUser.name) || '虚拟人';
+  const intro = (virtualUser && virtualUser.intro) || '';
+  const msg = String(userMessage || '').trim();
+
+  if (/你好|hello|hi|嗨|哈喽/i.test(msg)) {
+    return `你好呀，我是${name}${intro ? '，' + intro : ''}，很高兴认识你！`;
+  }
+  if (/名字|你是谁|介绍|介绍下你自己/i.test(msg)) {
+    return `我叫${name}${intro ? '，' + intro : ''}。有什么可以帮你的吗？`;
+  }
+  if (/笑话|好玩|有趣/i.test(msg)) {
+    return `哈哈，讲个笑话：程序员最讨厌的两种人，一种是写代码不写注释的，另一种是让他写注释还不写的。`;
+  }
+  if (/歌|音乐|推荐.*听/i.test(msg)) {
+    return `说到音乐，我最近很喜欢听轻音乐，能让人放松心情。要不要我给你推荐几首？`;
+  }
+  if (/做什么|功能|能干什么|擅长/i.test(msg)) {
+    return `我可以陪你聊天、分享趣事${intro ? '，也擅长' + intro : ''}。想聊点什么都可以～`;
+  }
+  return `收到啦！我是${name}${intro ? '，' + intro : ''}。刚刚那句话我还需要再理解一下，不过我们可以先从简单的话题聊起～`;
+};
+
+const buildVirtualUserSystemPrompt = (virtualUser) => {
+  const name = virtualUser.name || '虚拟人';
+  const lines = [];
+  lines.push(`你是${name}，一个陪伴型虚拟人。`);
+
+  if (virtualUser.gender === 1) lines.push('你的性别：男');
+  else if (virtualUser.gender === 2) lines.push('你的性别：女');
+
+  if (virtualUser.age) lines.push(`你的年龄：${virtualUser.age}岁`);
+  if (virtualUser.region) lines.push(`你的所在地：${virtualUser.region}`);
+  if (virtualUser.intro) lines.push(`你的个人简介：${virtualUser.intro}`);
+
+  let tags = [];
+  if (virtualUser.tags) {
+    try {
+      const parsed = JSON.parse(virtualUser.tags);
+      if (Array.isArray(parsed)) tags = parsed;
+      else if (typeof parsed === 'string') tags = [parsed];
+    } catch (e) {
+      tags = [];
+    }
+  }
+  if (tags.length > 0) lines.push(`你的特点标签：${tags.join('、')}`);
+
+  lines.push('请用自然、口语化、符合人设的口吻和用户聊天，回复尽量简短自然（一般不超过 3 句话），不要暴露你是 AI 模型或机器人。');
+  return lines.join('\n');
+};
+
+const chatWithVirtualUser = async (virtualUserId, userId, userMessage) => {
+  try {
+    const user = await VirtualUser.findByPk(virtualUserId);
+    if (!user) {
+      throw new Error('虚拟用户不存在');
+    }
+    if (user.status !== 1) {
+      throw new Error('该虚拟用户已被禁用');
+    }
+    if (user.online_status !== 1) {
+      throw new Error('对方当前离线，暂时无法回复，请稍后再来');
+    }
+
+    // 1) 先持久化用户消息（独立写入，失败即中止，不会产生孤立数据）
+    const userRecord = await addChatRecord(virtualUserId, userId, userMessage, 0, 0);
+
+    const history = await getChatHistory(virtualUserId, userId);
+
+    // 2) 优先使用大模型生成回复；未配置或失败时降级为规则回复（网络调用，不进事务）
+    const contextMessages = history
+      .slice(-config.llm.maxContextMessages)
+      .map(h => ({ role: h.sender === 1 ? 'assistant' : 'user', content: h.content }));
+    let replyContent = await llmService.generateReply({
+      systemPrompt: buildVirtualUserSystemPrompt(user),
+      messages: contextMessages
+    });
+    if (!replyContent) {
+      replyContent = generateAiReply(user, userMessage);
+    }
+
+    // 3) 事务内写入 AI 回复并裁剪超限历史，保证会话数据一致
+    let replyRecord;
+    try {
+      replyRecord = await withTransaction(async (t) => {
+        const record = await addChatRecord(virtualUserId, userId, replyContent, 0, 1, { transaction: t });
+        await trimChatHistory(virtualUserId, userId, { transaction: t });
+        return record;
+      });
+    } catch (writeError) {
+      // 补偿：回复写入失败时删除孤立的用户消息，避免留下"有问无答"的半截记录
+      await VirtualChatHistory.destroy({ where: { id: userRecord.id } }).catch(() => {});
+      logger.error('虚拟用户回复写入失败，已回滚用户消息:', writeError.message);
+      throw writeError;
+    }
+
+    return {
+      id: replyRecord.id,
+      content: replyContent,
+      type: replyRecord.type,
+      sender: replyRecord.sender,
+      create_time: replyRecord.create_time,
+      history
+    };
+  } catch (dbError) {
+    logger.error('虚拟用户聊天失败:', dbError.message);
+    throw dbError;
+  }
 };
 
 const formatVirtualUser = (user) => {
+  let parsedTags = user.tags;
+  if (user.tags) {
+    try {
+      parsedTags = JSON.parse(user.tags);
+    } catch (e) {
+      parsedTags = user.tags;
+    }
+  }
+
   return {
     id: user.id,
-    username: user.username,
-    nickname: user.nickname,
+    name: user.name,
     avatar: user.avatar,
-    role: user.role,
-    personality: user.personality,
-    dialogueStyle: user.dialogueStyle,
-    description: user.description,
-    modelConfig: user.modelConfig ? JSON.parse(user.modelConfig) : {},
+    gender: user.gender,
+    age: user.age,
+    region: user.region,
+    tags: parsedTags,
+    intro: user.intro,
+    price_per_hour: user.price_per_hour,
+    online_status: user.online_status,
+    random_online: user.random_online,
+    online_time_start: user.online_time_start,
+    online_time_end: user.online_time_end,
+    online_duration_min: user.online_duration_min,
+    online_duration_max: user.online_duration_max,
+    is_recommend: user.is_recommend,
     status: user.status,
-    isOnline: user.isOnline,
-    contextExpireTime: user.contextExpireTime,
-    maxContextLength: user.maxContextLength,
-    permissions: user.permissions ? JSON.parse(user.permissions) : [],
-    createTime: user.createTime,
-    updateTime: user.updateTime
+    create_time: user.create_time,
+    update_time: user.update_time
   };
 };
 
 module.exports = {
-  AI_MODELS,
   createVirtualUser,
   getVirtualUserById,
-  getVirtualUserByUsername,
   getAllVirtualUsers,
   updateVirtualUser,
   deleteVirtualUser,
   toggleOnlineStatus,
-  generateResponse,
   getChatHistory,
-  clearContext,
-  hasPermission
+  addChatRecord,
+  chatWithVirtualUser,
+  clearContext
 };

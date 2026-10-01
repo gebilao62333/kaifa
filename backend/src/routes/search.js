@@ -1,6 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const response = require('../utils/response');
+const logger = require('../utils/logger');
+const { authMiddleware } = require('../middlewares');
+const { circleService } = require('../services');
+const { Game } = require('../models');
+const { Op } = require('sequelize');
 
 // 热门搜索词
 router.get('/hot', (req, res) => {
@@ -17,7 +22,53 @@ router.get('/hot', (req, res) => {
     ];
     response.success(res, { list: hotList });
   } catch (error) {
-    console.error('获取热搜错误:', error);
+    logger.error('获取热搜错误:', error);
+    response.error(res, error.message);
+  }
+});
+
+// 搜索动态
+router.get('/posts', authMiddleware, async (req, res) => {
+  try {
+    const { keyword, page = 1, pageSize = 20 } = req.query;
+    if (!keyword || !String(keyword).trim()) {
+      return response.badRequest(res, '搜索关键词不能为空');
+    }
+    const result = await circleService.searchPosts(req.userId, keyword, page, pageSize);
+    response.success(res, result);
+  } catch (error) {
+    logger.error('搜索动态错误:', error);
+    response.error(res, error.message);
+  }
+});
+
+// 搜索游戏
+router.get('/games', authMiddleware, async (req, res) => {
+  try {
+    const { keyword } = req.query;
+    if (!keyword || !String(keyword).trim()) {
+      return response.badRequest(res, '搜索关键词不能为空');
+    }
+
+    const games = await Game.findAll({
+      where: {
+        status: 1,
+        name: { [Op.like]: `%${String(keyword).trim()}%` }
+      },
+      order: [['sort', 'DESC'], ['id', 'ASC']],
+      limit: 20
+    });
+
+    response.success(res, {
+      list: games.map(g => ({
+        gameId: g.id,
+        name: g.name,
+        icon: g.image || '',
+        background: g.image_bg || ''
+      }))
+    });
+  } catch (error) {
+    logger.error('搜索游戏错误:', error);
     response.error(res, error.message);
   }
 });

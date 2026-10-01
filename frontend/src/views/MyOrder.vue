@@ -14,26 +14,26 @@
       </div>
       <div 
         class="tab-item" 
-        :class="{ active: activeTab === 'pending' }"
-        @click="activeTab = 'pending'">
-        待付款
+        :class="{ active: activeTab === '0' }"
+        @click="activeTab = '0'">
+        待接单
       </div>
       <div 
         class="tab-item" 
-        :class="{ active: activeTab === 'waiting' }"
-        @click="activeTab = 'waiting'">
-        待服务
+        :class="{ active: activeTab === '1' }"
+        @click="activeTab = '1'">
+        已接单
       </div>
       <div 
         class="tab-item" 
-        :class="{ active: activeTab === 'ongoing' }"
-        @click="activeTab = 'ongoing'">
+        :class="{ active: activeTab === '2' }"
+        @click="activeTab = '2'">
         进行中
       </div>
       <div 
         class="tab-item" 
-        :class="{ active: activeTab === 'finished' }"
-        @click="activeTab = 'finished'">
+        :class="{ active: activeTab === '3' }"
+        @click="activeTab = '3'">
         已完成
       </div>
     </div>
@@ -47,25 +47,24 @@
         <div class="order-header">
           <div class="game-info">
             <span class="game-icon">🎮</span>
-            <span class="game-name">{{ item.game }}</span>
+            <span class="game-name">{{ item.gameName }}</span>
           </div>
-          <span class="status" :class="item.status">{{ getStatusText(item.status) }}</span>
+          <span class="status" :class="getStatusClass(item.status)">{{ getStatusText(item.status) }}</span>
         </div>
 
         <div class="order-meta">
-          <span class="order-no">订单号：{{ formatOrderNo(item.id) }}</span>
+          <span class="order-no">订单号：{{ formatOrderNo(item.orderNo) }}</span>
           <span class="order-time">{{ formatTime(item.createTime) }}</span>
         </div>
 
         <div class="order-content">
           <div class="companion-info">
-            <img class="companion-avatar" :src="item.avatar" alt="" />
+            <img class="companion-avatar" :src="item.targetAvatar" alt="" />
             <div class="info">
-              <div class="companion-name">{{ item.companionName }}</div>
-              <div class="order-desc">{{ item.title }}</div>
+              <div class="companion-name">{{ item.targetNickName }}</div>
+              <div class="order-desc">下单数量：{{ item.num }} 单</div>
               <div class="order-tags">
-                <span class="tag service-tag">{{ item.serviceType }}</span>
-                <span class="tag source-tag">{{ item.orderSource }}</span>
+                <span class="tag service-tag">游戏陪玩</span>
               </div>
             </div>
           </div>
@@ -73,17 +72,15 @@
 
         <div class="order-footer">
           <div class="price-info">
-            <span class="price">{{ item.price }} 金币</span>
-            <span class="duration">{{ item.duration }}小时</span>
+            <span class="price">{{ item.totalPrice }} 金币</span>
+            <span class="duration">{{ item.num }} 单</span>
           </div>
           <div class="order-actions">
-            <button class="action-btn secondary" v-if="item.status === 'pending'" @click.stop="cancelOrder(item)">取消</button>
-            <button class="action-btn primary" v-if="item.status === 'pending'" @click.stop="payOrder(item)">立即付款</button>
-            <button class="action-btn primary" v-if="item.status === 'waiting'" @click.stop="startService(item)">开始服务</button>
-            <button class="action-btn primary" v-if="item.status === 'ongoing'" @click.stop="endService(item)">服务结束</button>
-            <button class="action-btn primary" v-if="item.status === 'pending' || item.status === 'ongoing'" @click.stop="contactCompanion(item)">联系陪玩</button>
-            <button class="action-btn primary" v-if="item.status === 'finished' && !item.rated" @click.stop="rateOrder(item)">评价</button>
-            <button class="action-btn secondary" v-if="item.status === 'finished' && item.rated" disabled>已评价</button>
+            <button class="action-btn secondary" v-if="item.status === 0 || item.status === 1" @click.stop="cancelOrder(item)">取消</button>
+            <button class="action-btn primary" v-if="item.status === 2" @click.stop="completeOrder(item)">服务结束</button>
+            <button class="action-btn primary" v-if="item.status === 0 || item.status === 1 || item.status === 2" @click.stop="contactCompanion(item)">联系陪玩</button>
+            <button class="action-btn primary" v-if="item.status === 3 && !item.rated" @click.stop="rateOrder(item)">评价</button>
+            <button class="action-btn secondary" v-if="item.status === 3 && item.rated" disabled>已评价</button>
           </div>
         </div>
       </div>
@@ -139,158 +136,74 @@ import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
+import orderService from '../services/orderService'
 
 const router = useRouter()
 const route = useRoute()
 const activeTab = ref('all')
+const loading = ref(false)
+const showRateModal = ref(false)
+const ratingValue = ref(0)
+const ratingComment = ref('')
+const currentRateOrder = ref(null)
+const orderList = ref([])
+
+const loadOrders = async () => {
+  loading.value = true
+  try {
+    const res = await orderService.getOrders()
+    // 后端返回 { list, total }，真实列表在 res.data.list
+    orderList.value = (res.data && res.data.list) || res.list || res || []
+  } catch (err) {
+    console.error('加载订单失败:', err)
+    orderList.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadOrders()
+  const paidOrderId = route.query.paidOrderId
+  if (paidOrderId) {
+    loadOrders()
+    router.replace({ path: '/my-order' })
+  }
+})
 
 const goBack = () => {
   router.back()
 }
 
-// 在组件挂载时检查是否有刚支付的订单需要更新
-onMounted(() => {
-  const seen = new Set()
-  const deduped = orderList.value.filter(order => {
-    const key = order.id
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
-  if (deduped.length !== orderList.value.length) {
-    orderList.value = deduped
-    saveOrders(deduped)
-  }
-  const paidOrderId = route.query.paidOrderId
-  if (paidOrderId) {
-    const orderId = Number(paidOrderId)
-    const order = orderList.value.find(o => o.id === orderId)
-    if (order && order.status === 'pending') {
-      order.status = 'waiting'
-      saveOrders(orderList.value)
-    }
-    // 清除URL中的查询参数，避免刷新时重复处理
-    router.replace({ path: '/my-order' })
-  }
-})
-const showRateModal = ref(false)
-const ratingValue = ref(0)
-const ratingComment = ref('')
-const currentRateOrder = ref(null)
-
-// 默认订单数据
-const defaultOrders = [
-  {
-    id: 1,
-    game: '王者荣耀',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=order1',
-    companionName: '小雪',
-    title: '钻石到星耀段位陪练',
-    price: 60,
-    duration: 2,
-    status: 'pending',
-    createTime: Date.now() - 1800000,
-    serviceType: '段位陪练',
-    orderSource: '大厅下单'
-  },
-  {
-    id: 2,
-    game: '和平精英',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=order2',
-    companionName: '阿杰',
-    title: '娱乐局打打吃鸡',
-    price: 75,
-    duration: 3,
-    status: 'waiting',
-    createTime: Date.now() - 3600000,
-    serviceType: '娱乐陪玩',
-    orderSource: '组队邀请'
-  },
-  {
-    id: 5,
-    game: '永劫无间',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=order5',
-    companionName: '战神',
-    title: '上分冲榜',
-    price: 88,
-    duration: 2,
-    status: 'ongoing',
-    createTime: Date.now() - 7200000,
-    serviceType: '段位陪练',
-    orderSource: '大厅下单'
-  },
-  {
-    id: 3,
-    game: '原神',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=order3',
-    companionName: '小美',
-    title: '刷圣遗物和材料',
-    price: 90,
-    duration: 3,
-    status: 'finished',
-    rated: false,
-    createTime: Date.now() - 86400000,
-    serviceType: '副本代练',
-    orderSource: '指定下单'
-  },
-  {
-    id: 4,
-    game: '英雄联盟',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=order4',
-    companionName: '大飞',
-    title: '白银到黄金排位',
-    price: 120,
-    duration: 4,
-    status: 'finished',
-    rated: true,
-    createTime: Date.now() - 172800000,
-    serviceType: '段位陪练',
-    orderSource: '大厅下单'
-  }
-]
-
-// 从 localStorage 加载订单数据
-const loadOrders = () => {
-  const saved = localStorage.getItem('orderList')
-  if (saved) {
-    try {
-      return JSON.parse(saved)
-    } catch (e) {
-      return defaultOrders
-    }
-  }
-  localStorage.setItem('orderList', JSON.stringify(defaultOrders))
-  return defaultOrders
+// 与后端 xn_game_order.status 数字状态机对齐：0待接单/1已接单/2进行中/3已完成/4已取消/5申诉中
+const STATUS_TEXT = {
+  0: '待接单',
+  1: '已接单',
+  2: '进行中',
+  3: '已完成',
+  4: '已取消',
+  5: '申诉中'
 }
 
-// 保存订单数据到 localStorage（自动去重）
-const saveOrders = (orders) => {
-  const seen = new Set()
-  const deduped = orders.filter(order => {
-    const key = order.id
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
-  })
-  localStorage.setItem('orderList', JSON.stringify(deduped))
+const STATUS_CLASS = {
+  0: 'pending',
+  1: 'waiting',
+  2: 'ongoing',
+  3: 'finished',
+  4: 'cancelled',
+  5: 'appeal'
 }
-
-// 订单列表
-const orderList = ref(loadOrders())
 
 const getStatusText = (status) => {
-  const statusMap = {
-    pending: '待付款',
-    waiting: '待服务',
-    ongoing: '进行中',
-    finished: '已完成',
-    cancelled: '已取消'
-  }
-  return statusMap[status] || status
+  return STATUS_TEXT[status] || '未知状态'
 }
 
-const formatOrderNo = (id) => {
-  return `DD${String(id).padStart(8, '0')}`
+const getStatusClass = (status) => {
+  return STATUS_CLASS[status] || ''
+}
+
+const formatOrderNo = (orderNo) => {
+  return orderNo ? String(orderNo) : ''
 }
 
 const formatTime = (timestamp) => {
@@ -304,51 +217,39 @@ const formatTime = (timestamp) => {
 
 const getFilteredOrders = () => {
   if (activeTab.value === 'all') return orderList.value
-  return orderList.value.filter(item => item.status === activeTab.value)
+  return orderList.value.filter(item => String(item.status) === activeTab.value)
 }
 
 const goOrderDetail = (item) => {
-  console.log('订单详情:', item.id)
   toast.info('订单详情功能开发中...')
 }
 
-const cancelOrder = (item) => {
-  if (confirm('确定要取消这个订单吗？取消后无法恢复')) {
-    item.status = 'cancelled'
-    saveOrders(orderList.value)
-    toast.success('订单已取消，退款将在1-3个工作日内到账')
+const cancelOrder = async (item) => {
+  if (!confirm('确定要取消这个订单吗？取消后将自动退款')) return
+  try {
+    await orderService.cancelOrder(item.orderId, '用户主动取消')
+    toast.success('订单已取消，金币已退回')
+    await loadOrders()
+  } catch (err) {
+    toast.error(err.message || '取消失败，请重试')
   }
 }
 
-const payOrder = (item) => {
-  router.push({
-    path: '/payment-gateway',
-    query: {
-      type: 'order',
-      method: 'coin',
-      amount: item.price,
-      balance: 500000,
-      orderId: item.id
-    }
-  })
-}
-
-const startService = (item) => {
-  item.status = 'ongoing'
-  saveOrders(orderList.value)
-  toast.success('服务已开始')
-}
-
-const endService = (item) => {
-  item.status = 'finished'
-  saveOrders(orderList.value)
-  activeTab.value = 'finished'
-  toast.success('服务已结束')
+// 游戏订单在 /api/games/push 创建时已实时扣款，无“待付款”状态，因此不提供“立即付款”；
+// 后端 start 仅允许陪玩师（target_user_id）调用，用户端不提供“开始服务”。
+const completeOrder = async (item) => {
+  if (!confirm('确认该订单服务已完成？')) return
+  try {
+    await orderService.completeService(item.orderId)
+    toast.success('服务已结束')
+    await loadOrders()
+  } catch (err) {
+    toast.error(err.message || '操作失败')
+  }
 }
 
 const contactCompanion = (item) => {
-  console.log('联系陪玩:', item.companionName)
-  router.push(`/chat-room/${item.id}`)
+  router.push(`/chat-room/${item.orderId}`)
 }
 
 const rateOrder = (item) => {
@@ -363,13 +264,18 @@ const closeRateModal = () => {
   currentRateOrder.value = null
 }
 
-const submitRating = () => {
-  if (currentRateOrder.value && ratingValue.value > 0) {
-    currentRateOrder.value.rated = true
-    saveOrders(orderList.value)
+const submitRating = async () => {
+  if (!currentRateOrder.value || ratingValue.value === 0) return
+  try {
+    await orderService.evaluateOrder(currentRateOrder.value.orderId, ratingValue.value, ratingComment.value)
+    // 列表接口不返回是否已评价，提交成功后本地标记，避免重复评价
+    const ratedOrder = orderList.value.find(o => o.orderId === currentRateOrder.value.orderId)
+    if (ratedOrder) ratedOrder.rated = true
     showRateModal.value = false
-    toast.success(`评价成功！您的评分：${ratingValue.value}星，评价：${ratingComment.value || '无'}`)
+    toast.success(`评价成功！您的评分：${ratingValue.value}星`)
     currentRateOrder.value = null
+  } catch (err) {
+    toast.error('评价失败，请重试')
   }
 }
 </script>

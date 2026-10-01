@@ -15,5 +15,9 @@ router.post('/cancel', authMiddleware, gamesController.cancelOrder);
 router.get('/orders', authMiddleware, gamesController.getOrders);
 router.post('/apply', authMiddleware, gamesController.applyAsCompanion);
 router.get('/apply/status', authMiddleware, gamesController.getApplyStatus);
+router.get('/companions/:companionId', authMiddleware, gamesController.getCompanionDetail);
+router.post('/evaluate', authMiddleware, gamesController.evaluateOrder);
+router.get('/order-detail', authMiddleware, gamesController.getOrderDetail);
+router.get('/statistics', authMiddleware, gamesController.getStatistics);
 
 module.exports = router;

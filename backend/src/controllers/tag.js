@@ -6,44 +6,20 @@ const createTag = async (req, res) => {
   try {
     const {
       name,
-      code,
-      description,
-      category,
       icon,
-      color,
-      personality,
-      expertise,
-      communicationStyle,
-      knowledgeScope,
-      responseStrategy,
-      promptTemplate,
-      temperature,
-      maxTokens,
-      priority,
-      isDefault
+      sort_order = 0,
+      status = 1
     } = req.body;
 
-    if (!name || !code) {
-      return response.badRequest(res, '标签名称和代码不能为空');
+    if (!name) {
+      return response.badRequest(res, '标签名称不能为空');
     }
 
     const result = await tagService.createTag({
       name,
-      code,
-      description,
-      category,
       icon,
-      color,
-      personality,
-      expertise,
-      communicationStyle,
-      knowledgeScope,
-      responseStrategy,
-      promptTemplate,
-      temperature,
-      maxTokens,
-      priority,
-      isDefault
+      sort_order,
+      status
     });
 
     response.created(res, result, '标签创建成功');

@@ -93,6 +93,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { DEFAULT_AVATAR } from '../common/constants'
 
 const props = defineProps({
   visible: {
@@ -106,7 +107,7 @@ const props = defineProps({
       author: {
         id: '',
         name: '未知用户',
-        avatar: ''
+        avatar: DEFAULT_AVATAR
       }
     })
   },

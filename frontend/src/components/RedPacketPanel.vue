@@ -93,7 +93,7 @@ export default {
       default: 0
     },
     receiverId: {
-      type: String,
+      type: [String, Number],
       default: ''
     }
   },

@@ -1,0 +1,27 @@
+# ============================================
+# eu搭子 后端开发 Dockerfile
+# 保留全部 devDependencies，用于 nodemon 热更新
+# 使用方式：docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
+# ============================================
+
+FROM node:18-alpine
+
+# 安装运行时 + 构建依赖（sqlite3 等原生模块需要编译）
+RUN apk add --no-cache tzdata curl python3 make g++ sqlite-dev && \
+    cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
+    echo "Asia/Shanghai" > /etc/timezone && \
+    rm -rf /var/cache/apk/*
+
+WORKDIR /app
+
+# 复制依赖描述文件，安装全部依赖（含 devDependencies）
+COPY backend/package*.json ./
+RUN npm install && npm cache clean --force
+
+# 复制后端源码
+COPY backend/ ./
+
+EXPOSE 3000
+
+# 使用 nodemon --legacy-watch 确保在 Docker bind mount 下文件变更能被检测到
+CMD ["npx", "nodemon", "--legacy-watch", "server.js"]

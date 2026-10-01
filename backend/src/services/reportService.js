@@ -34,10 +34,11 @@ const createReport = async (userId, targetType, targetId, reason, images) => {
   };
 };
 
-const getReportList = async (status, page, pageSize) => {
+const getReportList = async (userId, status, page, pageSize) => {
   const { offset, limit } = parseQuery({ page, pageSize });
-  
-  const where = {};
+
+  // 仅返回当前用户自己提交的举报，避免泄露全站举报数据（全量查询走 /api/admin/reports）
+  const where = { user_id: userId };
   if (status !== undefined) {
     where.status = status;
   }
@@ -96,8 +97,46 @@ const handleReport = async (handlerId, reportId, action, result) => {
   return true;
 };
 
+const getReportDetail = async (userId, reportId) => {
+  const report = await Report.findByPk(reportId);
+  if (!report) {
+    throw new Error('举报不存在');
+  }
+
+  // 用户仅能查看自己提交的举报详情
+  if (report.user_id !== userId) {
+    throw new Error('无权查看该举报');
+  }
+
+  const user = await User.findByPk(report.user_id);
+  const targetUser = await User.findByPk(report.target_user_id);
+
+  return {
+    reportId: report.id,
+    user: {
+      userId: user?.id,
+      nickname: user?.nickname || '',
+      avatar: user?.avatar || ''
+    },
+    targetType: report.target_type,
+    targetId: report.target_id,
+    targetUser: {
+      userId: targetUser?.id,
+      nickname: targetUser?.nickname || '',
+      avatar: targetUser?.avatar || ''
+    },
+    reason: report.reason,
+    images: report.images ? report.images.split(',').filter(Boolean) : [],
+    status: report.status,
+    handleResult: report.handle_result,
+    handleTime: report.handle_time,
+    createTime: report.create_time
+  };
+};
+
 module.exports = {
   createReport,
   getReportList,
+  getReportDetail,
   handleReport
 };

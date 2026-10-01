@@ -47,10 +47,11 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
+import { DEFAULT_AVATAR } from '@/common/constants'
 
 const router = useRouter()
 
-const userAvatar = ref('https://picsum.photos/200/200')
+const userAvatar = ref(DEFAULT_AVATAR)
 const selectedId = ref('frame1')
 
 const selectedFrame = reactive({

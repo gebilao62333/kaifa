@@ -144,7 +144,11 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { debounce } from '@/common/common'
 import homeService from '@/services/homeService'
+import searchService from '@/services/searchService'
+import authService from '@/services/authService'
+import { toast } from '@/composables/useToast'
 import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
@@ -186,11 +190,12 @@ onMounted(async () => {
   }
 })
 
-const onSearch = () => {
+// 输入防抖：停止输入 300ms 后再搜索，避免每个字符都触发一次接口请求
+const onSearch = debounce(() => {
   if (searchKeyword.value.trim()) {
     doSearch()
   }
-}
+}, 300)
 
 const doSearch = async () => {
   const keyword = searchKeyword.value.trim()
@@ -199,63 +204,43 @@ const doSearch = async () => {
   loading.value = true
   saveToHistory(keyword)
 
-  try {
-    const res = await homeService.searchCompanions({ keyword, page: 1, pageSize: 20 })
-    const list = (res && res.code === 200 && res.data) ? (res.data.list || []) : []
-    searchResults.users = list.map(c => ({
-      userId: c.userId,
-      nickName: c.nickname || '',
-      avatar: c.avatar || '',
-      level: c.level || 1,
-      isFollow: false
-    }))
-    searchResults.posts = []
-    searchResults.games = []
-  } catch (e) {
-    searchResults.users = mockSearchUsers(keyword)
-    searchResults.posts = mockSearchPosts(keyword)
-    searchResults.games = mockSearchGames(keyword)
-  } finally {
-    loading.value = false
+  // 三类结果并行请求，单类失败不影响其它类展示
+  const [userRes, postRes, gameRes] = await Promise.allSettled([
+    homeService.searchCompanions({ keyword, page: 1, pageSize: 20 }),
+    searchService.searchPosts({ keyword, page: 1, pageSize: 20 }),
+    searchService.searchGames({ keyword })
+  ])
+
+  const pick = (settled) => {
+    if (settled.status !== 'fulfilled') return []
+    const res = settled.value
+    return (res && res.code === 200 && res.data) ? (res.data.list || []) : []
   }
-}
 
-const mockSearchUsers = (keyword) => {
-  const users = [
-    { userId: 1, nickName: '小雪', avatar: 'https://picsum.photos/100/100', level: 28, isFollow: false },
-    { userId: 2, nickName: '游戏大神', avatar: 'https://picsum.photos/100/100', level: 45, isFollow: false },
-    { userId: 3, nickName: '陪玩师小美', avatar: 'https://picsum.photos/100/100', level: 32, isFollow: false }
-  ]
-  return users.filter(u => u.nickName.includes(keyword))
-}
+  searchResults.users = pick(userRes).map(c => ({
+    userId: c.userId || c.id,
+    nickName: c.nickname || c.nickName || '',
+    avatar: c.avatar || '',
+    level: c.level || 1,
+    isFollow: false
+  }))
 
-const mockSearchPosts = (keyword) => {
-  const posts = [
-    {
-      postId: 1,
-      content: keyword + '今天连胜五把，太开心了！有没有大神带我上分~',
-      images: ['https://picsum.photos/200/200', 'https://picsum.photos/200/200'],
-      nickName: '小雪',
-      createTime: Date.now() - 3600000
-    },
-    {
-      postId: 2,
-      content: '求' + keyword + '陪玩，有兴趣的私聊我~',
-      images: [],
-      nickName: '玩家甲',
-      createTime: Date.now() - 7200000
-    }
-  ]
-  return posts.filter(p => p.content.includes(keyword))
-}
+  searchResults.posts = pick(postRes).map(p => ({
+    postId: p.postId,
+    content: p.content || '',
+    images: Array.isArray(p.images) ? p.images : [],
+    nickName: p.nickname || '',
+    createTime: p.createTime
+  }))
 
-const mockSearchGames = (keyword) => {
-  const games = [
-    { gameId: 1, name: '王者荣耀', icon: 'https://picsum.photos/100/100', playerCount: 1000 },
-    { gameId: 2, name: '和平精英', icon: 'https://picsum.photos/100/100', playerCount: 800 },
-    { gameId: 3, name: '英雄联盟', icon: 'https://picsum.photos/100/100', playerCount: 600 }
-  ]
-  return games.filter(g => g.name.includes(keyword))
+  searchResults.games = pick(gameRes).map(g => ({
+    gameId: g.gameId,
+    name: g.name || '',
+    icon: g.icon || '',
+    playerCount: g.playerCount || 0
+  }))
+
+  loading.value = false
 }
 
 const saveToHistory = (keyword) => {
@@ -290,7 +275,13 @@ const goBack = () => {
 }
 
 const goCategory = (type) => {
-  console.log('查看分类:', type)
+  if (type === 'game') {
+    router.push('/game-index')
+  } else if (type === 'user') {
+    router.push('/companion-list?type=all')
+  } else {
+    toast.info('帖子列表开发中')
+  }
 }
 
 const goUserProfile = (userId) => {
@@ -302,15 +293,32 @@ const goPostDetail = (postId) => {
 }
 
 const goGameDetail = (gameId) => {
-  console.log('查看游戏详情:', gameId)
+  router.push(`/companion-list?gameId=${gameId}`)
 }
 
-const toggleFollow = (user) => {
-  user.isFollow = !user.isFollow
+// 关注/取关走真实接口，成功后本地同步状态
+const toggleFollow = async (user) => {
+  const targetUserId = user.userId
+  try {
+    if (user.isFollow) {
+      await authService.unfollow(targetUserId)
+    } else {
+      await authService.follow(targetUserId)
+    }
+    user.isFollow = !user.isFollow
+  } catch (err) {
+    toast.error(err.message || '操作失败，请重试')
+  }
 }
 
 const viewMore = (type) => {
-  console.log('查看更多:', type)
+  if (type === 'game') {
+    router.push('/game-index')
+  } else if (type === 'user') {
+    router.push('/companion-list?type=all')
+  } else {
+    toast.info('帖子列表开发中')
+  }
 }
 
 const formatTime = (timestamp) => {

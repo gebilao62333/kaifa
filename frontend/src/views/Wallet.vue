@@ -125,7 +125,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import walletService from '../services/walletService'
-import { isLoggedIn, devAutoLogin } from '@/common/common'
+import { isLoggedIn } from '@/common/common'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
@@ -163,19 +163,9 @@ const fetchWallet = async () => {
 
 onMounted(async () => {
   if (!isLoggedIn()) {
-    // 开发/预览模式：无登录态时自动用演示账号登录，便于直接预览钱包页面
-    if (import.meta.env.DEV) {
-      const ok = await devAutoLogin()
-      if (!ok) {
-        toast.error('请先登录')
-        router.replace('/login')
-        return
-      }
-    } else {
-      toast.error('请先登录')
-      router.replace('/login')
-      return
-    }
+    toast.error('请先登录')
+    router.replace('/login')
+    return
   }
   await fetchWallet()
 })
@@ -230,10 +220,13 @@ const goWithdrawRecords = () => {
 
 .balance-card {
   background: var(--gradient-primary);
-  border-radius: 10px;
+  /* 铺满后改为直角，与页面其他全宽卡片一致 */
+  border-radius: 0px;
   padding: 10px;
   box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
   height: 140px;
+  /* 负 margin 抵消 .balance-section 的 20px padding，水平铺满页面限制框 */
+  margin: 0 -20px;
 }
 
 .balance-main {
@@ -277,9 +270,9 @@ const goWithdrawRecords = () => {
 .quick-actions {
   display: flex;
   gap: 16px;
-  padding: 10px 20px 10px;
-  margin-top: 10px;
-  margin-bottom: 10px;
+  padding: 10px 0;
+  /* 负 margin 抵消 .balance-section 的 20px padding，与资产卡同宽铺满 */
+  margin: 10px -20px 10px;
   height: 70px;
 }
 
@@ -433,6 +426,8 @@ const goWithdrawRecords = () => {
   border-radius: 0px;
   overflow: hidden;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  /* 负 margin 抵消 .menu-section 的 20px padding，水平铺满页面限制框 */
+  margin: 0 -20px;
 }
 
 .menu-title {
@@ -481,21 +476,25 @@ const goWithdrawRecords = () => {
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: flex-end;
+  align-items: center;
+  justify-content: center;
   z-index: 200;
 }
 
 .breakdown-sheet {
-  width: 100%;
+  width: min(90vw, 420px);
   background: #fff;
-  border-radius: 16px 16px 0 0;
+  border-radius: 16px;
   padding: 20px 20px 28px;
-  animation: sheet-up 0.25s ease;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: modal-pop 0.25s ease;
+  -webkit-overflow-scrolling: touch;
 }
 
-@keyframes sheet-up {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+@keyframes modal-pop {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .breakdown-header {

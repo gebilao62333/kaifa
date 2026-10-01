@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '../store/user-info'
+import { PUBLIC_ROUTE_NAMES, PUBLIC_ROUTE_PATHS, STORAGE_KEYS } from '../common/constants'
 
 const lazyLoad = (view) => {
   return () => import(`../views/${view}.vue`)
@@ -121,36 +122,6 @@ const routes = [
     path: '/my-order',
     name: 'MyOrder',
     component: lazyLoad('MyOrder')
-  },
-  {
-    path: '/project/dashboard',
-    name: 'ServiceDashboard',
-    component: lazyLoad('ServiceDashboard'),
-    meta: { fullscreen: true }
-  },
-  {
-    path: '/project/list',
-    name: 'ServiceList',
-    component: lazyLoad('ServiceList'),
-    meta: { fullscreen: true }
-  },
-  {
-    path: '/project/create',
-    name: 'ServiceCreate',
-    component: lazyLoad('ServiceList'),
-    meta: { fullscreen: true }
-  },
-  {
-    path: '/project/:id',
-    name: 'ServiceDetail',
-    component: lazyLoad('ServiceDetail'),
-    meta: { fullscreen: true }
-  },
-  {
-    path: '/project/edit/:id',
-    name: 'ServiceEdit',
-    component: lazyLoad('ServiceDetail'),
-    meta: { fullscreen: true }
   },
   {
     path: '/my-dynamic',
@@ -337,19 +308,24 @@ const router = createRouter({
   }
 })
 
-const publicRoutes = ['Login', 'Home', 'Search', 'Square', 'PostDetail', 'Preferred', 'Mine', 'Friend']
-const publicPaths = ['/', '/login', '/home', '/search', '/square', '/friend']
-
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
-  const isPublicRoute = publicRoutes.includes(to.name) || publicPaths.includes(to.path)
   
-  const rawToken = localStorage.getItem('token')
+  // 公开路由：白名单中的路由名或路径前缀
+  const isPublicRoute = PUBLIC_ROUTE_NAMES.includes(to.name) || 
+    PUBLIC_ROUTE_PATHS.some(p => to.path === p || to.path.startsWith(p + '/'))
+  
+  // 显式标记需要鉴权的路由（即使不在白名单中也会被拦截）
+  const requiresAuth = to.meta?.requiresAuth === true
+  
+  // 获取有效 token
+  const rawToken = localStorage.getItem(STORAGE_KEYS.TOKEN)
   const storeToken = userStore.token
   const validToken = rawToken && rawToken !== 'undefined' && rawToken !== 'null' ? rawToken : storeToken
   const isLoggedIn = !!validToken
 
-  if (!isPublicRoute && !isLoggedIn) {
+  // 需要鉴权：显式 requiresAuth 或不处于公开路由白名单
+  if ((requiresAuth || !isPublicRoute) && !isLoggedIn) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
   } else {
     next()
@@ -358,7 +334,7 @@ router.beforeEach((to, from, next) => {
 
 router.afterEach((to) => {
   if (to.meta?.title) {
-    document.title = `${to.meta.title} - 多客陪玩`
+    document.title = `${to.meta.title} - eu搭子`
   }
 
   if (to.meta?.preload) {

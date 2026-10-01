@@ -233,13 +233,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import OnlineCompanion from './OnlineCompanion.vue'
 import OfflineCompanion from './OfflineCompanion.vue'
 import OnlineApplyForm from './OnlineApplyForm.vue'
 import OfflineApplyForm from './OfflineApplyForm.vue'
 import { usePermissions } from '../composables/usePermissions'
 import PageLayout from '../components/PageLayout.vue'
+import regionService from '../services/regionService'
 
 const { 
   requestMicrophonePermission,
@@ -315,16 +316,27 @@ const showTypePicker = ref(false)
 
 const currentPicker = ref('')
 
-const cityOptions = [
-  { value: 'beijing', label: '北京市' },
-  { value: 'shanghai', label: '上海市' },
-  { value: 'guangzhou', label: '广州市' },
-  { value: 'shenzhen', label: '深圳市' },
-  { value: 'chengdu', label: '成都市' },
-  { value: 'hangzhou', label: '杭州市' },
-  { value: 'wuhan', label: '武汉市' },
-  { value: 'xian', label: '西安市' }
-]
+const cityOptions = ref([])
+
+// 从 API 加载省份列表作为城市选项
+const loadCities = async () => {
+  try {
+    const res = await regionService.getProvinces()
+    if (res.code === 0 || res.code === 200) {
+      const cities = res.data || res.list || []
+      cityOptions.value = cities.map(c => ({
+        value: c.code || c.id,
+        label: c.name
+      }))
+    }
+  } catch (e) {
+    console.error('加载城市失败:', e)
+  }
+}
+
+onMounted(() => {
+  loadCities()
+})
 
 const levelOptions = [
   { value: 'beginner', label: '新手' },

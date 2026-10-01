@@ -88,24 +88,40 @@ const createOrder = async (userId, targetUserId, gameId, num = 1) => {
     throw new Error('余额不足');
   }
   
-  const order = await GameOrder.create({
-    order_no: orderNo,
-    user_id: userId,
-    target_user_id: targetUserId,
-    game_id: gameId,
-    game_name: game?.name || '',
-    price: targetProfile.price,
-    num,
-    total_price: totalPrice,
-    status: 0,
-    create_time: getTimestamp()
-  });
+  // 下单即从用户余额中真实扣款，与订单创建保持事务一致性
+  const transaction = await User.sequelize.transaction();
   
-  return {
-    orderId: order.id,
-    orderNo: order.order_no,
-    totalPrice
-  };
+  try {
+    const order = await GameOrder.create({
+      order_no: orderNo,
+      user_id: userId,
+      target_user_id: targetUserId,
+      game_id: gameId,
+      game_name: game?.name || '',
+      price: targetProfile.price,
+      num,
+      total_price: totalPrice,
+      status: 0,
+      create_time: getTimestamp()
+    }, { transaction });
+    
+    await User.decrement('money', {
+      by: totalPrice,
+      where: { id: userId },
+      transaction
+    });
+    
+    await transaction.commit();
+    
+    return {
+      orderId: order.id,
+      orderNo: order.order_no,
+      totalPrice
+    };
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
 };
 
 const grabOrder = async (companionId, orderId) => {
@@ -204,10 +220,26 @@ const cancelOrder = async (userId, orderId, role) => {
     throw new Error('订单无法取消');
   }
   
-  await order.update({
-    status: 4,
-    end_time: getTimestamp()
-  });
+  // 取消订单时退回已扣款项
+  const transaction = await User.sequelize.transaction();
+  
+  try {
+    await order.update({
+      status: 4,
+      end_time: getTimestamp()
+    }, { transaction });
+    
+    await User.increment('money', {
+      by: Number(order.total_price) || 0,
+      where: { id: order.user_id },
+      transaction
+    });
+    
+    await transaction.commit();
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
   
   return true;
 };
@@ -358,6 +390,134 @@ const searchCompanions = async (keyword, gameId, page, pageSize) => {
   return { total: count, list: companions };
 };
 
+const getCompanionDetail = async (companionId) => {
+  const profile = await CompanionProfile.findOne({
+    where: { user_id: companionId, status: 2 },
+    include: [{
+      model: User,
+      as: 'user',
+      attributes: ['id', 'nickname', 'avatar', 'city', 'lv', 'fans_num', 'signature', 'gender', 'age']
+    }]
+  });
+
+  if (!profile) {
+    throw new Error('陪玩师不存在');
+  }
+
+  const user = profile.user || await User.findByPk(profile.user_id);
+  return {
+    userId: profile.user_id,
+    nickname: user?.nickname || '',
+    avatar: user?.avatar || '',
+    city: user?.city || '',
+    level: user?.lv || 1,
+    fansCount: user?.fans_num || 0,
+    signature: user?.signature || '',
+    gender: user?.gender || 0,
+    age: user?.age || null,
+    gameId: profile.game_id,
+    servicePrice: Number(profile.price),
+    tags: profile.tags ? profile.tags.split(',') : [],
+    voiceIntro: profile.voice_intro,
+    voiceDuration: profile.voice_time,
+    totalOrders: profile.order_num,
+    rating: Number(profile.star),
+    ratingCount: profile.pingjia_num
+  };
+};
+
+const evaluateOrder = async (userId, orderId, rating, comment) => {
+  const order = await GameOrder.findByPk(orderId);
+  if (!order) {
+    throw new Error('订单不存在');
+  }
+  if (order.user_id !== userId) {
+    throw new Error('无权评价他人订单');
+  }
+  if (order.status !== 3) {
+    throw new Error('订单尚未完成');
+  }
+
+  await order.update({
+    star: rating,
+    content: comment || '',
+    add_time: getTimestamp()
+  });
+
+  return {
+    orderId: order.id,
+    orderNo: order.order_no,
+    rating,
+    comment
+  };
+};
+
+const getOrderDetail = async (orderId) => {
+  const order = await GameOrder.findByPk(orderId);
+  if (!order) {
+    throw new Error('订单不存在');
+  }
+
+  const user = await User.findByPk(order.user_id);
+  const targetUser = await User.findByPk(order.target_user_id);
+
+  return {
+    orderId: order.id,
+    orderNo: order.order_no,
+    user: {
+      userId: user?.id,
+      nickname: user?.nickname || '',
+      avatar: user?.avatar || ''
+    },
+    targetUser: {
+      userId: targetUser?.id,
+      nickname: targetUser?.nickname || '',
+      avatar: targetUser?.avatar || ''
+    },
+    gameId: order.game_id,
+    gameName: order.game_name,
+    price: Number(order.price),
+    num: order.num,
+    totalPrice: Number(order.total_price),
+    status: order.status,
+    star: order.star,
+    content: order.content,
+    createTime: order.create_time,
+    addTime: order.add_time,
+    endTime: order.end_time
+  };
+};
+
+const getStatistics = async (userId) => {
+  const totalOrders = await GameOrder.count({
+    where: { user_id: userId }
+  });
+
+  const completedOrders = await GameOrder.count({
+    where: { user_id: userId, status: 3 }
+  });
+
+  const totalSpent = await GameOrder.sum('total_price', {
+    where: { user_id: userId, status: 3 }
+  });
+
+  const ratedOrders = await GameOrder.findAll({
+    where: { user_id: userId, status: 3, star: { [Op.gt]: 0 } },
+    attributes: ['star']
+  });
+
+  const avgRating = ratedOrders.length > 0
+    ? (ratedOrders.reduce((sum, o) => sum + o.star, 0) / ratedOrders.length).toFixed(1)
+    : 0;
+
+  return {
+    totalOrders,
+    completedOrders,
+    totalSpent: Number(totalSpent) || 0,
+    avgRating
+  };
+};
+
 module.exports = {
   getCategories,
   getCompanions,
@@ -369,5 +529,9 @@ module.exports = {
   cancelOrder,
   getOrders,
   applyAsCompanion,
-  getApplyStatus
+  getApplyStatus,
+  getCompanionDetail,
+  evaluateOrder,
+  getOrderDetail,
+  getStatistics
 };

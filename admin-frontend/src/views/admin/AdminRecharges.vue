@@ -9,7 +9,8 @@
         <option value="failed">失败</option>
       </select>
     </div>
-    <table class="data-table">
+    <div v-if="loading" class="loading-wrap"><div class="spinner"></div><span>加载中...</span></div>
+    <table class="data-table" v-else>
       <thead><tr><th>ID</th><th>订单号</th><th>用户ID</th><th>金额</th><th>支付方式</th><th>状态</th><th>时间</th></tr></thead>
       <tbody>
         <tr v-for="r in list" :key="r.id">
@@ -35,21 +36,29 @@
 import { ref, onMounted } from 'vue'
 import adminService from '../../services/adminService'
 import { useAdminApi } from '../../composables/useAdminApi'
+import { useToast } from '../../composables/useToast'
 const { page, pageSize, total, totalPages, searchKeyword, filterStatus, formatTime } = useAdminApi()
+const toast = useToast()
 const list = ref([])
+const loading = ref(false)
 const rechargeStatusMap = { success: '成功', pending: '待支付', failed: '失败' }
 const rechargeStatusText = (s) => rechargeStatusMap[s] || s || '未知'
 const rechargeStatusClass = (s) => ({ success: 'success', pending: 'pending', failed: 'cancelled' }[s] || 'pending')
 const loadList = async () => {
+  loading.value = true
   try {
     const res = await adminService.getRechargeRecords({ page: page.value, pageSize: pageSize.value, userId: searchKeyword.value || undefined, status: filterStatus.value || undefined })
     if (res.code === 200 || res.code === 0) { list.value = res.data.list || res.data || []; total.value = res.data.pagination?.total || list.value.length }
-  } catch (e) { console.error(e) }
+  } catch (e) { toast.error('加载失败: ' + (e.message || '网络错误')) }
+  finally { loading.value = false }
 }
 onMounted(loadList)
 </script>
 
 <style scoped>
+.loading-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px; color: #999; gap: 12px; }
+.spinner { width: 32px; height: 32px; border: 3px solid #f0f0f0; border-top-color: #1890ff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .page-actions { display: flex; gap: 12px; margin-bottom: 16px; }
 .search-input { padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; width: 200px; }
 .status-select { padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 4px; }

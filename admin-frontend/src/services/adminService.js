@@ -164,6 +164,31 @@ const adminService = {
     return request('/api/admin/vip-packages/' + packageId, 'DELETE')
   },
 
+  async getRechargePackages(params = {}) {
+    const { page = 1, pageSize = 50 } = params
+    return request('/api/admin/recharge-packages', 'GET', { page, pageSize })
+  },
+
+  async getRechargePackageDetail(packageId) {
+    return request('/api/admin/recharge-packages/' + packageId, 'GET')
+  },
+
+  async createRechargePackage(packageData) {
+    return request('/api/admin/recharge-packages', 'POST', packageData)
+  },
+
+  async updateRechargePackage(packageId, packageData) {
+    return request('/api/admin/recharge-packages/' + packageId, 'PUT', packageData)
+  },
+
+  async updateRechargePackageStatus(packageId, status) {
+    return request('/api/admin/recharge-packages/' + packageId + '/status', 'PUT', { status })
+  },
+
+  async deleteRechargePackage(packageId) {
+    return request('/api/admin/recharge-packages/' + packageId, 'DELETE')
+  },
+
   async getGifts(params = {}) {
     const { page = 1, pageSize = 20, keyword, status } = params
     const data = { page, pageSize }
@@ -323,6 +348,25 @@ const adminService = {
     return request('/api/admin/banners/' + bannerId, 'DELETE')
   },
 
+  // ==================== 开屏弹窗管理 ====================
+
+  async getSplashes(params = {}) {
+    const { page = 1, pageSize = 50 } = params
+    return request('/api/admin/splashes', 'GET', { page, pageSize })
+  },
+
+  async createSplash(data) {
+    return request('/api/admin/splashes', 'POST', data)
+  },
+
+  async updateSplash(id, data) {
+    return request('/api/admin/splashes/' + id, 'PUT', data)
+  },
+
+  async deleteSplash(id) {
+    return request('/api/admin/splashes/' + id, 'DELETE')
+  },
+
   // ==================== 卡密管理 ====================
 
   async getCards(params = {}) {
@@ -340,6 +384,10 @@ const adminService = {
 
   async getDashboardStats() {
     return request('/api/admin/dashboard', 'GET')
+  },
+
+  async getFinanceStats() {
+    return request('/api/admin/finance/stats', 'GET')
   }
 }
 

@@ -99,12 +99,12 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { genAvatar } from '../utils/placeholder'
+import { DEFAULT_AVATAR } from '@/common/constants'
 
 const router = useRouter()
 
-const userBalance = ref(12800)
-const demoAvatar = ref(genAvatar('demo'))
+const userBalance = ref(0)
+const demoAvatar = ref(DEFAULT_AVATAR)
 const activeTab = ref('frame')
 
 const toast = reactive({ show: false, message: '' })

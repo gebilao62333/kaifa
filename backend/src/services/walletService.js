@@ -1,4 +1,5 @@
-const { IncomeRecord, Withdraw, ExpenseRecord } = require('../models');
+const { Withdraw } = require('../models');
+const sequelize = require('../config/mysql');
 const { CURRENCY_UNIT, calculateWithdrawFee } = require('../utils/currency');
 
 // 收入来源元信息（与前端一致，按实际业务构成，不编造）
@@ -9,10 +10,134 @@ const SOURCE_META = {
   gift: { name: '礼物', icon: '🎁', bgColor: 'linear-gradient(135deg, #f093fb, #f5576c)' },
   redpacket: { name: '红包', icon: '🧧', bgColor: 'linear-gradient(135deg, #ff6b6b, #ff8e53)' },
   invite: { name: '邀请返现', icon: '🤝', bgColor: 'linear-gradient(135deg, #43e97b, #38f9d7)' },
-  album: { name: '相册付费查看', icon: '📷', bgColor: 'linear-gradient(135deg, #a18cd1, #fbc2eb)' }
+  album: { name: '相册付费查看', icon: '📷', bgColor: 'linear-gradient(135deg, #a18cd1, #fbc2eb)' },
+  post: { name: '私密帖解锁', icon: '🔒', bgColor: 'linear-gradient(135deg, #a18cd1, #fbc2eb)' }
+};
+
+// 支出来源元信息
+const EXPENSE_META = {
+  game: { name: '陪玩订单', icon: '🎮', bgColor: 'linear-gradient(135deg, #667eea, #764ba2)' },
+  vip: { name: '开通会员', icon: '👑', bgColor: 'linear-gradient(135deg, #f093fb, #f5576c)' },
+  post: { name: '私密内容', icon: '🔒', bgColor: 'linear-gradient(135deg, #a18cd1, #fbc2eb)' }
 };
 
 const WITHDRAW_MIN = 100; // 最低提现金额（与礼物提现保持一致）
+
+// 收入流水聚合：从各真实业务表实时汇总用户收入（替代不存在的 xn_income_record）
+const collectIncomeRecords = async (userId) => {
+  const records = [];
+  const push = (rows, sourceType, remark) => {
+    for (const r of rows) {
+      const amt = Number(r.amount);
+      if (!amt || amt <= 0) continue;
+      records.push({
+        id: `${sourceType}-${r.id}`,
+        userId,
+        sourceType,
+        remark,
+        amount: amt,
+        createTime: r.create_time || r.pay_time || 0
+      });
+    }
+  };
+
+  // 1) 接单：作为陪玩/陪聊接单，订单完成或进行中即产生收入
+  const [orders] = await sequelize.query(
+    "SELECT id, amount, create_time FROM xn_game_order WHERE companion_id = :uid AND status IN ('completed', 'ongoing')",
+    { replacements: { uid: userId } }
+  );
+  push(orders, 'order', '接单收入');
+
+  // 2) 礼物：收到礼物
+  const [gifts] = await sequelize.query(
+    'SELECT id, total_money AS amount, create_time FROM xn_gift_log WHERE to_user_id = :uid',
+    { replacements: { uid: userId } }
+  );
+  push(gifts, 'gift', '收到礼物');
+
+  // 3) 红包：抢到红包
+  const [packets] = await sequelize.query(
+    'SELECT id, money AS amount, create_time FROM xn_red_packet_log WHERE user_id = :uid',
+    { replacements: { uid: userId } }
+  );
+  push(packets, 'redpacket', '抢到红包');
+
+  // 4) 语音/视频通话：作为被叫方（主播）的通话收入
+  const [calls] = await sequelize.query(
+    `SELECT b.id, b.amount, b.create_time, r.type
+     FROM xn_call_billing b
+     JOIN xn_call_record r ON b.call_record_id = r.id
+     WHERE r.callee_id = :uid AND b.status = 1`,
+    { replacements: { uid: userId } }
+  );
+  for (const r of calls) {
+    const amt = Number(r.amount);
+    if (!amt || amt <= 0) continue;
+    const st = Number(r.type) === 2 ? 'video' : 'voice';
+    records.push({
+      id: `${st}-${r.id}`,
+      userId,
+      sourceType: st,
+      remark: st === 'video' ? '视频通话收入' : '语音通话收入',
+      amount: amt,
+      createTime: r.create_time || 0
+    });
+  }
+
+  // 5) 私密帖解锁：作为帖子作者，收到他人付费解锁的收入
+  const [postUnlocks] = await sequelize.query(
+    `SELECT pu.id, pu.price AS amount, pu.create_time
+     FROM xn_post_unlock pu
+     JOIN xn_post p ON pu.post_id = p.id
+     WHERE p.user_id = :uid`,
+    { replacements: { uid: userId } }
+  );
+  push(postUnlocks, 'post', '私密帖解锁收入');
+
+  return records;
+};
+
+// 支出流水聚合：用户消费（充值属于人民币兑换金币，不计入金币支出）
+const collectExpenseRecords = async (userId) => {
+  const records = [];
+  const push = (rows, sourceType, remark) => {
+    for (const r of rows) {
+      const amt = Number(r.amount);
+      if (!amt || amt <= 0) continue;
+      records.push({
+        id: `${sourceType}-${r.id}`,
+        userId,
+        sourceType,
+        remark,
+        amount: amt,
+        createTime: r.create_time || r.pay_time || 0
+      });
+    }
+  };
+
+  // 1) 请陪玩/陪聊下单
+  const [orders] = await sequelize.query(
+    "SELECT id, amount, create_time FROM xn_game_order WHERE user_id = :uid AND status IN ('completed', 'ongoing')",
+    { replacements: { uid: userId } }
+  );
+  push(orders, 'game', '陪玩订单');
+
+  // 2) 开通 VIP
+  const [vips] = await sequelize.query(
+    'SELECT id, amount, pay_time AS create_time FROM xn_vip_order WHERE user_id = :uid AND status = 1',
+    { replacements: { uid: userId } }
+  );
+  push(vips, 'vip', '开通会员');
+
+  // 3) 解锁私密帖
+  const [unlocks] = await sequelize.query(
+    'SELECT id, price AS amount, create_time FROM xn_post_unlock WHERE user_id = :uid',
+    { replacements: { uid: userId } }
+  );
+  push(unlocks, 'post', '私密内容');
+
+  return records;
+};
 
 // 将记录统一为普通对象（兼容 sequelize 实例与 mock 对象）
 const toPlain = (row) => (row && typeof row.get === 'function' ? row.get({ plain: true }) : row);
@@ -50,29 +175,32 @@ const normalizeWithdraw = (row) => {
   };
 };
 
-// 取该用户的钱包渠道提现总额（已申请即扣减，与前端"申请即扣减"一致）
+// 取该用户的提现总额（已申请即扣减，与前端"申请即扣减"一致）
 const sumWalletWithdraw = async (userId) => {
-  const { rows } = await Withdraw.findAndCountAll({ where: { user_id: userId } });
+  const { rows } = await Withdraw.findAndCountAll({
+    where: { user_id: userId },
+    attributes: ['id', 'user_id', 'amount', 'status', 'create_time']
+  });
   return rows
-    .map(normalizeWithdraw)
-    .filter((w) => w.channel === 'wallet')
+    .filter((w) => Number(w.status) !== 2) // 排除已拒绝的提现
     .reduce((sum, w) => sum + Number(w.amount), 0);
 };
 
 const getIncomeRecords = async (userId, { page = 1, pageSize = 50 } = {}) => {
-  const all = await IncomeRecord.findAll({ where: { user_id: userId }, order: [['create_time', 'DESC']] });
+  const all = await collectIncomeRecords(userId);
+  all.sort((a, b) => b.createTime - a.createTime);
   const total = all.length;
   const start = (page - 1) * pageSize;
-  const rows = all.slice(start, start + pageSize).map((r) => {
-    const rec = toPlain(r);
+  const rows = all.slice(start, start + pageSize).map((rec) => {
+    const meta = SOURCE_META[rec.sourceType] || {};
     return {
       id: rec.id,
-      icon: rec.icon,
-      title: rec.source_name,
+      icon: meta.icon || '💰',
+      title: meta.name || rec.remark,
       desc: rec.remark || '',
-      time: toHM(rec.create_time),
-      amount: Number(rec.amount),
-      bgColor: rec.bg_color
+      time: toHM(rec.createTime),
+      amount: rec.amount,
+      bgColor: meta.bgColor || ''
     };
   });
   return { list: rows, total, page: Number(page), pageSize: Number(pageSize) };
@@ -80,16 +208,15 @@ const getIncomeRecords = async (userId, { page = 1, pageSize = 50 } = {}) => {
 
 // 按来源聚合，供"总资产构成"弹层使用
 const getIncomeBreakdown = async (userId) => {
-  const all = await IncomeRecord.findAll({ where: { user_id: userId } });
+  const all = await collectIncomeRecords(userId);
   const map = new Map();
   let total = 0;
-  for (const r of all) {
-    const rec = toPlain(r);
+  for (const rec of all) {
     const amt = Number(rec.amount);
-    const st = rec.source_type;
+    const st = rec.sourceType;
     total += amt;
     if (!map.has(st)) {
-      const meta = SOURCE_META[st] || { name: rec.source_name, icon: rec.icon, bgColor: rec.bg_color };
+      const meta = SOURCE_META[st] || { name: rec.remark, icon: '💰', bgColor: '' };
       map.set(st, { sourceType: st, name: meta.name, icon: meta.icon, bgColor: meta.bgColor, amount: 0 });
     }
     map.get(st).amount += amt;
@@ -102,21 +229,21 @@ const getIncomeBreakdown = async (userId) => {
 
 // 总资产 = 累计收入 - 已提现（钱包渠道）
 const getWalletOverview = async (userId) => {
-  const all = await IncomeRecord.findAll({ where: { user_id: userId } });
-  const grossIncome = all.reduce((sum, r) => sum + Number(toPlain(r).amount), 0);
+  const all = await collectIncomeRecords(userId);
+  const grossIncome = all.reduce((sum, r) => sum + Number(r.amount), 0);
 
   const startOfTodayMs = new Date().setHours(0, 0, 0, 0); // 当日 00:00
   const todayIncome = all
-    .filter((r) => toMs(toPlain(r).create_time) >= startOfTodayMs)
-    .reduce((sum, r) => sum + Number(toPlain(r).amount), 0);
+    .filter((r) => toMs(r.createTime) >= startOfTodayMs)
+    .reduce((sum, r) => sum + Number(r.amount), 0);
 
   const totalWithdraw = await sumWalletWithdraw(userId);
   const totalAssets = Math.max(0, Math.round((grossIncome - totalWithdraw) * 100) / 100);
 
-  const allExpense = await ExpenseRecord.findAll({ where: { user_id: userId } });
+  const allExpense = await collectExpenseRecords(userId);
   const todayExpense = allExpense
-    .filter((r) => toMs(toPlain(r).create_time) >= startOfTodayMs)
-    .reduce((sum, r) => sum + Number(toPlain(r).amount), 0);
+    .filter((r) => toMs(r.createTime) >= startOfTodayMs)
+    .reduce((sum, r) => sum + Number(r.amount), 0);
 
   return {
     totalAssets,
@@ -131,27 +258,28 @@ const getWalletOverview = async (userId) => {
 
 // 支出明细列表（与收入明细对称）
 const getExpenseRecords = async (userId, { page = 1, pageSize = 50 } = {}) => {
-  const all = await ExpenseRecord.findAll({ where: { user_id: userId }, order: [['create_time', 'DESC']] });
+  const all = await collectExpenseRecords(userId);
+  all.sort((a, b) => b.createTime - a.createTime);
   const total = all.length;
   const start = (page - 1) * pageSize;
-  const rows = all.slice(start, start + pageSize).map((r) => {
-    const rec = toPlain(r);
+  const rows = all.slice(start, start + pageSize).map((rec) => {
+    const meta = EXPENSE_META[rec.sourceType] || {};
     return {
       id: rec.id,
-      icon: rec.icon,
-      title: rec.source_name,
+      icon: meta.icon || '💸',
+      title: meta.name || rec.remark,
       desc: rec.remark || '',
-      time: toHM(rec.create_time),
-      amount: Number(rec.amount),
-      bgColor: rec.bg_color,
-      sourceType: rec.source_type
+      time: toHM(rec.createTime),
+      amount: rec.amount,
+      bgColor: meta.bgColor || '',
+      sourceType: rec.sourceType
     };
   });
-  const totalExpense = all.reduce((s, r) => s + Number(toPlain(r).amount), 0);
+  const totalExpense = all.reduce((s, r) => s + Number(r.amount), 0);
   const startOfTodayMs = new Date().setHours(0, 0, 0, 0);
   const todayExpense = all
-    .filter((r) => toMs(toPlain(r).create_time) >= startOfTodayMs)
-    .reduce((s, r) => s + Number(toPlain(r).amount), 0);
+    .filter((r) => toMs(r.createTime) >= startOfTodayMs)
+    .reduce((s, r) => s + Number(r.amount), 0);
   return {
     list: rows,
     totalExpense: Math.round(totalExpense * 100) / 100,
@@ -164,12 +292,12 @@ const getExpenseRecords = async (userId, { page = 1, pageSize = 50 } = {}) => {
 
 // 支出总览：支出总额 / 今日支出
 const getExpenseOverview = async (userId) => {
-  const all = await ExpenseRecord.findAll({ where: { user_id: userId } });
-  const totalExpense = all.reduce((s, r) => s + Number(toPlain(r).amount), 0);
+  const all = await collectExpenseRecords(userId);
+  const totalExpense = all.reduce((s, r) => s + Number(r.amount), 0);
   const startOfTodayMs = new Date().setHours(0, 0, 0, 0);
   const todayExpense = all
-    .filter((r) => toMs(toPlain(r).create_time) >= startOfTodayMs)
-    .reduce((s, r) => s + Number(toPlain(r).amount), 0);
+    .filter((r) => toMs(r.createTime) >= startOfTodayMs)
+    .reduce((s, r) => s + Number(r.amount), 0);
   return {
     totalExpense: Math.round(totalExpense * 100) / 100,
     todayExpense: Math.round(todayExpense * 100) / 100,
@@ -178,15 +306,17 @@ const getExpenseOverview = async (userId) => {
 };
 
 const getWithdrawRecords = async (userId) => {
-  const { rows } = await Withdraw.findAndCountAll({ where: { user_id: userId } });
+  const { rows } = await Withdraw.findAndCountAll({
+    where: { user_id: userId },
+    attributes: ['id', 'user_id', 'amount', 'type', 'account', 'status', 'create_time']
+  });
   return rows
     .map(normalizeWithdraw)
-    .filter((w) => w.channel === 'wallet')
     .sort((a, b) => b.createTime - a.createTime);
 };
 
 // 从总资产提现：记录提现单，可用余额随"累计收入-已提现"自动减少
-const applyWithdraw = async (userId, { amount, type = 1, account = '' }) => {
+const applyWithdraw = async (userId, { amount, type = 1, account = '', name = '', image = '', bank = '' }) => {
   const amountNum = Number(amount);
 
   if (!amountNum || amountNum <= 0) {
@@ -207,18 +337,16 @@ const applyWithdraw = async (userId, { amount, type = 1, account = '' }) => {
 
   await Withdraw.create({
     user_id: userId,
-    // 兼容 mock(使用 amount) 与 real(使用 money) 两种形态
     amount: amountNum,
-    money: amountNum,
-    pay_money: netAmount,
-    shouxufei: fee,
-    type: typeInt,
-    channel: 'wallet',
+    type: String(typeInt),
     account,
-    is_check: 0,
-    state: 'pending',
-    currency: CURRENCY_UNIT,
-    create_time: Math.floor(Date.now() / 1000)
+    name: name || '',
+    image: image || '',
+    bank: bank || '',
+    status: 0,
+    remark: '',
+    create_time: Math.floor(Date.now() / 1000),
+    update_time: Math.floor(Date.now() / 1000)
   });
 
   return {

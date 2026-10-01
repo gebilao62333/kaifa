@@ -1,6 +1,7 @@
 import { io } from 'socket.io-client'
 import { ref } from 'vue'
-import { api } from '../common/config'
+import { socketUrl as configSocketUrl } from '../common/config'
+import { STORAGE_KEYS } from '../common/constants'
 
 class SocketService {
   constructor() {
@@ -9,13 +10,13 @@ class SocketService {
     this.listeners = new Map()
   }
 
-  connect(url = api.socketUrl || 'http://localhost:3000') {
+  connect(url = configSocketUrl || 'http://localhost:3000') {
     if (this.socket?.connected) {
       console.log('[Socket] 已经连接')
       return this.socket
     }
 
-    const token = localStorage.getItem('token')
+    const token = localStorage.getItem(STORAGE_KEYS.TOKEN)
     
     if (!token) {
       console.log('[Socket] 未登录，跳过连接')
@@ -48,6 +49,16 @@ class SocketService {
       this.socket.on('connect_error', (error) => {
         console.warn('[Socket] 连接错误:', error.message)
         this.connected.value = false
+
+        // 后端鉴权拒绝：停止重连并清理失效令牌，避免无限重试
+        if (error.message === 'UNAUTHORIZED') {
+          this.socket?.disconnect()
+          this.socket = null
+          localStorage.removeItem(STORAGE_KEYS.TOKEN)
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login'
+          }
+        }
       })
 
       this.socket.on('error', (error) => {
@@ -79,14 +90,6 @@ class SocketService {
 
     this.on('call_end', (data) => {
       console.log('[Socket] 通话已结束:', data)
-    })
-
-    this.on('user:online', (data) => {
-      console.log('[Socket] 用户上线:', data)
-    })
-
-    this.on('user:offline', (data) => {
-      console.log('[Socket] 用户离线:', data)
     })
   }
 
