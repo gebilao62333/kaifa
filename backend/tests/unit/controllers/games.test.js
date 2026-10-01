@@ -151,7 +151,7 @@ describe('Controller - Games', () => {
 
       await gamesController.createOrder(req, res);
 
-      expect(gamesService.createOrder).toHaveBeenCalledWith(100001, 2, 1, 2);
+      expect(gamesService.createOrder).toHaveBeenCalledWith(100001, 2, 1, 2, undefined);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(
         expect.objectContaining({ message: '下单成功' })
@@ -165,7 +165,19 @@ describe('Controller - Games', () => {
 
       await gamesController.createOrder(req, res);
 
-      expect(gamesService.createOrder).toHaveBeenCalledWith(100001, 2, 1, 1);
+      expect(gamesService.createOrder).toHaveBeenCalledWith(100001, 2, 1, 1, undefined);
+    });
+
+    it('should create an open bounty order when targetUserId is absent but price is given', async () => {
+      gamesService.createOrder.mockResolvedValue({ id: 9 });
+      const req = mockReq({ body: { gameId: 1, price: 30, num: 2 } });
+      const res = mockRes();
+
+      await gamesController.createOrder(req, res);
+
+      // 悬赏单：targetUserId 传 0，进入派单池等待抢单
+      expect(gamesService.createOrder).toHaveBeenCalledWith(100001, 0, 1, 2, 30);
+      expect(res.status).toHaveBeenCalledWith(200);
     });
   });
 
