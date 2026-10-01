@@ -539,7 +539,7 @@ const getCompanionDetail = async (companionId) => {
     include: [{
       model: User,
       as: 'user',
-      attributes: ['id', 'nickname', 'avatar', 'city', 'lv', 'fans_num', 'signature', 'gender', 'age']
+      attributes: ['id', 'nickname', 'avatar', 'city', 'lv', 'fans_num', 'sex', 'dec']
     }]
   });
 
@@ -555,9 +555,9 @@ const getCompanionDetail = async (companionId) => {
     city: user?.city || '',
     level: user?.lv || 1,
     fansCount: user?.fans_num || 0,
-    signature: user?.signature || '',
-    gender: user?.gender || 0,
-    age: user?.age || null,
+    signature: user?.dec || '',
+    gender: user?.sex || 0,
+    age: null,
     gameId: profile.game_id,
     servicePrice: Number(profile.price),
     tags: profile.tags ? profile.tags.split(',') : [],

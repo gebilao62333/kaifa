@@ -55,9 +55,9 @@ const collectIncomeRecords = async (userId) => {
   );
   push(gifts, 'gift', '收到礼物');
 
-  // 3) 红包：抢到红包
+  // 3) 红包：抢到红包（真实列名为 amount）
   const [packets] = await sequelize.query(
-    'SELECT id, money AS amount, create_time FROM xn_red_packet_log WHERE user_id = :uid',
+    'SELECT id, amount, create_time FROM xn_red_packet_log WHERE user_id = :uid',
     { replacements: { uid: userId } }
   );
   push(packets, 'redpacket', '抢到红包');
@@ -123,9 +123,9 @@ const collectExpenseRecords = async (userId) => {
   );
   push(orders, 'game', '陪玩订单');
 
-  // 2) 开通 VIP
+  // 2) 开通 VIP（真实列名为 price）
   const [vips] = await sequelize.query(
-    'SELECT id, amount, pay_time AS create_time FROM xn_vip_order WHERE user_id = :uid AND status = 1',
+    'SELECT id, price AS amount, pay_time AS create_time FROM xn_vip_order WHERE user_id = :uid AND status = 1',
     { replacements: { uid: userId } }
   );
   push(vips, 'vip', '开通会员');

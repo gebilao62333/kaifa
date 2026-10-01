@@ -1,5 +1,5 @@
 const { authService, smsService } = require('../services');
-const { User, Post, PostLike, UserVisit, UserPref } = require('../models');
+const { User, Post, PostLike, UserFollow, UserVisit, UserPref } = require('../models');
 const { Op } = require('sequelize');
 const response = require('../utils/response');
 const logger = require('../utils/logger');

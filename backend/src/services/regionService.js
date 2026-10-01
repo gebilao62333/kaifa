@@ -26,16 +26,20 @@ class RegionService {
 
   async searchRegions(keyword) {
     const results = { provinces: [], cities: [], districts: [] };
-    const kw = keyword.toLowerCase();
+    const kw = String(keyword).toLowerCase();
 
     this.provinces.forEach(p => {
-      if (p.name.includes(keyword) || p.pinyin.includes(kw)) {
+      const name = p.name || '';
+      const pinyin = (p.pinyin || '').toLowerCase();
+      if (name.includes(keyword) || pinyin.includes(kw)) {
         results.provinces.push(p);
       }
     });
 
     this.cities.forEach(c => {
-      if (c.name.includes(keyword) || c.pinyin.includes(kw)) {
+      const name = c.name || '';
+      const pinyin = (c.pinyin || '').toLowerCase();
+      if (name.includes(keyword) || pinyin.includes(kw)) {
         results.cities.push(c);
       }
     });

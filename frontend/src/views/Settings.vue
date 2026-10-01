@@ -45,6 +45,11 @@
           <span class="menu-text">深色模式</span>
           <div class="switch" :class="{ active: darkMode }" @click="toggleDarkMode"></div>
         </div>
+        <div class="menu-item">
+          <span class="menu-icon">✨</span>
+          <span class="menu-text">导航动画</span>
+          <div class="switch" :class="{ active: navAnimationEnabled }" @click="toggleNavAnimation"></div>
+        </div>
         <div class="menu-item" @click="goVipCenter">
           <span class="menu-icon">👑</span>
           <span class="menu-text">VIP设置</span>
@@ -291,9 +296,12 @@ import { STORAGE_KEYS } from '../common/constants'
 import { notificationService } from '../services/notificationService'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
+import { useNavAnimation } from '../composables/useNavAnimation'
 
 const router = useRouter()
 const userStore = useUserStore()
+const { navAnimationEnabled, setNavAnimation } = useNavAnimation()
+const toggleNavAnimation = () => setNavAnimation(!navAnimationEnabled.value)
 
 const darkMode = ref(false)
 const callSettings = ref({

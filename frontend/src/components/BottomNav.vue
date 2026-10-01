@@ -1,5 +1,5 @@
 <template>
-  <div class="bottom-nav">
+  <div class="bottom-nav" :class="{ 'no-anim': !navAnimationEnabled }">
     <div class="nav-items">
       <div 
         class="nav-item" 
@@ -46,10 +46,12 @@
 import { computed, ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useChatStore } from '../store/chat'
+import { useNavAnimation } from '../composables/useNavAnimation'
 
 const router = useRouter()
 const route = useRoute()
 const chatStore = useChatStore()
+const { navAnimationEnabled } = useNavAnimation()
 
 const currentRoute = computed(() => route.path)
 
@@ -166,6 +168,17 @@ const goTo = (path) => {
   .nav-item:not(.active):hover .nav-icon {
     transform: translateY(-2px) scale(1.08);
   }
+}
+
+/* 关闭动画时：不播放动效，仅保留静态高亮 */
+.bottom-nav.no-anim .nav-icon {
+  animation: none !important;
+}
+.bottom-nav.no-anim .nav-item.active .nav-icon {
+  transform: scale(1.1);
+}
+.bottom-nav.no-anim .nav-item:not(.active):hover .nav-icon {
+  transform: none;
 }
 
 .nav-text {

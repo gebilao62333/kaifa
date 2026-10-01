@@ -1985,7 +1985,7 @@ const getFinanceStats = async (req, res) => {
       Withdraw.count({ where: { status: 0 } }),
       sequelize.query("SELECT COALESCE(SUM(totalmoney),0) AS v FROM xn_gift_log", { type: sequelize.QueryTypes.SELECT }).then(r => r[0].v).catch(err => { logger.error('财务统计-礼物汇总查询失败:', err.message); return 0; }),
       GameOrder.sum('amount'),
-      sequelize.query("SELECT COALESCE(SUM(amount),0) AS v FROM xn_vip_order WHERE status = 1", { type: sequelize.QueryTypes.SELECT }).then(r => r[0].v).catch(err => { logger.error('财务统计-VIP汇总查询失败:', err.message); return 0; }),
+      sequelize.query("SELECT COALESCE(SUM(price),0) AS v FROM xn_vip_order WHERE status = 1", { type: sequelize.QueryTypes.SELECT }).then(r => r[0].v).catch(err => { logger.error('财务统计-VIP汇总查询失败:', err.message); return 0; }),
       sequelize.query("SELECT COALESCE(SUM(value),0) AS v FROM xn_card WHERE status = 1", { type: sequelize.QueryTypes.SELECT }).then(r => r[0].v).catch(err => { logger.error('财务统计-卡密汇总查询失败:', err.message); return 0; })
     ]);
 

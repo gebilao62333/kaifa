@@ -54,4 +54,8 @@ const OrderChong = sequelize.define('xn_order_chong', {
   ]
 });
 
+// 关联下单用户：供充值记录列表 include user 使用
+const User = require('./User');
+OrderChong.belongsTo(User, { as: 'user', foreignKey: 'user_id' });
+
 module.exports = OrderChong;
