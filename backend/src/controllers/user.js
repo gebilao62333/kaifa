@@ -163,7 +163,7 @@ const follow = async (req, res) => {
       return response.badRequest(res, '目标用户ID不能为空');
     }
     
-    const result = await authService.followUser(req.userId, targetUserId);
+    const result = await authService.followUser(req.userId, targetUserId, Number(action));
     response.success(res, result, action === 1 ? '关注成功' : '取消关注成功');
   } catch (error) {
     logger.error('关注用户错误:', error);

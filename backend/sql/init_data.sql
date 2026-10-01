@@ -50,28 +50,28 @@ INSERT INTO `xn_virtual_user_tag_relation` (`id`, `virtual_user_id`, `tag_id`, `
 (12, 5, 2, UNIX_TIMESTAMP());
 
 -- VIP套餐
-INSERT INTO `xn_vip_package` (`id`, `name`, `price`, `original_price`, `duration`, `level`, `hot`, `sort`, `status`, `create_time`, `update_time`) VALUES
-(1, 'VIP月卡', 18.00, 30.00, 30, 1, 1, 1, 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-(2, 'VIP季卡', 48.00, 90.00, 90, 1, 0, 2, 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-(3, 'VIP年卡', 128.00, 360.00, 365, 2, 1, 3, 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-(4, 'VIP永久', 298.00, NULL, 3650, 3, 0, 4, 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
+INSERT INTO `xn_vip_package` (`id`, `name`, `price`, `original_price`, `duration`, `level`, `hot`, `sort`, `status`, `create_time`) VALUES
+(1, 'VIP月卡', 18.00, 30.00, 30, 1, 1, 1, 1, UNIX_TIMESTAMP()),
+(2, 'VIP季卡', 48.00, 90.00, 90, 1, 0, 2, 1, UNIX_TIMESTAMP()),
+(3, 'VIP年卡', 128.00, 360.00, 365, 2, 1, 3, 1, UNIX_TIMESTAMP()),
+(4, 'VIP永久', 298.00, NULL, 3650, 3, 0, 4, 1, UNIX_TIMESTAMP());
 
 -- 游戏
-INSERT INTO `xn_game` (`id`, `name`, `icon`, `description`, `status`, `sort`, `create_time`, `update_time`) VALUES
-(1, '王者荣耀', 'game1.jpg', '5V5公平竞技手游，国民手游', 1, 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-(2, '英雄联盟', 'game2.jpg', 'MOBA竞技网游，全球最火', 1, 2, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-(3, '和平精英', 'game3.jpg', '战术竞技手游，百人同场', 1, 3, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-(4, '原神', 'game4.jpg', '开放世界冒险游戏', 1, 4, UNIX_TIMESTAMP(), UNIX_TIMESTAMP()),
-(5, '永劫无间', 'game5.jpg', '动作竞技游戏', 1, 5, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
+INSERT INTO `xn_game` (`id`, `name`, `image`, `image_bg`, `status`, `sort`, `create_time`) VALUES
+(1, '王者荣耀', 'game1.png', 'game1_bg.png', 1, 1, UNIX_TIMESTAMP()),
+(2, '英雄联盟', 'game2.png', 'game2_bg.png', 1, 2, UNIX_TIMESTAMP()),
+(3, '和平精英', 'game3.png', 'game3_bg.png', 1, 3, UNIX_TIMESTAMP()),
+(4, '原神', 'game4.png', 'game4_bg.png', 1, 4, UNIX_TIMESTAMP()),
+(5, '永劫无间', 'game5.png', 'game5_bg.png', 1, 5, UNIX_TIMESTAMP());
 
 -- 礼物
-INSERT INTO `xn_gift` (`id`, `title`, `image`, `money`, `type`, `is_vip`, `tian`, `status`, `sort`, `create_time`) VALUES
-(1, '爱心', 'gift1.png', 1.00, 0, 0, 0, 1, 1, UNIX_TIMESTAMP()),
-(2, '玫瑰花', 'gift2.png', 10.00, 0, 0, 0, 1, 2, UNIX_TIMESTAMP()),
-(3, '蛋糕', 'gift3.png', 50.00, 0, 0, 0, 1, 3, UNIX_TIMESTAMP()),
-(4, '钻戒', 'gift4.png', 999.00, 0, 1, 0, 1, 4, UNIX_TIMESTAMP()),
-(5, '跑车', 'gift5.png', 1500.00, 0, 1, 0, 1, 5, UNIX_TIMESTAMP()),
-(6, '火箭', 'gift6.png', 500.00, 0, 0, 0, 1, 6, UNIX_TIMESTAMP());
+INSERT INTO `xn_gift` (`id`, `title`, `image`, `money`, `type`, `is_vip`, `tian`, `status`, `sort`) VALUES
+(1, '爱心', 'gift1.png', 1.00, 0, 0, 0, 1, 1),
+(2, '玫瑰花', 'gift2.png', 10.00, 0, 0, 0, 1, 2),
+(3, '蛋糕', 'gift3.png', 50.00, 0, 0, 0, 1, 3),
+(4, '钻戒', 'gift4.png', 999.00, 0, 1, 0, 1, 4),
+(5, '跑车', 'gift5.png', 1500.00, 0, 1, 0, 1, 5),
+(6, '火箭', 'gift6.png', 500.00, 0, 0, 0, 1, 6);
 
 -- 充值套餐
 INSERT INTO `xn_recharge_package` (`id`, `name`, `price`, `coins`, `bonus_coins`, `hot`, `status`, `sort`, `create_time`, `update_time`) VALUES
@@ -134,23 +134,23 @@ INSERT INTO `xn_album` (`id`, `user_id`, `title`, `cover`, `photos_count`, `stat
 (3, 3, '生活随拍', 'https://picsum.photos/400/300?random=303', 3, 1, UNIX_TIMESTAMP(), UNIX_TIMESTAMP());
 
 -- 相册照片
-INSERT INTO `xn_album_photo` (`id`, `album_id`, `photo_url`, `sort_order`, `create_time`) VALUES
-(1, 1, 'https://picsum.photos/400/300?random=311', 1, UNIX_TIMESTAMP()),
-(2, 1, 'https://picsum.photos/400/300?random=312', 2, UNIX_TIMESTAMP()),
-(3, 1, 'https://picsum.photos/400/300?random=313', 3, UNIX_TIMESTAMP()),
-(4, 2, 'https://picsum.photos/400/300?random=321', 1, UNIX_TIMESTAMP()),
-(5, 2, 'https://picsum.photos/400/300?random=322', 2, UNIX_TIMESTAMP()),
-(6, 3, 'https://picsum.photos/400/300?random=331', 1, UNIX_TIMESTAMP());
+INSERT INTO `xn_album_photo` (`id`, `user_id`, `image_url`, `description`, `privacy`, `create_time`, `status`) VALUES
+(1, 1, 'https://picsum.photos/400/300?random=311', '游戏日常', 'public', UNIX_TIMESTAMP(), 1),
+(2, 1, 'https://picsum.photos/400/300?random=312', NULL, 'public', UNIX_TIMESTAMP(), 1),
+(3, 1, 'https://picsum.photos/400/300?random=313', NULL, 'public', UNIX_TIMESTAMP(), 1),
+(4, 2, 'https://picsum.photos/400/300?random=321', '精彩瞬间', 'public', UNIX_TIMESTAMP(), 1),
+(5, 2, 'https://picsum.photos/400/300?random=322', NULL, 'public', UNIX_TIMESTAMP(), 1),
+(6, 3, 'https://picsum.photos/400/300?random=331', '生活随拍', 'public', UNIX_TIMESTAMP(), 1);
 
 -- 预约
-INSERT INTO `xn_reserve` (`id`, `user_id`, `virtual_user_id`, `game_id`, `reserve_time`, `duration_hours`, `status`, `remark`, `create_time`, `update_time`) VALUES
-(1, 1, 1, 1, UNIX_TIMESTAMP() + 86400, 2, 0, '希望能一起上分', UNIX_TIMESTAMP() - 3600, UNIX_TIMESTAMP()),
-(2, 2, 2, 2, UNIX_TIMESTAMP() + 86400*2, 1, 1, '', UNIX_TIMESTAMP() - 7200, UNIX_TIMESTAMP());
+INSERT INTO `xn_reserve` (`id`, `user_id`, `target_user_id`, `game_id`, `reserve_date`, `reserve_time`, `status`, `create_time`, `update_time`) VALUES
+(1, 1, 1, 1, DATE_ADD(CURDATE(), INTERVAL 1 DAY), '20:00:00', 0, UNIX_TIMESTAMP() - 3600, UNIX_TIMESTAMP()),
+(2, 2, 2, 2, DATE_ADD(CURDATE(), INTERVAL 2 DAY), '19:00:00', 1, UNIX_TIMESTAMP() - 7200, UNIX_TIMESTAMP());
 
 -- 需求
-INSERT INTO `xn_demand` (`id`, `user_id`, `game_id`, `title`, `description`, `budget`, `status`, `create_time`, `update_time`) VALUES
-(1, 1, 1, '找王者荣耀队友', '找个技术好的一起上分，预算50/小时', 50.00, 0, UNIX_TIMESTAMP() - 3600, UNIX_TIMESTAMP()),
-(2, 4, 3, '和平精英陪玩', '找个能带我吃鸡的', 40.00, 0, UNIX_TIMESTAMP() - 7200, UNIX_TIMESTAMP());
+INSERT INTO `xn_demand` (`id`, `user_id`, `service_type`, `game_id`, `game_name`, `date`, `start_time`, `end_time`, `duration`, `budget`, `remark`, `status`, `create_time`, `update_time`) VALUES
+(1, 1, 'online', 1, '王者荣耀', CURDATE(), '20:00:00', '22:00:00', 2, 50.00, '找个技术好的一起上分', 'active', UNIX_TIMESTAMP() - 3600, UNIX_TIMESTAMP()),
+(2, 4, 'online', 3, '和平精英', CURDATE(), '19:00:00', '20:00:00', 1, 40.00, '找个能带我吃鸡的', 'active', UNIX_TIMESTAMP() - 7200, UNIX_TIMESTAMP());
 
 -- 聊天会话（xn_chat_room 实际承载会话列表，由 ChatSession 模型使用）
 INSERT INTO `xn_chat_room` (`id`, `user_id`, `virtual_user_id`, `last_message`, `last_message_time`, `unread_count`, `create_time`, `update_time`) VALUES
@@ -168,7 +168,7 @@ INSERT INTO `xn_chat_log` (`id`, `fromid`, `toid`, `content`, `type`, `time`, `i
 (6, 1002, 2, '没问题，我打野很稳的', 0, UNIX_TIMESTAMP() - 86400 + 60, 1, 0, 0);
 
 -- 游戏订单
-INSERT INTO `xn_game_order` (`id`, `order_no`, `user_id`, `game_id`, `game_name`, `companion_id`, `companion_name`, `duration`, `price`, `amount`, `status`, `remark`, `create_time`, `start_time`, `end_time`, `cancel_time`) VALUES
-(1, 'ORD20250525001', 1, 1, '王者荣耀', 1, '萌妹子', 60, 50.00, 50.00, 'pending', '希望能赢', UNIX_TIMESTAMP() - 3600, NULL, NULL, NULL),
-(2, 'ORD20250525002', 2, 2, '英雄联盟', 2, '电竞小王子', 90, 45.00, 67.50, 'ongoing', '', UNIX_TIMESTAMP() - 7200, UNIX_TIMESTAMP() - 3600, NULL, NULL),
-(3, 'ORD20250525003', 5, 1, '王者荣耀', 1, '萌妹子', 120, 50.00, 100.00, 'completed', '玩得很开心', UNIX_TIMESTAMP() - 10800, UNIX_TIMESTAMP() - 10700, UNIX_TIMESTAMP() - 9500, NULL);
+INSERT INTO `xn_game_order` (`id`, `order_no`, `user_id`, `target_user_id`, `companion_id`, `companion_name`, `duration`, `amount`, `game_id`, `game_name`, `price`, `num`, `total_price`, `status`, `remark`, `create_time`, `add_time`, `start_time`, `end_time`, `user_time`) VALUES
+(1, 'ORD20250525001', 1, 1, 1, '萌妹子', 2, 50.00, 1, '王者荣耀', 50.00, 1, 50.00, 0, '希望能赢', UNIX_TIMESTAMP() - 3600, UNIX_TIMESTAMP() - 3600, 0, 0, 0),
+(2, 'ORD20250525002', 2, 2, 2, '电竞小王子', 2, 67.50, 2, '英雄联盟', 45.00, 1, 67.50, 1, '', UNIX_TIMESTAMP() - 7200, UNIX_TIMESTAMP() - 7200, UNIX_TIMESTAMP() - 3600, 0, 0),
+(3, 'ORD20250525003', 5, 1, 1, '萌妹子', 2, 100.00, 1, '王者荣耀', 50.00, 2, 100.00, 2, '玩得很开心', UNIX_TIMESTAMP() - 10800, UNIX_TIMESTAMP() - 10800, UNIX_TIMESTAMP() - 10700, UNIX_TIMESTAMP() - 9500, 0);

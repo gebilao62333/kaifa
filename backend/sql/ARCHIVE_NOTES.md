@@ -1,5 +1,14 @@
 # SQL 脚本归档说明（2026-08-24 从项目根目录迁入）
 
+> **✅ 2026-10-01 结构统一**：`init_schema.sql` 已重写为**唯一权威**的建表脚本，逐字段对齐 `src/models/mysql/*.js` 的
+> Sequelize 模型（项目未调用 `sequelize.sync()`，DB 结构只以本文件为准）。同时**删除**了两个互相矛盾的历史脚本：
+> - `fix_schema.sql`：内容陈旧且与现有模型冲突（如把 `xn_virtual_user` 重构成 `virtual_user`、用 camelCase 字段），会破坏数据；
+> - `fix_missing_tables.sql`：与 `init_schema.sql` 重复定义多张表且字段不一致。
+>
+> 两者中仍然有效的差异（如 `xn_game.image/image_bg`、`xn_reserve`/`xn_reserve_slot`/`xn_game_order` 的正确结构、
+> 以及 5 张缺失表 `xn_expense_record`/`xn_income_record`/`xn_media_asset`/`xn_splash_screen`/`xn_system_settings`）
+> 已全部并入 `init_schema.sql`，不再需要单独执行。
+
 > ⚠️ 以下脚本原本散落在项目根目录，执行状态**未确认**。重复执行部分脚本会覆盖数据（如 fix_passwords.sql 会把 id≤5 的用户密码重置为同一哈希）。请对照下方清单逐一确认后再决定是否在生产库执行。
 >
 > **✅ 2026-08-24 本地 Docker 环境抽查结果**：xn_user 表中用户 2-4 的昵称（玩家小美/新手玩家/游戏爱好者）与 fix_charset.sql 内容一致，说明该脚本**已执行过**，无需重复执行；用户 1 昵称为 "Upd"（与脚本预期"游戏达人小王"不符，可能被后续操作修改过）。其余脚本仍需在目标环境逐个确认。
@@ -18,9 +27,16 @@
 | migrate-admin.sql | 管理后台表结构迁移（补齐 Sequelize 模型与 DB 的差异字段） | 幂等性未确认，执行前先备份 |
 | migrate2.sql | 重建 xn_system_settings 表（DROP + CREATE） | ⚠️ 高风险：DROP TABLE，会丢失现有配置数据 |
 
-## 原有脚本（14 个，未变动）
+## 原有脚本（12 个，未变动）
 
-fix_missing_tables.sql、fix_schema.sql、fix_columns.sql、fix_companion_profile.sql、fix_status_types.sql、init_data.sql、init_schema.sql、init_settings.sql、init_system_settings.sql、migrate_companion_profile.sql、test_data.sql、alter_virtual_chat_history_user_isolation.sql、alter_virtual_user_random_online.sql、seed_demo.sql（已删除）。
+fix_columns.sql、fix_companion_profile.sql、fix_status_types.sql、init_data.sql、init_schema.sql、init_settings.sql、init_system_settings.sql、migrate_companion_profile.sql、test_data.sql、alter_virtual_chat_history_user_isolation.sql、alter_virtual_user_random_online.sql、init_admin_system.sql。
+
+> 已删除：seed_demo.sql（早期）、fix_missing_tables.sql、fix_schema.sql（2026-10-01，内容已并入 init_schema.sql）。
+>
+> 仍可能与 `init_schema.sql` 存在重叠、需单独决策的脚本（本次未改动）：
+> fix_columns.sql、migrate-admin.sql、migrate2.sql、migrate_companion_profile.sql、init_settings.sql、
+> init_system_settings.sql、init_admin_system.sql、fix_companion_profile.sql、fix_status_types.sql、test_data.sql、
+> alter_virtual_chat_history_user_isolation.sql、alter_virtual_user_random_online.sql、以及各字符集修复脚本。
 
 ## 确认执行状态的方法
 

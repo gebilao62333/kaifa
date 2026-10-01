@@ -207,34 +207,41 @@ const refreshToken = async (refreshTokenStr) => {
   };
 };
 
-const followUser = async (userId, targetUserId) => {
+const followUser = async (userId, targetUserId, action = 1) => {
   if (userId === targetUserId) {
     throw new Error('不能关注自己');
   }
-  
+
   const targetUser = await User.findByPk(targetUserId);
   if (!targetUser) {
     throw new Error('目标用户不存在');
   }
-  
+
   const existingFollow = await UserFollow.findOne({
     where: { follower_id: userId, following_id: targetUserId }
   });
-  
-  if (existingFollow) {
-    await existingFollow.destroy();
-    await User.decrement('fans_num', { where: { id: targetUserId } });
+
+  // action: 1=关注 0=取消关注；幂等，避免重复点击造成反复关注/取关
+  if (action === 0) {
+    if (existingFollow) {
+      await existingFollow.destroy();
+      await User.decrement('fans_num', { where: { id: targetUserId } });
+    }
     return { isFollow: false };
   }
-  
+
+  if (existingFollow) {
+    return { isFollow: true };
+  }
+
   await UserFollow.create({
     follower_id: userId,
     following_id: targetUserId,
     create_time: getTimestamp()
   });
-  
+
   await User.increment('fans_num', { where: { id: targetUserId } });
-  
+
   return { isFollow: true };
 };
 

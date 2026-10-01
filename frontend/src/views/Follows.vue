@@ -8,18 +8,25 @@
 
     <div class="content">
       <div class="user-list" v-if="follows.length > 0">
-        <div class="user-card" v-for="(user, index) in follows" :key="index" @click="viewProfile(user)">
-          <img class="user-avatar" :src="user.avatar" alt="" />
+        <div class="user-card" v-for="user in follows" :key="user.id" @click="viewProfile(user)">
+          <img class="user-avatar" :src="user.avatar" alt="" v-img-fallback="user.name" />
           <div class="user-info">
             <div class="user-name">{{ user.name }}</div>
-            <div class="user-desc">{{ user.desc }}</div>
-            <div class="user-tags">
-              <span class="tag" v-for="tag in user.tags" :key="tag">{{ tag }}</span>
-            </div>
+            <div class="user-desc">Lv.{{ user.level || 1 }}</div>
           </div>
-          <button class="follow-btn followed" @click.stop="unfollow(user)">已关注</button>
+          <button class="follow-btn followed" @click.stop="unfollow(user)" :disabled="unfollowingId === user.id">
+            {{ unfollowingId === user.id ? '处理中' : '已关注' }}
+          </button>
+        </div>
+
+        <div class="list-footer">
+          <span v-if="loading" class="footer-text">加载中...</span>
+          <span v-else-if="hasMore" class="footer-text more" @click="loadFollows(true)">加载更多</span>
+          <span v-else class="footer-text">没有更多了</span>
         </div>
       </div>
+
+      <div v-else-if="loading" class="loading-box">加载中...</div>
 
       <EmptyState v-else icon="👥" text="暂无关注" hint="快去关注感兴趣的人吧" />
     </div>
@@ -27,31 +34,79 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
+import authService from '../services/authService'
+import { DEFAULT_AVATAR } from '@/common/constants'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
+const PAGE_SIZE = 20
+
 const follows = ref([])
+const page = ref(1)
+const total = ref(0)
+const loading = ref(false)
+const hasMore = ref(false)
+const unfollowingId = ref(null)
+
+const mapUser = (item) => ({
+  id: item.userId,
+  name: item.nickname || '用户',
+  avatar: item.avatar || DEFAULT_AVATAR,
+  level: item.level
+})
+
+const loadFollows = async (append = false) => {
+  if (loading.value) return
+  loading.value = true
+  try {
+    const res = await authService.getFollows({ page: page.value, pageSize: PAGE_SIZE })
+    const data = res.data || {}
+    const rows = (data.list || []).map(mapUser)
+    follows.value = append ? follows.value.concat(rows) : rows
+    total.value = data.total || 0
+    hasMore.value = follows.value.length < total.value
+  } catch (err) {
+    toast.error(err.message || '加载关注列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const unfollow = async (user) => {
+  if (unfollowingId.value) return
+  unfollowingId.value = user.id
+  try {
+    const res = await authService.unfollow(user.id)
+    const isFollow = res?.data?.isFollow
+    if (isFollow === false) {
+      const index = follows.value.findIndex(u => u.id === user.id)
+      if (index > -1) follows.value.splice(index, 1)
+      total.value = Math.max(0, total.value - 1)
+      toast.success('已取消关注')
+    }
+  } catch (err) {
+    toast.error(err.message || '取消关注失败')
+  } finally {
+    unfollowingId.value = null
+  }
+}
+
+const viewProfile = (user) => {
+  router.push({ name: 'UserProfile', params: { id: user.id } })
+}
 
 const goBack = () => {
   router.back()
 }
 
-const unfollow = (user) => {
-  if (confirm(`确定取消关注 ${user.name} 吗？`)) {
-    const index = follows.value.findIndex(u => u.name === user.name)
-    if (index > -1) {
-      follows.value.splice(index, 1)
-    }
-  }
-}
-
-const viewProfile = (user) => {
-  router.push({ name: 'UserProfile', params: { id: user.id || '10001' } })
-}
+onMounted(() => {
+  loadFollows()
+})
 </script>
 
 <style scoped>
@@ -114,24 +169,6 @@ const viewProfile = (user) => {
 .user-desc {
   font-size: 13px;
   color: #999;
-  margin-bottom: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.user-tags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.tag {
-  font-size: 11px;
-  color: var(--color-primary);
-  background: rgba(102,126,234,0.1);
-  padding: 3px 8px;
-  border-radius: 10px;
 }
 
 .follow-btn {
@@ -148,8 +185,30 @@ const viewProfile = (user) => {
   color: #999;
 }
 
-.follow-btn.not-followed {
-  background: var(--gradient-primary);
-  color: white;
+.follow-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-box {
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+  padding: 40px 0;
+}
+
+.list-footer {
+  text-align: center;
+  padding: 14px 0;
+}
+
+.footer-text {
+  font-size: 13px;
+  color: #999;
+}
+
+.footer-text.more {
+  color: var(--color-primary);
+  cursor: pointer;
 }
 </style>

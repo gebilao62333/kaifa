@@ -225,12 +225,16 @@ const completeReserve = async (userId, reserveId) => {
   return true;
 };
 
-const getReserveList = async (userId, role, page, pageSize) => {
+const getReserveList = async (userId, role, status, page, pageSize) => {
   const { offset, limit } = parseQuery({ page, pageSize });
 
   const where = role === 'companion'
     ? { target_user_id: userId }
     : { user_id: userId };
+
+  if (status !== undefined && status !== null && status !== '') {
+    where.status = Number(status);
+  }
 
   const { count, rows } = await Reserve.findAndCountAll({
     where,
@@ -277,7 +281,6 @@ const getReserveDetail = async (reserveId) => {
 
   return {
     reserveId: reserve.id,
-    reserveNo: reserve.reserve_no,
     user: {
       userId: user?.id,
       nickname: user?.nickname || '',
@@ -292,9 +295,7 @@ const getReserveDetail = async (reserveId) => {
     gameName: game?.name || '',
     date: reserve.reserve_date,
     time: reserve.reserve_time,
-    remark: reserve.remark,
     status: reserve.status,
-    price: Number(reserve.price),
     createTime: reserve.create_time,
     updateTime: reserve.update_time
   };

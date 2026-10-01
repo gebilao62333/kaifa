@@ -3,25 +3,35 @@
     <template #nav>
       <span class="back-btn" @click="goBack">←</span>
       <span class="nav-title">我的粉丝</span>
-      <span class="count">{{ fans.length }}人</span>
+      <span class="count">{{ total }}人</span>
     </template>
 
     <div class="content">
       <div class="user-list" v-if="fans.length > 0">
-        <div class="user-card" v-for="(user, index) in fans" :key="index" @click="viewProfile(user)">
-          <img class="user-avatar" :src="user.avatar" alt="" />
+        <div class="user-card" v-for="user in fans" :key="user.id" @click="viewProfile(user)">
+          <img class="user-avatar" :src="user.avatar" alt="" v-img-fallback="user.name" />
           <div class="user-info">
             <div class="user-name">{{ user.name }}</div>
-            <div class="user-desc">{{ user.desc }}</div>
-            <div class="user-tags">
-              <span class="tag" v-for="tag in user.tags" :key="tag">{{ tag }}</span>
-            </div>
+            <div class="user-desc">Lv.{{ user.level || 1 }}</div>
           </div>
-          <button class="follow-btn" :class="{ followed: user.isFollow }" @click.stop="toggleFollow(user)">
-            {{ user.isFollow ? '已互关注' : '+ 关注' }}
+          <button
+            class="follow-btn"
+            :class="{ followed: user.isFollow }"
+            :disabled="busyId === user.id"
+            @click.stop="toggleFollow(user)"
+          >
+            {{ user.isFollow ? '已关注' : '+ 关注' }}
           </button>
         </div>
+
+        <div class="list-footer">
+          <span v-if="loading" class="footer-text">加载中...</span>
+          <span v-else-if="hasMore" class="footer-text more" @click="loadFans(true)">加载更多</span>
+          <span v-else class="footer-text">没有更多了</span>
+        </div>
       </div>
+
+      <div v-else-if="loading" class="loading-box">加载中...</div>
 
       <EmptyState v-else icon="👥" text="暂无粉丝" hint="努力提升自己，粉丝会越来越多哦" />
     </div>
@@ -29,32 +39,80 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
+import authService from '../services/authService'
+import { DEFAULT_AVATAR } from '@/common/constants'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
+const PAGE_SIZE = 20
+
 const fans = ref([])
+const page = ref(1)
+const total = ref(0)
+const loading = ref(false)
+const hasMore = ref(false)
+const busyId = ref(null)
+
+const mapUser = (item) => ({
+  id: item.userId,
+  name: item.nickname || '用户',
+  avatar: item.avatar || DEFAULT_AVATAR,
+  level: item.level,
+  isFollow: !!item.isFollow
+})
+
+const loadFans = async (append = false) => {
+  if (loading.value) return
+  loading.value = true
+  try {
+    const res = await authService.getFans({ page: page.value, pageSize: PAGE_SIZE })
+    const data = res.data || {}
+    const rows = (data.list || []).map(mapUser)
+    fans.value = append ? fans.value.concat(rows) : rows
+    total.value = data.total || 0
+    hasMore.value = fans.value.length < total.value
+  } catch (err) {
+    toast.error(err.message || '加载粉丝列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const toggleFollow = async (user) => {
+  if (busyId.value) return
+  busyId.value = user.id
+  try {
+    const res = user.isFollow
+      ? await authService.unfollow(user.id)
+      : await authService.follow(user.id)
+    const isFollow = res?.data?.isFollow
+    if (typeof isFollow === 'boolean') {
+      user.isFollow = isFollow
+      toast.success(isFollow ? '已关注' : '已取消关注')
+    }
+  } catch (err) {
+    toast.error(err.message || '操作失败')
+  } finally {
+    busyId.value = null
+  }
+}
+
+const viewProfile = (user) => {
+  router.push({ name: 'UserProfile', params: { id: user.id } })
+}
 
 const goBack = () => {
   router.back()
 }
 
-const toggleFollow = (user) => {
-  user.isFollow = !user.isFollow
-  if (user.isFollow) {
-    toast.success(`已关注 ${user.name}`)
-  } else {
-    toast.info(`已取消关注 ${user.name}`)
-  }
-}
-
-const viewProfile = (user) => {
-  router.push({ name: 'UserProfile', params: { id: user.id || '10001' } })
-}
+onMounted(() => {
+  loadFans()
+})
 </script>
 
 <style scoped>
@@ -121,24 +179,6 @@ const viewProfile = (user) => {
 .user-desc {
   font-size: 13px;
   color: #999;
-  margin-bottom: 6px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.user-tags {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.tag {
-  font-size: 11px;
-  color: var(--color-primary);
-  background: rgba(102,126,234,0.1);
-  padding: 3px 8px;
-  border-radius: 10px;
 }
 
 .follow-btn {
@@ -158,5 +198,32 @@ const viewProfile = (user) => {
 .follow-btn:not(.followed) {
   background: #f5f5f5;
   color: #333;
+}
+
+.follow-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loading-box {
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+  padding: 40px 0;
+}
+
+.list-footer {
+  text-align: center;
+  padding: 14px 0;
+}
+
+.footer-text {
+  font-size: 13px;
+  color: #999;
+}
+
+.footer-text.more {
+  color: var(--color-primary);
+  cursor: pointer;
 }
 </style>

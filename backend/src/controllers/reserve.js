@@ -126,11 +126,12 @@ const cancelReserve = async (req, res) => {
 
 const getReserveList = async (req, res) => {
   try {
-    const { role, page = 1, pageSize = 20 } = req.query;
+    const { role, status, page = 1, pageSize = 20 } = req.query;
 
     const result = await reserveService.getReserveList(
       req.userId,
       role || 'user',
+      status,
       parseInt(page),
       parseInt(pageSize)
     );

@@ -7,51 +7,43 @@
     </template>
 
     <div class="tabs">
-      <div class="tab-item" :class="{ active: currentTab === 'pending' }" @click="currentTab = 'pending'">待确认</div>
-      <div class="tab-item" :class="{ active: currentTab === 'confirmed' }" @click="currentTab = 'confirmed'">已确认</div>
+      <div
+        v-for="tab in tabs"
+        :key="tab.value"
+        class="tab-item"
+        :class="{ active: currentTab === tab.value }"
+        @click="switchTab(tab.value)"
+      >{{ tab.label }}</div>
     </div>
 
     <div class="content">
       <div class="order-list" v-if="filteredOrders.length > 0">
         <div class="order-card" v-for="(order, index) in filteredOrders" :key="index" @click="viewOrderDetail(order)">
           <div class="order-header">
-            <div class="order-type" :style="{ background: getTypeColor(order.type) }">
-              <span class="type-icon">{{ order.typeIcon }}</span>
-              {{ order.typeText }}
+            <div class="order-type" :style="{ background: getTypeColor(order.status) }">
+              <span class="type-icon">🎮</span>
+              {{ order.gameName || '陪玩预约' }}
             </div>
-            <div class="order-status" :class="order.status">{{ order.statusText }}</div>
+            <div class="order-status" :style="{ color: getStatusColor(order.status) }">{{ statusText(order.status) }}</div>
           </div>
           <div class="order-body">
-            <img class="order-avatar" :src="order.avatar" alt="" />
+            <img class="order-avatar" :src="order.companionAvatar" alt="" v-img-fallback="order.companionName" />
             <div class="order-info">
-              <div class="order-name">
-                <span>{{ order.name }}</span>
-                <span v-if="order.isVip" class="vip-badge">VIP</span>
-              </div>
+              <div class="order-name">{{ order.companionName }}</div>
               <div class="order-game">
-                <span class="game-icon">{{ order.gameIcon }}</span>
-                {{ order.gameName }}
+                <span class="game-icon">🎮</span>
+                {{ order.gameName || '陪玩服务' }}
               </div>
               <div class="order-detail">📅 {{ order.date }} {{ order.time }}</div>
-              <div class="order-detail">⏱️ 时长 {{ order.duration }}</div>
-              <div class="order-detail">📍 {{ order.location }}</div>
-              <div class="order-price">
-                <span class="price-label">订单金额</span>
-                <span class="price-value">¥{{ order.price }}</span>
-              </div>
+              <div class="order-detail">🆔 预约号 {{ order.reserveId }}</div>
             </div>
           </div>
           <div class="order-footer">
-            <div class="order-id">订单号：{{ order.id }}</div>
+            <div class="order-id">下单时间：{{ formatTime(order.createTime) }}</div>
             <div class="order-actions" @click.stop>
-              <button class="action-btn secondary" v-if="order.status === 'pending'" @click="cancelOrder(order)">取消预约</button>
-              <button class="action-btn primary" v-if="order.status === 'pending'" @click="confirmOrder(order)">确认预约</button>
-              <button class="action-btn primary" v-if="order.status === 'confirmed'" @click="contactUser(order)">联系对方</button>
+              <button class="action-btn secondary" v-if="order.status === 0" @click="cancelOrder(order)">取消预约</button>
+              <button class="action-btn primary" v-if="order.status === 1" @click="contactUser(order)">联系对方</button>
             </div>
-          </div>
-          <div class="countdown" v-if="order.status === 'pending' && order.countdown">
-            <div class="countdown-icon">⏰</div>
-            <div class="countdown-text">请在 {{ formatCountdown(order.countdown) }} 内确认</div>
           </div>
         </div>
       </div>
@@ -67,48 +59,37 @@
     <div class="modal detail-modal" v-if="showDetail" @click.self="showDetail = false">
       <div class="modal-content">
         <div class="detail-header">
-          <div class="detail-avatar" :style="{ background: 'url(' + currentOrder?.avatar + ') center/cover' }"></div>
+          <div class="detail-avatar" :style="{ background: 'url(' + currentOrder?.companionAvatar + ') center/cover' }"></div>
           <div class="detail-info">
-            <div class="detail-name">
-              <span>{{ currentOrder?.name }}</span>
-              <span v-if="currentOrder?.isVip" class="vip-badge">VIP</span>
-            </div>
-            <div class="detail-game">{{ currentOrder?.gameName }}</div>
+            <div class="detail-name">{{ currentOrder?.companionName }}</div>
+            <div class="detail-game">{{ currentOrder?.gameName || '陪玩服务' }}</div>
           </div>
           <span class="detail-close" @click="showDetail = false">✕</span>
         </div>
         <div class="detail-body" v-if="currentOrder">
           <div class="detail-item">
-            <div class="detail-label">订单状态</div>
-            <div class="detail-value" :class="currentOrder.status">{{ currentOrder.statusText }}</div>
+            <div class="detail-label">预约状态</div>
+            <div class="detail-value" :style="{ color: getStatusColor(currentOrder.status) }">{{ statusText(currentOrder.status) }}</div>
           </div>
           <div class="detail-item">
-            <div class="detail-label">服务类型</div>
-            <div class="detail-value">
-              <span class="detail-type" :style="{ background: getTypeColor(currentOrder.type) }">
-                {{ currentOrder.typeIcon }} {{ currentOrder.typeText }}
-              </span>
-            </div>
+            <div class="detail-label">陪玩师</div>
+            <div class="detail-value">{{ currentOrder.companionName }}</div>
+          </div>
+          <div class="detail-item">
+            <div class="detail-label">服务项目</div>
+            <div class="detail-value">{{ currentOrder.gameName || '陪玩服务' }}</div>
           </div>
           <div class="detail-item">
             <div class="detail-label">预约时间</div>
             <div class="detail-value">{{ currentOrder.date }} {{ currentOrder.time }}</div>
           </div>
           <div class="detail-item">
-            <div class="detail-label">服务时长</div>
-            <div class="detail-value">{{ currentOrder.duration }}</div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">预约地点</div>
-            <div class="detail-value">{{ currentOrder.location }}</div>
-          </div>
-          <div class="detail-item">
-            <div class="detail-label">订单金额</div>
-            <div class="detail-value price">¥{{ currentOrder.price }}</div>
+            <div class="detail-label">预约号</div>
+            <div class="detail-value">{{ currentOrder.reserveId }}</div>
           </div>
           <div class="detail-item">
             <div class="detail-label">下单时间</div>
-            <div class="detail-value">{{ currentOrder.createTime }}</div>
+            <div class="detail-value">{{ formatTime(currentOrder.createTime) }}</div>
           </div>
         </div>
       </div>
@@ -117,84 +98,76 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
+import reserveService from '../services/reserveService'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
-const currentTab = ref('pending')
+// 后端 xn_reserve.status：0待确认 1已确认 2已拒绝 3已完成 4已取消
+const STATUS_TEXT = { 0: '待确认', 1: '已确认', 2: '已拒绝', 3: '已完成', 4: '已取消' }
+const STATUS_COLOR = { 0: '#ff9500', 1: '#5b6ef5', 2: '#ff4d4f', 3: '#52c41a', 4: '#999999' }
+
+const tabs = [
+  { label: '待确认', value: 0 },
+  { label: '已确认', value: 1 },
+  { label: '已完成', value: 3 },
+  { label: '已取消', value: 4 }
+]
+
+const currentTab = ref(0)
+const orders = ref([])
+const loading = ref(false)
 const showDetail = ref(false)
 const currentOrder = ref(null)
 
-const orders = ref([])
+const filteredOrders = computed(() => orders.value)
 
-let timer = null
+const statusText = (s) => STATUS_TEXT[s] || '未知'
+const getStatusColor = (s) => STATUS_COLOR[s] || '#999'
+const getTypeColor = () => 'linear-gradient(135deg, #667eea, #764ba2)'
 
-const filteredOrders = computed(() => {
-  return orders.value.filter(order => order.status === currentTab.value)
-})
-
-const getTypeColor = (type) => {
-  return type === 'online' ? 'var(--gradient-primary)' : 'linear-gradient(135deg, #f093fb, #f5576c)'
+const formatTime = (ts) => {
+  if (!ts) return ''
+  const d = new Date(ts * 1000)
+  const pad = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-const formatCountdown = (seconds) => {
-  const mins = Math.floor(seconds / 60)
-  const secs = seconds % 60
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-}
-
-const goBack = () => {
-  router.back()
-}
-
-const goHome = () => {
-  router.push('/')
-}
-
-const findOrderIndex = (order) => orders.value.findIndex(o => o.id === order.id)
-
-const cancelOrder = (order) => {
-  if (confirm('确定要取消这个预约吗？')) {
-    const index = findOrderIndex(order)
-    if (index > -1) orders.value.splice(index, 1)
-    toast.success('订单已取消')
+const loadOrders = async () => {
+  if (loading.value) return
+  loading.value = true
+  try {
+    const res = await reserveService.getReserveList({ status: currentTab.value, page: 1, pageSize: 50 })
+    orders.value = res.data?.list || []
+  } catch (err) {
+    toast.error(err.message || '加载预约记录失败')
+  } finally {
+    loading.value = false
   }
 }
 
-const confirmOrder = (order) => {
-  const index = findOrderIndex(order)
-  if (index > -1) {
-    orders.value[index].status = 'confirmed'
-    orders.value[index].statusText = '已确认'
-    orders.value[index].countdown = null
+const switchTab = (value) => {
+  if (currentTab.value === value) return
+  currentTab.value = value
+  loadOrders()
+}
+
+const cancelOrder = async (order) => {
+  if (!confirm('确定要取消这个预约吗？')) return
+  try {
+    await reserveService.cancelReserve(order.reserveId)
+    toast.success('预约已取消')
+    loadOrders()
+  } catch (err) {
+    toast.error(err.message || '取消失败')
   }
-  const newOrder = {
-    id: Date.now(),
-    game: order.gameName || '王者荣耀',
-    avatar: order.avatar,
-    companionName: order.name,
-    title: order.gameName ? `${order.gameName}陪玩` : '陪玩服务',
-    price: order.price,
-    duration: parseInt(order.duration) || 2,
-    status: 'waiting',
-    createTime: Date.now(),
-    serviceType: order.typeText || '线上陪玩',
-    orderSource: '预约确认'
-  }
-  const saved = localStorage.getItem('orderList')
-  let orderList = saved ? JSON.parse(saved) : []
-  if (!orderList.some(o => o.id === newOrder.id)) {
-    orderList.unshift(newOrder)
-  }
-  localStorage.setItem('orderList', JSON.stringify(orderList))
-  toast.success('预约已确认')
 }
 
 const contactUser = (order) => {
-  router.push(`/chat-room/${order.id}`)
+  router.push(`/chat-room/${order.companionId}`)
 }
 
 const viewOrderDetail = (order) => {
@@ -202,19 +175,14 @@ const viewOrderDetail = (order) => {
   showDetail.value = true
 }
 
-onMounted(() => {
-  timer = setInterval(() => {
-    orders.value.forEach(order => {
-      if (order.countdown && order.countdown > 0) {
-        order.countdown--
-        if (order.countdown <= 0) order.countdown = null
-      }
-    })
-  }, 1000)
-})
+const goBack = () => router.back()
 
-onUnmounted(() => {
-  if (timer) clearInterval(timer)
+const goHome = () => {
+  router.push('/')
+}
+
+onMounted(() => {
+  loadOrders()
 })
 </script>
 
@@ -633,5 +601,12 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+.loading-box {
+  text-align: center;
+  color: #999;
+  font-size: 14px;
+  padding: 60px 0;
 }
 </style>
