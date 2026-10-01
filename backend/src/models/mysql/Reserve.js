@@ -31,6 +31,22 @@ const Reserve = sequelize.define('xn_reserve', {
     type: DataTypes.TINYINT(1),
     defaultValue: 0
   },
+  duration: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0
+  },
+  price: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0
+  },
+  remark: {
+    type: DataTypes.STRING(255),
+    allowNull: true
+  },
+  service_type: {
+    type: DataTypes.STRING(16),
+    allowNull: true
+  },
   create_time: {
     type: DataTypes.INTEGER(10),
     defaultValue: 0

@@ -56,7 +56,7 @@ const toggleSlot = async (req, res) => {
 
 const createReserve = async (req, res) => {
   try {
-    const { companionId, gameId, date, time } = req.body;
+    const { companionId, gameId, date, time, duration, price, remark, serviceType } = req.body;
     
     if (!companionId || !date || !time) {
       return response.badRequest(res, '陪玩师ID、日期和时间不能为空');
@@ -67,7 +67,8 @@ const createReserve = async (req, res) => {
       parseInt(companionId),
       gameId ? parseInt(gameId) : 0,
       date,
-      time
+      time,
+      { duration, price, remark, serviceType }
     );
     response.created(res, result, '预约成功');
   } catch (error) {
