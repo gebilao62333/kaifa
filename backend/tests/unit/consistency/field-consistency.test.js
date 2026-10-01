@@ -24,10 +24,6 @@ jest.mock('../../../src/models', () => ({
     findAndCountAll: jest.fn(),
     create: jest.fn()
   },
-  ChatRoom: {
-    findOne: jest.fn(),
-    create: jest.fn()
-  },
   ChatSession: {
     findAndCountAll: jest.fn()
   },

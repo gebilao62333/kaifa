@@ -104,12 +104,8 @@ INSERT INTO xn_banner (id, title, image, link, position, sort, status, start_tim
 (5, '周末双倍积分', '/uploads/banners/weekend_double.jpg', '/activity/weekend', 'home', 4, 1, UNIX_TIMESTAMP(), 1893456000, UNIX_TIMESTAMP());
 
 -- ============================================
--- 8. 测试聊天房间 (3个房间)
+-- 8. 测试聊天房间（已移除：群聊功能下线；xn_chat_room 实为会话表，由 ChatSession 使用，字段与下方房间数据不兼容）
 -- ============================================
-INSERT INTO xn_chat_room (id, title, title_sub, image, image_bg, manage_id, type, status, open, create_time) VALUES
-(1, '闲聊灌水区', '轻松聊天交朋友', '/uploads/rooms/chat1.jpg', '/uploads/rooms/chat1_bg.jpg', 11000, 0, 1, 1, UNIX_TIMESTAMP()),
-(2, '王者荣耀开黑', '找队友一起上分', '/uploads/rooms/game1.jpg', '/uploads/rooms/game1_bg.jpg', 11001, 1, 1, 1, UNIX_TIMESTAMP()),
-(3, '音乐之声', '分享音乐放松心情', '/uploads/rooms/music1.jpg', '/uploads/rooms/music1_bg.jpg', 11002, 0, 1, 1, UNIX_TIMESTAMP());
 
 -- ============================================
 -- 9. 需求发布示例 (3条)

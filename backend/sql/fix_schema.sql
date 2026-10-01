@@ -121,27 +121,11 @@ CREATE TABLE IF NOT EXISTS `virtual_chat_history` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='虚拟聊天历史表';
 
 -- ============================================================================
--- 6. xn_chat_room 表 - 添加缺失字段 + 重构
+-- 6. xn_chat_room 表 —— 已下线群聊功能，不再重建
+--    xn_chat_room 实为「聊天会话表」，由 ChatSession 模型使用（会话列表 + 未读数）。
+--    原「聊天室」重构会 DROP TABLE 并写入 title/manage_id/open 等不存在语义的字段，
+--    会破坏会话数据，故整块删除。
 -- ============================================================================
--- 原表字段与新 Model 差异巨大，需要重建
-DROP TABLE IF EXISTS `xn_chat_room`;
-
-CREATE TABLE IF NOT EXISTS `xn_chat_room` (
-  `id` INTEGER NOT NULL AUTO_INCREMENT,
-  `title` VARCHAR(128) NOT NULL,
-  `title_sub` VARCHAR(255) DEFAULT NULL,
-  `image` VARCHAR(255) DEFAULT NULL,
-  `image_bg` VARCHAR(255) DEFAULT NULL,
-  `manage_id` INTEGER NOT NULL,
-  `type` TINYINT(1) DEFAULT 0,
-  `status` TINYINT(1) DEFAULT 0,
-  `open` TINYINT(1) DEFAULT 0,
-  `create_time` INT(10) DEFAULT 0,
-  PRIMARY KEY (`id`),
-  KEY `idx_manage_id` (`manage_id`),
-  KEY `idx_status` (`status`),
-  KEY `idx_create_time` (`create_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天室表';
 
 -- ============================================================================
 -- 7. xn_recharge_package 表 - 完全重构

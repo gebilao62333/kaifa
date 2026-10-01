@@ -73,49 +73,6 @@ const revokeMessage = async (req, res) => {
   }
 };
 
-const createRoom = async (req, res) => {
-  try {
-    const { title, subtitle, background, roomType } = req.body;
-    
-    if (!title) {
-      return response.badRequest(res, '房间名称不能为空');
-    }
-    
-    const result = await chatService.createRoom(req.userId, title, subtitle, background, roomType);
-    response.success(res, result, '申请成功，等待审核');
-  } catch (error) {
-    logger.error('创建聊天室错误:', error);
-    response.error(res, error.message);
-  }
-};
-
-const getRoomInfo = async (req, res) => {
-  try {
-    const { roomId } = req.query;
-    
-    if (!roomId) {
-      return response.badRequest(res, '房间ID不能为空');
-    }
-    
-    const result = await chatService.getRoomInfo(parseInt(roomId));
-    response.success(res, result);
-  } catch (error) {
-    logger.error('获取聊天室信息错误:', error);
-    response.error(res, error.message);
-  }
-};
-
-const getRooms = async (req, res) => {
-  try {
-    const { page = 1, pageSize = 20 } = req.query;
-    const result = await chatService.getRooms(parseInt(page), parseInt(pageSize));
-    response.success(res, result);
-  } catch (error) {
-    logger.error('获取聊天室列表错误:', error);
-    response.error(res, error.message);
-  }
-};
-
 const markAsRead = async (req, res) => {
   try {
     const { targetUserId } = req.body;
@@ -137,8 +94,5 @@ module.exports = {
   getMessages,
   sendMessage,
   revokeMessage,
-  markAsRead,
-  createRoom,
-  getRoomInfo,
-  getRooms
+  markAsRead
 };

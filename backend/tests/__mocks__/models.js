@@ -16,11 +16,6 @@ jest.mock('../src/models', () => ({
     create: jest.fn(),
     update: jest.fn()
   },
-  ChatRoom: {
-    findByPk: jest.fn(),
-    create: jest.fn(),
-    findAll: jest.fn()
-  },
   Gift: {
     findByPk: jest.fn(),
     findAll: jest.fn()

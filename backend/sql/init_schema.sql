@@ -445,7 +445,7 @@ CREATE TABLE IF NOT EXISTS `xn_call_billing` (
   KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通话计费表';
 
--- 聊天室表
+-- 聊天会话表（承载会话列表与未读数，由 ChatSession 模型使用）
 CREATE TABLE IF NOT EXISTS `xn_chat_room` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `user_id` BIGINT NOT NULL,
@@ -457,7 +457,7 @@ CREATE TABLE IF NOT EXISTS `xn_chat_room` (
   `update_time` INT(10) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_user_virtual` (`user_id`, `virtual_user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天室表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='聊天会话表';
 
 -- 聊天记录表
 CREATE TABLE IF NOT EXISTS `xn_chat_log` (

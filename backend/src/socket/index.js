@@ -142,63 +142,6 @@ const initializeSocket = (socketIO) => {
       }
     });
     
-    socket.on('room_message', async (data) => {
-      try {
-        const { roomId, content, type = 0, mediaUrl, duration } = data;
-        
-        // 房间消息暂不落库（当前无对应 MySQL 表，前端也未使用该事件），仅实时广播
-        const messageData = {
-          id: `${Date.now()}`,
-          roomId: parseInt(roomId),
-          fromId: socket.userId,
-          fromName: socket.user.nickname,
-          fromAvatar: socket.user.avatar,
-          content,
-          type,
-          mediaUrl: mediaUrl || '',
-          duration: duration || 0,
-          sendTime: Math.floor(Date.now() / 1000)
-        };
-        
-        socket.to(`room:${roomId}`).emit('room_message', messageData);
-        socket.emit('room_message_ack', {
-          id: messageData.id,
-          sendTime: messageData.sendTime
-        });
-        
-        logger.info(`房间消息: 用户${socket.userId} 在房间${roomId}`);
-      } catch (error) {
-        logger.error('发送房间消息错误:', error);
-        socket.emit('error', { message: '发送消息失败' });
-      }
-    });
-    
-    socket.on('join_room', async (data) => {
-      try {
-        const { roomId } = data;
-        socket.join(`room:${roomId}`);
-        socket.emit('join_room_success', { roomId });
-        
-        logger.info(`用户 ${socket.userId} 加入房间 ${roomId}`);
-      } catch (error) {
-        logger.error('加入房间错误:', error);
-        socket.emit('error', { message: '加入房间失败' });
-      }
-    });
-    
-    socket.on('leave_room', async (data) => {
-      try {
-        const { roomId } = data;
-        socket.leave(`room:${roomId}`);
-        socket.emit('leave_room_success', { roomId });
-        
-        logger.info(`用户 ${socket.userId} 离开房间 ${roomId}`);
-      } catch (error) {
-        logger.error('离开房间错误:', error);
-        socket.emit('error', { message: '离开房间失败' });
-      }
-    });
-    
     socket.on('call_invite', async (data) => {
       try {
         const { toId, callType, trtcRoomId, callId, useWebRTC } = data;

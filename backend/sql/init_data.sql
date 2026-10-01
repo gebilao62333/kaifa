@@ -152,7 +152,7 @@ INSERT INTO `xn_demand` (`id`, `user_id`, `game_id`, `title`, `description`, `bu
 (1, 1, 1, '找王者荣耀队友', '找个技术好的一起上分，预算50/小时', 50.00, 0, UNIX_TIMESTAMP() - 3600, UNIX_TIMESTAMP()),
 (2, 4, 3, '和平精英陪玩', '找个能带我吃鸡的', 40.00, 0, UNIX_TIMESTAMP() - 7200, UNIX_TIMESTAMP());
 
--- 聊天室
+-- 聊天会话（xn_chat_room 实际承载会话列表，由 ChatSession 模型使用）
 INSERT INTO `xn_chat_room` (`id`, `user_id`, `virtual_user_id`, `last_message`, `last_message_time`, `unread_count`, `create_time`, `update_time`) VALUES
 (1, 1, 1, '好的，明天见！', UNIX_TIMESTAMP() - 3600, 1, UNIX_TIMESTAMP() - 86400, UNIX_TIMESTAMP()),
 (2, 2, 2, '没问题，一起加油', UNIX_TIMESTAMP() - 7200, 0, UNIX_TIMESTAMP() - 86400*2, UNIX_TIMESTAMP()),

@@ -1,4 +1,4 @@
-const { ChatLog, ChatRoom, User, VirtualUser, ChatSession } = require('../models');
+const { ChatLog, User, VirtualUser, ChatSession } = require('../models');
 const { getTimestamp, parseQuery } = require('../utils/helper');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
@@ -226,70 +226,6 @@ const revokeMessage = async (userId, messageId) => {
   return true;
 };
 
-const createRoom = async (userId, title, subtitle, background, roomType) => {
-  const room = await ChatRoom.create({
-    title,
-    title_sub: subtitle || '',
-    image_bg: background || '',
-    manage_id: userId,
-    type: roomType || 0,
-    status: 0,
-    open: 0,
-    create_time: getTimestamp()
-  });
-  
-  return {
-    roomId: room.id
-  };
-};
-
-const getRoomInfo = async (roomId) => {
-  const room = await ChatRoom.findByPk(roomId);
-  
-  if (!room) {
-    throw new Error('聊天室不存在');
-  }
-  
-  return {
-    roomId: room.id,
-    title: room.title,
-    subtitle: room.title_sub,
-    coverImage: room.image,
-    backgroundImage: room.image_bg,
-    managerId: room.manage_id,
-    roomType: room.type,
-    isOpen: room.open === 1,
-    createTime: room.create_time
-  };
-};
-
-const getRooms = async (page, pageSize) => {
-  const { offset, limit } = parseQuery({ page, pageSize });
-  
-  const { count, rows } = await ChatRoom.findAndCountAll({
-    where: {
-      status: 1,
-      open: 1
-    },
-    offset,
-    limit,
-    order: [['create_time', 'DESC']]
-  });
-  
-  return {
-    total: count,
-    list: rows.map(room => ({
-      roomId: room.id,
-      title: room.title,
-      subtitle: room.title_sub,
-      coverImage: room.image,
-      backgroundImage: room.image_bg,
-      managerId: room.manage_id,
-      roomType: room.type
-    }))
-  };
-};
-
 const markAsRead = async (userId, peerId) => {
   await ChatLog.update(
     { isread: 1 },
@@ -315,8 +251,5 @@ module.exports = {
   getChatMessages,
   sendMessage,
   revokeMessage,
-  markAsRead,
-  createRoom,
-  getRoomInfo,
-  getRooms
+  markAsRead
 };

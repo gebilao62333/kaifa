@@ -84,6 +84,11 @@
             <span class="menu-text">我的预约</span>
             <span class="menu-arrow">›</span>
           </div>
+          <div class="menu-item" @click="goMyReports">
+            <span class="menu-icon">🚨</span>
+            <span class="menu-text">我的举报</span>
+            <span class="menu-arrow">›</span>
+          </div>
           <div class="menu-item" @click="goVip">
             <span class="menu-icon">👑</span>
             <span class="menu-text">VIP会员</span>
@@ -232,6 +237,10 @@ const goMyAlbum = () => {
 
 const goMyReserve = () => {
   router.push('/my-reserve')
+}
+
+const goMyReports = () => {
+  router.push('/my-reports')
 }
 
 const goVip = () => {

@@ -1,7 +1,6 @@
 // ==================== MySQL 模型 ====================
 const User = require('./mysql/User');
 const ChatLog = require('./mysql/ChatLog');
-const ChatRoom = require('./mysql/ChatRoom');
 const ChatSession = require('./mysql/ChatSession');
 const Gift = require('./mysql/Gift');
 const GiftBag = require('./mysql/GiftBag');
@@ -51,7 +50,6 @@ const Notification = require('./mongo/Notification');
 module.exports = {
   User,
   ChatLog,
-  ChatRoom,
   ChatSession,
   Gift,
   GiftBag,

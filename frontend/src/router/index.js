@@ -188,6 +188,12 @@ const routes = [
     meta: { title: '我的预约' }
   },
   {
+    path: '/my-reports',
+    name: 'MyReports',
+    component: lazyLoad('MyReports'),
+    meta: { title: '我的举报' }
+  },
+  {
     path: '/real-name',
     name: 'RealName',
     component: lazyLoad('RealName'),
