@@ -60,6 +60,8 @@ cd frontend && npm run test   # Vitest
 
 ## 文档索引
 
+> 未完成 / 待办事项见根目录 [`待办事项.md`](./待办事项.md)。
+
 ### 后端（backend/）
 
 | 文档 | 位置 |
