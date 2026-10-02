@@ -3,6 +3,15 @@ const setJsonUtf8 = (res) => {
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
 };
 
+const SYSTEM_ERROR_PATTERN = /(?:SELECT|INSERT|UPDATE|DELETE|FROM|WHERE|TABLE|sequelize|ECONNREFUSED|ENOENT|TypeError|ReferenceError|SyntaxError|at\s+\w+\s+\(|\.sql|node_modules|\\n|at\s+Object)/i;
+
+const _isSafeMessage = (msg) => {
+  if (!msg || typeof msg !== 'string') return false;
+  if (msg.length > 80) return false;
+  if (SYSTEM_ERROR_PATTERN.test(msg)) return false;
+  return true;
+};
+
 const response = {
   success: (res, data = {}, message = 'success') => {
     setJsonUtf8(res);
@@ -65,19 +74,19 @@ const response = {
   
   error: (res, message = '服务器错误') => {
     setJsonUtf8(res);
+    const safe = _isSafeMessage(message) ? message : '服务器内部错误';
     return res.status(500).json({
       code: 500,
-      message
+      message: safe
     });
   },
 
   // 数据库错误统一响应 — 显式 500 不静默降级
-  dbError: (res, operation = '数据库操作', detail = '') => {
+  dbError: (res, operation = '数据库操作') => {
     setJsonUtf8(res);
-    const message = detail ? `${operation}失败: ${detail}` : `${operation}失败，请检查数据库连接`;
     return res.status(500).json({
       code: 500,
-      message,
+      message: `${operation}失败，请稍后重试`,
       error: `${operation}_failed`
     });
   },

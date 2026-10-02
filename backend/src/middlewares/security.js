@@ -131,7 +131,7 @@ const cleanupExpiredTokens = () => {
   }
 };
 
-setInterval(cleanupExpiredTokens, 3600000);
+setInterval(cleanupExpiredTokens, 3600000).unref();
 
 module.exports = {
   xssProtection,

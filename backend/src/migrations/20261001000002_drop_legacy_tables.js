@@ -9,7 +9,7 @@ const sequelize = require('../config/mysql');
  *  - xn_album：只有建表语句与演示种子，无对应 Sequelize 模型，也无任何路由/服务/
  *    前端/文档引用（真正的相册数据存于 xn_album_photo / xn_album_like）。
  *
- * 以上三张表已于 2026-10-01 从 init_schema.sql / init_data.sql 移除，
+ * 以上三张表已于 2026-10-01 从 01_init_schema.sql / 02_init_data.sql 移除，
  * 旧库由本迁移在启动时删除。新库不再创建这些表。
  */
 

@@ -164,7 +164,7 @@ const adminLogin = async (req, res) => {
   } catch (error) {
     console.error('=== Admin login debug ===', error.stack || error.message || error);
     logger.error('Admin login error:', error);
-    return res.status(500).json({ code: 500, message: '服务器内部错误', debug: error.message });
+    return res.status(500).json({ code: 500, message: '服务器内部错误' });
   }
 };
 
@@ -209,7 +209,7 @@ const getAdminList = async (req, res) => {
     });
   } catch (error) {
     logger.error('Get admin list error:', error);
-    return res.status(500).json({ code: 500, message: '数据库查询失败', error: error.message });
+    return res.status(500).json({ code: 500, message: '服务器内部错误' });
   }
 };
 

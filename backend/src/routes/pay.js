@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const payController = require('../controllers/pay');
-const { authMiddleware } = require('../middlewares');
+const { authMiddleware, adminAuth } = require('../middlewares');
 
 router.get('/packages', payController.getPackages);
 router.post('/create-order', authMiddleware, payController.createOrder);
@@ -14,7 +14,7 @@ router.get('/order-status', authMiddleware, payController.getOrderStatus);
 router.post('/validate-card', payController.validateCard);
 router.post('/use-card', authMiddleware, payController.useCard);
 router.post('/redeem-key', authMiddleware, payController.redeemCardByKey);
-router.get('/recharge/list', payController.getRechargeRecords);
+router.get('/recharge/list', adminAuth, payController.getRechargeRecords);
 
 router.get('/wallet/balance', authMiddleware, payController.getWalletBalance);
 router.post('/wallet/recharge', authMiddleware, payController.rechargeWallet);

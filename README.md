@@ -60,8 +60,6 @@ cd frontend && npm run test   # Vitest
 
 ## 文档索引
 
-> 未完成 / 待办事项见根目录 [`待办事项.md`](./待办事项.md)。
-
 ### 后端（backend/）
 
 | 文档 | 位置 |
@@ -86,7 +84,7 @@ cd frontend && npm run test   # Vitest
 ## 注意事项
 
 - `.env` 含敏感密钥，已被 .gitignore 忽略，严禁提交。
-- `backend/sql/` 下的 fix_*.sql 为历史修复脚本，执行前务必阅读 `ARCHIVE_NOTES.md` 确认执行状态，避免重复执行覆盖数据。
+- `backend/sql/` 仅保留 `01_init_schema.sql` / `02_init_data.sql`；历史修复脚本已归档至 `sql/archive/`，执行前务必阅读 `ARCHIVE_NOTES.md` 确认执行状态，避免重复执行覆盖数据。
 - 生产部署前：
   - 更换 `.env` 与 docker-compose 中的默认弱密码（后端启动时若仍检测到弱值会打印安全告警，不阻断启动）。
   - 启用 HTTPS：使用 Let's Encrypt 证书，certbot 容器已配（profiles 隔离，默认不启动），步骤见 `backend/部署文档.md`。

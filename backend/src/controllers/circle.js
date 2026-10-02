@@ -235,7 +235,7 @@ const getAdminPosts = async (req, res) => {
       });
     } catch (dbErr) {
       logger.error('[DB] Post 查询失败:', dbErr.message);
-      response.error(res, '数据库查询失败: ' + dbErr.message);
+      response.error(res, '数据库查询失败，请稍后重试');
     }
   } catch (error) {
     logger.error('获取管理帖子列表错误:', error);
