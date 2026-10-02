@@ -43,7 +43,13 @@ const Admin = require('./mysql/Admin');
 const AdminRole = require('./mysql/AdminRole');
 const SystemSettings = require('./mysql/SystemSettings');
 
+// ==================== MongoDB 模型 ====================
+const ChatMessage = require('./mongo/ChatMessage');
+const Notification = require('./mongo/Notification');
+const UserSession = require('./mongo/UserSession');
+
 module.exports = {
+  // MySQL
   User,
   ChatLog,
   ChatSession,
@@ -86,5 +92,9 @@ module.exports = {
   VipPackage,
   VipOrder,
   Admin,
-  AdminRole
+  AdminRole,
+  // MongoDB
+  ChatMessage,
+  Notification,
+  UserSession
 };
