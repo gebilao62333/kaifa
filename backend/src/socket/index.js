@@ -1,5 +1,5 @@
 const { verifyToken } = require('../config/jwt');
-const { User } = require('../models');
+const { User, UserSession } = require('../models');
 const chatService = require('../services/chatService');
 const logger = require('../utils/logger');
 const config = require('../config');
@@ -46,7 +46,7 @@ function setupRedisAdapter(socketIo) {
   }
 }
 
-const onlineUsers = new Set(); // 内存在线用户集合，用于P2P可达性探测
+// 用户会话已迁移至 MongoDB（UserSession 模型），支持多实例横向扩展
 
 const initializeSocket = (socketIO) => {
   io = socketIO;
@@ -99,7 +99,8 @@ const initializeSocket = (socketIO) => {
     
     socket.join(`user:${socket.userId}`);
     
-    await updateUserOnlineStatus(socket.userId, true);
+    const device = socket.handshake.headers['user-agent'] || '';
+    await updateUserOnlineStatus(socket.userId, true, socket.id, device);
     
     socket.on('private_message', async (data) => {
       try {
@@ -358,12 +359,16 @@ const initializeSocket = (socketIO) => {
   return io;
 };
 
-const updateUserOnlineStatus = async (userId, isOnline) => {
+const updateUserOnlineStatus = async (userId, isOnline, socketId, device) => {
   try {
     if (isOnline) {
-      onlineUsers.add(userId);
+      await UserSession.findOneAndUpdate(
+        { userId },
+        { userId, socketId, device, lastActiveTime: Date.now() },
+        { upsert: true, new: true }
+      );
     } else {
-      onlineUsers.delete(userId);
+      await UserSession.deleteOne({ userId });
     }
     logger.info(`更新用户 ${userId} 在线状态: ${isOnline}`);
   } catch (error) {
@@ -371,7 +376,10 @@ const updateUserOnlineStatus = async (userId, isOnline) => {
   }
 };
 
-const isUserOnline = (userId) => onlineUsers.has(userId);
+const isUserOnline = async (userId) => {
+  const session = await UserSession.findOne({ userId });
+  return !!session;
+};
 
 const sendToUser = (userId, event, data) => {
   if (io) {

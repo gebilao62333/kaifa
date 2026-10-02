@@ -9,7 +9,7 @@ const peerOnline = async (req, res) => {
     if (!peerId) {
       return response.badRequest(res, '缺少peerId');
     }
-    const online = isUserOnline(peerId);
+    const online = await isUserOnline(peerId);
     response.success(res, { online }, online ? '对方在线' : '对方不在线');
   } catch (error) {
     logger.error('P2P探测错误:', error);
