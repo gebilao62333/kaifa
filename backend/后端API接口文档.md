@@ -978,7 +978,7 @@
 ### 19.3 数据库配置
 
 - **MySQL**: 用户、订单、游戏、礼物、需求、相册等核心业务数据；**聊天消息也存 MySQL**（`xn_chat_log` / `xn_chat_room`）
-- **MongoDB**: 补充存储，用于高频写入场景；`config/mongo.js` 连接配置
+- **MongoDB**: 核心数据库，用于高频写入场景；`config/mongo.js` 连接配置
 - **开发环境**: 支持 Mock 模式，无需真实数据库
 
 ---
