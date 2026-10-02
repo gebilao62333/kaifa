@@ -253,16 +253,18 @@ try {
 
 // 超时保护：确保任何外部依赖（DB/Redis）连接挂起都不会阻塞 HTTP 服务启动
 const withTimeout = (promise, ms, label) => {
+  let timer;
   return Promise.race([
-    Promise.resolve(promise).catch((e) => {
-      console.log(`⚠️  ${label} 连接失败:`, e && e.message)
-    }),
-    new Promise((resolve) =>
-      setTimeout(() => {
+    Promise.resolve(promise).then(
+      (v) => { clearTimeout(timer); return v; },
+      (e) => { clearTimeout(timer); console.log(`⚠️  ${label} 连接失败:`, e && e.message) }
+    ),
+    new Promise((resolve) => {
+      timer = setTimeout(() => {
         console.log(`⚠️  ${label} 连接超时（${ms}ms），跳过并继续启动`)
         resolve()
       }, ms)
-    )
+    })
   ])
 }
 
