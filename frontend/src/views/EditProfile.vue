@@ -291,7 +291,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
@@ -368,6 +368,7 @@ const tempRegion = reactive({
 const newPhone = ref('')
 const verifyCode = ref('')
 const codeCount = ref(0)
+let codeTimer = null
 
 const regionData = ref([]) // 从 API 动态加载省份数据
 const regionCities = ref([])
@@ -547,8 +548,25 @@ const confirmRegion = () => {
 const sendCode = () => {
   if (codeCount.value > 0) return
   codeCount.value = 60
-  setInterval(() => { if (codeCount.value > 0) codeCount.value-- }, 1000)
+  if (codeTimer) clearInterval(codeTimer)
+  codeTimer = setInterval(() => {
+    if (codeCount.value > 0) {
+      codeCount.value--
+    } else {
+      // 倒计时结束后自清理，避免 interval 永久运行
+      clearInterval(codeTimer)
+      codeTimer = null
+    }
+  }, 1000)
 }
+
+// 组件卸载时清除倒计时定时器，防止内存/CPU 泄漏（F-05）
+onBeforeUnmount(() => {
+  if (codeTimer) {
+    clearInterval(codeTimer)
+    codeTimer = null
+  }
+})
 
 const bindPhone = () => {
   if (!newPhone.value || newPhone.value.length !== 11) {

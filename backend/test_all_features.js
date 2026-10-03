@@ -4,7 +4,14 @@
 const http = require('http');
 
 const BASE_URL = 'http://localhost:3000';
-const ADMIN_TOKEN = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MCwidXNlcm5hbWUiOiJhZG1pbiIsInJvbGUiOiJhZG1pbiIsInJvbGVfaWQiOjAsInJvbGVJZCI6MCwicGVybWlzc2lvbnMiOlsiYWxsIl0sImlhdCI6MTc5MDk2ODI5NiwiZXhwIjoxNzkxNTczMDk2fQ.A6lkL3NuoJWpF8O3QamVE933gKBKebEjderbRv56EKM';
+// 安全：不要把管理员令牌硬编码进仓库（推送到远端等于把 admin 凭据公开）。
+// 通过环境变量提供：$env:ADMIN_TOKEN="..." 或写入 backend/.env（.env 已被 .gitignore 忽略）
+require('dotenv').config({ path: require('path').resolve(__dirname, '.env') });
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
+if (!ADMIN_TOKEN) {
+  console.error('缺少 ADMIN_TOKEN：请在 backend/.env 配置，或先执行 node -e "..." 生成');
+  process.exit(1);
+}
 
 const stats = { total: 0, passed: 0, failed: 0, errors: [] };
 

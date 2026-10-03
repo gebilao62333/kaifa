@@ -166,12 +166,15 @@ const getReserveDetail = async (req, res) => {
       return response.badRequest(res, '预约ID不能为空');
     }
 
-    const reserve = await reserveService.getReserveDetail(parseInt(reserveId));
+    const reserve = await reserveService.getReserveDetail(parseInt(reserveId), req.userId);
     response.success(res, reserve);
   } catch (error) {
     logger.error('获取预约详情错误:', error);
     if (error.message === '预约不存在') {
       response.notFound(res, error.message);
+    } else if (String(error.message).startsWith('无权')) {
+      // 审计 B-13：越权访问返回 403
+      response.forbidden(res, error.message);
     } else {
       response.error(res, error.message);
     }

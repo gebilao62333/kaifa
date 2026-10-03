@@ -7,6 +7,23 @@ const { Redis } = require('ioredis');
 
 let io = null;
 
+// 审计 H12：Socket 事件此前没有任何频率与内容长度限制，
+// 单个连接就能高频写库打满 MySQL（DoS）。这里做每连接滑动窗口限流 + 消息长度校验。
+const EVENT_WINDOW_MS = 10000;
+const EVENT_MAX = 20;
+const MAX_MESSAGE_LEN = 2000;
+
+const allowEvent = (socket) => {
+  const now = Date.now();
+  const bucket = socket.__rateBucket || (socket.__rateBucket = { count: 0, resetAt: now + EVENT_WINDOW_MS });
+  if (now > bucket.resetAt) {
+    bucket.count = 0;
+    bucket.resetAt = now + EVENT_WINDOW_MS;
+  }
+  bucket.count += 1;
+  return bucket.count <= EVENT_MAX;
+};
+
 /**
  * 配置 Socket.IO Redis 适配器，使多 backend 副本间的实时事件可跨实例广播（横向扩展）。
  * Redis 不可用时防御式降级：保留默认内存 adapter，单实例照常工作。
@@ -104,7 +121,22 @@ const initializeSocket = (socketIO) => {
     
     socket.on('private_message', async (data) => {
       try {
+        if (!allowEvent(socket)) {
+          return socket.emit('error', { message: '操作过于频繁，请稍后再试' });
+        }
+
         const { toId, content, type = 0, mediaUrl, duration } = data;
+
+        // 内容校验：拒绝空内容/超长内容/非字符串，避免脏数据与超大 payload 写入
+        if (typeof content !== 'string' || !content.trim() || content.length > MAX_MESSAGE_LEN) {
+          return socket.emit('error', { message: '消息内容不合法（1-' + MAX_MESSAGE_LEN + ' 字符）' });
+        }
+        if (mediaUrl && (typeof mediaUrl !== 'string' || mediaUrl.length > 1000)) {
+          return socket.emit('error', { message: '媒体地址不合法' });
+        }
+        if (!toId || Number.isNaN(parseInt(toId))) {
+          return socket.emit('error', { message: '接收方不合法' });
+        }
         
         // 复用 chatService.sendMessage：落 MySQL xn_chat_log + 更新双端会话与未读数
         const result = await chatService.sendMessage(
@@ -255,13 +287,31 @@ const initializeSocket = (socketIO) => {
     
     socket.on('typing', async (data) => {
       try {
+        // typing 是高频事件，超限直接静默丢弃（不回错误，避免客户端刷屏）
+        if (!allowEvent(socket)) return;
+
         const { toId } = data;
+        if (!toId) return;
         io.to(`user:${toId}`).emit('typing', {
           fromId: socket.userId,
           fromName: socket.user.nickname
         });
       } catch (error) {
         logger.error('发送打字状态错误:', error);
+      }
+    });
+
+    // 已读回执：A 读了 B 的消息后，通知 B 把他自己发出的气泡置为已读。
+    // 前端约定：发送方（读的人）传 { fromUserId: 对方id }，服务端转发时把 fromUserId 换成读的人自己。
+    socket.on('message:read', async (data) => {
+      try {
+        const { fromUserId } = data || {};
+        if (!fromUserId) return;
+        io.to(`user:${fromUserId}`).emit('message:read', {
+          fromUserId: socket.userId
+        });
+      } catch (error) {
+        logger.error('转发已读回执错误:', error);
       }
     });
     
@@ -387,25 +437,11 @@ const sendToUser = (userId, event, data) => {
   }
 };
 
-const sendToRoom = (roomId, event, data) => {
-  if (io) {
-    io.to(`room:${roomId}`).emit(event, data);
-  }
-};
-
-const sendToAll = (event, data) => {
-  if (io) {
-    io.emit(event, data);
-  }
-};
-
 const getIO = () => io;
 
 module.exports = {
   initializeSocket,
   sendToUser,
-  sendToRoom,
-  sendToAll,
   getIO,
   isUserOnline
 };

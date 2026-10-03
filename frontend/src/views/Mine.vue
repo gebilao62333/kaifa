@@ -167,7 +167,7 @@ const formatBalance = (balance) => {
 }
 
 const goEditProfile = () => {
-  console.log('编辑资料')
+  if (import.meta.env.DEV) console.log('编辑资料')
   router.push('/edit-profile')
 }
 
@@ -200,7 +200,7 @@ const goWithdrawRecords = () => {
 }
 
 const goRecharge = () => {
-  console.log('进入充值页面')
+  if (import.meta.env.DEV) console.log('进入充值页面')
   router.push('/recharge')
 }
 
@@ -213,17 +213,17 @@ const goWallet = () => {
 }
 
 const goMyOrder = () => {
-  console.log('查看我的订单')
+  if (import.meta.env.DEV) console.log('查看我的订单')
   router.push('/my-order')
 }
 
 const goMyService = () => {
-  console.log('查看我的服务')
+  if (import.meta.env.DEV) console.log('查看我的服务')
   router.push('/my-services')
 }
 
 const goApplyCompanion = () => {
-  console.log('申请服务')
+  if (import.meta.env.DEV) console.log('申请服务')
   router.push('/companion-apply')
 }
 
@@ -244,7 +244,7 @@ const goMyReports = () => {
 }
 
 const goVip = () => {
-  console.log('查看VIP会员')
+  if (import.meta.env.DEV) console.log('查看VIP会员')
   router.push('/vip-center')
 }
 

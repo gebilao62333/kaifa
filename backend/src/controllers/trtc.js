@@ -2,17 +2,34 @@ const { trtcService, callBillingService } = require('../services');
 const response = require('../utils/response');
 const logger = require('../utils/logger');
 
+// TRTC 未配置（缺少 TRTC_APP_ID / TRTC_SECRET_KEY）返回 200 + configured:false。
+//
+// 语义说明：这不是「服务故障/过载」，而是「该通道未开通」，因此不应使用 503——
+// 503 会被所有按「5xx=故障」规则的监控、健康检查、冒烟测试误判为异常。
+// 前端 callService.isTRTCAvailable / trtcRoomService.join 均按 appId、userSig 是否存在判定，
+// 行为不变：仍然自动降级到 WebRTC 通道。
+const notConfiguredPayload = (userId) => ({
+  configured: false,
+  appId: null,
+  sdkAppId: null,
+  userSig: null,
+  userId: String(userId || '')
+});
+
 const getAuth = async (req, res) => {
   try {
     const result = trtcService.generateUserSig(req.userId);
-    
+
     if (!result) {
-      return response.error(res, 'TRTC服务未配置');
+      return response.success(res, notConfiguredPayload(req.userId), 'TRTC未配置，请使用 WebRTC 通道');
     }
-    
-    response.success(res, result);
+
+    response.success(res, Object.assign({ configured: true }, result));
   } catch (error) {
     logger.error('获取TRTC鉴权错误:', error);
+    if (String(error.message).includes('未配置')) {
+      return response.success(res, notConfiguredPayload(req.userId), 'TRTC未配置，请使用 WebRTC 通道');
+    }
     response.error(res, error.message);
   }
 };

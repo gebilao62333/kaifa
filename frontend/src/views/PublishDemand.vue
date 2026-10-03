@@ -733,7 +733,7 @@ const submitDemand = async () => {
     offlineLocation: formData.serviceType === 'offline' ? formData.offlineLocation : ''
   }
 
-  console.log('发布需求:', demandData)
+  if (import.meta.env.DEV) console.log('发布需求:', demandData)
 
   try {
     const result = await demandService.createDemand(demandData)

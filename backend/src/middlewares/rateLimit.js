@@ -15,9 +15,11 @@ const apiLimiter = rateLimit({
   skip: skipInDev
 });
 
+// 审计 M11：登录限流原来 100 次/15 分钟，对撞库过于宽松，收紧到 20 次/15 分钟。
+// 可通过 LOGIN_RATE_LIMIT_MAX 覆盖（如需配合压测）。
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: parseInt(process.env.LOGIN_RATE_LIMIT_MAX) || 20,
   message: {
     code: 429,
     message: '登录尝试次数过多，请15分钟后再试'
@@ -31,6 +33,17 @@ const smsLimiter = rateLimit({
   message: {
     code: 429,
     message: '验证码发送过于频繁，请60秒后再试'
+  },
+  skip: skipInDev
+});
+
+// 审计 M1：卡密校验是"猜卡号+密码"的攻击面，单 IP 限 10 次/分钟
+const cardLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  message: {
+    code: 429,
+    message: '卡密校验过于频繁，请稍后再试'
   },
   skip: skipInDev
 });
@@ -49,5 +62,6 @@ module.exports = {
   apiLimiter,
   loginLimiter,
   smsLimiter,
+  cardLimiter,
   uploadLimiter
 };

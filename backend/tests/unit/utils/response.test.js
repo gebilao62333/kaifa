@@ -131,6 +131,19 @@ describe('Utils - Response Helper', () => {
     });
   });
 
+  describe('serviceUnavailable', () => {
+    it('should return 503 when a dependency is not configured', () => {
+      response.serviceUnavailable(mockRes, 'TRTC服务未配置');
+      expect(mockRes.status).toHaveBeenCalledWith(503);
+      expect(mockRes.json).toHaveBeenCalledWith({ code: 503, message: 'TRTC服务未配置' });
+    });
+
+    it('should use default message when omitted', () => {
+      response.serviceUnavailable(mockRes);
+      expect(mockRes.json).toHaveBeenCalledWith({ code: 503, message: '依赖服务未配置' });
+    });
+  });
+
   describe('custom', () => {
     it('should return custom response with specified code', () => {
       response.custom(mockRes, 418, "I'm a teapot", { tea: 'earl grey' });

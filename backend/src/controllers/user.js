@@ -66,6 +66,20 @@ const resetPassword = async (req, res) => {
       return response.badRequest(res, '密码长度6-16位');
     }
 
+    // ⚠️ 必须先校验短信验证码：历史实现只接收 code 但从不校验，
+    // 任何人只要知道手机号就能重置该用户密码（完整账户接管）。
+    // verifyCode 校验成功后会删除验证码，天然一次性使用。
+    try {
+      await smsService.verifyCode(phone, code);
+    } catch (codeError) {
+      const msg = codeError.message || '验证码错误或已过期';
+      logger.warn(`[resetPassword] 验证码校验失败 phone=${phone}: ${msg}`);
+      if (msg.includes('不可用')) {
+        return response.custom(res, 503, '短信服务暂不可用，请稍后重试');
+      }
+      return response.badRequest(res, '验证码错误或已过期');
+    }
+
     const { User } = require('../models');
     const bcrypt = require('bcryptjs');
 
@@ -439,28 +453,49 @@ const savePref = async (req, res) => {
   try {
     const { data, spend } = req.body;
     const spendNum = Number(spend) || 0;
-    if (spendNum > 0) {
-      const user = await User.findByPk(req.userId);
-      if (!user) return response.error(res, '用户不存在');
-      if (Number(user.money) < spendNum) {
-        return response.unprocessableEntity(res, '余额不足');
-      }
-      await user.decrement('money', { by: spendNum });
-    }
     const now = Math.floor(Date.now() / 1000);
-    const row = await UserPref.findOne({ where: { user_id: req.userId } });
-    let merged = {};
-    if (row && row.data) {
-      try { merged = JSON.parse(row.data) || {}; } catch (e) { merged = {}; }
+    const sequelize = require('../config/mysql');
+
+    // 审计 B-04：原实现"先查余额再 decrement"存在 TOCTOU，并发可绕过扣费。
+    // 改为同一事务内**条件扣减**（WHERE money >= spend），扣款与偏好写入同生共死。
+    const transaction = await sequelize.transaction();
+    let fresh;
+    try {
+      if (spendNum > 0) {
+        const { affectedCount } = require('../utils/sql');
+        const decreaseResult = await User.decrement('money', {
+          by: spendNum,
+          where: { id: req.userId, money: { [Op.gte]: spendNum } },
+          transaction
+        });
+        // 注意：decrement 在 MySQL 下返回 [[null, N]]，不能用真值判断（[null,0] 也是真值）。
+        if (affectedCount(decreaseResult) !== 1) {
+          await transaction.rollback();
+          return response.unprocessableEntity(res, '余额不足');
+        }
+      }
+
+      const row = await UserPref.findOne({ where: { user_id: req.userId }, transaction });
+      let merged = {};
+      if (row && row.data) {
+        try { merged = JSON.parse(row.data) || {}; } catch (e) { merged = {}; }
+      }
+      Object.assign(merged, data || {});
+      const payload = JSON.stringify(merged);
+      if (row) {
+        await row.update({ data: payload, update_time: now }, { transaction });
+      } else {
+        await UserPref.create({ user_id: req.userId, data: payload, update_time: now }, { transaction });
+      }
+
+      fresh = await User.findByPk(req.userId, { attributes: ['money'], transaction });
+      await transaction.commit();
+    } catch (txError) {
+      if (!transaction.finished) {
+        try { await transaction.rollback(); } catch (rollbackError) { /* 已回滚 */ }
+      }
+      throw txError;
     }
-    Object.assign(merged, data || {});
-    const payload = JSON.stringify(merged);
-    if (row) {
-      await row.update({ data: payload, update_time: now });
-    } else {
-      await UserPref.create({ user_id: req.userId, data: payload, update_time: now });
-    }
-    const fresh = await User.findByPk(req.userId, { attributes: ['money'] });
     response.success(res, { balance: fresh ? Number(fresh.money) : undefined }, '已保存');
   } catch (error) {
     logger.error('保存用户偏好错误:', error);

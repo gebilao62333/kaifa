@@ -79,7 +79,11 @@ export const PAGINATION = {
 
 export const STORAGE_KEYS = {
   TOKEN: 'token',
-  PINIA_STATE: 'pinia-app-state'
+  // 持久化插件的基准 key；插件会为每个 store 生成 `pinia-app-state-<storeId>`
+  PINIA_STATE: 'pinia-app-state',
+  PINIA_STORE_PREFIX: 'pinia-app-state-',
+  // 历史遗留的本地用户信息 key（部分旧页面读写），登出时需要一并清理
+  LEGACY_USER_INFO: 'userInfo'
 }
 
 export const REGEX = {
@@ -108,8 +112,18 @@ export const DEFAULT_AVATAR = 'data:image/svg+xml;charset=utf-8,' + encodeURICom
   '</svg>'
 )
 
-// 无需登录即可访问的路由名称列表
-export const PUBLIC_ROUTE_NAMES = ['Login', 'Home', 'Search', 'Square', 'PostDetail', 'Preferred', 'Mine', 'Friend']
+// 无需登录即可访问的路由名称列表（显式 meta.requiresAuth 的路由不受此表影响）
+export const PUBLIC_ROUTE_NAMES = ['Login', 'Home', 'Search', 'Square', 'PostDetail', 'Preferred', 'Mine', 'Friend', 'NotFound']
 
-// 无需登录即可访问的路由路径前缀
+// 无需登录即可访问的路由路径前缀（精确匹配或按 '/' 分段匹配）
 export const PUBLIC_ROUTE_PATHS = ['/', '/login', '/home', '/search', '/square', '/friend']
+
+// 公开路径匹配：精确相等或按 '/' 分段边界匹配，
+// 避免 '/loginXXX' 这类路径被误判为公开路径（裸 '/' 仅精确匹配根路径）
+export const isPublicPath = (path) => {
+  if (!path || typeof path !== 'string') return false
+  return PUBLIC_ROUTE_PATHS.some((prefix) => {
+    if (prefix === '/') return path === '/'
+    return path === prefix || path.startsWith(prefix + '/')
+  })
+}

@@ -49,10 +49,13 @@ const getDemandDetail = async (req, res) => {
       return response.badRequest(res, '需求ID不能为空');
     }
 
-    const result = await demandService.getDemandDetail(parseInt(demandId));
+    const result = await demandService.getDemandDetail(parseInt(demandId), req.userId);
     response.success(res, result);
   } catch (error) {
     logger.error('获取需求详情错误:', error);
+    if (String(error.message).startsWith('无权')) {
+      return response.forbidden(res, error.message);
+    }
     response.error(res, error.message);
   }
 };

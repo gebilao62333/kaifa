@@ -5,6 +5,8 @@ const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
 const sequelize = require('../config/mysql');
+const bcrypt = require('bcryptjs');
+const { moneyMinus } = require('../utils/sql');
 
 // 兼容逗号分隔字符串和 JSON 数组两种 images 存储格式
 const parseImages = (raw) => {
@@ -20,26 +22,38 @@ const parseImages = (raw) => {
   return [];
 };
 
+// videos 列是 STRING：前端可能传数组（无视频时为 []）或字符串。
+// 不能直接用 `videos || ''`——空数组是 truthy，会被 Sequelize 以
+// "string violation: videos cannot be an array or an object" 拒绝并抛出 500。
+const normalizeVideos = (raw) => {
+  if (!raw) return '';
+  if (Array.isArray(raw)) return raw.filter(Boolean).join(',');
+  return String(raw);
+};
+
 const createPost = async (userId, content, images, videos, tagIds, location, visibility, password, price) => {
   // 仅写入模型实际存在的列；visibility 映射为 is_private/private_password/private_price
   const post = await Post.create({
     user_id: userId,
     content,
-    images: images ? images.join(',') : '',
-    videos: videos || '',
+    images: Array.isArray(images) ? images.filter(Boolean).join(',') : (images || ''),
+    videos: normalizeVideos(videos),
     tag_id: tagIds && tagIds.length > 0 ? tagIds[0] : 0,
     is_private: visibility === 3 ? 1 : (visibility === 4 ? 2 : 0),
+    // 审计 M8：私密帖密码原先用 MD5（可被彩虹表/暴力破解），改为 bcrypt
     private_password: (visibility === 3 && password)
-      ? crypto.createHash('md5').update(password).digest('hex')
+      ? await bcrypt.hash(String(password), 10)
       : null,
     private_price: visibility === 4 ? (price || 0) : 0,
     create_time: getTimestamp()
   });
 
   // 登记媒体资，供 deletePost 级联清理底层存储，避免 COS 孤儿文件
+  const imageList = Array.isArray(images) ? images.filter(Boolean) : (images ? String(images).split(',').filter(Boolean) : []);
+  const videoList = Array.isArray(videos) ? videos.filter(Boolean) : (videos ? String(videos).split(',').filter(Boolean) : []);
   const mediaItems = [];
-  (images || []).forEach(url => mediaItems.push({ userId, url, fileType: 'image', bizType: 'circle', bizId: post.id }));
-  if (videos) mediaItems.push({ userId, url: videos, fileType: 'video', bizType: 'circle', bizId: post.id });
+  imageList.forEach(url => mediaItems.push({ userId, url, fileType: 'image', bizType: 'circle', bizId: post.id }));
+  videoList.forEach(url => mediaItems.push({ userId, url, fileType: 'video', bizType: 'circle', bizId: post.id }));
   if (mediaItems.length) {
     try {
       await mediaAssetService.registerBatch(mediaItems);
@@ -256,8 +270,24 @@ const unlockPost = async (userId, postId, unlockType, password) => {
   }
   
   if (post.is_private === 1) {
-    const hashedPassword = crypto.createHash('md5').update(password).digest('hex');
-    if (hashedPassword !== post.private_password) {
+    const stored = String(post.private_password || '');
+    let matched = false;
+
+    if (stored.startsWith('$2')) {
+      matched = await bcrypt.compare(String(password), stored);
+    } else if (stored) {
+      // 兼容历史 MD5 记录：校验通过后顺手升级为 bcrypt，避免继续沿用弱哈希
+      matched = crypto.createHash('md5').update(String(password)).digest('hex') === stored;
+      if (matched) {
+        try {
+          await post.update({ private_password: await bcrypt.hash(String(password), 10) });
+        } catch (upgradeError) {
+          logger.warn('[动态] 私密帖密码升级 bcrypt 失败:', upgradeError.message);
+        }
+      }
+    }
+
+    if (!matched) {
       throw new Error('密码错误');
     }
   }
@@ -275,7 +305,7 @@ const unlockPost = async (userId, postId, unlockType, password) => {
     if (post.is_private === 2) {
       // 原子扣款：余额不足则不扣并回滚（连同上面的解锁记录）
       const [affected] = await User.update(
-        { money: sequelize.literal(`money - ${post.private_price}`) },
+        { money: moneyMinus('money', post.private_price) },
         { where: { id: userId, money: { [Op.gte]: post.private_price } }, transaction }
       );
       if (!affected) {

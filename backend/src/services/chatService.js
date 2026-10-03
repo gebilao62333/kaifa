@@ -81,7 +81,8 @@ const getChatMessages = async (userId, targetUserId, page, pageSize) => {
     sendTime: msg.time,
     isSelf: msg.fromid === userId,
     avatar: msg.fromid === userId ? myAvatar : targetAvatar,
-    isRevoked: msg.is_revoked === 1
+    isRevoked: msg.is_revoked === 1,
+    isRead: msg.isread === 1
   }));
   
   return {

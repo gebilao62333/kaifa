@@ -30,6 +30,29 @@ const createOrder = async (userId, packageId, payType = 1) => {
     throw new Error('充值套餐不存在');
   }
   
+  // 审计 M13：防重复下单——同一用户对同一金额在 2 分钟内的未支付订单直接复用，
+  // 避免用户连点/网络重试在库里堆出一串待支付订单。
+  const recentUnpaid = await OrderChong.findOne({
+    where: {
+      user_id: userId,
+      amount: Number(pkg.price),
+      status: 0,
+      create_time: { [Op.gte]: getTimestamp() - 120 }
+    },
+    order: [['id', 'DESC']]
+  });
+
+  if (recentUnpaid) {
+    return {
+      orderId: recentUnpaid.id,
+      orderNo: recentUnpaid.order_no,
+      fiatAmount: Number(recentUnpaid.amount),
+      goldCoins: recentUnpaid.coins,
+      currencyUnit: CURRENCY_UNIT,
+      reused: true
+    };
+  }
+
   const orderNo = generateOrderNo();
   
   // xn_order_chong 真实列为 amount(金额)/coins(到账金币，含赠送)，无 cid/money/gold_coins/currency
@@ -101,6 +124,13 @@ const getOrderStatus = async (orderNo) => {
   };
 };
 
+// 卡密入账金额：优先取金币数（coin_amount），未设置时回落到面值。
+// 管理端按充值套餐生成卡密时 faceValue=套餐价、coinAmount=套餐金币数，二者不等，必须用金币数入账。
+const resolveCardCoins = (card) => {
+  const coins = Math.floor(Number(card.coin_amount) || 0);
+  return coins > 0 ? coins : Math.floor(Number(card.value) || 0);
+};
+
 const validateCard = async (cardCode) => {
   const card = await Card.findOne({
     where: { card_no: cardCode }
@@ -117,8 +147,36 @@ const validateCard = async (cardCode) => {
   return {
     cardId: card.id,
     faceValue: Number(card.value),
-    coinAmount: Math.floor(Number(card.value))
+    coinAmount: resolveCardCoins(card)
   };
+};
+
+// 原子核销卡密并给用户入账。
+//
+// 安全要点：不能写成「先 findOne 读 status → 再 update」——那样两个并发请求会
+// 同时通过 status===0 检查，各自执行一次 User.increment，同一张卡被重复入账（刷币漏洞）。
+// 这里把占用动作收敛成一条带 status=0 条件的原子 UPDATE，并检查影响行数：
+// 只有真正把 status 从 0 改成 1 的那个请求才会入账，其余请求 affected=0 直接失败。
+const consumeCardOnce = async (userId, card, usedMessage) => {
+  const amount = resolveCardCoins(card);
+  return User.sequelize.transaction(async (transaction) => {
+    const [affected] = await Card.update(
+      { status: 1, use_time: getTimestamp(), use_user_id: userId },
+      { where: { id: card.id, status: 0 }, transaction }
+    );
+
+    if (!affected) {
+      throw new Error(usedMessage);
+    }
+
+    await User.increment('money', {
+      by: amount,
+      where: { id: userId },
+      transaction
+    });
+
+    return { amount };
+  });
 };
 
 const useCard = async (userId, cardCode) => {
@@ -133,30 +191,8 @@ const useCard = async (userId, cardCode) => {
   if (card.status !== 0) {
     throw new Error('密卡已被使用或已禁用');
   }
-  
-  const amount = Math.floor(Number(card.value));
-  const transaction = await User.sequelize.transaction();
-  
-  try {
-    await card.update({
-      status: 1,
-      use_time: getTimestamp(),
-      use_user_id: userId
-    }, { transaction });
-    
-    await User.increment('money', {
-      by: amount,
-      where: { id: userId },
-      transaction
-    });
-    
-    await transaction.commit();
-    
-    return { amount };
-  } catch (error) {
-    await transaction.rollback();
-    throw error;
-  }
+
+  return consumeCardOnce(userId, card, '密卡已被使用或已禁用');
 };
 
 // 通过 25 位密钥一键充值（不需要卡号+密码）
@@ -173,29 +209,7 @@ const redeemCardByKey = async (userId, key) => {
     throw new Error('该密钥已被使用');
   }
 
-  const amount = Math.floor(Number(card.value));
-  const transaction = await User.sequelize.transaction();
-
-  try {
-    await card.update({
-      status: 1,
-      use_time: getTimestamp(),
-      use_user_id: userId
-    }, { transaction });
-
-    await User.increment('money', {
-      by: amount,
-      where: { id: userId },
-      transaction
-    });
-
-    await transaction.commit();
-
-    return { amount };
-  } catch (error) {
-    await transaction.rollback();
-    throw error;
-  }
+  return consumeCardOnce(userId, card, '该密钥已被使用');
 };
 
 const getWalletBalance = async (userId) => {

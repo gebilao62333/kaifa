@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const response = require('../utils/response');
 const { Banner } = require('../models');
+const { adminAuth, requirePermission } = require('../middlewares');
 
 // 获取 Banner 列表
 router.get('/list', async (req, res) => {
@@ -26,7 +27,9 @@ router.get('/list', async (req, res) => {
 });
 
 // 获取所有 Banner（管理后台用）
-router.get('/all', async (req, res) => {
+// 审计 M1：该接口返回**含已禁用**的全部 Banner，原本完全公开。
+// 2026-10-03 起仅管理端可访问。
+router.get('/all', adminAuth, requirePermission('splash:read'), async (req, res) => {
   try {
     const banners = await Banner.findAll({
       order: [['sort_order', 'ASC'], ['id', 'DESC']]

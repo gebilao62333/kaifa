@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const response = require('../utils/response');
 const logger = require('../utils/logger');
+const { authMiddleware } = require('../middlewares');
+const callConfigService = require('../services/callConfigService');
 
 // 首页 / 全局配置
 router.get('/home', (req, res) => {
@@ -22,6 +24,17 @@ router.get('/home', (req, res) => {
     });
   } catch (error) {
     logger.error('获取首页配置错误:', error);
+    response.error(res, error.message);
+  }
+});
+
+// 通话配置：通道策略 + ICE 服务器（含临时 TURN 凭据）
+// 需登录：TURN 临时凭据与用户绑定，便于溯源与限速
+router.get('/call', authMiddleware, (req, res) => {
+  try {
+    response.success(res, callConfigService.getCallConfig(req.userId));
+  } catch (error) {
+    logger.error('获取通话配置错误:', error);
     response.error(res, error.message);
   }
 });

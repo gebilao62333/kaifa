@@ -103,16 +103,16 @@ const isFullscreen = computed(() => {
 
 const initSocket = () => {
   if (!userStore.isLogin) {
-    console.log('[App] 未登录，跳过Socket连接')
+    if (import.meta.env.DEV) console.log('[App] 未登录，跳过Socket连接')
     return
   }
 
   const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
-  console.log('[App] 初始化Socket连接:', socketUrl)
+  if (import.meta.env.DEV) console.log('[App] 初始化Socket连接:', socketUrl)
   socketService.connect(socketUrl)
 
   socketService.on('call_invite', (data) => {
-    console.log('[App] 收到通话邀请:', data)
+    if (import.meta.env.DEV) console.log('[App] 收到通话邀请:', data)
     if (incomingCallRef.value) {
       incomingCallRef.value.showIncomingCall(data)
     }
@@ -121,6 +121,8 @@ const initSocket = () => {
 
 onMounted(() => {
   if (userStore.isLogin) {
+    // 持久化白名单不再保留余额/手机号等字段，启动后主动从服务端刷新完整资料
+    userStore.fetchUserInfo().catch(() => {})
     initSocket()
   }
   window.addEventListener('pointerdown', onPointerDown, { passive: true })

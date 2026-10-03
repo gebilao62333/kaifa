@@ -31,10 +31,9 @@ const DEFAULT_PERMISSIONS = [
 
 // --------------- 登录 ---------------
 const adminLogin = async (req, res) => {
-  console.log('=== adminLogin START ===', req.method, req.url, req.body);
+  // 审计 I-02：原实现把整个 req.body（含明文密码）打印到日志，属严重凭据泄露。
   try {
     const { username, password } = req.body;
-    console.log('=== adminLogin body ===', username, password);
     if (!username || !password) {
       return res.status(400).json({ code: 400, message: '用户名和密码不能为空' });
     }

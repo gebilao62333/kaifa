@@ -36,7 +36,16 @@ Write-Host "`n*** Eudazi Full Test - All Modules (58 Users in DB) ***" -Foregrou
 
 # ============ 1. Auth ============
 Write-Host "`n--- Auth ---" -ForegroundColor Yellow
-$ar = t POST "/api/admin/login" @{username="admin";password="admin123"} $null 200 "Admin Login"
+# 管理员登录：/api/admin/login 已移除默认口令后门（2026-10-03），账号密码只能来自数据库 xn_admin，
+# 或显式开启 ADMIN_EMERGENCY_LOGIN=true 时使用下面这两个环境变量。
+$adminUser = $env:ADMIN_USERNAME
+$adminPass = $env:ADMIN_PASSWORD
+if (-not $adminUser -or -not $adminPass) {
+  Write-Host "  [SKIP] Admin Login — 未设置 ADMIN_USERNAME/ADMIN_PASSWORD（管理端用例将因 401/403 失败，属预期）" -ForegroundColor DarkYellow
+  $ar = @{ok=$false; data=""; code=0}
+} else {
+  $ar = t POST "/api/admin/login" @{username=$adminUser;password=$adminPass} $null 200 "Admin Login"
+}
 $at = ""; if ($ar.ok) { $d = $ar.data | ConvertFrom-Json; $at = $d.data.token }
 
 $u1 = t POST "/api/user/login" @{username="13810000100";password="123456"} $null 200 "User1 Login"

@@ -12,6 +12,10 @@ RUN apk add --no-cache tzdata curl python3 make g++ sqlite-dev && \
     echo "Asia/Shanghai" > /etc/timezone && \
     rm -rf /var/cache/apk/*
 
+# 审计 I-14：开发镜像原来以 root 运行；这里创建非 root 用户（与生产镜像保持一致的 1001）
+RUN addgroup -g 1001 nodejs && \
+    adduser -D -u 1001 -G nodejs -s /bin/false nodejs
+
 WORKDIR /app
 
 # 复制依赖描述文件，安装全部依赖（含 devDependencies）
@@ -21,7 +25,12 @@ RUN npm install && npm cache clean --force
 # 复制后端源码
 COPY backend/ ./
 
+# 可写目录归属非 root 用户（bind mount 场景下仍需保证宿主机目录权限）
+RUN mkdir -p /app/public/uploads /var/log/eudazi && \
+    chown -R nodejs:nodejs /app /var/log/eudazi
+
 EXPOSE 3000
 
 # 使用 nodemon --legacy-watch 确保在 Docker bind mount 下文件变更能被检测到
+USER nodejs
 CMD ["npx", "nodemon", "--legacy-watch", "server.js"]

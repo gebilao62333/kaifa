@@ -45,14 +45,28 @@ const router = createRouter({
   }
 })
 
-const isAdminToken = (token) => {
+// 解析 JWT payload（仅解码，不验签）。
+// ⚠️ 前端拿不到后端密钥，因此这里绝不做签名验证，也绝不把解析结果当作权限边界。
+// 它只用于 UI 层面的提前拦截（尽早把明显无效/过期的 token 送去登录页）；
+// 真正的鉴权由后端 adminAuth 中间件在每次接口请求时完成。
+const decodeJwtPayload = (token) => {
   try {
     const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
-    const payload = JSON.parse(window.atob(b64))
-    return !!(payload && (payload.role === 'admin' || payload.role_id === 1))
+    return JSON.parse(window.atob(b64))
   } catch (e) {
-    return false
+    return null
   }
+}
+
+// 仅用于 UI 判断：token 可解析、未过期且角色为管理员。
+// 即使攻击者伪造 role: 'admin' 的 token 通过此守卫，后端接口仍会拒绝，
+// 因此这里不构成权限绕过。
+const isAdminToken = (token) => {
+  const payload = decodeJwtPayload(token)
+  if (!payload) return false
+  // 过期即视为无效，避免拿着过期 token 反复跳转
+  if (payload.exp && payload.exp * 1000 <= Date.now()) return false
+  return !!(payload.role === 'admin' || payload.role_id === 1)
 }
 
 // 读取本地存储的当前管理员权限（登录成功后写入 admin_user）

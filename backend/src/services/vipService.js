@@ -111,13 +111,18 @@ const completeVipOrder = async (orderNo, transactionId = null) => {
   }
 };
 
-const getVipOrderStatus = async (orderNo) => {
+// 审计 B-12：原实现只按订单号查询，任何登录用户都能查到他人的 VIP 订单状态（IDOR）。
+const getVipOrderStatus = async (orderNo, requesterId) => {
   const order = await VipOrder.findOne({
     where: { order_no: orderNo }
   });
   
   if (!order) {
     throw new Error('订单不存在');
+  }
+
+  if (requesterId !== undefined && requesterId !== null && Number(order.user_id) !== Number(requesterId)) {
+    throw new Error('无权查看此订单');
   }
   
   return {

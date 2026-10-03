@@ -2,6 +2,34 @@ const { circleService, cosSignedUrlService } = require('../services');
 const response = require('../utils/response');
 const logger = require('../utils/logger');
 
+// 审计 B-15：分享奖励原先无上限、无去重，可对同一帖子反复"分享"刷钱。
+// 这里做「每用户每日次数上限」（默认 10，SHARE_REWARD_DAILY_LIMIT 可调）：
+// 优先用 Redis 计数保证多实例一致，Redis 不可用时退回进程内计数。
+const SHARE_REWARD_FALLBACK = new Map();
+const DEFAULT_SHARE_REWARD_DAILY_LIMIT = 10;
+
+const consumeShareRewardQuota = async (userId, dailyLimit) => {
+  const day = new Date().toISOString().slice(0, 10);
+  const key = 'share:reward:' + day + ':' + userId;
+
+  try {
+    const { getRedisClient } = require('../config/redis');
+    const redis = getRedisClient();
+    if (redis) {
+      const count = await redis.incr(key);
+      if (count === 1) await redis.expire(key, 90000);
+      return count <= dailyLimit;
+    }
+  } catch (e) {
+    logger.warn('[分享奖励] Redis 计数不可用，退回进程内计数:', e.message);
+  }
+
+  const current = SHARE_REWARD_FALLBACK.get(key) || 0;
+  SHARE_REWARD_FALLBACK.set(key, current + 1);
+  if (SHARE_REWARD_FALLBACK.size > 5000) SHARE_REWARD_FALLBACK.clear();
+  return current + 1 <= dailyLimit;
+};
+
 // 对动态中的媒体URL做COS访问签名（防盗刷），失败则原样返回
 const signPostMedia = async (post) => {
   if (post && Array.isArray(post.images)) {
@@ -269,8 +297,11 @@ const sharePost = async (req, res) => {
       if (!post) {
         return response.notFound(res, '帖子不存在');
       }
-      post.share_num = (post.share_num || 0) + 1;
-      await post.save();
+
+      // 审计 M5：原实现"读 share_num → +1 → save"在并发下会丢更新，改为原子自增
+      await Post.increment('share_num', { by: 1, where: { id: parseInt(postId) } });
+      const refreshed = await Post.findByPk(parseInt(postId), { attributes: ['share_num'] });
+      const shareNum = refreshed ? refreshed.share_num : (Number(post.share_num) || 0) + 1;
 
       // 如果开启了分享奖励
       try {
@@ -280,8 +311,14 @@ const sharePost = async (req, res) => {
           const rewardAmount = await SystemSettings.findOne({ where: { key: 'shareRewardAmount' } });
           const amount = rewardAmount ? parseFloat(rewardAmount.value) || 0 : 0;
           if (amount > 0) {
-            const { User } = require('../models');
-            await User.increment('money', { by: amount, where: { id: req.userId } });
+            const dailyLimit = parseInt(process.env.SHARE_REWARD_DAILY_LIMIT) || DEFAULT_SHARE_REWARD_DAILY_LIMIT;
+            const allowed = await consumeShareRewardQuota(req.userId, dailyLimit);
+            if (allowed) {
+              const { User } = require('../models');
+              await User.increment('money', { by: amount, where: { id: req.userId } });
+            } else {
+              logger.warn('[分享奖励] 用户 ' + req.userId + ' 已达当日奖励上限 ' + dailyLimit + '，跳过发放');
+            }
           }
         }
       } catch (e) {
@@ -289,7 +326,7 @@ const sharePost = async (req, res) => {
         logger.warn('分享奖励发放失败:', e.message);
       }
 
-      response.success(res, { shares: post.share_num }, '分享成功');
+      response.success(res, { shares: shareNum }, '分享成功');
     } catch (dbErr) {
       logger.error('[DB] 分享帖子失败:', dbErr.message);
       response.error(res, '分享失败，请稍后重试');

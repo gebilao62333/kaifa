@@ -52,10 +52,6 @@
               {{ loginCodeSending ? loginCountdown + 's' : '获取验证码' }}
             </button>
           </div>
-          <div v-if="sentCode" class="code-tip">
-            🧪 开发模式 — 验证码：<strong>{{ sentCode }}</strong>
-            <span class="code-tip-action" @click="codeValue = sentCode">点击填入</span>
-          </div>
         </div>
 
         <button type="submit" class="login-btn" :disabled="isLoading">
@@ -94,11 +90,7 @@
                 <label class="form-label">验证码</label>
                 <div class="code-row">
                   <input v-model="regCode" type="text" class="form-input" placeholder="请输入验证码" />
-                  <button class="code-btn" :disabled="codeSending" @click="sendCode">{{ codeSending ? '发送中' : '获取验证码' }}</button>
-                </div>
-                <div v-if="sentCode" class="code-tip">
-                  🧪 开发模式 — 验证码：<strong>{{ sentCode }}</strong>
-                  <span class="code-tip-action" @click="regCode = sentCode">点击填入</span>
+                  <button class="code-btn" :disabled="codeSending" @click="sendCode">{{ codeCountdown > 0 ? codeCountdown + 's' : (codeSending ? '发送中' : '获取验证码') }}</button>
                 </div>
               </div>
               <div class="form-group">
@@ -127,11 +119,7 @@
                 <label class="form-label">验证码</label>
                 <div class="code-row">
                   <input v-model="forgotCode" type="text" class="form-input" placeholder="请输入验证码" />
-                  <button class="code-btn" :disabled="codeSending" @click="sendCode">{{ codeSending ? '发送中' : '获取验证码' }}</button>
-                </div>
-                <div v-if="sentCode" class="code-tip">
-                  🧪 开发模式 — 验证码：<strong>{{ sentCode }}</strong>
-                  <span class="code-tip-action" @click="forgotCode = sentCode">点击填入</span>
+                  <button class="code-btn" :disabled="codeSending" @click="sendCode">{{ codeCountdown > 0 ? codeCountdown + 's' : (codeSending ? '发送中' : '获取验证码') }}</button>
                 </div>
               </div>
               <div class="form-group">
@@ -169,7 +157,6 @@ const forgotPhone = ref('')
 const forgotCode = ref('')
 const forgotPwd = ref('')
 const codeSending = ref(false)
-const sentCode = ref('')
 const codeCountdown = ref(0)
 
 const loginMode = ref('password')
@@ -203,8 +190,7 @@ const sendLoginCode = async () => {
   try {
     const result = await userStore.sendSms(codePhone.value.trim(), 'login')
     if (result.success) {
-      sentCode.value = result.code || ''
-      toast.success(result.code ? `验证码已发送（验证码: ${result.code}）` : '验证码已发送', 5000)
+      toast.success('验证码已发送', 5000)
       let countdown = 60
       loginCountdown.value = countdown
       loginTimer = setInterval(() => {
@@ -361,7 +347,7 @@ const handleLogin = async () => {
       await nextTick()
       try {
         await router.push(redirect)
-        console.log('跳转成功:', redirect)
+        if (import.meta.env.DEV) console.log('跳转成功:', redirect)
       } catch (error) {
         console.error('跳转失败:', error)
         await router.push('/home')
@@ -404,16 +390,13 @@ const sendCode = async () => {
   }
 
   codeSending.value = true
-  sentCode.value = ''
   
   try {
     const type = showRegister.value ? 'register' : 'reset'
     const result = await userStore.sendSms(phone, type)
     
     if (result.success) {
-      sentCode.value = result.code || ''
-      const codeTip = result.code ? `（验证码: ${result.code}）` : ''
-      toast.success(`验证码已发送${codeTip}`, 5000)
+      toast.success('验证码已发送', 5000)
       
       let countdown = 60
       codeCountdown.value = countdown
@@ -435,10 +418,6 @@ const sendCode = async () => {
     codeSending.value = false
   }
 }
-
-// 关闭弹窗时清除验证码显示
-watch(showRegister, (val) => { if (!val) sentCode.value = '' })
-watch(showForgot, (val) => { if (!val) sentCode.value = '' })
 
 const handleRegister = async () => {
   // 增强注册表单验证

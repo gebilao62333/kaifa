@@ -54,7 +54,6 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import adminService from '../../services/adminService'
 import { useToast } from '../../composables/useToast'
-import { host } from '@/common/config'
 const toast = useToast()
 const router = useRouter()
 
@@ -62,8 +61,6 @@ const stats = ref({})
 const recentOrders = ref([])
 
 const token = () => localStorage.getItem('admin_token')
-
-const getHost = () => host
 
 const formatTime = (time) => {
   if (!time) return ''
@@ -93,24 +90,18 @@ const loadStats = async () => {
   try {
     const t = token()
     if (!t) { handleAuth(); return }
-    const res = await fetch(`${getHost()}/api/admin/dashboard`, {
-      headers: { 'Authorization': `Bearer ${t}` }
-    })
-    if (res.status === 401 || res.status === 403) { handleAuth(); return }
-    const result = await res.json()
-    if (result.code === 200 || result.code === 0) {
-      const d = result.data || {}
-      // 映射后端字段到前端模板期望的字段名
-      stats.value = {
-        userCount: d.totalUsers,
-        orderCount: d.todayOrders,
-        todayIncome: d.todayIncome || 0,
-        totalIncome: d.totalIncome || 0
-      }
-    } else if (result.code === 401 || result.code === 403) {
-      handleAuth()
+    const result = await adminService.getDashboardStats()
+    const d = result.data || {}
+    // 映射后端字段到前端模板期望的字段名
+    stats.value = {
+      userCount: d.totalUsers,
+      orderCount: d.todayOrders,
+      todayIncome: d.todayIncome || 0,
+      totalIncome: d.totalIncome || 0
     }
   } catch (err) {
+    // request() 在 401/403 时已自动跳转登录页，这里保持原有兜底
+    if (err && (err.status === 401 || err.status === 403)) { handleAuth(); return }
     toast.error('加载统计数据失败')
   }
 }
@@ -119,17 +110,11 @@ const loadRecentOrders = async () => {
   try {
     const t = token()
     if (!t) { handleAuth(); return }
-    const res = await fetch(`${getHost()}/api/admin/orders?page=1&pageSize=10`, {
-      headers: { 'Authorization': `Bearer ${t}` }
-    })
-    if (res.status === 401 || res.status === 403) { handleAuth(); return }
-    const result = await res.json()
-    if (result.code === 200 || result.code === 0) {
-      recentOrders.value = result.data.list || result.data || []
-    } else if (result.code === 401 || result.code === 403) {
-      handleAuth()
-    }
+    const result = await adminService.getOrders({ page: 1, pageSize: 10 })
+    recentOrders.value = result.data.list || result.data || []
   } catch (err) {
+    // request() 在 401/403 时已自动跳转登录页，这里保持原有兜底
+    if (err && (err.status === 401 || err.status === 403)) { handleAuth(); return }
     toast.error('加载订单失败')
   }
 }

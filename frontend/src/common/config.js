@@ -17,14 +17,16 @@ export const socketUrl = isDev ? 'http://localhost:3000' : ''
 export const webSocket = import.meta.env.VITE_WEBSOCKET || ''
 
 // sdkappid: 腾讯云 TRTC/IM 应用 ID
-export const sdkappid = Number(import.meta.env.VITE_SDK_APP_ID) || 1400745478
+// 必须通过 VITE_SDK_APP_ID 注入；未配置时为 0（不再回退到硬编码的示例 AppID）
+export const sdkappid = Number(import.meta.env.VITE_SDK_APP_ID) || 0
 
 // uploadUrl: 文件上传端点
 export const uploadUrl = import.meta.env.VITE_UPLOAD_URL || '/api/upload/file'
 
 // cosConfig: 腾讯云 COS 对象存储配置
+// 必须通过 VITE_COS_BUCKET / VITE_COS_REGION 注入；未配置时为空串（不再回退到占位桶名）
 export const cosConfig = {
-  bucket: import.meta.env.VITE_COS_BUCKET || 'your-bucket-1250000000',
+  bucket: import.meta.env.VITE_COS_BUCKET || '',
   region: import.meta.env.VITE_COS_REGION || 'ap-guangzhou'
 }
 

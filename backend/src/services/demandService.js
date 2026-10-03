@@ -70,12 +70,17 @@ const getDemandList = async (userId, page, pageSize) => {
   };
 };
 
-const getDemandDetail = async (demandId) => {
+// 审计 B-14：需求本身是公开的撮合信息，但 line/线下地址属于隐私，
+// 非发布者不可见（原实现无条件返回 offline_location）。
+const getDemandDetail = async (demandId, requesterId) => {
   const demand = await Demand.findByPk(demandId);
   
   if (!demand) {
     throw new Error('需求不存在');
   }
+
+  const isOwner = requesterId !== undefined && requesterId !== null
+    && Number(demand.user_id) === Number(requesterId);
   
   return {
     demandId: demand.id,
@@ -89,7 +94,8 @@ const getDemandDetail = async (demandId) => {
     duration: demand.duration,
     budget: demand.budget,
     remark: demand.remark,
-    offlineLocation: demand.offline_location,
+    // 审计 B-14：线下地址属隐私，仅发布者可见
+    offlineLocation: isOwner ? demand.offline_location : '',
     gender: demand.gender,
     ageStart: demand.age_start,
     ageEnd: demand.age_end,

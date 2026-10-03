@@ -35,10 +35,19 @@ try {
   console.log('⚠️  非生产环境，服务将继续运行（部分功能可能不可用）');
 }
 
-// 启动安全检查：检测是否仍在使用弱默认值/占位密钥（不阻断启动，仅告警）
-function warnWeakSecrets() {
-  const commonWeak = ['123456', 'changeme', 'root123456', 'redis123', 'admin123',
-    'eudazi123', 'default-secret-key', 'password', 'test'];
+// ==================== 启动配置安全检查 ====================
+const COMMON_WEAK = ['123456', 'changeme', 'root123456', 'redis123', 'admin123',
+  'eudazi123', 'default-secret-key', 'password', 'test'];
+// 占位/示例字符串特征：命中即视为弱值（如 admin-secret-token-change-in-production）
+const WEAK_PATTERN = /(changeme|change-me|change-in-production|admin-secret|default-secret|dev-secret|123456|admin123|your-)/i;
+
+const isWeakSecret = (val, minLen) => {
+  const s = String(val ?? '');
+  return !s || s.length < minLen || COMMON_WEAK.includes(s) || WEAK_PATTERN.test(s);
+};
+
+// 收集弱密钥与危险配置
+function collectConfigRisks() {
   const checks = [
     ['JWT_SECRET', config.jwt.secret, 16],
     ['ADMIN_TOKEN', config.admin.token, 16],
@@ -47,18 +56,81 @@ function warnWeakSecrets() {
   ];
   const weak = [];
   for (const [name, val, minLen] of checks) {
-    if (!val || val.length < minLen || commonWeak.includes(String(val))) {
-      weak.push(name);
-    }
+    if (isWeakSecret(val, minLen)) weak.push(name);
   }
+
+  // MongoDB 连接串里内嵌的口令也检查一遍（docker-compose 的默认兜底值是 admin123）
+  const mongoUri = String(config.db.mongo.uri || '');
+  if (/(:admin123@|:changeme@|:password@|:123456@)/i.test(mongoUri)) {
+    weak.push('MONGO_URI(内嵌口令)');
+  }
+
+  const warnings = [];
+  if (config.admin && config.admin.emergencyLogin) {
+    warnings.push('ADMIN_EMERGENCY_LOGIN=true：环境变量应急管理员登录已开启，创建正式管理员后请立即改为 false');
+  }
+  if ((config.cors.origin || []).includes('*')) {
+    warnings.push('CORS_ORIGIN=*：生产环境必须改为具体前端域名（逗号分隔）');
+  }
+  if (config.useMockDb && config.nodeEnv === 'production') {
+    warnings.push('USE_MOCK_DB=true 且 NODE_ENV=production：生产环境不应运行在 Mock 数据库模式');
+  }
+  return { weak, warnings };
+}
+
+// 告警：任何环境都打印，不阻断
+function warnWeakSecrets(weak, warnings) {
   if (weak.length) {
     console.log('\n⚠️  ⚠️  ⚠️  安全警告：以下密钥仍为弱值/默认值，生产部署前务必更换：');
     weak.forEach((w) => console.log('   - ' + w));
-    console.log('   参考 .env.example 生成强随机值（如 openssl rand -hex 24）。本告警不阻断启动。\n');
+    console.log('   参考 .env.example 生成强随机值（如 openssl rand -hex 24）。');
+  }
+  if (warnings.length) {
+    console.log('\n⚠️  配置告警：');
+    warnings.forEach((w) => console.log('   - ' + w));
+  }
+  if (weak.length || warnings.length) console.log('');
+}
+
+// 生产环境强制校验：关键密钥缺失/弱值直接拒绝启动
+// 可设置 ALLOW_INSECURE_CONFIG=true 显式降级为告警（仅限受控排障，不推荐）。
+function enforceProductionConfig() {
+  if (config.nodeEnv !== 'production') return;
+
+  if (String(process.env.ALLOW_INSECURE_CONFIG).toLowerCase() === 'true') {
+    console.log('\n⚠️  ALLOW_INSECURE_CONFIG=true：已跳过生产环境密钥强制校验（不推荐）\n');
+    return;
+  }
+
+  const fatal = [];
+  if (isWeakSecret(config.jwt.secret, 16)) {
+    fatal.push('JWT_SECRET 未设置或为弱值（可被用于伪造任意用户 JWT）');
+  }
+  if (isWeakSecret(config.db.mysql.password, 12)) {
+    fatal.push('DB_PASSWORD 未设置或为弱值');
+  }
+  // ADMIN_TOKEN 为空表示应急令牌通道关闭（安全）；非空但弱值才是问题
+  if (config.admin.token && isWeakSecret(config.admin.token, 16)) {
+    fatal.push('ADMIN_TOKEN 为弱值（x-admin-token 等同于超级管理员身份）');
+  }
+  if ((config.cors.origin || []).includes('*')) {
+    fatal.push('CORS_ORIGIN=*：允许任意站点跨域调用接口');
+  }
+  if (config.useMockDb) {
+    fatal.push('USE_MOCK_DB=true：生产环境禁止使用 Mock 数据库');
+  }
+
+  if (fatal.length) {
+    console.error('\n❌ 生产环境配置校验失败，拒绝启动：');
+    fatal.forEach((f) => console.error('   - ' + f));
+    console.error('   请修正 .env 后重启；确需临时跳过请设置 ALLOW_INSECURE_CONFIG=true。\n');
+    process.exit(1);
   }
 }
 
-warnWeakSecrets();
+const __configRisks = collectConfigRisks();
+warnWeakSecrets(__configRisks.weak, __configRisks.warnings);
+enforceProductionConfig();
 
 const app = express();
 app.set('trust proxy', 1);
@@ -319,6 +391,14 @@ const startServer = async () => {
       } catch (e) {
         console.log('⚠️  虚拟人随机在线调度器启动失败:', e.message);
       }
+
+      // 未接通通话单清理器（把超时未接的电话标记为「无应答」，避免残留「呼叫中」）
+      try {
+        const callCleanup = require('./src/services/callRecordCleanup');
+        callCleanup.startCallRecordCleanup();
+      } catch (e) {
+        console.log('⚠️  通话单清理器启动失败:', e.message);
+      }
     });
 
   } catch (error) {
@@ -356,6 +436,8 @@ process.on('SIGTERM', async () => {
   try {
     const scheduler = require('./src/services/virtualUserOnlineScheduler');
     scheduler.stopVirtualUserOnlineScheduler();
+    const callCleanup = require('./src/services/callRecordCleanup');
+    callCleanup.stopCallRecordCleanup();
   } catch (e) { /* ignore */ }
   server.close(() => {
     const closeMsg = '服务器已关闭';

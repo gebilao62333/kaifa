@@ -48,7 +48,8 @@ const callerInfo = ref({
   avatar: '',
   callType: 1,
   callId: null,
-  useWebRTC: false
+  useWebRTC: false,
+  trtcRoomId: ''
 })
 
 let ringTimer = null
@@ -62,7 +63,8 @@ const showIncomingCall = (info) => {
     avatar: info.fromAvatar || '',
     callType: info.callType || 1,
     callId: info.callId || 0,
-    useWebRTC: info.useWebRTC || false
+    useWebRTC: info.useWebRTC || false,
+    trtcRoomId: info.trtcRoomId || ''
   }
   visible.value = true
   ringing.value = true
@@ -104,11 +106,14 @@ const handleAccept = async () => {
     })
     hideIncomingCall()
 
-    if (callerInfo.value.callType === 2) {
-      router.push(`/call/${callerInfo.value.callerId}/video`)
-    } else {
-      router.push(`/call/${callerInfo.value.callerId}/audio`)
-    }
+    // 把「被叫」与通道一并带进通话页：
+    //  - incoming=1 → 页面走被叫分支，不会被当成主叫再发起一通新通话
+    //  - mode       → 页面与 acceptCall 中的通道判断保持一致
+    const mode = callerInfo.value.useWebRTC ? 'webrtc' : 'trtc'
+    try { localStorage.setItem('_pendingCallMode', mode) } catch (e) { /* 存储不可用时忽略 */ }
+    const target = callerInfo.value.callType === 2 ? 'video' : 'audio'
+    const room = callerInfo.value.trtcRoomId ? `&room=${encodeURIComponent(callerInfo.value.trtcRoomId)}` : ''
+    router.push(`/call/${callerInfo.value.callerId}/${target}?incoming=1&mode=${mode}${room}`)
   } catch (error) {
     console.error('接听失败:', error)
     hideIncomingCall()

@@ -1,12 +1,8 @@
 import { socketService } from './socketService'
-import { request } from '../common/common'
+import { getRtcConfiguration } from '../common/webrtcConfig'
 
-const iceServers = {
-  iceServers: [
-    { urls: 'stun:stun.l.google.com:19302' },
-    { urls: 'stun:stun1.l.google.com:19302' }
-  ]
-}
+// ICE 服务器（STUN + 可选 TURN）统一由 common/webrtcConfig 提供，
+// TURN 通过 VITE_TURN_URL / VITE_TURN_USERNAME / VITE_TURN_CREDENTIAL 注入。
 
 class WebRTCCallService {
   constructor() {
@@ -29,6 +25,12 @@ class WebRTCCallService {
     if (onRemoteStream) this.onRemoteStream = onRemoteStream
     if (onLocalStream) this.onLocalStream = onLocalStream
     if (onCallStateChange) this.onCallStateChange = onCallStateChange
+
+    // 被叫是「先接听后挂载页面」：流/状态可能已经就绪，立即回灌一次，
+    // 否则远端画面与声音会因为回调注册太晚而丢失。
+    if (this.onLocalStream && this.localStream) this.onLocalStream(this.localStream)
+    if (this.onRemoteStream && this.remoteStream) this.onRemoteStream(this.remoteStream)
+    if (this.onCallStateChange && this.callState && this.callState !== 'idle') this.onCallStateChange(this.callState)
   }
 
   _setState(state) {
@@ -73,16 +75,43 @@ class WebRTCCallService {
     })
   }
 
+  // ===== 信令监听：全局只挂一次 =====
+  // 放在服务层而不是页面里：接听 → 路由跳转 → 页面挂载之间存在时间窗，
+  // 早到的 offer / ICE 若无监听会被直接丢弃，导致协商失败。
+  attachSignalListeners() {
+    if (this._signalsAttached) return
+    this._signalsAttached = true
+
+    // 主叫：被叫接听后，把 initiateCall 中已创建好的 offer 发出去
+    socketService.on('call_accept', () => {
+      if (this.isCaller) this.sendDelayedOffer()
+    })
+
+    socketService.on('webrtc_offer', (data) => {
+      this.handleOffer(data.fromId, data.sdp)
+    })
+
+    socketService.on('webrtc_answer', (data) => {
+      this.handleAnswer(data.fromId, data.sdp)
+    })
+
+    socketService.on('webrtc_ice_candidate', (data) => {
+      this.handleIceCandidate(data.fromId, data.candidate)
+    })
+  }
+
   // ===== 主叫方：发起通话 =====
   async initiateCall(remoteId, callType = 1, callId = 0) {
     this.isCaller = true
     this.remoteUserId = remoteId
     this.callType = callType
     this.callId = callId
+    this.cleanupDone = false
+    this.attachSignalListeners()
     this._setState('calling')
 
     try {
-      this.peerConnection = new RTCPeerConnection(iceServers)
+      this.peerConnection = new RTCPeerConnection(await getRtcConfiguration())
       this._setupPeerListeners(this.peerConnection, remoteId)
       await this._getLocalMedia(callType)
 
@@ -136,23 +165,21 @@ class WebRTCCallService {
     this.remoteUserId = fromId
     this.callType = callType
     this.callId = callId
+    this.cleanupDone = false
+    this.attachSignalListeners()
     this._setState('ringing')
 
     try {
-      this.peerConnection = new RTCPeerConnection(iceServers)
+      this.peerConnection = new RTCPeerConnection(await getRtcConfiguration())
       this._setupPeerListeners(this.peerConnection, fromId)
       await this._getLocalMedia(callType)
 
-      const offer = await this.peerConnection.createOffer()
-      await this.peerConnection.setLocalDescription(offer)
-
       this._setState('connecting')
 
+      // 被叫不主动发 offer：统一由主叫收到 call_accept 后再发。
+      // 否则双方同时 createOffer（glare），主叫 setRemoteDescription(offer) 会抛
+      // InvalidStateError，通话直接判为连接失败。
       socketService.emit('call_accept', { toId: fromId, trtcRoomId: '' })
-      socketService.emit('webrtc_offer', {
-        toId: fromId,
-        sdp: this.peerConnection.localDescription
-      })
     } catch (error) {
       console.error('WebRTC 接听失败:', error)
       this._setState('failed')
@@ -165,11 +192,16 @@ class WebRTCCallService {
     try {
       // 如果还没有peerConnection（主叫方收到被叫方offer的特殊情况）
       if (!this.peerConnection) {
-        this.peerConnection = new RTCPeerConnection(iceServers)
+        this.peerConnection = new RTCPeerConnection(await getRtcConfiguration())
         this._setupPeerListeners(this.peerConnection, fromId)
         if (!this.localStream) {
           await this._getLocalMedia(this.callType)
         }
+      }
+
+      // 防御：本地若还挂着未协商的 offer（glare 场景），先回滚再接受远端 offer
+      if (this.peerConnection.signalingState === 'have-local-offer') {
+        try { await this.peerConnection.setLocalDescription({ type: 'rollback' }) } catch (e) { /* 忽略 */ }
       }
 
       await this.peerConnection.setRemoteDescription(new RTCSessionDescription(sdp))
@@ -211,6 +243,11 @@ class WebRTCCallService {
 
   // ===== 收到ICE Candidate =====
   async handleIceCandidate(fromId, candidate) {
+    // 只接受当前会话对端的 candidate，来源不符直接丢弃（F-13）
+    if (this.remoteUserId == null || String(fromId) !== String(this.remoteUserId)) {
+      console.warn('WebRTC 丢弃来源不匹配的 ICE candidate')
+      return
+    }
     try {
       const iceCandidate = new RTCIceCandidate(candidate)
       if (this.peerConnection && this.peerConnection.remoteDescription) {

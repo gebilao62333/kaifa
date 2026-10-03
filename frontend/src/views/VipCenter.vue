@@ -248,10 +248,10 @@ const buyVip = async () => {
 
   try {
     const order = await createVipOrder(selectedPkgId.value, months, dur?.price || '0')
-    console.log('创建订单成功:', order)
+    if (import.meta.env.DEV) console.log('创建订单成功:', order)
 
     await completeVipOrder(order.orderNo)
-    console.log('VIP开通成功')
+    if (import.meta.env.DEV) console.log('VIP开通成功')
 
     await loadUserVipInfo()
 

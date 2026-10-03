@@ -1,9 +1,23 @@
 const path = require('path');
 
+const nodeEnv = process.env.NODE_ENV || 'development';
+const isProd = nodeEnv === 'production';
+
+if (isProd) {
+  const required = ['JWT_SECRET', 'DB_PASSWORD'];
+  const missing = required.filter((k) => !process.env[k]);
+  if (missing.length) {
+    throw new Error(`生产环境必须设置以下环境变量: ${missing.join(', ')}`);
+  }
+  if (process.env.JWT_SECRET.length < 32) {
+    throw new Error('JWT_SECRET 长度不得少于 32 字符');
+  }
+}
+
 module.exports = {
   port: process.env.PORT || 3000,
   baseUrl: (process.env.SERVER_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/+$/, ''),
-  nodeEnv: process.env.NODE_ENV || 'development',
+  nodeEnv,
   useMockDb: process.env.USE_MOCK_DB === 'true',
   
   jwt: {
@@ -43,7 +57,11 @@ module.exports = {
   },
   
   storage: {
-    provider: process.env.STORAGE_PROVIDER || 'cos',
+    // 支持「多家组合」：逗号分隔按优先级尝试，例如 cos,qiniu,oss,local
+    // 未配置或上传失败的 provider 自动跳过，最终至少回落到本地存储
+    provider: process.env.STORAGE_PROVIDER || 'local',
+    // 链首失败是否继续尝试下一家（默认开启，可用性优先）；设为 false 则失败即报错
+    fallback: process.env.STORAGE_FALLBACK !== 'false',
     cos: {
       secretId: process.env.COS_SECRET_ID,
       secretKey: process.env.COS_SECRET_KEY,
@@ -53,7 +71,16 @@ module.exports = {
     qiniu: {
       accessKey: process.env.QINIU_ACCESS_KEY,
       secretKey: process.env.QINIU_SECRET_KEY,
-      bucket: process.env.QINIU_BUCKET
+      bucket: process.env.QINIU_BUCKET,
+      domain: process.env.QINIU_DOMAIN
+    },
+    oss: {
+      accessKeyId: process.env.OSS_ACCESS_KEY_ID,
+      accessKeySecret: process.env.OSS_ACCESS_KEY_SECRET,
+      bucket: process.env.OSS_BUCKET,
+      region: process.env.OSS_REGION,
+      endpoint: process.env.OSS_ENDPOINT,
+      domain: process.env.OSS_DOMAIN
     }
   },
   
@@ -82,6 +109,23 @@ module.exports = {
   trtc: {
     appId: process.env.TRTC_APP_ID,
     secretKey: process.env.TRTC_SECRET_KEY
+  },
+
+  // 通话通道策略：自建 WebRTC 为主，腾讯云 TRTC 为备选（需显式开启）
+  //   CALL_CHANNEL=webrtc（默认）→ 只走自建 WebRTC（Socket.IO 信令 + STUN/TURN）
+  //   CALL_CHANNEL=trtc          → 走腾讯云 TRTC（此时才需要配置 TRTC_APP_ID/SECRET_KEY）
+  call: {
+    channel: (process.env.CALL_CHANNEL || 'webrtc').toLowerCase() === 'trtc' ? 'trtc' : 'webrtc',
+    stun: (process.env.STUN_URLS || 'stun:stun.l.google.com:19302,stun:stun1.l.google.com:19302')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean),
+    turn: {
+      // coturn REST API 模式：只配 URL + 共享密钥，凭据由后端按用户签发（临时、可过期）
+      url: process.env.TURN_URL || '',
+      secret: process.env.TURN_SECRET || '',
+      ttl: parseInt(process.env.TURN_TTL) || 3600
+    }
   },
 
   llm: {
@@ -120,8 +164,11 @@ module.exports = {
   
   paths: {
     root: path.resolve(__dirname, '..'),
-    uploads: path.resolve(__dirname, '../public/uploads'),
-    logs: path.resolve(__dirname, '../logs'),
+    // 注意：静态目录由 server.js 挂载自 backend/public/uploads，此处必须与之保持一致
+    public: path.resolve(__dirname, '../../public'),
+    uploads: path.resolve(__dirname, '../../public/uploads'),
+    // 与 docker-compose 的 eudazi_logs 卷（/var/log/eudazi）保持一致；生产可用 LOGS_PATH 覆盖
+    logs: path.resolve(__dirname, '../../logs'),
     certs: path.resolve(__dirname, '../cert')
   }
 };

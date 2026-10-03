@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS `xn_user` (
   `fans_num` INT DEFAULT 0,
   `create_time` INT(10) DEFAULT 0,
   `last_login_time` INT(10) DEFAULT 0,
-  `ip` VARCHAR(15),
+  `ip` VARCHAR(45),
   `platform` VARCHAR(20),
   `dec` VARCHAR(255),
   `real_name` VARCHAR(50),
@@ -89,7 +89,7 @@ CREATE TABLE IF NOT EXISTS `xn_admin` (
   `permissions` TEXT,
   `status` TINYINT(1) DEFAULT 1,
   `last_login_time` INT(10) DEFAULT 0,
-  `last_login_ip` VARCHAR(15),
+  `last_login_ip` VARCHAR(45),
   `create_time` INT(10) DEFAULT 0,
   `create_admin_id` BIGINT,
   PRIMARY KEY (`id`),
@@ -286,7 +286,7 @@ CREATE TABLE IF NOT EXISTS `xn_gift` (
 -- 用户礼物背包表
 CREATE TABLE IF NOT EXISTS `xn_gift_bag` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `user_id` INT NOT NULL,
+  `user_id` BIGINT NOT NULL,
   `gift_id` INT NOT NULL,
   `gift_name` VARCHAR(50) NOT NULL,
   `gift_image` VARCHAR(255) NOT NULL,
@@ -361,7 +361,7 @@ CREATE TABLE IF NOT EXISTS `xn_recharge_package` (
 -- 动态表
 CREATE TABLE IF NOT EXISTS `xn_post` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `user_id` INT NOT NULL,
+  `user_id` BIGINT NOT NULL,
   `content` TEXT,
   `images` VARCHAR(1000),
   `videos` VARCHAR(500),
@@ -388,7 +388,7 @@ CREATE TABLE IF NOT EXISTS `xn_post` (
 CREATE TABLE IF NOT EXISTS `xn_post_like` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `post_id` INT NOT NULL,
-  `user_id` INT NOT NULL,
+  `user_id` BIGINT NOT NULL,
   `create_time` INT(10) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_post_user` (`post_id`, `user_id`),
@@ -400,7 +400,7 @@ CREATE TABLE IF NOT EXISTS `xn_post_like` (
 CREATE TABLE IF NOT EXISTS `xn_post_comment` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `post_id` INT NOT NULL,
-  `user_id` INT NOT NULL,
+  `user_id` BIGINT NOT NULL,
   `content` TEXT,
   `reply_id` INT DEFAULT 0,
   `reply_user_id` INT DEFAULT 0,
@@ -415,7 +415,7 @@ CREATE TABLE IF NOT EXISTS `xn_post_comment` (
 CREATE TABLE IF NOT EXISTS `xn_post_unlock` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `post_id` INT NOT NULL,
-  `user_id` INT NOT NULL,
+  `user_id` BIGINT NOT NULL,
   `price` DECIMAL(10, 2) DEFAULT 0,
   `create_time` INT(10) DEFAULT 0,
   PRIMARY KEY (`id`),
@@ -488,21 +488,22 @@ CREATE TABLE IF NOT EXISTS `xn_red_packet` (
 CREATE TABLE IF NOT EXISTS `xn_red_packet_log` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `packet_id` INT NOT NULL,
-  `user_id` INT NOT NULL,
+  `user_id` BIGINT NOT NULL,
   `user_nickname` VARCHAR(50),
   `amount` DECIMAL(10, 2) NOT NULL,
   `create_time` INT(10) DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_packet_id` (`packet_id`),
-  KEY `idx_packet_user` (`packet_id`, `user_id`),
+  -- 审计 B-01：同一用户对同一红包只能有一条领取记录，用唯一约束在数据库层兜住并发重复领取
+  UNIQUE KEY `uk_packet_user` (`packet_id`, `user_id`),
   KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='红包记录表';
 
 -- 举报表
 CREATE TABLE IF NOT EXISTS `xn_report` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `user_id` INT NOT NULL,
-  `target_user_id` INT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `target_user_id` BIGINT NOT NULL,
   `target_type` TINYINT(1) NOT NULL,
   `target_id` INT NOT NULL,
   `reason` VARCHAR(255) NOT NULL,
@@ -520,8 +521,8 @@ CREATE TABLE IF NOT EXISTS `xn_report` (
 -- 预约表
 CREATE TABLE IF NOT EXISTS `xn_reserve` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `user_id` INT NOT NULL,
-  `target_user_id` INT NOT NULL,
+  `user_id` BIGINT NOT NULL,
+  `target_user_id` BIGINT NOT NULL,
   `game_id` INT NOT NULL,
   `reserve_date` DATE NOT NULL,
   `reserve_time` TIME NOT NULL,
@@ -542,7 +543,7 @@ CREATE TABLE IF NOT EXISTS `xn_reserve` (
 -- 预约时段表
 CREATE TABLE IF NOT EXISTS `xn_reserve_slot` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `user_id` INT NOT NULL,
+  `user_id` BIGINT NOT NULL,
   `game_id` INT NOT NULL,
   `reserve_date` DATE NOT NULL,
   `reserve_time` TIME NOT NULL,
@@ -611,7 +612,7 @@ CREATE TABLE IF NOT EXISTS `xn_call_record` (
 CREATE TABLE IF NOT EXISTS `xn_call_billing` (
   `id` INT NOT NULL AUTO_INCREMENT,
   `call_id` INT NOT NULL,
-  `user_id` INT NOT NULL,
+  `user_id` BIGINT NOT NULL,
   `companion_id` INT NOT NULL,
   `duration` INT NOT NULL,
   `unit_price` DECIMAL(10, 2) NOT NULL,
@@ -698,6 +699,7 @@ CREATE TABLE IF NOT EXISTS `xn_card` (
   `id` BIGINT NOT NULL AUTO_INCREMENT,
   `card_no` VARCHAR(50) NOT NULL,
   `card_password` VARCHAR(50) NOT NULL,
+  `card_key` VARCHAR(25) DEFAULT NULL COMMENT '25位充值密钥',
   `type` TINYINT(1) NOT NULL,
   `value` DECIMAL(10, 2) NOT NULL,
   `coin_amount` INT DEFAULT 0,
@@ -709,6 +711,7 @@ CREATE TABLE IF NOT EXISTS `xn_card` (
   `create_time` INT(10) DEFAULT 0,
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_card_no` (`card_no`),
+  UNIQUE KEY `uk_card_key` (`card_key`),
   KEY `idx_status` (`status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='卡密表';
 

@@ -30,7 +30,7 @@ services:
       - LOGS_PATH=/var/log/eudazi
       - DB_HOST=mysql
       - DB_PORT=3306
-      - MONGO_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-admin123}@mongo:27017/${MONGO_DATABASE:-eudazi}?authSource=admin
+      - MONGO_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD 必须在 .env 中设置}@mongo:27017/${MONGO_DATABASE:-eudazi}?authSource=admin
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     volumes:

@@ -7,7 +7,56 @@ const DEFAULT_TIMEOUT = 60000
 const getExt = (file) => {
   const name = file.name || ''
   const idx = name.lastIndexOf('.')
-  return idx >= 0 ? name.substring(idx) : ''
+  return idx >= 0 ? name.substring(idx).toLowerCase() : ''
+}
+
+// 客户端上传校验规则：与后端 multer/业务限制保持一致，提前拦截明显不合法的文件，
+// 避免浪费用户流量与带宽。type 为 image/audio/video（audio 含录音 blob）。
+const MB = 1024 * 1024
+const FILE_RULES = {
+  image: {
+    label: '图片',
+    maxSize: 10 * MB,
+    extensions: ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'],
+    mimePrefix: 'image/'
+  },
+  video: {
+    label: '视频',
+    maxSize: 100 * MB,
+    extensions: ['.mp4', '.mov', '.m4v', '.webm', '.avi', '.mkv'],
+    mimePrefix: 'video/'
+  },
+  audio: {
+    label: '音频',
+    maxSize: 10 * MB,
+    extensions: ['.mp3', '.wav', '.aac', '.m4a', '.ogg', '.webm'],
+    mimePrefix: 'audio/'
+  }
+}
+
+export const validateFile = (file, type = 'image') => {
+  const rule = FILE_RULES[type] || FILE_RULES.image
+
+  if (!file || typeof file.size !== 'number') {
+    throw new Error('文件无效，请重新选择')
+  }
+  if (file.size === 0) {
+    throw new Error('文件内容为空，请重新选择')
+  }
+  if (file.size > rule.maxSize) {
+    const current = (file.size / MB).toFixed(1)
+    throw new Error(`${rule.label}大小不能超过 ${Math.round(rule.maxSize / MB)}MB，当前 ${current}MB`)
+  }
+
+  // 录音场景（MediaRecorder 生成的 webm）可能没有扩展名，扩展名与 MIME 满足其一即可
+  const ext = getExt(file)
+  const mime = (file.type || '').toLowerCase()
+  const extOk = rule.extensions.includes(ext)
+  const mimeOk = mime.startsWith(rule.mimePrefix)
+  if (!extOk && !mimeOk) {
+    throw new Error(`${rule.label}格式不支持，仅支持 ${rule.extensions.join(' / ')}`)
+  }
+  return true
 }
 
 const getToken = async (type, ext) => {
@@ -147,6 +196,9 @@ export const uploadFile = async (file, type = 'image', onProgress = null) => {
   validateParams({ file }, {
     file: { required: true, label: '文件', type: 'object' }
   })
+
+  // 上传前做大小与类型校验，不符合规则时抛出明确错误
+  validateFile(file, type)
 
   // 优先前端直传 COS，失败时回退后端中转
   try {

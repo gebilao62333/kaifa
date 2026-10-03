@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useUserStore } from '@/store/user-info'
-import { DEFAULT_AVATAR } from '@/common/constants'
+import { DEFAULT_AVATAR, STORAGE_KEYS } from '@/common/constants'
 
 describe('User Store', () => {
   beforeEach(() => {
@@ -92,14 +92,25 @@ describe('User Store', () => {
     userStore.setUserInfo({
       userId: 1,
       nickName: 'Test',
-      avatar: 'test.jpg'
+      avatar: 'test.jpg',
+      phone: '13800000000',
+      balance: 999
     })
+    // 模拟持久化插件与历史遗留 key 中残留的敏感数据
+    localStorage.setItem('pinia-app-state-user', JSON.stringify({
+      profile: { phone: '13800000000', balance: 999 }
+    }))
+    localStorage.setItem(STORAGE_KEYS.LEGACY_USER_INFO, JSON.stringify({ balance: 999 }))
     
     userStore.logout()
     
     expect(userStore.token).toBe('')
     expect(userStore.userId).toBe(0)
     expect(userStore.nickName).toBe('')
+    // 登出必须清空 token / 持久化 state / 历史遗留 userInfo（F-02）
+    expect(localStorage.getItem(STORAGE_KEYS.TOKEN)).toBeNull()
+    expect(localStorage.getItem('pinia-app-state-user')).toBeNull()
+    expect(localStorage.getItem(STORAGE_KEYS.LEGACY_USER_INFO)).toBeNull()
   })
 
   it('should set balance correctly', () => {

@@ -7,10 +7,53 @@ dist/
 .DS_Store
 .vscode/
 nginx/ssl/
-# 本地口令重置脚本，不入库
+# 本地口令重置脚本，不入库（2026-10-03 sql 目录重整后迁入 archive/，两个路径都保留以防回退）
+backend/sql/archive/fix_passwords.sql
 backend/sql/fix_passwords.sql
+# 覆盖率产物
+coverage/
 # 测试/压测生成物（可随时重新生成，不入库）
 backend/tests/e2e/report.json
 backend/tests/e2e/report.md
 backend/tests/e2e/write-report.json
 backend/scripts/bench_results.jsonl
+
+# ===== 依赖与构建产物 =====
+node_modules/
+dist/
+build/
+coverage/
+.vite/
+
+# ===== 运行时产物 =====
+logs/
+backend/logs/
+backend/src/logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# ===== 本地存储的上传文件（保留目录占位） =====
+backend/public/uploads/**
+!backend/public/uploads/.gitkeep
+
+# ===== 测试/验收中间产物（脚本保留，日志与截图忽略） =====
+.e2e-run/node_modules/
+.e2e-run/*.log
+.e2e-run/shots/
+.e2e-run/*.json
+
+# ===== 证书与密钥 =====
+nginx/ssl/*.pem
+nginx/ssl/*.key
+backend/cert/
+
+# ===== 编辑器 =====
+.idea/
+.vscode/
+*.swp
+Thumbs.db
+Desktop.ini
+
+# E2E test artifacts
+.e2e-run/

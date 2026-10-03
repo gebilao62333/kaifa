@@ -88,6 +88,7 @@ const queryWxOrder = async (req, res) => {
       return response.badRequest(res, '订单号不能为空');
     }
     
+    if (!wechatPayService.isConfigured()) { return response.serviceUnavailable(res, '微信支付未配置'); }
     const result = await wechatPayService.queryOrder(orderNo);
     response.success(res, result);
   } catch (error) {
@@ -104,6 +105,7 @@ const closeWxOrder = async (req, res) => {
       return response.badRequest(res, '订单号不能为空');
     }
     
+    if (!wechatPayService.isConfigured()) { return response.serviceUnavailable(res, '微信支付未配置'); }
     const result = await wechatPayService.closeOrder(orderNo);
     response.success(res, result);
   } catch (error) {
@@ -112,12 +114,50 @@ const closeWxOrder = async (req, res) => {
   }
 };
 
+// 客户端支付回执：**必须先经服务端向支付平台反查确认，才能入账**。
+// 历史实现直接信任请求体里的 payNo/transactionId，任何人 POST 一次即可给自己充值。
+// 规则：
+//   1) 已配置微信支付参数 → 调 orderquery 反查，trade_state=SUCCESS 才入账；
+//   2) 未配置或反查失败 → 拒绝（403），不再静默入账；
+//   3) 仅本地联调可显式设置 ALLOW_UNVERIFIED_PAY_CALLBACK=true 放行，并会打印告警。
 const wxCallback = async (req, res) => {
   try {
     const { payNo, transactionId } = req.body;
     
     if (!payNo) {
       return response.badRequest(res, '订单号不能为空');
+    }
+
+    const config = require('../config');
+    // 审计 B-07：该开关此前在生产环境也生效，等于留了一条"关掉支付校验"的后门。
+    // 现在只允许在非 production 环境使用。
+    const allowUnverified = process.env.ALLOW_UNVERIFIED_PAY_CALLBACK === 'true'
+      && config.nodeEnv !== 'production';
+
+    if (allowUnverified) {
+      logger.warn('[pay] ⚠️ ALLOW_UNVERIFIED_PAY_CALLBACK=true —— 接受未经校验的支付回执（仅非生产环境生效）！');
+    } else {
+      if (process.env.ALLOW_UNVERIFIED_PAY_CALLBACK === 'true') {
+        logger.error('[pay] 生产环境检测到 ALLOW_UNVERIFIED_PAY_CALLBACK=true，已强制忽略该开关');
+      }
+      let verified = false;
+      let reason = '未配置微信支付参数';
+
+      if (config.wechat && config.wechat.appid) {
+        try {
+          const queried = await wechatPayService.queryOrder(payNo);
+          verified = !!queried && queried.status === 1;
+          reason = queried ? queried.tradeState : '订单查询无结果';
+        } catch (queryError) {
+          reason = queryError.message;
+          logger.error('[pay] 支付回执反查失败:', queryError.message);
+        }
+      }
+
+      if (!verified) {
+        logger.warn(`[pay] 拒绝未通过校验的支付回执 payNo=${payNo} reason=${reason}`);
+        return response.forbidden(res, '支付结果未经服务端校验，拒绝入账');
+      }
     }
     
     await payService.wxPayCallback(payNo, transactionId);
@@ -140,6 +180,7 @@ const getOrderStatus = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('查询订单状态错误:', error);
+    if (String(error.message) === '订单不存在') { return response.notFound(res, error.message); }
     response.error(res, error.message);
   }
 };
@@ -235,16 +276,22 @@ const getWalletBalance = async (req, res) => {
 
 const rechargeWallet = async (req, res) => {
   try {
-    const { amount, source = 'admin' } = req.body;
+    const { amount, userId } = req.body;
     
     if (!amount || amount <= 0) {
       return response.badRequest(res, '充值金额必须大于0');
     }
+
+    // 管理端接口：目标用户由管理员指定，source 固定为 admin（不接受客户端传入，避免伪造来源）
+    const targetUserId = userId ? parseInt(userId, 10) : req.userId;
+    if (!targetUserId) {
+      return response.badRequest(res, '目标用户不能为空');
+    }
     
     const result = await payService.rechargeWallet(
-      req.userId,
+      targetUserId,
       parseFloat(amount),
-      source
+      'admin'
     );
     response.success(res, result, '充值成功');
   } catch (error) {
@@ -289,25 +336,6 @@ const createPayment = async (req, res) => {
   }
 };
 
-const handlePaymentNotify = async (req, res) => {
-  try {
-    const { orderNo, transactionId, status } = req.body;
-    
-    if (!orderNo || !transactionId) {
-      return response.badRequest(res, '缺少必要参数');
-    }
-    
-    if (status === 'success') {
-      await payService.wxPayCallback(orderNo, transactionId);
-      response.success(res, {}, '支付成功');
-    } else {
-      response.badRequest(res, '支付失败');
-    }
-  } catch (error) {
-    logger.error('支付回调处理错误:', error);
-    response.error(res, error.message);
-  }
-};
 
 const redeemCardByKey = async (req, res) => {
   try {
@@ -346,6 +374,5 @@ module.exports = {
   getWalletBalance,
   rechargeWallet,
   getPaymentHistory,
-  createPayment,
-  handlePaymentNotify
+  createPayment
 };

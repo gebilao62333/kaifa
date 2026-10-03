@@ -231,6 +231,20 @@ export const isLoggedIn = () => {
   return !!localStorage.getItem(STORAGE_KEYS.TOKEN)
 }
 
+// 读取浏览器 Cookie（用于 CSRF 预留能力）
+export const getCookie = (name) => {
+  if (typeof document === 'undefined' || !document.cookie) return ''
+  const safeName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const match = document.cookie.match(new RegExp('(?:^|;\\s*)' + safeName + '=([^;]*)'))
+  return match ? decodeURIComponent(match[1]) : ''
+}
+
+// CSRF 预留（F-11）：后端 middlewares/security.js 已实现 csrfProtection，
+// 通过非 httpOnly 的 XSRF-TOKEN Cookie 下发 token，并校验 X-XSRF-TOKEN 请求头或 _csrf 参数。
+// 当前后端未挂载该中间件，这里只做“存在即附带”的预留，不发明新字段、不改变未启用时的行为。
+const CSRF_COOKIE_NAME = 'XSRF-TOKEN'
+const CSRF_HEADER_NAME = 'X-XSRF-TOKEN'
+
 // 强制以 UTF-8 解码响应体，防止后端 Content-Type 缺失 charset 导致中文乱码
 const readResponseText = async (response) => {
   const buf = await response.arrayBuffer()
@@ -270,6 +284,14 @@ const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout =
   const token = localStorage.getItem(STORAGE_KEYS.TOKEN)
   if (token) {
     requestOptions.headers['Authorization'] = `Bearer ${token}`
+  }
+
+  // CSRF 预留：写请求若浏览器已存在 XSRF-TOKEN Cookie，则自动附带对应请求头
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(requestOptions.method)) {
+    const csrfToken = getCookie(CSRF_COOKIE_NAME)
+    if (csrfToken) {
+      requestOptions.headers[CSRF_HEADER_NAME] = csrfToken
+    }
   }
 
   if (requestOptions.method === 'GET') {
@@ -362,7 +384,7 @@ const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout =
     }
     if (error.name === 'AbortError') {
       if (silentAbort) {
-        console.debug('请求已中止（可能是页面跳转导致）:', url)
+        if (import.meta.env.DEV) console.debug('请求已中止（可能是页面跳转导致）:', url)
         return null
       }
       throw new RequestError('请求超时，请检查网络连接', -1, 0)
@@ -371,6 +393,31 @@ const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout =
   }
 }
 
+// 进行中的写请求表：相同 method+url+body 的请求在完成前复用同一个 Promise，
+// 防止双击/重复点击导致的重复提交。GET/HEAD 属于正常并发场景，不去重。
+const inflightRequests = new Map()
+
+const buildRequestKey = (url, method, data) => `${method} ${url} ${JSON.stringify(data ?? {})}`
+
 // 对外导出：默认从 attempt=0 发起请求，401 时由内部 doRequest 自动重试一次（dev 模式）
-export const request = (url, method = 'GET', data = {}, headers = {}, timeout = DEFAULT_TIMEOUT, options = {}) =>
-  doRequest(url, method, data, headers, timeout, options, 0)
+export const request = (url, method = 'GET', data = {}, headers = {}, timeout = DEFAULT_TIMEOUT, options = {}) => {
+  const upperMethod = (method || 'GET').toUpperCase()
+
+  // 并发 GET 是正常场景，不去重
+  if (upperMethod === 'GET' || upperMethod === 'HEAD') {
+    return doRequest(url, method, data, headers, timeout, options, 0)
+  }
+
+  const key = buildRequestKey(url, upperMethod, data)
+  const existing = inflightRequests.get(key)
+  if (existing) return existing
+
+  const promise = doRequest(url, method, data, headers, timeout, options, 0).finally(() => {
+    // 仅当表中仍是本次请求时移除，避免误删期间新发起的同键请求
+    if (inflightRequests.get(key) === promise) {
+      inflightRequests.delete(key)
+    }
+  })
+  inflightRequests.set(key, promise)
+  return promise
+}

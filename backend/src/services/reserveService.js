@@ -3,6 +3,7 @@ const { getTimestamp, parseQuery } = require('../utils/helper');
 const { Op } = require('sequelize');
 const sequelize = require('../config/mysql');
 const { getCommissionRate } = require('./settingsService');
+const { moneyMinus } = require('../utils/sql');
 
 // 预约完成结算分成（陪玩师占比）默认值：系统设置 reserve_commission_rate 缺省时使用（全额给陪玩师）
 const RESERVE_COMMISSION_DEFAULT = 1;
@@ -110,7 +111,7 @@ const createReserve = async (userId, companionId, gameId, date, time, extra = {}
     // 收费预约：下单即原子扣款（仅当余额充足时）
     if (price > 0) {
       const [affected] = await User.update(
-        { money: sequelize.literal(`money - ${price}`) },
+        { money: moneyMinus('money', price) },
         { where: { id: userId, money: { [Op.gte]: price } }, transaction }
       );
       if (!affected) {
@@ -358,10 +359,19 @@ const getReserveList = async (userId, role, status, page, pageSize) => {
   };
 };
 
-const getReserveDetail = async (reserveId) => {
+// 审计 B-13：原实现不校验归属，任何登录用户都能按 reserveId 查看任意预约详情（IDOR）。
+const getReserveDetail = async (reserveId, requesterId) => {
   const reserve = await Reserve.findByPk(reserveId);
   if (!reserve) {
     throw new Error('预约不存在');
+  }
+
+  if (requesterId !== undefined && requesterId !== null) {
+    const isOwner = Number(reserve.user_id) === Number(requesterId);
+    const isCompanion = Number(reserve.target_user_id) === Number(requesterId);
+    if (!isOwner && !isCompanion) {
+      throw new Error('无权查看此预约');
+    }
   }
 
   const user = await User.findByPk(reserve.user_id);

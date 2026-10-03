@@ -5,10 +5,24 @@ import { genAvatar } from '../utils/placeholder'
 // 可兜底后端返回的真实头像 URL 失效、以及任何意外破图场景。
 export default {
   mounted(el, binding) {
-    el.addEventListener('error', () => {
+    // 只绑定一次，避免重复 mounted 时累积监听器（F-19）
+    if (el.__imgFallbackHandler) return
+
+    const handler = () => {
       if (el.dataset.fallbackApplied) return
       el.dataset.fallbackApplied = '1'
       el.src = genAvatar(binding.value || el.alt || 'user')
-    })
+    }
+
+    el.__imgFallbackHandler = handler
+    el.addEventListener('error', handler)
+  },
+
+  unmounted(el) {
+    // 卸载时移除 error 监听器，防止内存泄漏（F-19）
+    if (el.__imgFallbackHandler) {
+      el.removeEventListener('error', el.__imgFallbackHandler)
+      delete el.__imgFallbackHandler
+    }
   }
 }

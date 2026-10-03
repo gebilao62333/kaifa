@@ -1,9 +1,22 @@
+const crypto = require('crypto');
 const { getRedisClient } = require('../config/redis');
 const config = require('../config');
 const logger = require('../utils/logger');
 
+// 日志脱敏：138****8000
+const maskMobile = (mobile) => String(mobile || '').replace(/^(\d{3})\d+(\d{4})$/, '$1****$2');
+
 const SMS_COOLDOWN = 60;
 const SMS_EXPIRE = 300;
+
+// 短信模板号必须显式配置。历史实现在缺失时回落到 '123456' / '123457' 这类假模板号，
+// 结果是腾讯云返回"模板不存在"，排查困难。这里改为快速失败并给出可操作的提示。
+const requireSmsTemplate = (templateId, envKey, scene) => {
+  if (!templateId) {
+    throw new Error('短信服务未配置完整：缺少 ' + envKey + '（' + scene + '模板）');
+  }
+  return templateId;
+};
 
 // Redis 命令超时兜底：Redis 卡顿/断连时最多等待 2 秒，绝不挂死业务
 const withRedisTimeout = (promise, ms = 2000) =>
@@ -23,16 +36,23 @@ const sendSMS = async (mobile, templateId = 1) => {
     throw new Error('发送过于频繁，请稍后再试');
   }
   
-  const code = Math.random().toString().substr(2, 6);
+  // 验证码必须用密码学安全随机数：Math.random 可被预测/枚举
+  const code = String(crypto.randomInt(100000, 1000000));
   const codeKey = `sms:code:${mobile}`;
   
   await withRedisTimeout(redis.setEx(codeKey, SMS_EXPIRE, code));
   await withRedisTimeout(redis.setEx(cooldownKey, SMS_COOLDOWN, '1'));
   
-  logger.info(`[SMS] 验证码已发送至 ${mobile}: ${code}`);
+  // 验证码不得写入日志（日志会被采集/展示给运维）；非生产环境也只打印掩码
+  logger.info(`[SMS] 验证码已发送至 ${maskMobile(mobile)}`);
   
   if (config.nodeEnv === 'production' && config.sms.appId) {
     return await sendViaTencentCloud(mobile, code, templateId);
+  }
+  
+  if (config.nodeEnv === 'production') {
+    // 生产环境未配置短信通道时，绝不把验证码回传给调用方
+    throw new Error('短信服务未配置，请联系管理员');
   }
   
   return { success: true, code };
@@ -59,7 +79,7 @@ const sendViaTencentCloud = async (mobile, code, templateId) => {
     PhoneNumberSet: [`+86${mobile}`],
     SmsSdkAppId: config.sms.appId,
     SignName: config.sms.sign,
-    TemplateId: config.sms.templateId || '123456',
+    TemplateId: requireSmsTemplate(config.sms.templateId, 'SMS_TEMPLATE_ID', '验证码'),
     TemplateParamSet: [code, '5']
   };
   
@@ -135,7 +155,7 @@ const sendNotificationViaTencentCloud = async (mobile, message) => {
     PhoneNumberSet: [`+86${mobile}`],
     SmsSdkAppId: config.sms.appId,
     SignName: config.sms.sign,
-    TemplateId: config.sms.notifyTemplateId || '123457',
+    TemplateId: requireSmsTemplate(config.sms.notifyTemplateId, 'SMS_NOTIFY_TEMPLATE_ID', '通知'),
     TemplateParamSet: [message]
   };
   

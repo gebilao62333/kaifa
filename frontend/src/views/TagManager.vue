@@ -3,7 +3,6 @@
     <template #nav>
       <span class="back-btn" @click="goBack">←</span>
       <span class="nav-title">标签管理</span>
-      <span class="add-btn" @click="showAddDialog">+</span>
     </template>
 
     <div class="category-tabs">
@@ -24,10 +23,6 @@
           <span class="tag-category">{{ getCategoryName(tag.category) }}</span>
           <span class="tag-desc" v-if="tag.description">{{ tag.description }}</span>
         </div>
-        <div class="tag-actions">
-          <span class="action-btn edit" @click="editTag(tag)">编辑</span>
-          <span class="action-btn delete" @click="deleteTag(tag)">删除</span>
-        </div>
       </div>
 
       <div class="loading-state" v-if="loading">
@@ -37,47 +32,12 @@
       <div class="empty-state" v-if="!loading && filteredTags.length === 0">
         <div class="empty-icon">🏷️</div>
         <div class="empty-text">暂无标签</div>
-        <div class="empty-hint">点击右上角 + 创建标签</div>
+        <div class="empty-hint">标签库由平台统一维护</div>
       </div>
     </div>
 
     <div class="bottom-tip" v-if="!loading && filteredTags.length > 0">
-      共 {{ filteredTags.length }} 个标签
-    </div>
-
-    <div class="dialog-overlay" v-if="showDialog" @click="closeDialog">
-      <div class="dialog-content" @click.stop>
-        <div class="dialog-header">
-          <span>{{ isEditing ? '编辑标签' : '创建标签' }}</span>
-          <span class="close-btn" @click="closeDialog">×</span>
-        </div>
-        <div class="dialog-body">
-          <div class="form-item">
-            <label>标签名称</label>
-            <input v-model="formData.name" placeholder="请输入标签名称" />
-          </div>
-          <div class="form-item">
-            <label>分类</label>
-            <select v-model="formData.category">
-              <option value="">请选择分类</option>
-              <option value="personality">性格类</option>
-              <option value="expertise">专业领域类</option>
-              <option value="style">风格类</option>
-              <option value="scenario">场景类</option>
-            </select>
-          </div>
-          <div class="form-item">
-            <label>描述</label>
-            <textarea v-model="formData.description" placeholder="请输入标签描述" rows="3"></textarea>
-          </div>
-        </div>
-        <div class="dialog-footer">
-          <button class="btn cancel" @click="closeDialog">取消</button>
-          <button class="btn confirm" @click="submitForm" :disabled="!formData.name || !formData.category">
-            确定
-          </button>
-        </div>
-      </div>
+      共 {{ filteredTags.length }} 个标签 · 标签库由平台统一维护
     </div>
   </PageLayout>
 </template>
@@ -91,15 +51,7 @@ import PageLayout from '../components/PageLayout.vue'
 const router = useRouter()
 const activeTab = ref('all')
 const loading = ref(false)
-const showDialog = ref(false)
-const isEditing = ref(false)
 const allTags = ref([])
-const formData = ref({
-  id: null,
-  name: '',
-  category: '',
-  description: ''
-})
 
 const categoryTabs = [
   { key: 'all', label: '全部' },
@@ -146,53 +98,9 @@ const switchTab = (key) => {
   activeTab.value = key
 }
 
-const showAddDialog = () => {
-  isEditing.value = false
-  formData.value = { id: null, name: '', category: '', description: '' }
-  showDialog.value = true
-}
-
-const editTag = (tag) => {
-  isEditing.value = true
-  formData.value = { ...tag }
-  showDialog.value = true
-}
-
-const closeDialog = () => {
-  showDialog.value = false
-}
-
-const submitForm = async () => {
-  try {
-    if (isEditing.value) {
-      await tagService.updateTag(formData.value.id, {
-        name: formData.value.name,
-        category: formData.value.category,
-        description: formData.value.description
-      })
-    } else {
-      await tagService.createTag({
-        name: formData.value.name,
-        category: formData.value.category,
-        description: formData.value.description
-      })
-    }
-    closeDialog()
-    loadTags()
-  } catch (error) {
-    console.error('保存标签失败:', error)
-  }
-}
-
-const deleteTag = async (tag) => {
-  if (!confirm(`确定删除标签"${tag.name}"吗？`)) return
-  try {
-    await tagService.deleteTag(tag.id)
-    loadTags()
-  } catch (error) {
-    console.error('删除标签失败:', error)
-  }
-}
+// 说明：标签库是平台级全局资源，后端 /api/tag 的增删改仅对管理员开放
+// （backend/src/routes/tag.js 中 POST / PUT / DELETE 均挂 adminAuth）。
+// 用户端因此只提供只读浏览，避免普通用户点击后必然 403。
 
 const goBack = () => {
   router.back()

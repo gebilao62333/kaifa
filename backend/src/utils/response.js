@@ -91,6 +91,15 @@ const response = {
     });
   },
   
+  // 依赖/外部服务未配置 — 用 503 明确区分「未配置」与「服务器内部错误」
+  serviceUnavailable: (res, message = '依赖服务未配置') => {
+    setJsonUtf8(res);
+    return res.status(503).json({
+      code: 503,
+      message
+    });
+  },
+
   custom: (res, code, message = '', data = {}) => {
     setJsonUtf8(res);
     return res.status(code).json({

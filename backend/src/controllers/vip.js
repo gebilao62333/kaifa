@@ -62,10 +62,14 @@ const getVipOrderStatus = async (req, res) => {
       return response.badRequest(res, '订单号不能为空');
     }
     
-    const result = await vipService.getVipOrderStatus(orderNo);
+    const result = await vipService.getVipOrderStatus(orderNo, req.userId);
     response.success(res, result);
   } catch (error) {
     logger.error('查询VIP订单状态错误:', error);
+    if (String(error.message) === '订单不存在') { return response.notFound(res, error.message); }
+    if (String(error.message).startsWith('无权')) {
+      return response.forbidden(res, error.message);
+    }
     response.error(res, error.message);
   }
 };

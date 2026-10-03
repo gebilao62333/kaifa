@@ -28,11 +28,32 @@ const authMiddleware = async (req, res, next) => {
     
     const redis = getRedisClient();
     if (redis) {
-      // Redis 不可用时 2 秒兜底，绝不让认证流程被 Redis 卡死
-      const isBlacklisted = await Promise.race([
-        redis.get(`blacklist:${token}`),
-        new Promise((resolve) => setTimeout(() => resolve(null), 2000))
-      ]).catch(() => null);
+      // 审计 B-06：原实现把"Redis 超时/报错"和"未命中黑名单"都当成 null（fail-open），
+      // 于是 Redis 一挂，已登出的 token 全部复活。现在区分两种情况：
+      //   - 正常返回 null → 未拉黑，放行；
+      //   - 查询失败/超时 → 按 AUTH_BLACKLIST_FAIL_MODE 处理，生产默认 fail-closed（503）。
+      const failMode = process.env.AUTH_BLACKLIST_FAIL_MODE
+        || (config.nodeEnv === 'production' ? 'closed' : 'open');
+
+      let isBlacklisted = null;
+      let redisFailed = false;
+      try {
+        isBlacklisted = await Promise.race([
+          redis.get(`blacklist:${token}`),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Redis 黑名单查询超时')), 2000))
+        ]);
+      } catch (redisError) {
+        redisFailed = true;
+        logger.warn('[auth] 黑名单查询失败:', redisError.message);
+      }
+
+      if (redisFailed && failMode === 'closed') {
+        return res.status(503).json({
+          code: 503,
+          message: '认证服务暂时不可用，请稍后重试'
+        });
+      }
+
       if (isBlacklisted) {
         return res.status(401).json({
           code: 401,

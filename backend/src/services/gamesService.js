@@ -3,6 +3,7 @@ const { getTimestamp, generateOrderNo, parseQuery } = require('../utils/helper')
 const { Op } = require('sequelize');
 const sequelize = require('../config/mysql');
 const { getCommissionRate } = require('./settingsService');
+const { moneyMinus } = require('../utils/sql');
 
 // 订单分账比例（陪玩师分成）默认值：系统设置 order_commission_rate 缺省时使用
 const ORDER_COMMISSION_DEFAULT = 0.7;
@@ -121,7 +122,7 @@ const createOrder = async (userId, targetUserId, gameId, num = 1, price) => {
     
     // 原子扣款：仅当余额充足时才扣减，避免并发超扣
     const [affected] = await User.update(
-      { money: sequelize.literal(`money - ${totalPrice}`) },
+      { money: moneyMinus('money', totalPrice) },
       { where: { id: userId, money: { [Op.gte]: totalPrice } }, transaction }
     );
     if (!affected) {
@@ -354,14 +355,21 @@ const cancelOrder = async (userId, orderId, role) => {
   }
   
   // 取消订单时退回已扣款项
+  // 审计 B-02：状态校验原本在事务外，两个并发取消请求会各自通过校验并各退一次款。
+  // 改为事务内**条件更新**：只有仍处于 0/1（可取消）状态时更新才成功，成功者才退款。
   const transaction = await User.sequelize.transaction();
   
   try {
-    await order.update({
-      status: 4,
-      end_time: getTimestamp()
-    }, { transaction });
-    
+    const [affected] = await GameOrder.update(
+      { status: 4, end_time: getTimestamp() },
+      { where: { id: order.id, status: { [Op.in]: [0, 1] } }, transaction }
+    );
+
+    if (!affected) {
+      await transaction.rollback();
+      throw new Error('订单无法取消');
+    }
+
     await User.increment('money', {
       by: Number(order.total_price) || 0,
       where: { id: order.user_id },
@@ -630,10 +638,19 @@ const evaluateOrder = async (userId, orderId, rating, comment) => {
   };
 };
 
-const getOrderDetail = async (orderId) => {
+// 审计 B-11：原实现不校验归属，任何登录用户都能按 orderId 查看任意订单详情（IDOR）。
+const getOrderDetail = async (orderId, requesterId) => {
   const order = await GameOrder.findByPk(orderId);
   if (!order) {
     throw new Error('订单不存在');
+  }
+
+  if (requesterId !== undefined && requesterId !== null) {
+    const isBuyer = Number(order.user_id) === Number(requesterId);
+    const isCompanion = Number(order.target_user_id) === Number(requesterId);
+    if (!isBuyer && !isCompanion) {
+      throw new Error('无权查看此订单');
+    }
   }
 
   const user = await User.findByPk(order.user_id);

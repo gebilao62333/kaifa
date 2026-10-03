@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '../store/user-info'
-import { PUBLIC_ROUTE_NAMES, PUBLIC_ROUTE_PATHS, STORAGE_KEYS } from '../common/constants'
+import { PUBLIC_ROUTE_NAMES, isPublicPath, STORAGE_KEYS } from '../common/constants'
 
 const lazyLoad = (view) => {
   return () => import(`../views/${view}.vue`)
@@ -52,13 +52,17 @@ const routes = [
   {
     path: '/companion-apply',
     name: 'CompanionApply',
-    component: lazyLoad('CompanionApply')
+    component: lazyLoad('CompanionApply'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/companion-list',
     name: 'CompanionList',
     component: lazyLoad('CompanionList'),
-    meta: { title: '陪玩列表' }
+    meta: {
+      requiresAuth: true,
+      title: '陪玩列表'
+    }
   },
   {
     path: '/post-detail/:id',
@@ -68,220 +72,305 @@ const routes = [
   {
     path: '/publish-post',
     name: 'PublishPost',
-    component: lazyLoad('PublishPost')
+    component: lazyLoad('PublishPost'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/publish-demand',
     name: 'PublishDemand',
     component: lazyLoad('PublishDemand'),
-    meta: { title: '发布需求' }
+    meta: {
+      requiresAuth: true,
+      title: '发布需求'
+    }
   },
   {
     path: '/chat-room/:id',
     name: 'ChatRoom',
     component: lazyLoad('ChatRoom'),
-    meta: { fullscreen: true }
+    meta: {
+      requiresAuth: true,
+      fullscreen: true
+    }
   },
   {
     path: '/recharge',
     name: 'Recharge',
-    component: lazyLoad('Recharge')
+    component: lazyLoad('Recharge'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/vip-center',
     name: 'VipCenter',
-    component: lazyLoad('VipCenter')
+    component: lazyLoad('VipCenter'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/game-index',
     name: 'GameIndex',
-    component: lazyLoad('GameIndex')
+    component: lazyLoad('GameIndex'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/paidan',
     name: 'Paidan',
-    component: lazyLoad('Paidan')
+    component: lazyLoad('Paidan'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/my-services',
     name: 'MyServices',
-    component: lazyLoad('MyServices')
+    component: lazyLoad('MyServices'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/wallet',
     name: 'Wallet',
-    component: lazyLoad('Wallet')
+    component: lazyLoad('Wallet'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/card-recharge',
     name: 'CardRecharge',
     component: lazyLoad('CardRecharge'),
-    meta: { title: '卡密充值' }
+    meta: {
+      requiresAuth: true,
+      title: '卡密充值'
+    }
   },
   {
     path: '/my-order',
     name: 'MyOrder',
-    component: lazyLoad('MyOrder')
+    component: lazyLoad('MyOrder'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/my-dynamic',
     name: 'MyDynamic',
-    component: lazyLoad('MyDynamic')
+    component: lazyLoad('MyDynamic'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/income-records',
     name: 'IncomeRecords',
-    component: lazyLoad('IncomeRecords')
+    component: lazyLoad('IncomeRecords'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/expense-records',
     name: 'ExpenseRecords',
-    component: lazyLoad('ExpenseRecords')
+    component: lazyLoad('ExpenseRecords'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/withdraw-records',
     name: 'WithdrawRecords',
-    component: lazyLoad('WithdrawRecords')
+    component: lazyLoad('WithdrawRecords'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/withdraw',
     name: 'Withdraw',
-    component: lazyLoad('Withdraw')
+    component: lazyLoad('Withdraw'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/payment-gateway',
     name: 'PaymentGateway',
-    component: lazyLoad('PaymentGateway')
+    component: lazyLoad('PaymentGateway'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/likes-records',
     name: 'LikesRecords',
-    component: lazyLoad('LikesRecords')
+    component: lazyLoad('LikesRecords'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/visitors-records',
     name: 'VisitedRecords',
-    component: lazyLoad('VisitedRecords')
+    component: lazyLoad('VisitedRecords'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/edit-profile',
     name: 'EditProfile',
     component: lazyLoad('EditProfile'),
-    meta: { title: '编辑资料' }
+    meta: {
+      requiresAuth: true,
+      title: '编辑资料'
+    }
   },
   {
     path: '/settings',
     name: 'Settings',
     component: lazyLoad('Settings'),
-    meta: { title: '设置' }
+    meta: {
+      requiresAuth: true,
+      title: '设置'
+    }
   },
   {
     path: '/my-album',
     name: 'MyAlbum',
     component: lazyLoad('MyAlbum'),
-    meta: { title: '我的相册' }
+    meta: {
+      requiresAuth: true,
+      title: '我的相册'
+    }
   },
   {
     path: '/my-reserve',
     name: 'MyReserve',
     component: lazyLoad('MyReserve'),
-    meta: { title: '我的预约' }
+    meta: {
+      requiresAuth: true,
+      title: '我的预约'
+    }
   },
   {
     path: '/my-reports',
     name: 'MyReports',
     component: lazyLoad('MyReports'),
-    meta: { title: '我的举报' }
+    meta: {
+      requiresAuth: true,
+      title: '我的举报'
+    }
   },
   {
     path: '/real-name',
     name: 'RealName',
     component: lazyLoad('RealName'),
-    meta: { title: '实名认证' }
+    meta: {
+      requiresAuth: true,
+      title: '实名认证'
+    }
   },
   {
     path: '/feedback',
     name: 'Feedback',
     component: lazyLoad('Feedback'),
-    meta: { title: '意见反馈' }
+    meta: {
+      requiresAuth: true,
+      title: '意见反馈'
+    }
   },
   {
     path: '/about-us',
     name: 'AboutUs',
     component: lazyLoad('AboutUs'),
-    meta: { title: '关于我们' }
+    meta: {
+      requiresAuth: true,
+      title: '关于我们'
+    }
   },
   {
     path: '/follows',
     name: 'Follows',
     component: lazyLoad('Follows'),
-    meta: { title: '我的关注' }
+    meta: {
+      requiresAuth: true,
+      title: '我的关注'
+    }
   },
   {
     path: '/fans',
     name: 'Fans',
     component: lazyLoad('Fans'),
-    meta: { title: '我的粉丝' }
+    meta: {
+      requiresAuth: true,
+      title: '我的粉丝'
+    }
   },
   {
     path: '/user/:id',
     name: 'UserProfile',
     component: lazyLoad('UserProfile'),
-    meta: { title: '用户资料' }
+    meta: {
+      requiresAuth: true,
+      title: '用户资料'
+    }
   },
   {
     path: '/call/:id/video',
     name: 'VideoCall',
     component: lazyLoad('VideoCall'),
-    meta: { title: '视频通话', fullscreen: true }
+    meta: {
+      requiresAuth: true,
+      title: '视频通话', fullscreen: true
+    }
   },
   {
     path: '/call/:id/audio',
     name: 'AudioCall',
     component: lazyLoad('AudioCall'),
-    meta: { title: '语音通话', fullscreen: true }
+    meta: {
+      requiresAuth: true,
+      title: '语音通话', fullscreen: true
+    }
   },
   {
     path: '/customer-service',
     name: 'CustomerService',
     component: lazyLoad('CustomerService'),
-    meta: { title: '在线客服', fullscreen: true }
+    meta: {
+      requiresAuth: true,
+      title: '在线客服', fullscreen: true
+    }
   },
   {
     path: '/level-acceleration',
     name: 'LevelAcceleration',
     component: lazyLoad('LevelAcceleration'),
-    meta: { title: '等级加速' }
+    meta: {
+      requiresAuth: true,
+      title: '等级加速'
+    }
   },
   {
     path: '/identity-badge',
     name: 'IdentityBadge',
     component: lazyLoad('IdentityBadge'),
-    meta: { title: '身份标识' }
+    meta: {
+      requiresAuth: true,
+      title: '身份标识'
+    }
   },
   {
     path: '/avatar-frame',
     name: 'AvatarFrame',
     component: lazyLoad('AvatarFrame'),
-    meta: { title: '专属头像框' }
+    meta: {
+      requiresAuth: true,
+      title: '专属头像框'
+    }
   },
   {
     path: '/stealth-visit',
     name: 'StealthVisit',
     component: lazyLoad('StealthVisit'),
-    meta: { title: '隐身访问' }
+    meta: {
+      requiresAuth: true,
+      title: '隐身访问'
+    }
   },
   {
     path: '/priority-matching',
     name: 'PriorityMatching',
     component: lazyLoad('PriorityMatching'),
-    meta: { title: '优先匹配' }
+    meta: {
+      requiresAuth: true,
+      title: '优先匹配'
+    }
   },
   {
     path: '/skin-shop',
     name: 'SkinShop',
     component: lazyLoad('SkinShop'),
-    meta: { title: '装扮商城' }
+    meta: {
+      requiresAuth: true,
+      title: '装扮商城'
+    }
   },
   {
     path: '/ai-chat',
@@ -300,6 +389,13 @@ const routes = [
     name: 'TagManager',
     component: lazyLoad('TagManager'),
     meta: { title: '标签管理', requiresAuth: true }
+  },
+  {
+    // 404 兜底：已登录/未登录都渲染 404 页，避免白屏（F-04）
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: lazyLoad('NotFound'),
+    meta: { title: '页面不存在' }
   }
 ]
 
@@ -316,22 +412,27 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const userStore = useUserStore()
-  
-  // 公开路由：白名单中的路由名或路径前缀
-  const isPublicRoute = PUBLIC_ROUTE_NAMES.includes(to.name) || 
-    PUBLIC_ROUTE_PATHS.some(p => to.path === p || to.path.startsWith(p + '/'))
-  
-  // 显式标记需要鉴权的路由（即使不在白名单中也会被拦截）
+
+  // 显式声明需要登录的路由：meta.requiresAuth === true（F-09）
   const requiresAuth = to.meta?.requiresAuth === true
-  
+
+  // 公开白名单仅作防御性兜底；匹配使用边界精确规则，避免 '/loginXXX' 被误判为公开路径（F-20）
+  const isPublicRoute = PUBLIC_ROUTE_NAMES.includes(to.name) || isPublicPath(to.path)
+
+  if (import.meta.env.DEV && requiresAuth && isPublicRoute) {
+    console.warn(`[router] 路由 "${String(to.name)}" 同时命中公开白名单，请确认 requiresAuth 是否正确`)
+  }
+
+  const needsAuth = requiresAuth || !isPublicRoute
+
   // 获取有效 token
   const rawToken = localStorage.getItem(STORAGE_KEYS.TOKEN)
   const storeToken = userStore.token
   const validToken = rawToken && rawToken !== 'undefined' && rawToken !== 'null' ? rawToken : storeToken
   const isLoggedIn = !!validToken
 
-  // 需要鉴权：显式 requiresAuth 或不处于公开路由白名单
-  if ((requiresAuth || !isPublicRoute) && !isLoggedIn) {
+  // 需要鉴权：显式 requiresAuth 或未被公开白名单覆盖
+  if (needsAuth && !isLoggedIn) {
     next({ name: 'Login', query: { redirect: to.fullPath } })
   } else {
     next()

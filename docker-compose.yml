@@ -60,15 +60,15 @@ services:
       # 数据库连接使用 Docker 内部服务名
       - DB_HOST=mysql
       - DB_PORT=3306
-      - MONGO_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:-admin123}@mongo:27017/${MONGO_DATABASE:-eudazi}?authSource=admin
+      - MONGO_URI=mongodb://${MONGO_ROOT_USER:-admin}:${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD 必须在 .env 中设置}@mongo:27017/${MONGO_DATABASE:-eudazi}?authSource=admin
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       # 连接凭据兜底：与下方 mysql/mongo/redis 服务默认值对齐；
       # 当根 .env 缺失对应键时，使用与对应数据库服务一致的默认值，避免连不上。
       - DB_NAME=${MYSQL_DATABASE:-eudazi}
       - DB_USER=${MYSQL_USER:-eudazi}
-      - DB_PASSWORD=${MYSQL_PASSWORD:-eudazi123}
-      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis123}
+      - DB_PASSWORD=${MYSQL_PASSWORD:?MYSQL_PASSWORD 必须在 .env 中设置}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:?REDIS_PASSWORD 必须在 .env 中设置}
     volumes:
       # 日志持久化
       - eudazi_logs:/var/log/eudazi
@@ -107,10 +107,10 @@ services:
     container_name: eudazi-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD 必须在 .env 中设置}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-eudazi}
       MYSQL_USER: ${MYSQL_USER:-eudazi}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-eudazi123}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?MYSQL_PASSWORD 必须在 .env 中设置}
       TZ: Asia/Shanghai
     command:
       - --character-set-server=utf8mb4
@@ -135,7 +135,7 @@ services:
         reservations:
           memory: 256M
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD:-root123456}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -155,7 +155,9 @@ services:
     restart: unless-stopped
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-admin123}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD 必须在 .env 中设置}
+      MONGO_APP_USER: ${MONGO_APP_USER:-eudazi}
+      MONGO_APP_PASSWORD: ${MONGO_APP_PASSWORD:?MONGO_APP_PASSWORD 必须在 .env 中设置}
       MONGO_INITDB_DATABASE: ${MONGO_DATABASE:-eudazi}
       TZ: Asia/Shanghai
     command:
@@ -195,7 +197,7 @@ services:
     command:
       - redis-server
       - --appendonly yes
-      - --requirepass ${REDIS_PASSWORD:-redis123}
+      - --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD 必须在 .env 中设置}
       - --maxmemory 128mb
       - --maxmemory-policy allkeys-lru
       - --save 900 1
@@ -213,7 +215,7 @@ services:
         reservations:
           memory: 96M
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-redis123}", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -242,6 +244,27 @@ services:
       - ./nginx/ssl:/etc/letsencrypt
       - ./nginx/certbot/www:/var/www/certbot
     entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $$!; done;'"
+
+  # TURN 中继：自建 WebRTC 在对称 NAT / 严格防火墙下无法打洞时必须依赖它（约 10-20% 用户）。
+  # 启用：docker compose --profile turn up -d；需放行 3478/udp+tcp 与 49160-49200/udp，
+  # 并把服务器公网 IP 填入 TURN_EXTERNAL_IP（否则中继地址不可达）。
+  # 鉴权采用 REST API 模式（--use-auth-secret）：凭据由后端按用户临时签发
+  # （见 backend/src/services/callConfigService.js），前端不持有长期共享密钥，
+  # 因此 TURN_SECRET 必须与 backend/.env 中的 TURN_SECRET 完全一致。
+  coturn:
+    image: coturn/coturn:latest
+    container_name: eudazi-coturn
+    restart: unless-stopped
+    network_mode: host
+    profiles: ["turn"]
+    command: >
+      -n --log-file=stdout --fingerprint --lt-cred-mech
+      --realm=${TURN_REALM:-eudazi}
+      --use-auth-secret
+      --static-auth-secret=${TURN_SECRET:-change-me-in-env}
+      --external-ip=${TURN_EXTERNAL_IP:-}
+      --min-port=49160 --max-port=49200
+      --no-cli --no-tls --no-dtls
 
 # ============================================
 # 数据卷

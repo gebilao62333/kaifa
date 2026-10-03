@@ -7,7 +7,9 @@ let cosClient = null;
 const initCosClient = () => {
   if (cosClient) return cosClient;
 
-  if (!config.storage.cos.secretId || !config.storage.cos.secretKey) {
+  // 四项齐全才算可用：仅配密钥而漏配 Bucket/Region 时不签发 URL，避免返回坏链
+  const cos = config.storage.cos || {};
+  if (!cos.secretId || !cos.secretKey || !cos.bucket || !cos.region) {
     return null;
   }
 

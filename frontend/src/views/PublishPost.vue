@@ -176,7 +176,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
@@ -265,9 +265,21 @@ const handleFileChange = (event) => {
 }
 
 const removeMedia = (index) => {
-  URL.revokeObjectURL(mediaItems.value[index].url)
+  const item = mediaItems.value[index]
+  if (item?.url) URL.revokeObjectURL(item.url)
   mediaItems.value.splice(index, 1)
 }
+
+// 释放所有本地预览 Object URL（F-14）
+const revokeAllMedia = () => {
+  mediaItems.value.forEach((item) => {
+    if (item?.url) URL.revokeObjectURL(item.url)
+  })
+}
+
+onBeforeUnmount(() => {
+  revokeAllMedia()
+})
 
 const selectLocation = (loc) => {
   location.value = loc
@@ -388,6 +400,8 @@ const publish = async () => {
 
     await circleService.createPost(postData)
     toast.success('发布成功')
+    // 发布成功后释放本地预览 URL 再离场（F-14）
+    revokeAllMedia()
     router.back()
   } catch (error) {
     console.error('发布动态错误:', error)

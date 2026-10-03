@@ -2,6 +2,7 @@ const { CallRecord, CallBilling, User } = require('../models');
 const { getTimestamp, generateCallNo, parseQuery } = require('../utils/helper');
 const sequelize = require('../config/mysql');
 const { Op } = require('sequelize');
+const { moneyMinus } = require('../utils/sql');
 
 const startCall = async (callerId, calleeId, callType, isCompanionCall = false, orderId = 0) => {
   const caller = await User.findByPk(callerId);
@@ -50,7 +51,8 @@ const cancelCall = async (callerId, callId) => {
   
   await call.update({
     status: 3,
-    end_time: getTimestamp()
+    end_time: getTimestamp(),
+    end_reason: 'caller_cancel'
   });
   
   return true;
@@ -73,7 +75,8 @@ const rejectCall = async (calleeId, callId) => {
   
   await call.update({
     status: 2,
-    end_time: getTimestamp()
+    end_time: getTimestamp(),
+    end_reason: 'callee_reject'
   });
   
   return true;
@@ -89,6 +92,12 @@ const endCall = async (userId, callId) => {
   if (call.caller_id !== userId && call.callee_id !== userId) {
     throw new Error('无权操作此通话');
   }
+
+  // 呼叫中直接挂断（对方还没接）：记为「无应答」，避免留下永远停在「呼叫中」的残留单
+  if (call.status === 0) {
+    await call.update({ status: 5, end_time: getTimestamp(), end_reason: 'unanswered_hangup' });
+    return { duration: 0 };
+  }
   
   if (call.status !== 1) {
     throw new Error('通话状态不正确');
@@ -100,7 +109,8 @@ const endCall = async (userId, callId) => {
   await call.update({
     status: 4,
     end_time: now,
-    duration
+    duration,
+    end_reason: 'normal'
   });
   
   if (call.is_companion_call === 1 && duration > 0) {
@@ -156,7 +166,7 @@ const createBilling = async (call, duration) => {
   try {
     // 原子扣款：仅当余额充足时才扣减，避免并发超扣
     const [affected] = await User.update(
-      { money: sequelize.literal(`money - ${totalFee}`) },
+      { money: moneyMinus('money', totalFee) },
       { where: { id: call.caller_id, money: { [Op.gte]: totalFee } }, transaction }
     );
     if (!affected) {

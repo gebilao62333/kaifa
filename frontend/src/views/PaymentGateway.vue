@@ -285,7 +285,16 @@ const startPay = async () => {
       //    支付成功后由渠道服务端回调 /api/pay/wx-callback 入账。
       //    当前演示环境模拟支付成功并调用回调接口完成真实入账。
       const transactionId = `TXN${Date.now()}`
-      await payService.wxCallback(orderNo, transactionId)
+      try {
+        await payService.wxCallback(orderNo, transactionId)
+      } catch (cbError) {
+        // 服务端的安全策略：未经服务端校验的支付回执一律拒绝入账（403）。
+        // 未配置微信支付参数（WECHAT_APPID/MCHID/API_KEY）时必然走到这里，
+        // 此时属「环境未配置」而非用户操作问题，需给出可理解的提示而不是笼统的“网络错误”。
+        console.warn('支付回调未通过校验:', cbError)
+        toast.error('支付未完成入账：服务端未通过该支付回执的校验。请确认已完成真实支付，或联系管理员检查支付渠道配置。')
+        return
+      }
 
       // 轮询支付单状态，确认渠道入账（最多 10s）
       await pollOrderPaid(orderNo)

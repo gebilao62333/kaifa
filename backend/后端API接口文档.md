@@ -321,11 +321,16 @@
 
 ### 4.5 提现管理（管理端）
 
-| 接口 | 方法 | 说明 |
-|------|------|------|
-| `/api/gift/admin/withdraw/list` | GET | 提现列表 |
-| `/api/gift/admin/withdraw/approve` | POST | 审核通过 |
-| `/api/gift/admin/withdraw/reject` | POST | 审核驳回 |
+> 2026-10-03 变更：原来的 `/api/gift/admin/withdraw/*` 三个端点已**删除**——它们只挂了普通用户 JWT 鉴权，
+> 任意登录用户即可审核提现（越权）。提现审核统一走管理端接口，见本文档「22.4 提现管理 `/api/admin/withdraws`」，
+> 鉴权口径为 `adminAuth` + `withdraw:read` / `withdraw:write` 权限。
+
+| 接口 | 方法 | 权限 | 说明 |
+|------|------|------|------|
+| `/api/admin/withdraws` | GET | withdraw:read | 提现列表 |
+| `/api/admin/withdraws/:id` | GET | withdraw:read | 提现详情 |
+| `/api/admin/withdraws/:id/approve` | POST | withdraw:write | 审核通过 |
+| `/api/admin/withdraws/:id/reject` | POST | withdraw:write | 审核驳回 |
 
 ### 4.6 红包系统
 
@@ -381,13 +386,17 @@
 | `/api/pay/validate-card` | POST | 不需要 | 验证卡券 |
 | `/api/pay/use-card` | POST | 需要 | 使用卡券 |
 | `/api/pay/redeem-key` | POST | 需要 | 卡密兑换（按密钥兑换余额/VIP） |
-| `/api/pay/wx-callback` | POST | 不需要 | 微信支付回调(新版) |
-| `/api/pay/recharge/list` | GET | 不需要 | 充值记录列表 |
+| `/api/pay/wx-callback` | POST | 不需要 | 客户端支付回执（2026-10-03 起必须经服务端反查订单确认后才入账，否则 403） |
+| `/api/pay/recharge/list` | GET | 管理员 | 充值记录列表（2026-10-03 起改为 `adminAuth`，原先无鉴权可遍历全站订单） |
 | `/api/pay/wallet/balance` | GET | 需要 | 获取钱包余额 |
-| `/api/pay/wallet/recharge` | POST | 需要 | 钱包充值 |
+| `/api/pay/wallet/recharge` | POST | 管理员 | 钱包充值（2026-10-03 起限 `adminAuth` + `recharge:write`；此前任何登录用户可无限自助加余额） |
+| `/api/games/order/detail` | GET | 本人/接单方 | 订单详情（2026-10-03 起校验归属，此前任意用户可按 ID 查看任何订单） |
+| `/api/vip/order-status` | GET | 本人 | VIP 订单状态（2026-10-03 起校验归属） |
+| `/api/reserve/detail` | GET | 本人/接单方 | 预约详情（2026-10-03 起校验归属） |
+| `/api/demand/detail` | GET | 公开 | 需求详情；`offlineLocation` 仅发布者可见（2026-10-03） |
 | `/api/pay/payment/history` | GET | 需要 | 支付历史记录 |
 | `/api/pay/pay/create` | POST | 需要 | 创建支付订单 |
-| `/api/pay/pay/notify` | POST | 不需要 | 支付回调通知 |
+| ~~`/api/pay/pay/notify`~~ | — | — | **已删除（2026-10-03）**：无签名校验，可伪造支付成功；官方回调见 `/api/pay/wx-notify` |
 
 ---
 
@@ -815,7 +824,7 @@
 | 接口 | 方法 | 认证 | 说明 |
 |------|------|------|------|
 | `/api/banner/list` | GET | 不需要 | Banner 列表（启用中的，分页） |
-| `/api/banner/all` | GET | 不需要 | 全部 Banner（含禁用，供管理端使用） |
+| `/api/banner/all` | GET | 管理员 | 全部 Banner（含禁用，2026-10-03 起限 `adminAuth` + `splash:read`） |
 
 ### 16.7 开屏弹窗模块 (`/api/splash`)
 

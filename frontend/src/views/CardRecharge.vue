@@ -61,7 +61,7 @@
       <div class="result-content">
         <div class="result-icon">{{ resultSuccess ? '✅' : '❌' }}</div>
         <h3>{{ resultSuccess ? '充值成功' : '充值失败' }}</h3>
-        <p v-if="resultSuccess">已到账 <strong>{{ resultAmount }}</strong> 元余额</p>
+        <p v-if="resultSuccess">已到账 <strong>{{ resultAmount }}</strong> 金币</p>
         <p v-else>{{ resultMsg }}</p>
         <button class="result-btn" @click="closeResult">确定</button>
       </div>

@@ -1,5 +1,6 @@
 const swaggerJsdoc = require('swagger-jsdoc');
 const path = require('path');
+const config = require('./index');
 
 const options = {
   definition: {
@@ -13,13 +14,15 @@ const options = {
         email: 'dev@eudazi.com'
       }
     },
+    // 审计 L3：服务器地址不再硬编码，当前环境取 SERVER_URL（config.baseUrl），
+    // 生产文档地址可用 SWAGGER_PROD_URL 覆盖。
     servers: [
       {
-        url: 'http://localhost:3000',
-        description: '开发环境'
+        url: config.baseUrl,
+        description: '当前环境'
       },
       {
-        url: 'https://api.eudazi.com',
+        url: process.env.SWAGGER_PROD_URL || 'https://api.eudazi.com',
         description: '生产环境'
       }
     ],

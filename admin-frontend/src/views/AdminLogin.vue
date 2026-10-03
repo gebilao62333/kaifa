@@ -61,7 +61,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { host } from '@/common/config';
+import adminService from '../services/adminService';
 import { getFirstAccessiblePath } from '@/router';
 
 const router = useRouter();
@@ -85,27 +85,16 @@ const handleLogin = async () => {
   error.value = '';
   
   try {
-    const response = await fetch(`/api/admin/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(form)
-    });
-    
-    const data = await response.json();
-    
-    if (data.code === 200) {
-      localStorage.setItem('admin_token', data.data?.token || '');
-      localStorage.setItem('admin_refresh_token', data.data?.refreshToken || '');
-      localStorage.setItem('admin_user', JSON.stringify(data.data?.user || {}));
-      router.push(getFirstAccessiblePath());
-    } else {
-      error.value = data.message || '登录失败';
-    }
+    const data = await adminService.login(form.username, form.password);
+
+    localStorage.setItem('admin_token', data.data?.token || '');
+    localStorage.setItem('admin_refresh_token', data.data?.refreshToken || '');
+    localStorage.setItem('admin_user', JSON.stringify(data.data?.user || {}));
+    router.push(getFirstAccessiblePath());
   } catch (err) {
     console.warn('登录异常:', err);
-    error.value = '网络错误，请稍后重试';
+    // request() 保证 code 成功才会走到这里；失败时展示后端返回的 message
+    error.value = err?.message || '网络错误，请稍后重试';
   } finally {
     loading.value = false;
   }

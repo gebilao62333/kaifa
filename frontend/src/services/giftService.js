@@ -13,8 +13,8 @@ export const giftService = {
     return request('/api/gift/bag', 'GET')
   },
 
-  async sendRedPacket(amount, count = 1, type = 0) {
-    return request('/api/gift/redpacket/send', 'POST', { totalAmount: amount, totalNum: count, type })
+  async sendRedPacket(amount, count = 1, type = 0, receiverId = 0, message = '') {
+    return request('/api/gift/redpacket/send', 'POST', { totalAmount: amount, totalNum: count, type, receiverId, message })
   },
 
   async receiveRedPacket(packetId) {

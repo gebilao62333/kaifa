@@ -145,7 +145,7 @@ export const useChatStore = defineStore('chat', {
     setupSocketListeners() {
       // 事件名与后端对齐：后端 socket 发送的是 private_message / fromId（见 backend/src/socket/index.js）
       socketService.on('private_message', (data) => {
-        console.log('[Chat] 收到私聊消息:', data)
+        if (import.meta.env.DEV) console.log('[Chat] 收到私聊消息:', data)
         const fromId = data?.fromId ?? data?.fromUserId
         if (fromId == null) return
 
@@ -172,7 +172,7 @@ export const useChatStore = defineStore('chat', {
       })
 
       socketService.on('message:read', (data) => {
-        console.log('[Chat] 消息已读:', data)
+        if (import.meta.env.DEV) console.log('[Chat] 消息已读:', data)
         this.messageList.forEach(msg => {
           if (msg.toUserId === data.fromUserId) {
             msg.status = 'read'
@@ -180,8 +180,8 @@ export const useChatStore = defineStore('chat', {
         })
       })
 
-      socketService.on('message:revoked', (data) => {
-        console.log('[Chat] 消息已撤回:', data)
+      socketService.on('message_revoked', (data) => {
+        if (import.meta.env.DEV) console.log('[Chat] 消息已撤回:', data)
         const message = this.messageList.find(m => m.messageId === data.messageId)
         if (message) {
           message.content = '[消息已撤回]'

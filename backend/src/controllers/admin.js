@@ -1,13 +1,27 @@
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const { User, GameOrder, Withdraw, GiftLog, Post, VipPackage, RechargePackage, Banner, SplashScreen, CompanionProfile, Game, OrderChong, Report, Admin, AdminRole } = require('../models');
 const { signToken } = require('../config/jwt');
+const config = require('../config');
 const response = require('../utils/response');
 const { resolvePermissions } = require('../utils/permissions');
 const { Op, fn, col, literal } = require('sequelize');
 const logger = require('../utils/logger');
 
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'admin123';
+// 环境变量应急管理员账号：**不设任何默认口令**，必须同时满足
+//   1) ADMIN_EMERGENCY_LOGIN=true
+//   2) ADMIN_USERNAME / ADMIN_PASSWORD 均已显式配置
+// 才会在数据库账号校验不通过时生效，用于首次部署时引导出第一个管理员。
+// 历史版本曾默认 admin/admin123，构成任意人可登录的超级管理员后门，已移除。
+const ADMIN_USERNAME = process.env.ADMIN_USERNAME || '';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
+
+// 定长摘要后比较，避免长度差异导致 timingSafeEqual 抛错，同时避免时序侧信道
+const safeEqual = (a, b) => {
+  const ha = crypto.createHash('sha256').update(String(a ?? '')).digest();
+  const hb = crypto.createHash('sha256').update(String(b ?? '')).digest();
+  return crypto.timingSafeEqual(ha, hb);
+};
 
 // 数据库错误统一响应：不再静默降级，显式报错
 function dbErrorResponse(res, operation, dbError) {
@@ -20,7 +34,7 @@ const adminLogin = async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      return response.error(res, '用户名和密码不能为空');
+      return response.badRequest(res, '用户名和密码不能为空');
     }
 
     // 优先走数据库账号校验（支持角色权限体系）
@@ -94,31 +108,39 @@ const adminLogin = async (req, res) => {
       logger.warn('[adminLogin] 数据库账号校验不可用，回退环境变量:', dbError.message);
     }
 
-    // 环境变量回退（兼容历史账号 / 数据库不可用紧急通道）
-    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-      const token = signToken({
+    // 环境变量应急通道：必须显式开启 ADMIN_EMERGENCY_LOGIN=true 且配置了账号密码，
+    // 用于首次部署引导出第一个管理员；未开启时一律返回 401，杜绝默认口令后门。
+    if (
+      !config.admin.emergencyLogin ||
+      !ADMIN_USERNAME ||
+      !ADMIN_PASSWORD ||
+      !safeEqual(username, ADMIN_USERNAME) ||
+      !safeEqual(password, ADMIN_PASSWORD)
+    ) {
+      return response.unauthorized(res, '用户名或密码错误');
+    }
+
+    logger.warn('[adminLogin] ⚠️ 使用环境变量应急登录 —— 请尽快在后台创建正式管理员并关闭 ADMIN_EMERGENCY_LOGIN');
+    const token = signToken({
+      id: 0,
+      username: ADMIN_USERNAME,
+      role: 'admin',
+      role_id: 0,
+      roleId: 0,
+      permissions: ['all']
+    }, '7d');
+
+    return response.success(res, {
+      token,
+      user: {
         id: 0,
         username: ADMIN_USERNAME,
         role: 'admin',
         role_id: 0,
-        roleId: 0,
-        permissions: ['all']
-      }, '7d');
-
-      return response.success(res, {
-        token,
-        user: {
-          id: 0,
-          username: ADMIN_USERNAME,
-          role: 'admin',
-          role_id: 0,
-          permissions: ['all'],
-          avatar: ''
-        }
-      }, '登录成功');
-    }
-
-    return response.unauthorized(res, '用户名或密码错误');
+        permissions: ['all'],
+        avatar: ''
+      }
+    }, '登录成功');
   } catch (error) {
     logger.error('管理员登录错误:', error);
     response.error(res, error.message);
@@ -626,8 +648,10 @@ const approveWithdraw = async (req, res) => {
       return response.badRequest(res, '该提现记录状态不允许操作');
     }
     
+    // is_check=1 供后台列表显示，status=1 供钱包/账务统计口径使用（二者必须同步）
     await withdraw.update({
       is_check: 1,
+      status: 1,
       state: 'approved',
       handle_time: Math.floor(Date.now() / 1000),
       update_time: Math.floor(Date.now() / 1000)
@@ -653,13 +677,37 @@ const rejectWithdraw = async (req, res) => {
       return response.badRequest(res, '该提现记录状态不允许操作');
     }
     
-    await withdraw.update({
-      is_check: 2,
-      state: 'rejected',
-      remark: reason || withdraw.remark,
-      handle_time: Math.floor(Date.now() / 1000),
-      update_time: Math.floor(Date.now() / 1000)
-    });
+    // 拒绝必须同时满足三件事：
+    //   1) status=2 —— walletService.sumWalletWithdraw 按 status!==2 统计已申请提现，不同步会永久冻结用户资产；
+    //   2) gift 渠道要原路退回申请时冻结的 gift_money（wallet 渠道是派生余额，无需退回）；
+    //   3) 整体放在事务里，避免"标记已拒绝但没退钱"。
+    const sequelize = require('../config/mysql');
+    const transaction = await sequelize.transaction();
+
+    try {
+      await withdraw.update({
+        is_check: 2,
+        status: 2,
+        state: 'rejected',
+        remark: reason || withdraw.remark,
+        handle_time: Math.floor(Date.now() / 1000),
+        update_time: Math.floor(Date.now() / 1000)
+      }, { transaction });
+
+      const refundAmount = Number(withdraw.money) || Number(withdraw.amount) || 0;
+      if (withdraw.channel === 'gift') {
+        await User.increment('gift_money', { by: refundAmount, where: { id: withdraw.user_id }, transaction });
+      } else if (withdraw.channel === 'admin') {
+        // 管理端建单时扣的是通用余额 money，拒绝时原路退回
+        await User.increment('money', { by: refundAmount, where: { id: withdraw.user_id }, transaction });
+      }
+
+      await transaction.commit();
+    } catch (e) {
+      await transaction.rollback();
+      throw e;
+    }
+
     response.success(res, { auditStatus: 2 }, '已拒绝');
   } catch (error) {
     logger.error('拒绝提现错误:', error);
@@ -712,24 +760,55 @@ const createWithdraw = async (req, res) => {
   try {
     const { userId, amount, type, account } = req.body;
     const moneyVal = parseFloat(amount) || 0;
-    
-    const newWithdraw = await Withdraw.create({
-      user_id: userId,
-      money: moneyVal,
-      amount: moneyVal,
-      pay_money: moneyVal,
-      type: 1,
-      account: account || '',
-      bank: '',
-      name: '',
-      mobile: '',
-      image: '',
-      is_check: 0,
-      status: 0,
-      state: 'pending',
-      create_time: Math.floor(Date.now() / 1000),
-      update_time: Math.floor(Date.now() / 1000)
-    });
+
+    if (!userId || !(moneyVal > 0)) {
+      return response.badRequest(res, '用户与提现金额不能为空');
+    }
+
+    // 审计 B-08：管理员建单原本只写记录不扣款，用户可白拿一笔提现。
+    // 改为事务内条件扣减 money（余额不足则拒绝），channel 记为 admin 以便拒绝时原路退回。
+    const sequelize = require('../config/mysql');
+    const transaction = await sequelize.transaction();
+    let newWithdraw;
+    try {
+      const { affectedCount } = require('../utils/sql');
+      const decreaseResult = await User.decrement('money', {
+        by: moneyVal,
+        where: { id: userId, money: { [Op.gte]: moneyVal } },
+        transaction
+      });
+      // 注意：decrement 在 MySQL 下返回 [[null, N]]，不能用真值判断（[null,0] 也是真值）。
+      if (affectedCount(decreaseResult) !== 1) {
+        await transaction.rollback();
+        return response.unprocessableEntity(res, '该用户余额不足');
+      }
+
+      newWithdraw = await Withdraw.create({
+        user_id: userId,
+        money: moneyVal,
+        amount: moneyVal,
+        pay_money: moneyVal,
+        type: 1,
+        account: account || '',
+        bank: '',
+        name: '',
+        mobile: '',
+        image: '',
+        is_check: 0,
+        status: 0,
+        state: 'pending',
+        channel: 'admin',
+        create_time: Math.floor(Date.now() / 1000),
+        update_time: Math.floor(Date.now() / 1000)
+      }, { transaction });
+
+      await transaction.commit();
+    } catch (txError) {
+      if (!transaction.finished) {
+        try { await transaction.rollback(); } catch (rollbackError) { /* 已回滚 */ }
+      }
+      throw txError;
+    }
     
     response.success(res, {
       withdrawId: newWithdraw.id,
@@ -1906,13 +1985,28 @@ const getSystemSettings = async (req, res) => {
       response.success(res, { ...defaults, ...dbSettings });
     } catch (dbErr) {
       logger.error('[DB_CRITICAL] 数据库读取设置失败，使用默认值:', dbErr.message);
-      response.success(res, { ...defaults, _dbFallback: true, _dbErrorMessage: dbErr.message });
+      // 审计 B-20：不再把数据库错误信息回传给客户端
+      response.success(res, { ...defaults, _dbFallback: true });
     }
   } catch (error) {
     logger.error('获取系统设置错误:', error);
     response.error(res, error.message);
   }
 };
+
+// 审计 B-09：写入键必须收敛在白名单内，否则可注入任意配置键操控业务逻辑
+// （例如覆盖 order_commission_rate 影响分账）。白名单来自 getSystemSettings 的 defaults
+// 以及服务层实际读取的键。
+const ALLOWED_SETTING_KEYS = new Set([
+  'siteName', 'siteDescription', 'siteKeywords', 'siteLogo', 'siteFavicon',
+  'recordNumber', 'contactEmail', 'contactPhone', 'userDefaultAvatar',
+  'userInitBalance', 'userInitScore', 'withdrawMinAmount', 'withdrawFeeRate',
+  'withdrawAutoApprove', 'registerEnabled', 'registerNeedPhone', 'registerNeedRealName',
+  'reviewContentEnabled', 'giftEnabled', 'voiceChatEnabled', 'videoChatEnabled',
+  'shareEnabled', 'shareRewardEnabled', 'shareRewardAmount',
+  // 服务层读取的键
+  'order_commission_rate', 'download_config'
+]);
 
 const updateSystemSettings = async (req, res) => {
   try {
@@ -1923,7 +2017,12 @@ const updateSystemSettings = async (req, res) => {
       'reviewContentEnabled', 'giftEnabled', 'voiceChatEnabled', 'videoChatEnabled',
       'shareEnabled', 'shareRewardEnabled', 'withdrawAutoApprove'];
 
+    const rejected = [];
     for (const [key, value] of Object.entries(settings)) {
+      if (!ALLOWED_SETTING_KEYS.has(key)) {
+        rejected.push(key);
+        continue;
+      }
       let val = String(value);
       if (booleanKeys.includes(key)) {
         val = value === true || value === 'true' ? 'true' : 'false';
@@ -1931,7 +2030,13 @@ const updateSystemSettings = async (req, res) => {
       await SystemSettings.upsert({ key, value: val, group: 'system' });
     }
 
-    response.success(res, settings, '系统设置保存成功');
+    if (rejected.length) {
+      logger.warn('[settings] 忽略未授权的配置键:', rejected.join(', '));
+    }
+
+    response.success(res, settings, rejected.length
+      ? '系统设置保存成功（已忽略未授权键: ' + rejected.join(', ') + '）'
+      : '系统设置保存成功');
   } catch (error) {
     logger.error('更新系统设置错误:', error);
     response.error(res, error.message);
@@ -2400,7 +2505,7 @@ const getCardList = async (req, res) => {
         id: c.id,
         cardNo: c.card_no,
         cardPwd: c.card_password,
-        cardKey: (c.card_no || '') + (c.card_password || ''),
+        cardKey: c.card_key || '',
         faceValue: parseFloat(c.value) || 0,
         coinAmount: parseInt(c.coin_amount) || 0,
         type: c.type || 1,
@@ -2422,7 +2527,7 @@ const getCardList = async (req, res) => {
 const createCard = async (req, res) => {
   try {
     const { faceValue, coinAmount, count = 1, adminId = 0, adminName = '' } = req.body;
-    if (!faceValue || faceValue <= 0) return response.error(res, '请输入有效面值');
+    if (!faceValue || faceValue <= 0) return response.badRequest(res, '请输入有效面值');
     const genCount = Math.min(parseInt(count) || 1, 100);
 
     const generateCardNo = () => {
@@ -2448,9 +2553,17 @@ const createCard = async (req, res) => {
     for (let i = 0; i < genCount; i++) {
       const cardNo = generateCardNo();
       const cardPwd = generateCardPwd();
+      // 25 位密钥必须全局唯一；冲突则重新生成
+      let cardKey = generateCardKey();
+      for (let retry = 0; retry < 5; retry++) {
+        const dup = await Card.findOne({ where: { card_key: cardKey } });
+        if (!dup) break;
+        cardKey = generateCardKey();
+      }
       const card = await Card.create({
         card_no: cardNo,
         card_password: cardPwd,
+        card_key: cardKey,
         value: parseFloat(faceValue),
         coin_amount: parseInt(coinAmount) || 0,
         type: 1,
@@ -2461,11 +2574,11 @@ const createCard = async (req, res) => {
       });
       createdCards.push({
         id: card.id,
-        cardKey: cardNo + cardPwd,
+        cardKey,
         cardNo: card.card_no,
         cardPwd: card.card_password,
         faceValue: parseFloat(card.value) || parseFloat(faceValue),
-        coinAmount: parseInt(coinAmount) || 0
+        coinAmount: parseInt(card.coin_amount) || 0
       });
     }
 

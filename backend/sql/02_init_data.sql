@@ -6,7 +6,8 @@
 INSERT INTO `xn_admin_role` (`id`, `name`, `description`, `permissions`, `status`, `is_super`, `sort`, `create_time`) VALUES
 (1, '超级管理员', '拥有所有权限', '["all"]', 1, 1, 1, UNIX_TIMESTAMP());
 
--- 管理员 (密码: admin123)
+-- 管理员（⚠️ 下面的 password 是占位哈希，无法用于登录；请通过 ADMIN_EMERGENCY_LOGIN 引导登录后
+-- 在后台创建正式管理员并填入真实 bcrypt 哈希，详见 README「安全说明」）
 INSERT INTO `xn_admin` (`id`, `username`, `password`, `nickname`, `role_id`, `status`, `create_time`) VALUES
 (1, 'admin', '$2a$10$YourPasswordHash', '系统管理员', 1, 1, UNIX_TIMESTAMP());
 

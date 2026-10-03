@@ -2,12 +2,13 @@ import { request } from '../common/common'
 import { validateParams } from '../common/common'
 
 const adminService = {
+  // 登录失败（401）不做强制跳转，直接把后端错误信息抛给登录页展示
   async login(username, password) {
     validateParams({ username, password }, {
       username: { required: true, label: '用户名', type: 'string' },
       password: { required: true, label: '密码', type: 'string' }
     })
-    return request('/api/admin/login', 'POST', { username, password })
+    return request('/api/admin/login', 'POST', { username, password }, {}, undefined, { skipAuthRedirect: true })
   },
 
   async getStatistics() {

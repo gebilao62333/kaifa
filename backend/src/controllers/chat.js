@@ -50,6 +50,27 @@ const sendMessage = async (req, res) => {
       mediaUrl,
       duration ? parseInt(duration) : undefined
     );
+
+    // 实时下发给接收方：此前文字消息只走 HTTP 落库，接收方必须刷新会话才看得到
+    try {
+      const { sendToUser } = require('../socket');
+      sendToUser(parseInt(targetUserId), 'private_message', {
+          id: result.messageId,
+          fromId: req.userId,
+          toId: parseInt(targetUserId),
+          fromName: (req.user && req.user.nickname) || '',
+          fromAvatar: (req.user && req.user.avatar) || '',
+          content,
+          type: parseInt(type) || 0,
+          mediaUrl: mediaUrl || '',
+          duration: duration ? parseInt(duration) : 0,
+          sendTime: result.sendTime,
+          isRevoked: false
+      });
+    } catch (e) {
+      logger.error('私聊消息实时推送失败:', e.message);
+    }
+
     response.success(res, result, '发送成功');
   } catch (error) {
     logger.error('发送消息错误:', error);

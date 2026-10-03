@@ -15,6 +15,12 @@ const Card = sequelize.define('xn_card', {
     type: DataTypes.STRING(50),
     allowNull: false
   },
+  // 25 位充值密钥 —— 卡密充值（无需卡号密码）使用，必须全局唯一
+  card_key: {
+    type: DataTypes.STRING(25),
+    allowNull: true,
+    comment: '25位充值密钥'
+  },
   type: {
     type: DataTypes.TINYINT(1),
     allowNull: false
@@ -60,6 +66,7 @@ const Card = sequelize.define('xn_card', {
   timestamps: false,
   indexes: [
     { fields: ['card_no'] },
+    { fields: ['card_key'] },
     { fields: ['status'] }
   ]
 });

@@ -1,9 +1,11 @@
+const crypto = require('crypto');
 const { User, Gift, GiftLog, GiftBag, RedPacket, RedPacketLog, Withdraw } = require('../models');
 const { getTimestamp, generatePacketNo } = require('../utils/helper');
 const { CURRENCY_UNIT, WITHDRAW_FEE_RATE, calculateWithdrawFee } = require('../utils/currency');
 const { toFullUrl } = require('../utils/url');
 const { Op } = require('sequelize');
 const sequelize = require('../config/mysql');
+const { moneyMinus, affectedCount } = require('../utils/sql');
 
 const sendGift = async (senderId, receiverId, giftId, roomId = 0, count = 1) => {
   const gift = await Gift.findByPk(giftId);
@@ -27,7 +29,7 @@ const sendGift = async (senderId, receiverId, giftId, roomId = 0, count = 1) => 
   try {
     // 原子扣款：仅当余额充足时才扣减，避免并发超扣
     const [affected] = await User.update(
-      { money: sequelize.literal(`money - ${totalCost}`) },
+      { money: moneyMinus('money', totalCost) },
       { where: { id: senderId, money: { [Op.gte]: totalCost } }, transaction }
     );
     if (!affected) {
@@ -157,6 +159,21 @@ const withdraw = async (userId, goldCoins, type, bankInfo) => {
   const transaction = await sequelize.transaction();
 
   try {
+    // 申请即冻结：在同一事务内**条件扣减** gift_money（where 带余额判断，防并发超额提现）。
+    // 历史 bug：这里只校验不扣款，用户可对同一笔余额反复发起提现。
+    // 审核拒绝时由 controllers/admin.js rejectWithdraw 原路退回。
+    const decreaseResult = await User.decrement('gift_money', {
+      by: amount,
+      where: { id: userId, gift_money: { [Op.gte]: amount } },
+      transaction
+    });
+
+    if (affectedCount(decreaseResult) !== 1) {
+      // 不在此处回滚：统一交给下方 catch 处理，避免二次 rollback 抛
+      // "Transaction cannot be rolled back because it has been finished" 覆盖真实业务错误。
+      throw new Error('可提现余额不足');
+    }
+
     await Withdraw.create({
       user_id: userId,
       money: amount,
@@ -188,115 +205,13 @@ const withdraw = async (userId, goldCoins, type, bankInfo) => {
       currencyUnit: CURRENCY_UNIT
     };
   } catch (error) {
-    await transaction.rollback();
+    if (!transaction.finished) {
+      try { await transaction.rollback(); } catch (rollbackError) { /* 已回滚，忽略 */ }
+    }
     throw error;
   }
 };
 
-const getWithdrawList = async (filters = {}) => {
-  const where = {};
-
-  if (filters.isCheck !== undefined) {
-    where.is_check = filters.isCheck;
-  }
-
-  const page = filters.page || 1;
-  const pageSize = filters.pageSize || 20;
-  const offset = (page - 1) * pageSize;
-
-  const { rows, count } = await Withdraw.findAndCountAll({
-    where,
-    include: [{
-      model: User,
-      as: 'user',
-      attributes: ['id', 'nickname', 'avatar', 'mobile']
-    }],
-    order: [['create_time', 'DESC']],
-    limit: pageSize,
-    offset: offset
-  });
-
-  return {
-    list: rows.map(item => ({
-      id: item.id,
-      userId: item.user_id,
-      userNickname: item.user?.nickname || '',
-      userAvatar: item.user?.avatar || '',
-      userMobile: item.user?.mobile || '',
-      money: Number(item.money),
-      payMoney: Number(item.pay_money),
-      type: item.type,
-      bank: item.bank,
-      name: item.name,
-      mobile: item.mobile,
-      image: item.image,
-      isCheck: item.is_check,
-      state: item.state,
-      wxTiId: item.wx_ti_id,
-      createTime: item.create_time
-    })),
-    total: count,
-    page,
-    pageSize
-  };
-};
-
-const approveWithdraw = async (withdrawId, adminId, transferBatchNo) => {
-  const withdraw = await Withdraw.findByPk(withdrawId);
-
-  if (!withdraw) {
-    throw new Error('提现记录不存在');
-  }
-
-  if (withdraw.is_check !== 0) {
-    throw new Error('该提现记录已审核过');
-  }
-
-  const transaction = await sequelize.transaction();
-
-  try {
-    await User.decrement('gift_money', {
-      by: Number(withdraw.money),
-      where: { id: withdraw.user_id },
-      transaction
-    });
-
-    await withdraw.update({
-      is_check: 1,
-      state: 'approved',
-      wx_ti_id: transferBatchNo || `WX${Date.now()}`,
-      lailu: 'admin',
-      create_time: withdraw.create_time
-    }, { transaction });
-
-    await transaction.commit();
-
-    return { success: true, message: '提现审核通过' };
-  } catch (error) {
-    await transaction.rollback();
-    throw error;
-  }
-};
-
-const rejectWithdraw = async (withdrawId, adminId, reason) => {
-  const withdraw = await Withdraw.findByPk(withdrawId);
-
-  if (!withdraw) {
-    throw new Error('提现记录不存在');
-  }
-
-  if (withdraw.is_check !== 0) {
-    throw new Error('该提现记录已审核过');
-  }
-
-  await withdraw.update({
-    is_check: 2,
-    state: 'rejected',
-    lailu: 'admin'
-  });
-
-  return { success: true, message: '提现申请已拒绝' };
-};
 
 const sendRedPacket = async (senderId, type, totalAmount, totalNum, roomId = 0) => {
   if (totalAmount < 1) {
@@ -325,7 +240,7 @@ const sendRedPacket = async (senderId, type, totalAmount, totalNum, roomId = 0) 
   try {
     // 原子扣款：仅当余额充足时才扣减，避免并发超扣
     const [affected] = await User.update(
-      { money: sequelize.literal(`money - ${totalAmount}`) },
+      { money: moneyMinus('money', totalAmount) },
       { where: { id: senderId, money: { [Op.gte]: totalAmount } }, transaction }
     );
     if (!affected) {
@@ -393,7 +308,9 @@ const receiveRedPacket = async (userId, packetNo) => {
   let amount;
   
   if (packet.type === 1) {
-    amount = Math.random() * Number(packet.remain_amount);
+    // 拼手气红包必须用密码学安全随机数：Math.random 可被预测，会被用来挑时间点抢大包
+    const remainCents = Math.max(1, Math.floor(Number(packet.remain_amount) * 100));
+    amount = crypto.randomInt(1, remainCents + 1) / 100;
     amount = Math.floor(amount * 100) / 100;
     if (amount < 0.01) amount = 0.01;
   } else {
@@ -404,10 +321,32 @@ const receiveRedPacket = async (userId, packetNo) => {
   const transaction = await sequelize.transaction();
   
   try {
+    // 审计 B-01：重复领取检查与名额扣减都必须在事务内完成。
+    // 原实现把 findOne 放在事务外，并发请求可同时通过检查 → 同一红包被重复领取。
+    // 名额用**条件更新**原子占用（remain_num > 0 才会成功），越领在数据库层被拦下。
+    const claimed = await RedPacketLog.findOne({
+      where: { packet_id: packet.id, user_id: userId },
+      transaction
+    });
+    if (claimed) {
+      throw new Error('已领取过该红包');
+    }
+
+    const [reserved] = await RedPacket.update(
+      {
+        remain_num: sequelize.literal('remain_num - 1'),
+        remain_amount: sequelize.literal('GREATEST(remain_amount - ' + String(amount) + ', 0)')
+      },
+      { where: { id: packet.id, remain_num: { [Op.gt]: 0 } }, transaction }
+    );
+    if (!reserved) {
+      throw new Error('红包已被抢完');
+    }
+
     await RedPacketLog.create({
       packet_id: packet.id,
       user_id: userId,
-      user_nickname: (await User.findByPk(userId))?.nickname || '',
+      user_nickname: (await User.findByPk(userId, { transaction }))?.nickname || '',
       amount,
       create_time: getTimestamp()
     }, { transaction });
@@ -418,24 +357,21 @@ const receiveRedPacket = async (userId, packetNo) => {
       transaction
     });
     
-    if (packet.remain_num <= 1) {
-      await packet.update({
-        remain_num: 0,
-        remain_amount: 0,
-        status: 1
-      }, { transaction });
-    } else {
-      await packet.update({
-        remain_num: packet.remain_num - 1,
-        remain_amount: Number(packet.remain_amount) - amount
-      }, { transaction });
-    }
+    // 名额领完则关闭红包（条件更新，避免覆盖其它并发请求的结果）
+    await RedPacket.update(
+      { remain_num: 0, remain_amount: 0, status: 1 },
+      { where: { id: packet.id, remain_num: { [Op.lte]: 0 } }, transaction }
+    );
     
     await transaction.commit();
     
     return { amount };
   } catch (error) {
     await transaction.rollback();
+    // 唯一索引冲突（(packet_id,user_id)）说明并发生效，统一转为业务错误
+    if (/duplicate|ER_DUP_ENTRY/i.test(error.message || '')) {
+      throw new Error('已领取过该红包');
+    }
     throw error;
   }
 };
@@ -496,9 +432,6 @@ module.exports = {
   getGiftList,
   getGiftBag,
   withdraw,
-  getWithdrawList,
-  approveWithdraw,
-  rejectWithdraw,
   sendRedPacket,
   receiveRedPacket,
   getRedPacketHistory

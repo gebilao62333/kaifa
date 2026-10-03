@@ -234,7 +234,11 @@ const closeOrder = async (orderNo) => {
   }
 };
 
+// 三项必备参数齐全才算「已配置」
+const isConfigured = () => !!(config.appid && config.mchid && config.apiKey);
+
 module.exports = {
+  isConfigured,
   createUnifiedOrder,
   getJsApiSign,
   handleNotify,

@@ -129,8 +129,8 @@ const readResponseText = async (response) => {
   return decoder.decode(buf)
 }
 
-export const request = async (url, method = 'GET', data = {}, headers = {}, timeout = DEFAULT_TIMEOUT, options = {}) => {
-  const { silentAbort = true } = options
+const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout = DEFAULT_TIMEOUT, options = {}) => {
+  const { silentAbort = true, skipAuthRedirect = false } = options
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeout)
@@ -164,6 +164,19 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
     clearTimeout(timeoutId)
 
     if (response.status === 401 || response.status === 403) {
+      // 登录接口等场景：只透传后端错误信息，不做强制跳转（避免刚输错密码就整页刷新）
+      if (skipAuthRedirect) {
+        let message = '登录失败，请检查用户名和密码'
+        try {
+          const text = await readResponseText(response)
+          if (text) {
+            const result = JSON.parse(text)
+            if (result.message) message = result.message
+          }
+        } catch (e) { /* 使用默认消息 */ }
+        throw new RequestError(message, -1, response.status)
+      }
+
       if (!isRedirecting) {
         isRedirecting = true
         localStorage.removeItem('admin_token')
@@ -229,4 +242,32 @@ export const request = async (url, method = 'GET', data = {}, headers = {}, time
     }
     throw new RequestError('网络连接失败，请检查网络', -1, 0)
   }
+}
+
+// 进行中的写请求表：相同 method+url+body 的请求在完成前复用同一个 Promise，
+// 防止双击/重复点击导致的重复提交。GET/HEAD 属于正常并发场景，不去重。
+const inflightRequests = new Map()
+
+const buildRequestKey = (url, method, data) => `${method} ${url} ${JSON.stringify(data ?? {})}`
+
+export const request = (url, method = 'GET', data = {}, headers = {}, timeout = DEFAULT_TIMEOUT, options = {}) => {
+  const upperMethod = (method || 'GET').toUpperCase()
+
+  // 并发 GET 是正常场景，不去重
+  if (upperMethod === 'GET' || upperMethod === 'HEAD') {
+    return doRequest(url, method, data, headers, timeout, options)
+  }
+
+  const key = buildRequestKey(url, upperMethod, data)
+  const existing = inflightRequests.get(key)
+  if (existing) return existing
+
+  const promise = doRequest(url, method, data, headers, timeout, options).finally(() => {
+    // 仅当表中仍是本次请求时移除，避免误删期间新发起的同键请求
+    if (inflightRequests.get(key) === promise) {
+      inflightRequests.delete(key)
+    }
+  })
+  inflightRequests.set(key, promise)
+  return promise
 }

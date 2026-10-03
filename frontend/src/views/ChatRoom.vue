@@ -361,6 +361,7 @@ import socketService from '../services/socketService';
 import authService from '../services/authService';
 import GiftList from '../components/gift-list/gift-list.vue';
 import RedPacketPanel from '../components/RedPacketPanel.vue';
+import { upgradeViaP2P } from '../services/p2pFetchService';
 import ReportModal from '../components/report-modal/report-modal.vue';
 import { toast } from '../composables/useToast';
 import { DEFAULT_AVATAR, STORAGE_KEYS } from '../common/constants';
@@ -602,17 +603,20 @@ const sendText = async () => {
  text.value = '';
  scrollToBottom();
  try {
- await chatService.sendMessage(userInfo.value.userId, newMessage.content, 0);
+ const sent = await chatService.sendMessage(userInfo.value.userId, newMessage.content, 0);
  const index = messages.value.findIndex(m => m.id === msgId);
  if (index > -1) {
  messages.value[index].status = 'sent';
+ // 回填服务端真实消息 ID：本地用的 Date.now() 假 ID 无法用于撤回等按 ID 的操作
+ if (sent && sent.data && sent.data.messageId) messages.value[index].id = sent.data.messageId;
  }
+ const serverId = sent && sent.data ? sent.data.messageId : null;
  setTimeout(() => {
- const idx = messages.value.findIndex(m => m.id === msgId);
+ const idx = messages.value.findIndex(m => m.id === msgId || (serverId && m.id === serverId));
  if (idx > -1) {
- messages.value[idx].status = 'read';
- scheduleAutoRecall(msgId, privacySettings.value.autoRecall);
- scheduleAutoDestroy(msgId);
+ // 不再本地伪造「已读」，改由对方的 message:read 回执驱动
+ scheduleAutoRecall(messages.value[idx].id, privacySettings.value.autoRecall);
+ scheduleAutoDestroy(messages.value[idx].id);
  }
  }, 1000);
  }
@@ -738,6 +742,7 @@ const selectImage = () => {
     if (file) {
       // 本地预览用临时对象URL，避免把整图读入内存
       const imageUrl = URL.createObjectURL(file);
+      objectUrls.add(imageUrl);
       const msgId = Date.now();
       const newMessage = {
         id: msgId,
@@ -756,6 +761,8 @@ const selectImage = () => {
         const result = await uploadFile(file, 'image');
         const realUrl = result.data.url;
         newMessage.content = realUrl;
+        // 上传成功，预览用的本地临时 URL 不再需要
+        revokeObjectUrl(imageUrl);
         await chatService.sendMessage(userInfo.value.userId, realUrl, 2, realUrl);
         const index = messages.value.findIndex(m => m.id === msgId);
         if (index > -1) {
@@ -767,6 +774,8 @@ const selectImage = () => {
         if (index > -1) {
           messages.value[index].status = 'failed';
         }
+        // 上传失败也要释放本地预览 URL，避免泄漏
+        revokeObjectUrl(imageUrl);
       }
     }
  };
@@ -782,6 +791,7 @@ const selectVideo = () => {
     const file = e.target.files[0];
     if (file) {
       const videoUrl = URL.createObjectURL(file);
+      objectUrls.add(videoUrl);
       const msgId = Date.now();
       const newMessage = {
         id: msgId,
@@ -803,6 +813,8 @@ const selectVideo = () => {
         const realUrl = result.data.url;
         newMessage.content = realUrl;
         newMessage.thumbnail = realUrl;
+        // 上传成功，预览用的本地临时 URL 不再需要
+        revokeObjectUrl(videoUrl);
         await chatService.sendMessage(userInfo.value.userId, realUrl, 3, realUrl);
         const index = messages.value.findIndex(m => m.id === msgId);
         if (index > -1) {
@@ -814,6 +826,8 @@ const selectVideo = () => {
         if (index > -1) {
           messages.value[index].status = 'failed';
         }
+        // 上传失败也要释放本地预览 URL，避免泄漏
+        revokeObjectUrl(videoUrl);
       }
     }
   };
@@ -1211,11 +1225,22 @@ const previewImage = (msg) => {
  previewImageUrl.value = msg.content;
  showImagePreview.value = true;
 };
-const MESSAGE_TYPE_MAP = { 0: 'text', 1: 'audio', 2: 'image' }
+const MESSAGE_TYPE_MAP = { 0: 'text', 1: 'audio', 2: 'image', 3: 'video', 4: 'location', 5: 'audio', 6: 'gift', 7: 'redpacket' }
 const getMessageTypeName = (type) => MESSAGE_TYPE_MAP[type] || 'text'
 
+// 礼物/红包消息（type 6/7）的 content 是结构化 JSON，历史加载时还原为气泡所需字段
+const parseStructuredMessage = (typeName, content) => {
+ if (typeName !== 'gift' && typeName !== 'redpacket') return null
+ try {
+  const parsed = JSON.parse(content)
+  return parsed && parsed.kind ? parsed : null
+ } catch (e) {
+  return null
+ }
+}
+
 const handleMessageClick = (msg) => {
- console.log('点击消息:', msg);
+ if (import.meta.env.DEV) console.log('点击消息:', msg);
 };
 const showMessageMenu = (msg, event) => {
  selectedMessage.value = msg;
@@ -1228,11 +1253,20 @@ const showMessageMenu = (msg, event) => {
 const revokeMessage = async (msg) => {
  showMessageContextMenu.value = false;
  if (await showConfirm('确定要撤回这条消息吗？')) {
- chatService.revokeMessage(msg.id);
- const index = messages.value.findIndex(m => m.id === msg.id);
- if (index > -1) {
- messages.value[index].content = '【消息已撤回】';
- messages.value[index].type = 'system';
+ try {
+  await chatService.revokeMessage(msg.id);
+  // 通知对方实时替换为「已撤回」，否则对方要重新拉取才看得到
+  socketService.emit('revoke_message', {
+   toId: userInfo.value.userId,
+   messageId: msg.id
+  });
+  const index = messages.value.findIndex(m => m.id === msg.id);
+  if (index > -1) {
+   messages.value[index].content = '【消息已撤回】';
+   messages.value[index].type = 'system';
+  }
+ } catch (error) {
+  toast.error(error.message || '撤回失败');
  }
  }
 };
@@ -1308,17 +1342,41 @@ const loadMessages = async () => {
  try {
    loadingMessages.value = true
  const response = await chatService.getMessages(userInfo.value.userId);
- if (response.data && response.data.length > 0) {
- messages.value = response.data.map(item => ({
+ // 后端返回 { total, list } 分页对象；此前按数组处理，导致历史消息永远加载失败
+ const list = response && response.data
+   ? (Array.isArray(response.data) ? response.data : (response.data.list || []))
+   : [];
+ if (list.length > 0) {
+ messages.value = list.map(item => {
+ const typeName = getMessageTypeName(item.type)
+ const structured = parseStructuredMessage(typeName, item.content)
+ const base = {
  id: item.id,
  isOwn: item.fromId === myInfo.value.userId,
- type: getMessageTypeName(item.type),
+ type: typeName,
  content: item.content,
  duration: item.duration || 0,
  showTime: true,
  status: item.isRead ? 'read' : 'sent',
  createTime: item.sendTime ? item.sendTime * 1000 : Date.now()
- }));
+ }
+ if (!structured) return base
+ if (typeName === 'gift') {
+ return Object.assign(base, {
+ icon: structured.icon || '',
+ name: structured.name || '',
+ count: Number(structured.count) || 1,
+ giftType: Number(structured.giftType) || 0,
+ animation: structured.animation || ''
+ })
+ }
+ return Object.assign(base, {
+ packetNo: structured.packetNo || '',
+ amount: Number(structured.amount) || 0,
+ count: Number(structured.count) || 1,
+ message: structured.message || ''
+ })
+});
     } else {
       messages.value = []
     }
@@ -1331,8 +1389,40 @@ const loadMessages = async () => {
     loadingMessages.value = false
   }
 };
+// 后台尝试通过 P2P 取回对方头像（失败保持原 URL，不阻塞渲染）
+const upgradePeerAvatarViaP2P = () => {
+ const peerId = userInfo.value.userId;
+ const url = userInfo.value.avatar;
+ if (!peerId || !url) return;
+ upgradeViaP2P({ peerId, url, onBlob: (objectUrl) => { userInfo.value.avatar = objectUrl; objectUrls.add(objectUrl); } });
+};
+
+// 打开会话 / 收到新消息时清未读，并通过 socket 通知对方「我已读」
+const markConversationRead = () => {
+ const peerId = userInfo.value.userId;
+ if (!peerId) return;
+ chatService.markAsRead(peerId).catch(() => {});
+ socketService.emit('message:read', { fromUserId: peerId });
+};
+
+// 保存监听器引用，便于组件卸载时精确移除（避免重复监听/消息重复处理）
+const socketHandlers = {
+ private_message: null,
+ typing: null,
+ message_revoked: null,
+ 'message:read': null
+};
+// 记录组件生命周期内创建的 blob URL，卸载时统一回收，防止内存泄漏
+const objectUrls = new Set();
+const revokeObjectUrl = (url) => {
+ if (!url) return;
+ try {
+  URL.revokeObjectURL(url);
+ } catch (e) { /* 忽略 */ }
+ objectUrls.delete(url);
+};
 const setupSocketListeners = () => {
- socketService.on('private_message', (data) => {
+ socketHandlers.private_message = (data) => {
  if (data.fromId === userInfo.value.userId) {
  const newMessage = {
  id: data.id || Date.now(),
@@ -1345,6 +1435,9 @@ const setupSocketListeners = () => {
  name: data.giftName || '',
  count: Number(data.giftCount) || 1,
  animation: data.giftAnimation || '',
+ amount: Number(data.amount) || 0,
+ message: data.message || '',
+ packetNo: data.packetNo || '',
  showTime: messages.value.length === 0 ||
  (Date.now() - messages.value[messages.value.length - 1].createTime) > 300000,
  createTime: data.sendTime ? data.sendTime * 1000 : Date.now()
@@ -1354,17 +1447,18 @@ const setupSocketListeners = () => {
  if (Number(data.giftType) === 1 && (data.giftImage || data.giftAnimation)) {
    triggerGiftEffect({ icon: data.giftImage, name: data.giftName || '豪华礼物', animation: data.giftAnimation || '' }, data.giftCount || 1);
  }
+ markConversationRead();
  }
- });
- socketService.on('typing', (data) => {
+ };
+ socketHandlers.typing = (data) => {
  if (data.fromId === userInfo.value.userId) {
  typing.value = true;
  setTimeout(() => {
  typing.value = false;
  }, 2000);
  }
- });
- socketService.on('message_revoked', (data) => {
+ };
+ socketHandlers.message_revoked = (data) => {
  if (data.fromId === userInfo.value.userId) {
  const index = messages.value.findIndex(m => m.id === data.messageId);
  if (index > -1) {
@@ -1372,8 +1466,29 @@ const setupSocketListeners = () => {
  messages.value[index].type = 'system';
  }
  }
- });
+ };
+ socketHandlers['message:read'] = (data) => {
+ // 对方已读：把自己发出的气泡全部置为已读
+ if (String(data.fromUserId) !== String(userInfo.value.userId)) return;
+ messages.value.forEach(m => { if (m.isOwn) m.status = 'read'; });
+ };
+  socketService.on('private_message', socketHandlers.private_message);
+  socketService.on('typing', socketHandlers.typing);
+  socketService.on('message_revoked', socketHandlers.message_revoked);
+  socketService.on('message:read', socketHandlers['message:read']);
 };
+
+// 与 setupSocketListeners 中的 on 一一对应，卸载时移除
+const teardownSocketListeners = () => {
+  Object.keys(socketHandlers).forEach((event) => {
+    const handler = socketHandlers[event];
+    if (handler) {
+      socketService.off(event, handler);
+      socketHandlers[event] = null;
+    }
+  });
+};
+
 onMounted(async () => {
  loadVipItems();
  const targetId = route.params.id;
@@ -1394,8 +1509,17 @@ onMounted(async () => {
  await loadMessages();
  scrollToBottom();
  setupSocketListeners();
+ markConversationRead();
+ upgradePeerAvatarViaP2P();
 });
 onUnmounted(() => {
+ teardownSocketListeners();
+ objectUrls.forEach((url) => {
+  try {
+   URL.revokeObjectURL(url);
+  } catch (e) { /* 忽略 */ }
+ });
+ objectUrls.clear();
  if (recordTimer) {
  clearInterval(recordTimer);
  }

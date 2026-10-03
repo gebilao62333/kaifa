@@ -14,7 +14,24 @@ const app = createApp(App)
 const pinia = createPinia()
 pinia.use(createPersistedState({
   key: 'app-state',
-  storage: localStorage
+  storage: localStorage,
+  // 字段白名单：只持久化登录态与基础展示资料，
+  // 手机号/余额/积分/身份证等敏感字段不落 localStorage（F-03/F-12）
+  paths: {
+    user: [
+      'token',
+      'profile.userId',
+      'profile.nickName',
+      'profile.avatar',
+      'profile.level',
+      'profile.vip',
+      'profile.vipLevel',
+      'profile.gender',
+      'profile.region',
+      'profile.signature'
+    ],
+    chat: ['currentRoomId', 'unreadMap', 'totalUnread', 'noticeUnread']
+  }
 }))
 
 app.use(pinia)

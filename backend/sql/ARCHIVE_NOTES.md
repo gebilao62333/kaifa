@@ -38,16 +38,24 @@ fix_columns.sql、fix_companion_profile.sql、fix_status_types.sql、init_data.s
 > init_system_settings.sql、init_admin_system.sql、fix_companion_profile.sql、fix_status_types.sql、test_data.sql、
 > alter_virtual_chat_history_user_isolation.sql、alter_virtual_user_random_online.sql、以及各字符集修复脚本。
 
-## ✅ 2026-10-01 归档处理
+## ✅ 2026-10-01 归档处理 / 2026-10-03 初始化脚本改名
 
-上表中"需单独决策"的脚本已**全部移入 `archive/` 子目录**，`sql/` 根目录现在只保留：
+上表中"需单独决策"的脚本已**全部移入 `archive/` 子目录**；2026-10-03 又把根目录两个初始化脚本加上序号前缀，
+`sql/` 根目录现在只保留：
 
-- `init_schema.sql` —— 唯一权威建表脚本（43 张表，与 Sequelize 模型逐列对齐）
-- `init_data.sql` —— 初始化数据（字段与 init_schema 一致）
-- `check-tables.sql` —— 只读表结构检查
-- `fix_passwords.sql` —— 未纳入版本库（高风险，需人工确认）
+- `01_init_schema.sql` —— 唯一权威建表脚本（43 张表，与 Sequelize 模型逐列对齐）
+- `02_init_data.sql` —— 初始化数据（字段与 01_init_schema 一致）
 
-`archive/` 内脚本（17 个）：`migrate2.sql`、`migrate-admin.sql`、`fix_columns.sql`、`fix_companion_profile.sql`、`migrate_companion_profile.sql`、`fix_status_types.sql`、`fix_charset.sql`、`fix_all_charset.sql`、`repair_charset_data.sql`、`fix_users_6_13.sql`、`fix_avatar.sql`、`init_settings.sql`、`init_system_settings.sql`、`init_admin_system.sql`、`test_data.sql`、`alter_virtual_chat_history_user_isolation.sql`、`alter_virtual_user_random_online.sql`
+> **为什么必须带序号**：`docker-compose.yml` 把整个 `backend/sql` 目录挂载为 MySQL 容器的
+> `/docker-entrypoint-initdb.d`，容器首次启动时按**文件名字母序**执行其中的 `*.sql`。
+> 旧命名（`check-tables.sql` < `fix_passwords.sql` < `init_data.sql` < `init_schema.sql` < `migrate_*.sql`）
+> 会导致：先 DESCRIBE/UPDATE/INSERT 尚不存在的表、建表被放到最后、迁移脚本再重复 ADD COLUMN，
+> **全新部署首次初始化必然失败**。`01_` / `02_` 前缀固定了「先建表、再灌数据」的顺序。
+
+其余脚本（含 `check-tables.sql`、`fix_passwords.sql`、`migrate_2026-10-01_interaction_fixes.sql`）
+一律放在 `archive/` 子目录 —— Docker 的 initdb 只执行挂载目录**顶层**文件，不递归，因此不会被自动执行。
+
+`archive/` 内脚本（20 个）：`migrate2.sql`、`migrate-admin.sql`、`fix_columns.sql`、`fix_companion_profile.sql`、`migrate_companion_profile.sql`、`fix_status_types.sql`、`fix_charset.sql`、`fix_all_charset.sql`、`repair_charset_data.sql`、`fix_users_6_13.sql`、`fix_avatar.sql`、`init_settings.sql`、`init_system_settings.sql`、`init_admin_system.sql`、`test_data.sql`、`alter_virtual_chat_history_user_isolation.sql`、`alter_virtual_user_random_online.sql`、`check-tables.sql`、`fix_passwords.sql`、`migrate_2026-10-01_interaction_fixes.sql`
 
 > **⚠️ 请勿直接在生产库执行 `archive/` 中的脚本**：其中 `migrate2.sql` 会 `DROP TABLE xn_system_settings`，字符集类脚本为覆盖式 UPDATE，`fix_columns.sql` 与模型可能存在二次漂移。若某环境历史库结构落后，请先用 `check-tables.sql` 比对实际结构，再手工 ALTER。
 
@@ -55,11 +63,13 @@ fix_columns.sql、fix_companion_profile.sql、fix_status_types.sql、init_data.s
 
 ```bash
 mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS eudazi_peer CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-mysql -u root -p --default-character-set=utf8mb4 eudazi_peer < init_schema.sql
-mysql -u root -p --default-character-set=utf8mb4 eudazi_peer < init_data.sql
+mysql -u root -p --default-character-set=utf8mb4 eudazi_peer < 01_init_schema.sql
+mysql -u root -p --default-character-set=utf8mb4 eudazi_peer < 02_init_data.sql
 ```
 
-> 注意：后端**不调用 `sequelize.sync()`**，修改模型后必须同步更新 `init_schema.sql`。
+> `archive/` 里的脚本**不要**放在这个目录的顶层，否则 Docker 首次初始化会自动执行（顺序也不受控）。
+>
+> 注意：后端**不调用 `sequelize.sync()`**，修改模型后必须同步更新 `01_init_schema.sql`。
 
 ## 确认现有库执行状态的方法
 
@@ -67,7 +77,7 @@ mysql -u root -p --default-character-set=utf8mb4 eudazi_peer < init_data.sql
 
 ```bash
 # 只读检查，确认数据当前状态
-mysql -u root -p --default-character-set=utf8mb4 eudazi < check-tables.sql
+mysql -u root -p --default-character-set=utf8mb4 eudazi < archive/check-tables.sql
 ```
 
 或对照关键数据判断：若用户 1-5 的昵称已是"游戏达人小王/玩家小美/…"且中文无乱码，说明 fix_charset.sql 已生效，无需重复执行。

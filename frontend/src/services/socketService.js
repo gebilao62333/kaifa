@@ -10,39 +10,57 @@ class SocketService {
     this.listeners = new Map()
   }
 
+  // 每次（重）连都从本地存储读取最新 token，避免重连时沿用旧的闭包值（F-07）
+  static readToken() {
+    try {
+      return localStorage.getItem(STORAGE_KEYS.TOKEN) || ''
+    } catch (e) {
+      return ''
+    }
+  }
+
   connect(url = configSocketUrl || 'http://localhost:3000') {
     if (this.socket?.connected) {
-      console.log('[Socket] 已经连接')
+      if (import.meta.env.DEV) console.log('[Socket] 已经连接')
       return this.socket
     }
 
-    const token = localStorage.getItem(STORAGE_KEYS.TOKEN)
-    
+    const token = SocketService.readToken()
+
     if (!token) {
-      console.log('[Socket] 未登录，跳过连接')
+      if (import.meta.env.DEV) console.log('[Socket] 未登录，跳过连接')
       return null
     }
 
-    console.log('[Socket] 正在连接:', url)
+    if (import.meta.env.DEV) console.log('[Socket] 正在连接:', url)
 
     try {
       this.socket = io(url, {
-        auth: { token },
+        // auth 使用函数：每次 CONNECT（含自动重连）时读取当前最新 token
+        auth: (cb) => cb({ token: SocketService.readToken() }),
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 5000,
         reconnectionAttempts: 5,
+        // 心跳依赖 socket.io/engine.io 内置的 ping/pong（服务端握手时下发
+        // pingInterval/pingTimeout），不额外发明后端未实现的应用层事件（F-17）
         timeout: 10000
       })
 
+      this.socket.on('reconnect_attempt', () => {
+        // 再次兜底：重连前同步刷新 auth，确保不使用过期 token（F-07）
+        this.socket.auth = { token: SocketService.readToken() }
+        if (import.meta.env.DEV) console.log('[Socket] 尝试重连')
+      })
+
       this.socket.on('connect', () => {
-        console.log('[Socket] 连接成功')
+        if (import.meta.env.DEV) console.log('[Socket] 连接成功')
         this.connected.value = true
       })
 
       this.socket.on('disconnect', (reason) => {
-        console.log('[Socket] 断开连接:', reason)
+        if (import.meta.env.DEV) console.log('[Socket] 断开连接:', reason)
         this.connected.value = false
       })
 
@@ -54,7 +72,9 @@ class SocketService {
         if (error.message === 'UNAUTHORIZED') {
           this.socket?.disconnect()
           this.socket = null
-          localStorage.removeItem(STORAGE_KEYS.TOKEN)
+          try {
+            localStorage.removeItem(STORAGE_KEYS.TOKEN)
+          } catch (e) { /* storage 不可用时忽略 */ }
           if (window.location.pathname !== '/login') {
             window.location.href = '/login'
           }
@@ -77,19 +97,19 @@ class SocketService {
 
   setupDefaultListeners() {
     this.on('call_invite', (data) => {
-      console.log('[Socket] 收到来电:', data)
+      if (import.meta.env.DEV) console.log('[Socket] 收到来电:', data)
     })
 
     this.on('call_accept', (data) => {
-      console.log('[Socket] 通话被接受:', data)
+      if (import.meta.env.DEV) console.log('[Socket] 通话被接受:', data)
     })
 
     this.on('call_reject', (data) => {
-      console.log('[Socket] 通话被拒绝:', data)
+      if (import.meta.env.DEV) console.log('[Socket] 通话被拒绝:', data)
     })
 
     this.on('call_end', (data) => {
-      console.log('[Socket] 通话已结束:', data)
+      if (import.meta.env.DEV) console.log('[Socket] 通话已结束:', data)
     })
   }
 

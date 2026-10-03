@@ -146,7 +146,7 @@ const loadMoreCompanions = () => {
 }
 
 const onBannerClick = (banner) => {
-  console.log('点击Banner:', banner)
+  if (import.meta.env.DEV) console.log('点击Banner:', banner)
   if (banner.link) {
     router.push(banner.link)
   }

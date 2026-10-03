@@ -1,21 +1,22 @@
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
+
+// 审计 L6：订单号/流水号后缀改用随机字节，避免可预测 + 降低碰撞概率
+const randomSuffix = (bytes = 5) => crypto.randomBytes(bytes).toString('hex').slice(0, 8).toUpperCase();
 
 const generateOrderNo = () => {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 10);
-  return `DK${timestamp}${random}`.toUpperCase();
+  return `DK${timestamp}${randomSuffix()}`.toUpperCase();
 };
 
 const generatePacketNo = () => {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 8);
-  return `PK${timestamp}${random}`.toUpperCase();
+  return `PK${timestamp}${randomSuffix(4)}`.toUpperCase();
 };
 
 const generateCallNo = () => {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 8);
-  return `CL${timestamp}${random}`.toUpperCase();
+  return `CL${timestamp}${randomSuffix(4)}`.toUpperCase();
 };
 
 const generateUUID = () => {
@@ -23,7 +24,7 @@ const generateUUID = () => {
 };
 
 const generateShortId = () => {
-  return Math.random().toString(36).substring(2, 10);
+  return crypto.randomBytes(6).toString('hex');
 };
 
 const formatTime = (timestamp) => {
@@ -40,9 +41,12 @@ const getDateStr = (timestamp) => {
   return date.toISOString().slice(0, 10);
 };
 
+const MAX_PAGE_SIZE = 100;
+
 const parseQuery = (query) => {
-  const page = parseInt(query.page) || 1;
-  const pageSize = parseInt(query.pageSize) || 20;
+  // 审计 M7：不限制 pageSize 会让 pageSize=999999 拖垮数据库
+  const page = Math.max(1, parseInt(query.page) || 1);
+  const pageSize = Math.min(Math.max(1, parseInt(query.pageSize) || 20), MAX_PAGE_SIZE);
   const offset = (page - 1) * pageSize;
   
   return {

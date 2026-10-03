@@ -230,12 +230,15 @@ const getOrderDetail = async (req, res) => {
       return response.badRequest(res, '订单ID不能为空');
     }
 
-    const order = await gamesService.getOrderDetail(parseInt(orderId));
+    const order = await gamesService.getOrderDetail(parseInt(orderId), req.userId);
     response.success(res, order);
   } catch (error) {
     logger.error('获取订单详情错误:', error);
     if (error.message === '订单不存在') {
       response.notFound(res, error.message);
+    } else if (String(error.message).startsWith('无权')) {
+      // 审计 B-11：越权访问应返回 403，而不是 500
+      response.forbidden(res, error.message);
     } else {
       response.error(res, error.message);
     }

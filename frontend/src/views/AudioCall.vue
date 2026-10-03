@@ -44,9 +44,22 @@ import { useRoute, useRouter } from 'vue-router';
 import { callService } from '../services/callService';
 import { webrtcCallService } from '../services/webrtcCallService';
 import { socketService } from '../services/socketService';
+import { trtcRoomService } from '../services/trtcRoomService';
 
 const route = useRoute();
 const router = useRouter();
+
+// 安全返回：直接进入 / 刷新 / 从分享链接打开时没有站内历史，
+// router.back() 会退到 about:blank（空白页），因此先判断站内历史再决定回退还是回首页。
+const safeBack = () => {
+  try {
+    const state = router.options && router.options.history ? router.options.history.state : null;
+    if (state && state.back) router.back();
+    else router.replace('/home');
+  } catch (e) {
+    router.replace('/home');
+  }
+};
 
 const callerId = ref('');
 const callerName = ref('对方');
@@ -124,19 +137,27 @@ const initCall = async () => {
 
   try {
     if (isIncoming.value) {
-      // 被叫方：WebRTC 已经在 handleIncomingCall 中初始化
-      // TRTC 模式需要本地获取 media
-      const useWebRTC = localStorage.getItem('_pendingCallMode') === 'webrtc';
+      // 被叫方：WebRTC 的 PeerConnection 与本地流已在 acceptCall 时建好
+      // 通道以接听时确定的为准：query > 服务实例当前模式 > localStorage 兜底
+      const modeFromQuery = route.query.mode;
+      const useWebRTC = modeFromQuery
+        ? modeFromQuery === 'webrtc'
+        : (callService.currentMode === 'webrtc' || localStorage.getItem('_pendingCallMode') === 'webrtc');
       callMode.value = useWebRTC ? 'webrtc' : 'trtc';
 
-      if (!useWebRTC) {
-        localStream.value = await navigator.mediaDevices.getUserMedia({
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-        });
+      // 复用已建立的本地流，避免再次 getUserMedia 产生第二条流（那条流没有接进 PeerConnection）
+      if (useWebRTC) {
+        localStream.value = webrtcCallService.localStream;
+      } else {
+        // TRTC 通道：采集/推流/播放全部交给官方 SDK（房间号由来电方通过 ?room= 带入）
+        await trtcRoomService.join({ callType: 1, roomId: route.query.room });
       }
 
-      callStatus.value = '正在连接...';
-      isConnecting.value = true;
+      // 被叫是「先接通、后挂载页面」，回调回灌可能已置为已连接，不能覆盖回去
+      if (!isConnected.value) {
+        callStatus.value = '正在连接...';
+        isConnecting.value = true;
+      }
 
     } else {
       // 主叫方：使用 callService 发起
@@ -146,36 +167,26 @@ const initCall = async () => {
 
       if (result.mode === 'webrtc') {
         localStream.value = webrtcCallService.localStream;
-        // 监听对方接听事件以发送offer
-        socketService.on('call_accept', () => {
-          webrtcCallService.sendDelayedOffer();
-        });
+      } else {
+        await trtcRoomService.join({ callType: 1, roomId: result.trtcRoomId });
       }
 
       callStatus.value = '等待对方接听...';
       isConnecting.value = true;
-
-      // 监听对方接听（WebRTC模式）
-      socketService.on('webrtc_offer', (data) => {
-        webrtcCallService.handleOffer(data.fromId, data.sdp);
-      });
-      socketService.on('webrtc_answer', (data) => {
-        webrtcCallService.handleAnswer(data.fromId, data.sdp);
-      });
-      socketService.on('webrtc_ice_candidate', (data) => {
-        webrtcCallService.handleIceCandidate(data.fromId, data.candidate);
-      });
-
-      // 对方挂断
-      socketService.on('call_end', () => {
-        callStatus.value = '对方已挂断';
-        setTimeout(() => hangup(), 1500);
-      });
     }
+
+    // 信令（offer/answer/ICE 与「接听后发 offer」）已下沉到 webrtcCallService，
+    // 早于页面挂载生效，这里只保留挂断提示
+    socketService.on('call_end', () => {
+      callStatus.value = '对方已挂断';
+      setTimeout(() => hangup(), 1500);
+    });
   } catch (error) {
     console.error('初始化通话失败:', error);
     callStatus.value = '连接失败';
-    setTimeout(() => router.back(), 2000);
+    setTimeout(() => {
+      safeBack();
+    }, 2000);
   }
 };
 
@@ -213,14 +224,10 @@ const hangup = async () => {
     localStream.value = null;
   }
 
-  // 清理 WebRTC 监听
-  socketService.off('webrtc_offer');
-  socketService.off('webrtc_answer');
-  socketService.off('webrtc_ice_candidate');
-  socketService.off('call_accept');
+  // 只清理本页注册的挂断提示；WebRTC 信令监听由 webrtcCallService 全局持有，不能在此注销
   socketService.off('call_end');
 
-  router.back();
+  safeBack();
 };
 
 onMounted(() => {
@@ -233,10 +240,6 @@ onUnmounted(() => {
     durationTimer = null;
   }
   callService.cleanup();
-  socketService.off('webrtc_offer');
-  socketService.off('webrtc_answer');
-  socketService.off('webrtc_ice_candidate');
-  socketService.off('call_accept');
   socketService.off('call_end');
 });
 </script>

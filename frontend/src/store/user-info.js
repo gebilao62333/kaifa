@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import authService from '../services/authService'
 import { DEFAULT_AVATAR, STORAGE_KEYS } from '../common/constants'
+import { clearPersistedState } from '../plugins/persistedState'
+import socketService from '../services/socketService'
 
 // 数字规范化：对象/NaN/null/undefined 一律兜底为 0，字符串数字转为数字
 const toNumber = (value) => {
@@ -150,7 +152,12 @@ export const useUserStore = defineStore('user', {
     async sendSms(phone, type = 'login') {
       try {
         const result = await authService.sendSms(phone, type)
-        return { success: result.code === 200, message: result.message, code: result.data?.code }
+        // 安全（F-01）：后端在非生产环境可能返回明文验证码，
+        // 仅允许 DEV 下打印用于调试，绝不返回给调用方，更不写入 store/localStorage
+        if (import.meta.env.DEV && result.data?.code) {
+          console.debug('[SMS] 开发环境验证码:', result.data.code)
+        }
+        return { success: result.code === 200, message: result.message }
       } catch (error) {
         console.error('发送短信失败:', error)
         return { success: false, message: error.message || '发送失败' }
@@ -286,7 +293,18 @@ export const useUserStore = defineStore('user', {
       this.token = ''
       this.profile = null
       this.configInfo = {}
-      localStorage.removeItem(STORAGE_KEYS.TOKEN)
+      this.ui = { statusBarHeight: 0, customBarHeight: 0 }
+
+      // 清理本地登录态与敏感数据：token、用户资料、手机号、余额、历史遗留 userInfo
+      try {
+        localStorage.removeItem(STORAGE_KEYS.TOKEN)
+        localStorage.removeItem(STORAGE_KEYS.LEGACY_USER_INFO)
+      } catch (e) { /* storage 不可用时忽略 */ }
+      // 清空 pinia 持久化 key（pinia-app-state-* 与 legacy 基准 key）
+      clearPersistedState(localStorage)
+
+      // 断开长连接，避免登出后仍以旧身份保持在线
+      try { socketService.disconnect() } catch (e) { /* ignore */ }
     },
 
     initFromStorage() {
@@ -301,8 +319,8 @@ export const useUserStore = defineStore('user', {
       } else {
         this.token = ''
         this.profile = null
-        localStorage.removeItem(STORAGE_KEYS.TOKEN)
-        localStorage.removeItem(STORAGE_KEYS.PINIA_STATE)
+        try { localStorage.removeItem(STORAGE_KEYS.TOKEN) } catch (e) { /* ignore */ }
+        clearPersistedState(localStorage)
       }
     },
 

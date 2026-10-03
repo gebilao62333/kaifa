@@ -1,4 +1,4 @@
-const { Withdraw } = require('../models');
+const { Withdraw, User } = require('../models');
 const sequelize = require('../config/mysql');
 const { CURRENCY_UNIT, calculateWithdrawFee } = require('../utils/currency');
 
@@ -327,33 +327,48 @@ const applyWithdraw = async (userId, { amount, type = 1, account = '', name = ''
     throw new Error(`最低提现金额为 ${WITHDRAW_MIN} ${CURRENCY_UNIT}`);
   }
 
-  const overview = await getWalletOverview(userId);
-  if (amountNum > overview.totalAssets + 1e-9) {
-    throw new Error('可提现余额不足');
-  }
-
   const fee = calculateWithdrawFee(amountNum);
   const netAmount = Math.round((amountNum - fee) * 100) / 100;
   const typeInt = parseInt(type, 10) || 1;
 
-  await Withdraw.create({
-    user_id: userId,
-    money: amountNum,
-    amount: amountNum,
-    pay_money: netAmount,
-    shouxufei: fee,
-    type: typeInt,
-    account,
-    name: name || '',
-    image: image || '',
-    bank: bank || '',
-    is_check: 0,
-    status: 0,
-    channel: 'wallet',
-    remark: '',
-    create_time: Math.floor(Date.now() / 1000),
-    update_time: Math.floor(Date.now() / 1000)
-  });
+  // 审计 B-03：余额基于"累计收入 - 已申请提现"聚合计算，读与写之间并发会超额提现。
+  // 用用户行锁把同一用户的提现申请串行化，锁内重新计算再落单。
+  const transaction = await sequelize.transaction();
+  try {
+    await User.findByPk(userId, { transaction, lock: transaction.LOCK.UPDATE });
+
+    const overview = await getWalletOverview(userId);
+    if (amountNum > overview.totalAssets + 1e-9) {
+      await transaction.rollback();
+      throw new Error('可提现余额不足');
+    }
+
+    await Withdraw.create({
+      user_id: userId,
+      money: amountNum,
+      amount: amountNum,
+      pay_money: netAmount,
+      shouxufei: fee,
+      type: typeInt,
+      account,
+      name: name || '',
+      image: image || '',
+      bank: bank || '',
+      is_check: 0,
+      status: 0,
+      channel: 'wallet',
+      remark: '',
+      create_time: Math.floor(Date.now() / 1000),
+      update_time: Math.floor(Date.now() / 1000)
+    }, { transaction });
+
+    await transaction.commit();
+  } catch (e) {
+    if (!transaction.finished) {
+      try { await transaction.rollback(); } catch (rollbackError) { /* 已回滚 */ }
+    }
+    throw e;
+  }
 
   return {
     success: true,

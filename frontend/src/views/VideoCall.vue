@@ -12,7 +12,7 @@
     <div class="video-container">
       <div class="remote-video">
         <video ref="remoteVideoRef" autoplay playsinline></video>
-        <div class="video-placeholder" v-if="!remoteStream">
+        <div class="video-placeholder" v-if="!remoteStream && !trtcActive">
           <div class="avatar-circle">
             {{ callerName.charAt(0) }}
           </div>
@@ -51,9 +51,22 @@ import { useRoute, useRouter } from 'vue-router';
 import { callService } from '../services/callService';
 import { webrtcCallService } from '../services/webrtcCallService';
 import { socketService } from '../services/socketService';
+import { trtcRoomService } from '../services/trtcRoomService';
 
 const route = useRoute();
 const router = useRouter();
+
+// 安全返回：直接进入 / 刷新 / 从分享链接打开时没有站内历史，
+// router.back() 会退到 about:blank（空白页），因此先判断站内历史再决定回退还是回首页。
+const safeBack = () => {
+  try {
+    const state = router.options && router.options.history ? router.options.history.state : null;
+    if (state && state.back) router.back();
+    else router.replace('/home');
+  } catch (e) {
+    router.replace('/home');
+  }
+};
 
 const callerId = ref('');
 const callerName = ref('对方');
@@ -77,12 +90,16 @@ const totalCost = ref(0);
 let durationTimer = null;
 
 const isIncoming = ref(false);
+// TRTC 模式下远端画面由官方 SDK 直接渲染进 <video>，此时不要显示占位层
+const trtcActive = ref(false);
 
+// flush: 'post' —— <video> 由 v-if="localStream" 控制，默认 pre 时机触发时 ref 仍为 null，
+// 会导致本地自画面永远绑不上 srcObject（远端画面不受影响）
 watch(localStream, (stream) => {
   if (stream && localVideoRef.value) {
     localVideoRef.value.srcObject = stream;
   }
-});
+}, { flush: 'post' });
 
 const initCall = async () => {
   callerId.value = route.params.id;
@@ -139,18 +156,27 @@ const initCall = async () => {
 
   try {
     if (isIncoming.value) {
-      const useWebRTC = localStorage.getItem('_pendingCallMode') === 'webrtc';
+      // 被叫方：WebRTC 的 PeerConnection 与本地流已在 acceptCall 时建好
+      const modeFromQuery = route.query.mode;
+      const useWebRTC = modeFromQuery
+        ? modeFromQuery === 'webrtc'
+        : (callService.currentMode === 'webrtc' || localStorage.getItem('_pendingCallMode') === 'webrtc');
       callMode.value = useWebRTC ? 'webrtc' : 'trtc';
 
-      if (!useWebRTC) {
-        localStream.value = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-        });
+      if (useWebRTC) {
+        localStream.value = webrtcCallService.localStream;
+      } else {
+        // TRTC 通道：房间号由来电方通过 ?room= 带入
+        await trtcRoomService.join({ callType: 2, roomId: route.query.room });
+        trtcRoomService.setRemoteView(remoteVideoRef.value);
+        trtcActive.value = true;
       }
 
-      callStatus.value = '正在连接...';
-      isConnecting.value = true;
+      // 被叫是「先接通、后挂载页面」，回调回灌可能已置为已连接，不能覆盖回去
+      if (!isConnected.value) {
+        callStatus.value = '正在连接...';
+        isConnecting.value = true;
+      }
 
     } else {
       const result = await callService.startCall(callerId.value, 2);
@@ -159,39 +185,28 @@ const initCall = async () => {
 
       if (result.mode === 'webrtc') {
         localStream.value = webrtcCallService.localStream;
-        socketService.on('call_accept', () => {
-          webrtcCallService.sendDelayedOffer();
-        });
       } else {
-        localStream.value = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
-          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }
-        });
+        await trtcRoomService.join({ callType: 2, roomId: result.trtcRoomId });
+        trtcRoomService.setRemoteView(remoteVideoRef.value);
+        trtcActive.value = true;
       }
 
       callStatus.value = '等待对方接听...';
       isConnecting.value = true;
-
-      // WebRTC 信令监听
-      socketService.on('webrtc_offer', (data) => {
-        webrtcCallService.handleOffer(data.fromId, data.sdp);
-      });
-      socketService.on('webrtc_answer', (data) => {
-        webrtcCallService.handleAnswer(data.fromId, data.sdp);
-      });
-      socketService.on('webrtc_ice_candidate', (data) => {
-        webrtcCallService.handleIceCandidate(data.fromId, data.candidate);
-      });
-      socketService.on('call_end', () => {
-        callStatus.value = '对方已挂断';
-        setTimeout(() => hangup(), 1500);
-      });
     }
+
+    // 信令已下沉到 webrtcCallService，这里只保留挂断提示
+    socketService.on('call_end', () => {
+      callStatus.value = '对方已挂断';
+      setTimeout(() => hangup(), 1500);
+    });
   } catch (error) {
     console.error('初始化通话失败:', error);
     connectionError.value = error.message || '无法建立通话连接';
     callStatus.value = '连接失败';
-    setTimeout(() => router.back(), 2000);
+    setTimeout(() => {
+      safeBack();
+    }, 2000);
   }
 };
 
@@ -238,14 +253,10 @@ const hangup = async () => {
 
   remoteStream.value = null;
 
-  // 清理监听
-  socketService.off('webrtc_offer');
-  socketService.off('webrtc_answer');
-  socketService.off('webrtc_ice_candidate');
-  socketService.off('call_accept');
+  // 只清理本页注册的挂断提示；WebRTC 信令监听由 webrtcCallService 全局持有，不能在此注销
   socketService.off('call_end');
 
-  router.back();
+  safeBack();
 };
 
 onMounted(() => {
@@ -258,10 +269,6 @@ onUnmounted(() => {
     durationTimer = null;
   }
   callService.cleanup();
-  socketService.off('webrtc_offer');
-  socketService.off('webrtc_answer');
-  socketService.off('webrtc_ice_candidate');
-  socketService.off('call_accept');
   socketService.off('call_end');
 });
 </script>

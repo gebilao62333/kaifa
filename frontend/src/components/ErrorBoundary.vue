@@ -8,22 +8,35 @@
     </div>
   </div>
   <template v-else>
-    <slot></slot>
+    <!-- key 变化时强制卸载并重建整个子树，替代整页刷新 -->
+    <BoundaryContent :key="retryKey">
+      <slot></slot>
+    </BoundaryContent>
   </template>
 </template>
 
 <script setup>
-import { ref, onErrorCaptured } from 'vue'
+import { ref, onErrorCaptured, defineComponent } from 'vue'
+
+// 承载默认插槽的轻量组件：retry 时递增 retryKey，Vue 会卸载旧实例并
+// 重新挂载该组件（含插槽内容），从而只重建出错子树而非整页刷新。
+const BoundaryContent = defineComponent({
+  name: 'ErrorBoundaryContent',
+  setup(_, { slots }) {
+    return () => (slots.default ? slots.default() : null)
+  }
+})
 
 const hasError = ref(false)
 const errorMessage = ref('')
 const componentStack = ref('')
+const retryKey = ref(0)
 
 const handleRetry = () => {
   hasError.value = false
   errorMessage.value = ''
   componentStack.value = ''
-  window.location.reload()
+  retryKey.value += 1
 }
 
 onErrorCaptured((error, instance, info) => {

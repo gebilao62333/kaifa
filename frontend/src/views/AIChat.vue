@@ -81,9 +81,11 @@ import { ref, onMounted, onBeforeUnmount, nextTick, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { virtualUserService } from '../services/virtualUserService'
 import { DEFAULT_AVATAR } from '@/common/constants'
+import { useUserStore } from '../store/user-info'
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
 
 const defaultAvatar = DEFAULT_AVATAR
 
@@ -160,15 +162,8 @@ const loadUserInfo = async () => {
     console.error('加载用户信息失败:', error)
   }
 
-  const userInfo = localStorage.getItem('userInfo')
-  if (userInfo) {
-    try {
-      const user = JSON.parse(userInfo)
-      myAvatar.value = (user && user.avatar) || defaultAvatar
-    } catch (e) {
-      console.warn('解析本地用户信息失败:', e)
-    }
-  }
+  // 使用 Pinia store 的当前头像，不再读取已废弃的 'userInfo' localStorage key（F-10）
+  myAvatar.value = userStore.avatar || defaultAvatar
 }
 
 // 轻量轮询在线状态：随机在线调度器会动态上下线，需周期性同步

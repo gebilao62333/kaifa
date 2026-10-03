@@ -261,7 +261,7 @@ const loadOrders = async () => {
 }
 
 const goOrderDetail = (item) => {
-  console.log('订单详情:', item.id)
+  if (import.meta.env.DEV) console.log('订单详情:', item.id)
   currentOrder.value = item
   showOrderDetail.value = true
 }
@@ -272,7 +272,7 @@ const closeOrderDetail = () => {
 }
 
 const goUserProfile = (item) => {
-  console.log('查看用户资料:', item.nickname)
+  if (import.meta.env.DEV) console.log('查看用户资料:', item.nickname)
   router.push({ name: 'UserProfile', params: { id: item.userId } })
 }
 

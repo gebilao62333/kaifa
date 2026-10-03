@@ -1,3 +1,5 @@
+const crypto = require('crypto');
+const axios = require('axios');
 const { generateToken, generateTokenPair, verifyToken, refreshAccessToken } = require('../config/jwt');
 const { User, UserFollow } = require('../models');
 const bcrypt = require('bcryptjs');
@@ -74,26 +76,96 @@ const loginWithMobile = async (mobile, code, deviceId, platform = 'app') => {
   };
 };
 
-const loginWithThird = async (type, code, encryptedData, iv) => {
-  let openId;
-  
-  if (type === 'wechat') {
-    openId = code;
-  } else if (type === 'apple') {
-    openId = code;
+// ==================== 第三方登录校验 ====================
+// 安全要求：授权码必须由服务端向第三方平台换取真实身份标识（openId/unionid/sub），
+// 绝不允把客户端传来的 code 直接当作 openId —— 那等于允许任意人冒充任意账号登录。
+
+const verifyWechatCode = async (code) => {
+  const appid = process.env.WECHAT_APPID;
+  const secret = process.env.WECHAT_APPSECRET || process.env.WECHAT_APP_SECRET;
+
+  if (!appid || !secret) {
+    throw new Error('微信登录未配置（缺少 WECHAT_APPID / WECHAT_APPSECRET），暂不可用');
   }
-  
-  let user = await User.findOne({
-    where: type === 'wechat' ? { open_id: openId } : { unionid: openId }
+
+  const { data } = await axios.get('https://api.weixin.qq.com/sns/jscode2session', {
+    params: { appid, secret, js_code: code, grant_type: 'authorization_code' },
+    timeout: 8000
   });
-  
+
+  if (!data || data.errcode || !(data.openid || data.unionid)) {
+    throw new Error('微信授权码校验失败: ' + ((data && data.errmsg) || '无效响应'));
+  }
+
+  return { openId: data.openid || data.unionid, unionId: data.unionid || data.openid };
+};
+
+const appleKeyCache = { keys: null, fetchedAt: 0 };
+
+const fetchAppleKeys = async () => {
+  if (appleKeyCache.keys && Date.now() - appleKeyCache.fetchedAt < 3600 * 1000) {
+    return appleKeyCache.keys;
+  }
+  const { data } = await axios.get('https://appleid.apple.com/auth/keys', { timeout: 8000 });
+  appleKeyCache.keys = (data && data.keys) || [];
+  appleKeyCache.fetchedAt = Date.now();
+  return appleKeyCache.keys;
+};
+
+// Apple Sign In：identityToken 是 Apple 用 RS256 签名的 JWT，必须验签 + 校验 iss/aud/exp
+const verifyAppleIdentityToken = async (identityToken) => {
+  if (!identityToken || String(identityToken).split('.').length !== 3) {
+    throw new Error('Apple 登录需要有效的 identityToken');
+  }
+
+  const jwt = require('jsonwebtoken');
+  const decoded = jwt.decode(identityToken, { complete: true });
+  if (!decoded || !decoded.header || !decoded.payload) {
+    throw new Error('Apple 身份令牌格式错误');
+  }
+
+  const keys = await fetchAppleKeys();
+  const jwk = keys.find((k) => k.kid === decoded.header.kid);
+  if (!jwk) {
+    throw new Error('Apple 公钥不匹配');
+  }
+
+  const publicKey = crypto.createPublicKey({ key: jwk, format: 'jwk' });
+  const payload = jwt.verify(identityToken, publicKey, {
+    algorithms: ['RS256'],
+    issuer: 'https://appleid.apple.com'
+  });
+
+  const expectedAud = process.env.APPLE_CLIENT_ID;
+  if (expectedAud && payload.aud !== expectedAud) {
+    throw new Error('Apple 令牌受众不匹配');
+  }
+
+  return { openId: payload.sub, unionId: payload.sub };
+};
+
+const loginWithThird = async (type, code) => {
+  let identity;
+
+  if (type === 'wechat') {
+    identity = await verifyWechatCode(code);
+  } else if (type === 'apple') {
+    identity = await verifyAppleIdentityToken(code);
+  } else {
+    throw new Error('不支持的第三方登录类型');
+  }
+
+  let user = await User.findOne({
+    where: type === 'wechat' ? { open_id: identity.openId } : { unionid: identity.openId }
+  });
+
   let isNewUser = false
-  
+
   if (!user) {
     user = await User.create({
-      open_id: type === 'wechat' ? openId : null,
-      unionid: type !== 'wechat' ? openId : null,
-      nickname: `${type}用户`,
+      open_id: type === 'wechat' ? identity.openId : null,
+      unionid: type !== 'wechat' ? identity.openId : null,
+      nickname: type + '用户',
       platform: type,
       create_time: getTimestamp(),
       last_login_time: getTimestamp()
@@ -104,13 +176,13 @@ const loginWithThird = async (type, code, encryptedData, iv) => {
       last_login_time: getTimestamp()
     });
   }
-  
+
   if (isNewUser) {
     await ensureUserIdValid(user)
   }
-  
+
   const tokens = generateTokenPair({ userId: user.id });
-  
+
   return {
     userId: user.id,
     ...tokens
@@ -222,10 +294,19 @@ const followUser = async (userId, targetUserId, action = 1) => {
   });
 
   // action: 1=关注 0=取消关注；幂等，避免重复点击造成反复关注/取关
+  // 审计 M4：关注记录与粉丝数必须同一事务，否则中途失败会出现"记录了关注但粉丝数没加"的脏数据
   if (action === 0) {
     if (existingFollow) {
-      await existingFollow.destroy();
-      await User.decrement('fans_num', { where: { id: targetUserId } });
+      const sequelize = require('../config/mysql');
+      const transaction = await sequelize.transaction();
+      try {
+        await existingFollow.destroy({ transaction });
+        await User.decrement('fans_num', { where: { id: targetUserId }, transaction });
+        await transaction.commit();
+      } catch (e) {
+        await transaction.rollback();
+        throw e;
+      }
     }
     return { isFollow: false };
   }
@@ -234,13 +315,21 @@ const followUser = async (userId, targetUserId, action = 1) => {
     return { isFollow: true };
   }
 
-  await UserFollow.create({
-    follower_id: userId,
-    following_id: targetUserId,
-    create_time: getTimestamp()
-  });
+  const sequelize = require('../config/mysql');
+  const transaction = await sequelize.transaction();
+  try {
+    await UserFollow.create({
+      follower_id: userId,
+      following_id: targetUserId,
+      create_time: getTimestamp()
+    }, { transaction });
 
-  await User.increment('fans_num', { where: { id: targetUserId } });
+    await User.increment('fans_num', { where: { id: targetUserId }, transaction });
+    await transaction.commit();
+  } catch (e) {
+    await transaction.rollback();
+    throw e;
+  }
 
   return { isFollow: true };
 };
@@ -261,7 +350,7 @@ const getUserInfo = async (userId, targetUserId) => {
     isFollow = !!follow;
   }
   
-  return {
+  const info = {
     userId: user.id,
     nickname: user.nickname,
     avatar: user.avatar,
@@ -269,14 +358,21 @@ const getUserInfo = async (userId, targetUserId) => {
     level: user.lv,
     vip: user.vip,
     vipLevel: user.vip_lv,
-    balance: user.money,
-    giftBalance: user.gift_money,
     score: user.score,
     fansCount: user.fans_num,
     isFollow,
     description: user.dec,
     sex: user.sex
   };
+
+  // 余额/礼物流水只对本人可见：历史实现无条件返回，
+  // 任何登录用户只要带上 ?userId=别人ID 就能查到对方余额。
+  if (Number(userId) === Number(targetUserId)) {
+    info.balance = user.money;
+    info.giftBalance = user.gift_money;
+  }
+
+  return info;
 };
 
 const updateUserInfo = async (userId, updateData) => {
