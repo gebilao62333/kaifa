@@ -7,10 +7,15 @@
  * 的情况下对业务接口进行端到端功能测试。
  */
 const express = require('express');
-const setupRoutes = require('../../src/routes');
 
-// 强制 development 模式，使 authMiddleware 支持 mock-token、rateLimit 自动跳过
+// 必须在加载 src/routes 之前设置：src/config 在 require 时就读取环境变量。
+// NODE_ENV=development → authMiddleware 支持 mock-token；
+// 限流豁免不再看环境（审计 H-8），改由 RATE_LIMIT_DISABLED 显式关闭，
+// 否则本套集成测试会因全局 100 次/分钟、验证码 1 次/分钟的窗口出现偶发 429。
 process.env.NODE_ENV = 'development';
+process.env.RATE_LIMIT_DISABLED = 'true';
+
+const setupRoutes = require('../../src/routes');
 
 const app = express();
 app.use(express.json());

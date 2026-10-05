@@ -11,6 +11,25 @@ const adminService = {
     return request('/api/admin/login', 'POST', { username, password }, {}, undefined, { skipAuthRedirect: true })
   },
 
+  // 审计 H-5：服务端登出——把本次会话的后台令牌写进吊销名单。
+  // 与登录一样 skipAuthRedirect：登出接口自己返回 401/503，不该再触发整页跳转。
+  async logout(refreshToken = '') {
+    return request('/api/admin/logout', 'POST', refreshToken ? { refreshToken } : {}, {}, 5000, { skipAuthRedirect: true })
+  },
+
+  // 退出登录 = 先请服务端吊销（这一行同步阶段就已用本地令牌拼好请求头）→ 立刻清本地态。
+  // 不 await 网络结果，避免吊销服务抖动时管理员卡在「退出中」；promise 交给调用方按需提示。
+  signOut() {
+    const refreshToken = localStorage.getItem('admin_refresh_token') || ''
+    const logoutRequest = this.logout(refreshToken).catch(() => null)
+
+    localStorage.removeItem('admin_token')
+    localStorage.removeItem('admin_refresh_token')
+    localStorage.removeItem('admin_user')
+
+    return logoutRequest
+  },
+
   async getStatistics() {
     return request('/api/admin/statistics', 'GET')
   },

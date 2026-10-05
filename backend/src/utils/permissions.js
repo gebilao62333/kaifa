@@ -62,11 +62,40 @@ const hasPermission = (perms, key) => {
   return arr.includes(key);
 };
 
+// 审计 M-1：权限边界——非超管管理员只能操作「⊆ 自身权限」的对象。
+// 返回 requested 中超出 actor 有效权限范围的 key（actor 为超管时恒为 []）。
+const permissionsBeyondActor = (actor, requested) => {
+  if (isSuperAdmin(actor)) return [];
+  const own = new Set(parsePerms(actor && actor.permissions));
+  return parsePerms(requested).filter((key) => !own.has(key));
+};
+
+// 非超管只能管理权限 ⊆ 自身且非超管的角色（超管角色只有超管能动）
+const canManageRole = (actor, role) => {
+  if (!actor || !role) return false;
+  if (isSuperAdmin(actor)) return true;
+  if (role.id === 1 || role.is_super) return false;
+  return permissionsBeyondActor(actor, role.permissions).length === 0;
+};
+
+// 非超管只能管理有效权限 ⊆ 自身且非超管的管理员
+const canManageAdmin = (actor, target, targetRole) => {
+  if (!actor || !target) return false;
+  if (isSuperAdmin(actor)) return true;
+  if (target.id === 1 || target.role_id === 1) return false;
+  const effective = resolvePermissions(target.permissions, targetRole || null);
+  if (effective.includes('all')) return false;
+  return permissionsBeyondActor(actor, effective).length === 0;
+};
+
 module.exports = {
   ALL_PERMISSIONS,
   ALL_PERMISSION_KEYS,
   parsePerms,
   resolvePermissions,
   isSuperAdmin,
-  hasPermission
+  hasPermission,
+  permissionsBeyondActor,
+  canManageRole,
+  canManageAdmin
 };

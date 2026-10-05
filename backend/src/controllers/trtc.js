@@ -16,21 +16,58 @@ const notConfiguredPayload = (userId) => ({
   userId: String(userId || '')
 });
 
+// 房间成员校验（trtcService.resolveRoomCall / requireEnterableRoom）只会抛出下面四类业务原因，
+// 按语义分流：非成员 → 403；房间不存在 → 404；房间号格式/通话已结束 → 422。
+// 其余异常（如数据库故障）不能伪装成业务拒绝，保持 500，避免监控告警与前端降级都被误导。
+const ROOM_ACCESS_REASONS = ['无权进入该房间', '房间不存在或已过期', '房间号格式不正确', '通话已结束，无法进入该房间'];
+
+const roomAccessErrorResponse = (res, error) => {
+  const message = String((error && error.message) || '');
+  const isBusinessReason = ROOM_ACCESS_REASONS.some((reason) => message.includes(reason));
+
+  if (!isBusinessReason) {
+    return response.error(res, message || '房间校验失败');
+  }
+  if (message.includes('无权')) {
+    return response.forbidden(res, message);
+  }
+  if (message.includes('不存在')) {
+    return response.notFound(res, message);
+  }
+  return response.unprocessableEntity(res, message);
+};
+
 const getAuth = async (req, res) => {
   try {
-    const result = trtcService.generateUserSig(req.userId);
+    const { roomId } = req.query;
+    const issued = trtcService.generateUserSig(req.userId);
 
-    if (!result) {
+    if (!issued) {
       return response.success(res, notConfiguredPayload(req.userId), 'TRTC未配置，请使用 WebRTC 通道');
     }
 
-    response.success(res, Object.assign({ configured: true }, result));
+    // 不传 roomId：只回答「TRTC 通道是否开通」，不发票据。
+    // 审计 C-4：原实现任何登录用户调一次 `/auth` 就能拿到一个对所有房间有效的 UserSig，
+    // 而进哪个房间由前端 URL 参数决定——等于服务端对通话房间完全不设防。
+    // 现在票据只在「调用者声明要进哪个房间、且服务端确认他是这通电话的双方之一」时才签发。
+    if (!roomId) {
+      return response.success(
+        res,
+        Object.assign({ configured: true }, issued, { userSig: null, requiresRoomId: true }),
+        '未提供房间号，仅返回 TRTC 可用性'
+      );
+    }
+
+    await trtcService.requireEnterableRoom(req.userId, roomId);
+
+    response.success(res, Object.assign({ configured: true, roomId: String(roomId) }, issued));
   } catch (error) {
     logger.error('获取TRTC鉴权错误:', error);
     if (String(error.message).includes('未配置')) {
       return response.success(res, notConfiguredPayload(req.userId), 'TRTC未配置，请使用 WebRTC 通道');
     }
-    response.error(res, error.message);
+    // 走到这里可能是成员校验的业务错误，也可能是意外故障；交给分流函数区分 403/404/422/500
+    return roomAccessErrorResponse(res, error);
   }
 };
 
@@ -149,64 +186,65 @@ const createRoom = async (req, res) => {
 const enterRoom = async (req, res) => {
   try {
     const { roomId } = req.body;
-    
+
     if (!roomId) {
       return response.badRequest(res, '房间ID不能为空');
     }
-    
+
     const result = await trtcService.enterRoom(req.userId, roomId);
     response.success(res, result, '进入房间成功');
   } catch (error) {
     logger.error('进入房间错误:', error);
-    response.error(res, error.message);
+    return roomAccessErrorResponse(res, error);
   }
 };
 
 const leaveRoom = async (req, res) => {
   try {
     const { roomId } = req.body;
-    
+
     if (!roomId) {
       return response.badRequest(res, '房间ID不能为空');
     }
-    
+
     const result = await trtcService.leaveRoom(req.userId, roomId);
     response.success(res, result, '离开房间成功');
   } catch (error) {
     logger.error('离开房间错误:', error);
-    response.error(res, error.message);
+    return roomAccessErrorResponse(res, error);
   }
 };
 
 const getRoomInfo = async (req, res) => {
   try {
     const { roomId } = req.params;
-    
+
     if (!roomId) {
       return response.badRequest(res, '房间ID不能为空');
     }
-    
-    const result = await trtcService.getRoomInfo(roomId);
+
+    // 审计 C-4：原实现连 userId 都不收，任何人可按房间号读到「状态 active」的伪造信息
+    const result = await trtcService.getRoomInfo(req.userId, roomId);
     response.success(res, result);
   } catch (error) {
     logger.error('获取房间信息错误:', error);
-    response.error(res, error.message);
+    return roomAccessErrorResponse(res, error);
   }
 };
 
 const startBilling = async (req, res) => {
   try {
     const { roomId, callType } = req.body;
-    
+
     if (!roomId) {
       return response.badRequest(res, '房间ID不能为空');
     }
-    
+
     const result = await trtcService.startBilling(req.userId, roomId, callType);
     response.success(res, result, '开始计费');
   } catch (error) {
     logger.error('开始计费错误:', error);
-    response.error(res, error.message);
+    return roomAccessErrorResponse(res, error);
   }
 };
 

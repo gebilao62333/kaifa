@@ -163,7 +163,12 @@ function backupRedis(mode, dc, dir) {
     // redis 容器未把 REDIS_PASSWORD 暴露为环境变量（仅通过 --requirepass 启动参数设置），
     // 故直接用宿主机从 root .env 读取的密码（argv 传参，无需 shell 转义）。
     // 注意：redis-cli --rdb 无法向管道(/dev/stdout) ftruncate/fsync，必须写真实文件再拷出。
-    const pass = process.env.REDIS_PASSWORD || 'redis123';
+    // 审计 H-9：原先兜底 'redis123'，根 .env 漏配时备份脚本会用弱口令静默重试；改为显式失败。
+    const pass = process.env.REDIS_PASSWORD;
+    if (!pass) {
+      console.error('❌ Redis 备份失败: 未设置 REDIS_PASSWORD（docker 模式取自根 .env）');
+      return false;
+    }
     const tmp = `/data/backup_rdb_${Date.now()}.rdb`;
     const base = [...dc, '-f', COMPOSE_FILE];
     const w = spawnSync(base[0], [...base.slice(1), 'exec', '-T', 'redis', 'redis-cli', '-a', pass, '--rdb', tmp]);

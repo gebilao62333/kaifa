@@ -10,19 +10,24 @@
       <div class="level-card">
         <div class="level-badge">
           <div class="level-icon">🚀</div>
-          <div class="level-number">Lv.{{ userInfo.level }}</div>
+          <div class="level-number">Lv.{{ info.lv }}</div>
           <div class="level-name">{{ levelName }}</div>
         </div>
         <div class="exp-section">
           <div class="exp-header">
             <span class="exp-label">经验值</span>
-            <span class="exp-value">{{ userInfo.exp }} / {{ nextLevelExp }}</span>
+            <span class="exp-value">{{ info.exp }} / {{ info.nextLevelExp }}</span>
           </div>
           <div class="exp-bar">
-            <div class="exp-progress" :style="{ width: expPercent + '%' }"></div>
+            <div class="exp-progress" :style="{ width: info.percent + '%' }"></div>
           </div>
-          <div class="exp-hint">距离升到 Lv.{{ userInfo.level + 1 }} 还差 {{ nextLevelExp - userInfo.exp }} 经验</div>
+          <div class="exp-hint">距离升到 Lv.{{ info.lv + 1 }} 还差 {{ info.remainExp }} 经验</div>
         </div>
+        <button
+          class="check-in-btn"
+          :disabled="info.checkedInToday || checking"
+          @click="onCheckIn"
+        >{{ checkInLabel }}</button>
       </div>
 
       <div class="vip-boost-card">
@@ -39,24 +44,35 @@
             <div class="boost-multiplier" :class="{ active: b.active }">{{ b.multiplier }}x</div>
           </div>
         </div>
-        <div class="boost-desc" v-if="userInfo.vip">
-          当前为 VIP{{ userInfo.vipLevel }}，获得 <strong>{{ currentBoost }}x</strong> 经验加速
+        <div class="boost-desc" v-if="info.vip">
+          当前为 VIP{{ info.vipLevel }}，获得 <strong>{{ info.boost }}x</strong> 经验加速
         </div>
         <div class="boost-desc" v-else>
-          开通VIP可享最高 <strong>2.0x</strong> 经验加速
+          开通VIP可享最高 <strong>{{ maxBoost }}x</strong> 经验加速
         </div>
+      </div>
+
+      <div class="source-section">
+        <div class="section-title">经验怎么涨</div>
+        <div class="source-list">
+          <div class="source-item" v-for="s in expSourceList" :key="s.key">
+            <span class="source-name">{{ s.name }}</span>
+            <span class="source-value">+{{ s.points }}</span>
+          </div>
+        </div>
+        <div class="source-hint">实际到账 = 上表点数 × 当前倍率 {{ info.boost }}x</div>
       </div>
 
       <div class="benefits-section">
         <div class="section-title">等级权益</div>
         <div class="benefits-list">
-          <div class="benefit-item" v-for="b in benefitList" :key="b.level">
+          <div class="benefit-item" v-for="b in info.benefits" :key="b.key">
             <div class="benefit-left">
-              <span class="benefit-level-tag" :class="{ unlocked: b.level <= userInfo.level }">Lv.{{ b.level }}</span>
+              <span class="benefit-level-tag" :class="{ unlocked: b.unlocked }">Lv.{{ b.level }}</span>
               <span class="benefit-name">{{ b.name }}</span>
             </div>
-            <span class="benefit-status" :class="{ unlocked: b.level <= userInfo.level }">
-              {{ b.level <= userInfo.level ? '已解锁' : '未解锁' }}
+            <span class="benefit-status" :class="{ unlocked: b.unlocked }">
+              {{ b.unlocked ? '已解锁' : '未解锁' }}
             </span>
           </div>
         </div>
@@ -70,72 +86,96 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getLevelName } from '../common/common'
 import PageLayout from '../components/PageLayout.vue'
-import { useUserStore } from '../store/user-info'
+import levelService from '../services/levelService'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
-const userStore = useUserStore()
 
-const userInfo = ref({
-  level: userStore.level || 1,
+// 经验来源/倍率的服务端口径，这里只负责翻译成中文展示名
+const SOURCE_NAMES = {
+  order_completed: '完成陪玩订单',
+  post_created: '发布动态',
+  daily_check_in: '每日签到',
+  real_name_verified: '完成实名认证'
+}
+const BOOST_NAMES = ['普通用户', 'VIP1', 'VIP2', 'VIP3', 'VIP4']
+
+const info = ref({
+  lv: 1,
   exp: 0,
-  vip: !!userStore.vip,
-  vipLevel: userStore.vipLevel || 0
+  nextLevelExp: 1500,
+  remainExp: 1500,
+  percent: 0,
+  vip: false,
+  vipLevel: 0,
+  boost: 1,
+  checkedInToday: false,
+  expSources: {},
+  boostTable: {},
+  benefits: []
+})
+const checking = ref(false)
+
+const levelName = computed(() => getLevelName(info.value.lv))
+
+const maxBoost = computed(() => {
+  const values = Object.values(info.value.boostTable || {})
+  return values.length ? Math.max(...values) : 1
 })
 
-const nextLevelExp = computed(() => userInfo.value.level * 1000 + 500)
+const boostList = computed(() => Object.entries(info.value.boostTable || {}).map(([lv, multiplier]) => ({
+  level: Number(lv),
+  label: BOOST_NAMES[Number(lv)] || `VIP${lv}`,
+  multiplier,
+  active: Number(lv) > 0 && info.value.vip && info.value.vipLevel >= Number(lv)
+})))
 
-const expPercent = computed(() => {
-  return Math.min(100, Math.round((userInfo.value.exp / nextLevelExp.value) * 100))
+const expSourceList = computed(() => Object.entries(info.value.expSources || {}).map(([key, points]) => ({
+  key,
+  name: SOURCE_NAMES[key] || key,
+  points
+})))
+
+const checkInLabel = computed(() => {
+  if (info.value.checkedInToday) return '今日已签到'
+  const points = info.value.expSources?.daily_check_in
+  if (checking.value) return '签到中…'
+  return points ? `每日签到 +${points}` : '每日签到'
 })
 
-const levelName = computed(() => getLevelName(userInfo.value.level))
+const load = async () => {
+  try {
+    const res = await levelService.get()
+    info.value = { ...info.value, ...(res?.data || {}) }
+  } catch (e) {
+    toast.show(e.message || '等级信息加载失败')
+  }
+}
 
-const currentBoost = computed(() => {
-  if (!userInfo.value.vip) return 1.0
-  const map = { 1: 1.2, 2: 1.5, 3: 1.8, 4: 2.0 }
-  return map[userInfo.value.vipLevel] || 1.0
-})
-
-const boostList = ref([
-  { level: 0, label: '普通用户', multiplier: 1.0, active: false },
-  { level: 1, label: 'VIP1', multiplier: 1.2, active: false },
-  { level: 2, label: 'VIP2', multiplier: 1.5, active: false },
-  { level: 3, label: 'VIP3', multiplier: 1.8, active: false },
-  { level: 4, label: 'VIP4', multiplier: 2.0, active: false }
-])
-
-const benefitList = ref([
-  { level: 5, name: '解锁个性签名' },
-  { level: 10, name: '解锁在线状态隐身' },
-  { level: 15, name: '解锁动态发布图片' },
-  { level: 20, name: '解锁专属身份标识' },
-  { level: 25, name: '解锁相册扩容至50张' },
-  { level: 30, name: '解锁优先匹配' },
-  { level: 35, name: '解锁超级弹窗' },
-  { level: 40, name: '解锁客服优先接入' },
-  { level: 45, name: '解锁装扮商城' },
-  { level: 50, name: '解锁全服广播特权' }
-])
+const onCheckIn = async () => {
+  if (checking.value || info.value.checkedInToday) return
+  checking.value = true
+  try {
+    const result = await levelService.checkIn()
+    const gained = result?.data || {}
+    toast.success(gained.leveledUp
+      ? `签到成功，升到 Lv.${gained.lv}！`
+      : `签到成功，经验 +${gained.added}`)
+    await load()
+  } catch (e) {
+    toast.show(e.message || '签到失败')
+    // 多设备同日签到：服务端已记录时同步一次真实状态，按钮别停在可点
+    if (e.message === '今日已签到') await load()
+  } finally {
+    checking.value = false
+  }
+}
 
 const goBack = () => {
   router.back()
 }
 
-onMounted(async () => {
-  try {
-    await userStore.fetchUserInfo()
-    userInfo.value.level = userStore.level || userInfo.value.level
-    userInfo.value.vip = !!userStore.vip
-    userInfo.value.vipLevel = userStore.vipLevel || 0
-  } catch (e) { /* 静默 */ }
-  if (userInfo.value.vip) {
-    boostList.value.forEach(b => {
-      if (b.level > 0 && b.level <= userInfo.value.vipLevel) {
-        b.active = true
-      }
-    })
-  }
-})
+onMounted(load)
 </script>
 
 <style scoped>
@@ -386,5 +426,60 @@ onMounted(async () => {
 
 .benefit-status.unlocked {
   color: #34c759;
+}
+
+.check-in-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 11px 0;
+  border: none;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--color-primary);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.check-in-btn:disabled {
+  background: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: default;
+}
+
+.source-section {
+  margin-bottom: 16px;
+}
+
+.source-list {
+  background: white;
+  border-radius: 0px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.source-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 20px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.source-name {
+  font-size: 14px;
+  color: #333;
+}
+
+.source-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ff8c00;
+}
+
+.source-hint {
+  font-size: 12px;
+  color: #999;
+  padding: 8px 4px 0;
 }
 </style>

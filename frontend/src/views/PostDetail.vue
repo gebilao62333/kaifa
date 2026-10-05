@@ -284,7 +284,9 @@ const onReposted = () => {
 }
 
 const previewImage = (img) => {
-  window.open(img, '_blank')
+  // 审计低危项：新窗口打开外部图片必须带 noopener/noreferrer，否则被打开页面
+  // 可通过 window.opener 反向操纵本页（tabnabbing）。
+  window.open(img, '_blank', 'noopener,noreferrer')
 }
 
 const replyTo = (comment) => {

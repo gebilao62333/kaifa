@@ -1,5 +1,12 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
+
+// 审计 H-5：store.logout() 现在要先发起服务端登出（令牌还在 localStorage 里时）。
+// 本文件只测纯状态逻辑，整体替换 authService 以免单测走到真实的 fetch/网络栈。
+vi.mock('@/services/authService', () => ({
+  default: { logout: vi.fn(() => Promise.resolve({ code: 200, data: { clientShouldClearToken: true } })) }
+}))
+
 import { useUserStore } from '@/store/user-info'
 import { DEFAULT_AVATAR, STORAGE_KEYS } from '@/common/constants'
 

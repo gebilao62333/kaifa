@@ -501,7 +501,7 @@ const submitForm = async () => {
       description: formData.value.skillIntro,
       icon: imageUrl,
       voiceIntro,
-      voiceTime: 0
+      voiceTime: voiceIntro ? recordDuration.value : 0
     })
 
     showToastMsg('提交成功，等待审核')

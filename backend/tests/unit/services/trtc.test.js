@@ -1,5 +1,11 @@
 const SERVICE_PATH = '../../../src/services/trtcService';
 
+// trtcService 现在要查 xn_call_record 做房间成员校验（安全扫描 C-4），
+// 这里整体替换 models 模块：单测不加载真实 Sequelize，同时拿到 findOne 替身。
+jest.mock('../../../src/models', () => ({
+  CallRecord: { findOne: jest.fn() }
+}));
+
 // 黄金测试向量：由腾讯官方 npm 包 tls-sig-api-v2@1.0.2 在冻结时钟下生成，
 // 与本项目实现逐字节比对通过。若算法被改坏，这些断言会立刻失败。
 // 生成条件：APP_ID=1400000001，SECRET=test-secret-key-0123456789，
@@ -127,6 +133,117 @@ describe('TRTC服务', () => {
       expect(result).toBeDefined();
       expect(result.roomId).toBe('room-123');
       expect(result.serverTime).toBeDefined();
+    });
+  });
+
+  // 安全扫描 C-4：票据不再无条件签发，进房前必须证明「你是这通电话的双方之一」。
+  // 参与者名单唯一真相来源是 xn_call_record，这里用 models 替身驱动。
+  describe('房间成员校验', () => {
+    let trtcService;
+    let CallRecord;
+
+    beforeEach(() => {
+      // 每个用例都重新装配 service + models 替身，避免与前面 describe 的 resetModules 互相污染
+      jest.resetModules();
+      trtcService = require(SERVICE_PATH);
+      CallRecord = require('../../../src/models').CallRecord;
+      jest.spyOn(Date, 'now').mockReturnValue(FIXED_TIME * 1000);
+    });
+
+    const roomCall = (overrides = {}) => ({
+      id: 7,
+      trtc_room_id: 555,
+      caller_id: 1001,
+      callee_id: 2002,
+      status: 1,
+      create_time: FIXED_TIME,
+      ...overrides
+    });
+
+    it('resolveRoomCall 放行主叫与被叫', async () => {
+      CallRecord.findOne.mockResolvedValue(roomCall());
+
+      await expect(trtcService.resolveRoomCall(1001, '555')).resolves.toMatchObject({ id: 7 });
+      await expect(trtcService.resolveRoomCall(2002, 555)).resolves.toMatchObject({ id: 7 });
+      expect(CallRecord.findOne).toHaveBeenCalledWith({
+        where: { trtc_room_id: 555 },
+        order: [['status', 'ASC'], ['create_time', 'DESC']]
+      });
+    });
+
+    it('resolveRoomCall 拒绝非成员与不存在的房间', async () => {
+      CallRecord.findOne.mockResolvedValue(roomCall());
+      await expect(trtcService.resolveRoomCall(3003, '555')).rejects.toThrow('无权进入该房间');
+
+      CallRecord.findOne.mockResolvedValue(null);
+      await expect(trtcService.resolveRoomCall(1001, '999')).rejects.toThrow('房间不存在或已过期');
+    });
+
+    it('resolveRoomCall 房间号非法时先拦截，不查库', async () => {
+      for (const bad of ['abc', '', '0', '-5', null, undefined]) {
+        await expect(trtcService.resolveRoomCall(1001, bad)).rejects.toThrow('房间号格式不正确');
+      }
+      expect(CallRecord.findOne).not.toHaveBeenCalled();
+    });
+
+    it('requireEnterableRoom 只放行呼叫中/已接通的房间', async () => {
+      for (const status of [0, 1]) {
+        CallRecord.findOne.mockResolvedValue(roomCall({ status }));
+        await expect(trtcService.requireEnterableRoom(1001, '555')).resolves.toMatchObject({ status });
+      }
+
+      for (const status of [2, 3, 4, 5]) {
+        CallRecord.findOne.mockResolvedValue(roomCall({ status }));
+        await expect(trtcService.requireEnterableRoom(1001, '555'))
+          .rejects.toThrow('通话已结束，无法进入该房间');
+      }
+    });
+
+    it('enterRoom 校验通过后才发票据，并回带通话上下文', async () => {
+      CallRecord.findOne.mockResolvedValue(roomCall({ status: 1 }));
+
+      const result = await trtcService.enterRoom(1001, '555');
+      expect(result).toMatchObject({ roomId: '555', userId: 1001, callId: 7, callStatus: 1 });
+      expect(result.enterTime).toBe(FIXED_TIME);
+    });
+
+    it('enterRoom 对非成员与已结束的通话都不发票据', async () => {
+      CallRecord.findOne.mockResolvedValue(roomCall());
+      await expect(trtcService.enterRoom(3003, '555')).rejects.toThrow('无权进入该房间');
+
+      CallRecord.findOne.mockResolvedValue(roomCall({ status: 4 }));
+      await expect(trtcService.enterRoom(1001, '555')).rejects.toThrow('通话已结束，无法进入该房间');
+    });
+
+    // 退房不能要求通话仍进行中：主叫挂断后本地仍要能干净离开房间
+    it('leaveRoom 不限制通话状态，但仍校验成员', async () => {
+      CallRecord.findOne.mockResolvedValue(roomCall({ status: 4 }));
+      await expect(trtcService.leaveRoom(2002, '555')).resolves.toMatchObject({ callId: 7, success: true });
+
+      await expect(trtcService.leaveRoom(3003, '555')).rejects.toThrow('无权进入该房间');
+    });
+
+    it('getRoomInfo 返回真实通话状态（不再写死 active）', async () => {
+      CallRecord.findOne.mockResolvedValue(roomCall({ status: 1 }));
+      expect(await trtcService.getRoomInfo(1001, '555')).toMatchObject({
+        roomId: '555', callId: 7, status: 'active', statusCode: 1,
+        callerId: 1001, calleeId: 2002, createTime: FIXED_TIME
+      });
+
+      CallRecord.findOne.mockResolvedValue(roomCall({ status: 4 }));
+      expect(await trtcService.getRoomInfo(1001, '555')).toMatchObject({ status: 'ended', statusCode: 4 });
+
+      await expect(trtcService.getRoomInfo(3003, '555')).rejects.toThrow('无权进入该房间');
+    });
+
+    it('startBilling 同样受房间成员与通话状态约束', async () => {
+      CallRecord.findOne.mockResolvedValue(roomCall({ status: 1 }));
+      expect(await trtcService.startBilling(1001, '555', 2)).toMatchObject({ roomId: '555', callId: 7, callType: 2 });
+
+      CallRecord.findOne.mockResolvedValue(roomCall({ status: 2 }));
+      await expect(trtcService.startBilling(1001, '555', 2)).rejects.toThrow('通话已结束，无法进入该房间');
+
+      await expect(trtcService.startBilling(3003, '555', 2)).rejects.toThrow('无权进入该房间');
     });
   });
 });

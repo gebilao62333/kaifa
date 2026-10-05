@@ -19,11 +19,13 @@ jest.mock('../../../src/services/mediaAssetService', () => ({
   removeByBiz: jest.fn()
 }));
 jest.mock('../../../src/config/mysql', () => ({ transaction: jest.fn(), literal: jest.fn((s) => s) }));
+jest.mock('../../../src/services/levelService', () => ({ addExp: jest.fn() }));
 
 const bcrypt = require('bcryptjs');
 const circleService = require('../../../src/services/circleService');
 const { Post, PostLike, PostComment, PostUnlock, User } = require('../../../src/models');
 const mediaAssetService = require('../../../src/services/mediaAssetService');
+const levelService = require('../../../src/services/levelService');
 const sequelize = require('../../../src/config/mysql');
 
 const txn = () => ({ commit: jest.fn().mockResolvedValue(true), rollback: jest.fn().mockResolvedValue(true) });
@@ -43,6 +45,14 @@ describe('Service - CircleService', () => {
       expect(result).toEqual({ postId: 1 });
       expect(mediaAssetService.registerBatch).toHaveBeenCalled();
       expect(Post.create.mock.calls[0][0].images).toBe('a.jpg,b.jpg');
+      // 发布动态记经验
+      expect(levelService.addExp).toHaveBeenCalledWith(2, 'post_created');
+    });
+
+    it('发帖成功但记账经验失败时仍返回帖子', async () => {
+      Post.create.mockResolvedValue({ id: 8 });
+      levelService.addExp.mockRejectedValueOnce(new Error('exp db down'));
+      await expect(circleService.createPost(2, 'hi', [], '', [], '', 0)).resolves.toEqual({ postId: 8 });
     });
 
     it('creates a password-protected post（密码用 bcrypt 存储）', async () => {

@@ -98,7 +98,9 @@ export const useUserStore = defineStore('user', {
       } catch (error) {
         console.error('登录失败:', error)
         const response = { success: false, message: error.message || '网络错误' }
-        if (error.fieldErrors) {
+        // 只有真正携带「按字段错误」时才走字段定位分支；空对象（如登录接口统一后的
+        // 通用 422）必须落回 message，否则 Login.vue 会因 fieldErrors 为空对象而不弹任何提示。
+        if (error.fieldErrors && Object.keys(error.fieldErrors).length > 0) {
           response.error = error
         }
         return response
@@ -152,12 +154,17 @@ export const useUserStore = defineStore('user', {
     async sendSms(phone, type = 'login') {
       try {
         const result = await authService.sendSms(phone, type)
-        // 安全（F-01）：后端在非生产环境可能返回明文验证码，
-        // 仅允许 DEV 下打印用于调试，绝不返回给调用方，更不写入 store/localStorage
+        // 安全（F-01）：后端仅在非生产环境回传明文验证码，生产永不返回。
+        // 这里把它交回调用方用于自动填入验证码输入框（测试/本地联调路径），
+        // 不写入 store、不写入 localStorage。
         if (import.meta.env.DEV && result.data?.code) {
-          console.debug('[SMS] 开发环境验证码:', result.data.code)
+          console.debug('[SMS] 非生产环境验证码:', result.data.code)
         }
-        return { success: result.code === 200, message: result.message }
+        return {
+          success: result.code === 200,
+          message: result.message,
+          devCode: result.data?.code || ''
+        }
       } catch (error) {
         console.error('发送短信失败:', error)
         return { success: false, message: error.message || '发送失败' }
@@ -290,6 +297,11 @@ export const useUserStore = defineStore('user', {
     },
 
     logout() {
+      // 审计 H-5：先发起服务端登出（这一行同步阶段就把当前令牌写进了请求头），
+      // 再清本地态。失败/超时不阻塞退出，但把 promise 返回给调用方，需要时可提示
+      // 「服务端未确认登出」——令牌在其剩余有效期内可能仍可用，属后端 fail-closed 时的降级。
+      const logoutRequest = authService.logout().catch(() => null)
+
       this.token = ''
       this.profile = null
       this.configInfo = {}
@@ -305,6 +317,8 @@ export const useUserStore = defineStore('user', {
 
       // 断开长连接，避免登出后仍以旧身份保持在线
       try { socketService.disconnect() } catch (e) { /* ignore */ }
+
+      return logoutRequest
     },
 
     initFromStorage() {

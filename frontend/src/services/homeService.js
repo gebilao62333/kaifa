@@ -54,6 +54,10 @@ const homeService = {
 
   async getNotice() {
     return request('/api/notice/list', 'GET')
+  },
+
+  async getSplashList() {
+    return request('/api/splash/active', 'GET')
   }
 }
 

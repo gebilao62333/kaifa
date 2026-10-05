@@ -8,10 +8,12 @@ const { SystemSettings } = require('../models');
  * 现有键：
  *  - order_commission_rate  陪玩订单分成（默认 0.7）
  *  - reserve_commission_rate 预约完成结算分成（默认 1，即全额给陪玩师）
+ *
+ * transaction 可选：结算类调用传入自己的事务，让「读比例」和「写金额」处于同一快照。
  */
-const getCommissionRate = async (key, fallback) => {
+const getCommissionRate = async (key, fallback, transaction) => {
   try {
-    const row = await SystemSettings.findOne({ where: { key } });
+    const row = await SystemSettings.findOne({ where: { key }, transaction });
     const rate = row ? Number(row.value) : NaN;
     if (Number.isFinite(rate) && rate >= 0 && rate <= 1) {
       return rate;

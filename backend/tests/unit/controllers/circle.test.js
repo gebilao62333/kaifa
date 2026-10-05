@@ -16,10 +16,11 @@ jest.mock('../../../src/services', () => ({
   cosSignedUrlService: {
     resolveUrls: jest.fn(urls => Promise.resolve(urls || [])),
     getSignedAccessUrl: jest.fn(url => Promise.resolve(url))
-  }
+  },
+  levelService: { requireLevel: jest.fn() }
 }));
 
-const { circleService } = require('../../../src/services');
+const { circleService, levelService } = require('../../../src/services');
 
 // getAdminPosts 直接使用 models 查询，需 mock 避免连真实数据库
 jest.mock('../../../src/models', () => ({
@@ -76,8 +77,34 @@ describe('Controller - Circle', () => {
       );
     });
 
-    it('should create post with valid content', async () => {
-      const mockPost = { id: 1, content: '测试帖子' };
+    it('文字动态不需要图片权益等级', async () => {
+      circleService.createPost.mockResolvedValue({ id: 1 });
+      const res = mockRes();
+      await circleController.createPost(mockReq({ body: { content: '只发文字' } }), res);
+      expect(levelService.requireLevel).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(201);
+    });
+
+    it('带图片的动态先校验 Lv.15 发布图片权益', async () => {
+      circleService.createPost.mockResolvedValue({ id: 2 });
+      const res = mockRes();
+      await circleController.createPost(mockReq({ body: { content: '看图', images: ['a.jpg', 'b.jpg'] } }), res);
+      expect(levelService.requireLevel).toHaveBeenCalledWith(100001, 'post_images');
+      expect(res.status).toHaveBeenCalledWith(201);
+    });
+
+    it('等级不足时发布图片返回 422 并且不落帖', async () => {
+      levelService.requireLevel.mockRejectedValue(
+        Object.assign(new Error('等级不足：解锁动态发布图片需要 Lv.15（当前 Lv.6）'), { code: 'LEVEL_NOT_ENOUGH', needLevel: 15 })
+      );
+      const res = mockRes();
+      await circleController.createPost(mockReq({ body: { content: '看图', images: ['a.jpg'] } }), res);
+      expect(circleService.createPost).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(422);
+      expect(res.json.mock.calls[0][0].message).toContain('Lv.15');
+    });
+
+    it('should create post with valid content', async () => {      const mockPost = { id: 1, content: '测试帖子' };
       circleService.createPost.mockResolvedValue(mockPost);
 
       const req = mockReq({

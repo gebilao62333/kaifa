@@ -9,12 +9,17 @@ jest.mock('../../../src/config', () => {
   const path = require('path');
   return {
     nodeEnv: 'test',
-    jwt: { expiresIn: '7d', refreshExpiresIn: '30d', secret: 's' },
+    jwt: { expiresIn: '7d', refreshExpiresIn: '30d', adminExpiresIn: '12h', secret: 's' },
     admin: { emergencyLogin: false },
     paths: { logs: path.join(os.tmpdir(), 'dsh-admin-test-logs') }
   };
 });
-jest.mock('../../../src/config/jwt', () => ({ signToken: jest.fn(() => 'tok'), verifyToken: jest.fn() }));
+jest.mock('../../../src/config/jwt', () => ({
+  signToken: jest.fn(() => 'tok'),
+  verifyToken: jest.fn(),
+  // 审计 H-4：控制器按用途签发令牌，mock 必须提供与 src/config/jwt.js 同名同值的常量
+  TOKEN_TYPES: { ACCESS: 'access', REFRESH: 'refresh', ADMIN: 'admin', ADMIN_REFRESH: 'admin_refresh' }
+}));
 jest.mock('../../../src/config/mysql', () => ({
   query: jest.fn(),
   literal: jest.fn((s) => s),
@@ -52,10 +57,27 @@ jest.mock('../../../src/models', () => {
   };
 });
 
+jest.mock('../../../src/services/adminLoginGuard', () => ({
+  ADMIN_LOGIN_MAX_FAILS: 5,
+  ADMIN_LOGIN_FAIL_WINDOW: 900,
+  normalizeLoginName: jest.fn((username) => String(username || '').trim().toLowerCase()),
+  getLoginLockState: jest.fn(),
+  recordLoginFailure: jest.fn(),
+  clearLoginFailures: jest.fn()
+}));
+
+// 审计 H-5：封号后顺带作废该用户的全部会话（尽力而为，失败不阻塞封号）
+jest.mock('../../../src/services/tokenRevocation', () => ({
+  revokeAllUserTokens: jest.fn()
+}));
+
 const bcrypt = require('bcryptjs');
 const config = require('../../../src/config');
+const { signToken, TOKEN_TYPES } = require('../../../src/config/jwt');
 const sequelize = require('../../../src/config/mysql');
 const virtualUserService = require('../../../src/services/virtualUserService');
+const adminLoginGuard = require('../../../src/services/adminLoginGuard');
+const tokenRevocation = require('../../../src/services/tokenRevocation');
 const {
   User, GameOrder, Withdraw, GiftLog, Post, VipPackage, RechargePackage, Banner,
   SplashScreen, CompanionProfile, Game, OrderChong, Report, Admin, AdminRole,
@@ -105,6 +127,11 @@ describe('Controller - Admin (admin.js)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     config.admin.emergencyLogin = false;
+    // 默认「可确认且未锁定」，让既有用例继续走各自的口令分支
+    adminLoginGuard.getLoginLockState.mockResolvedValue({ verifiable: true, locked: false, fails: 0, retryAfterSec: 0 });
+    adminLoginGuard.recordLoginFailure.mockResolvedValue(1);
+    adminLoginGuard.clearLoginFailures.mockResolvedValue(undefined);
+    tokenRevocation.revokeAllUserTokens.mockResolvedValue({ ok: true, verifiable: true, reason: 'revoked-all' });
     // 常用安全默认值
     User.findAll.mockResolvedValue([]);
     CompanionProfile.findOne.mockResolvedValue(null);
@@ -127,6 +154,13 @@ describe('Controller - Admin (admin.js)', () => {
       const res = mockRes();
       await adminController.adminLogin(mockReq({ body: { username: 'admin', password: 'p' } }), res);
       expect(res.status).toHaveBeenCalledWith(200);
+      // 审计 H-4：管理端令牌必须带 type=admin，不能被用户端 access 校验通过
+      // 审计 M-2：时效改用专用 adminExpiresIn，并带 adminScope 声明主体类型
+      expect(signToken).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, role: 'admin', adminScope: 'account', role_id: 2 }),
+        config.jwt.adminExpiresIn,
+        TOKEN_TYPES.ADMIN
+      );
     });
 
     it('logs in via role account', async () => {
@@ -136,6 +170,12 @@ describe('Controller - Admin (admin.js)', () => {
       const res = mockRes();
       await adminController.adminLogin(mockReq({ body: { username: 'role', password: 'p' } }), res);
       expect(res.status).toHaveBeenCalledWith(200);
+      // 审计 H-4：角色账号同样只能签 admin 用途；审计 M-2：adminScope 标明 id 指向 AdminRole
+      expect(signToken).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 7, role: 'admin', adminScope: 'role', roleId: 7 }),
+        config.jwt.adminExpiresIn,
+        TOKEN_TYPES.ADMIN
+      );
     });
 
     it('rejects disabled admin and wrong password', async () => {
@@ -164,6 +204,12 @@ describe('Controller - Admin (admin.js)', () => {
       const res = mockRes();
       await adminController.adminLogin(mockReq({ body: { username: 'envadmin', password: 'envpass' } }), res);
       expect(res.status).toHaveBeenCalledWith(200);
+      // 审计 H-4：应急通道也只签 admin 用途令牌；审计 M-2：adminScope=emergency 供中间件区分主体
+      expect(signToken).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 0, role: 'admin', adminScope: 'emergency', permissions: ['all'] }),
+        config.jwt.adminExpiresIn,
+        TOKEN_TYPES.ADMIN
+      );
     });
 
     it('returns 401 with wrong env credentials', async () => {
@@ -172,6 +218,72 @@ describe('Controller - Admin (admin.js)', () => {
       const res = mockRes();
       await adminController.adminLogin(mockReq({ body: { username: 'envadmin', password: 'nope' } }), res);
       expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    // ===== 审计 H-3：后台登录失败锁定 =====
+    it('short-circuits a locked account with 429 before touching the database', async () => {
+      adminLoginGuard.getLoginLockState.mockResolvedValue({ verifiable: true, locked: true, fails: 5, retryAfterSec: 610 });
+      const res = mockRes();
+      await adminController.adminLogin(mockReq({ body: { username: 'admin', password: 'p' } }), res);
+
+      expect(res.status).toHaveBeenCalledWith(429);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        code: 429,
+        message: '登录失败次数过多，请 11 分钟后再试'
+      }));
+      expect(Admin.findOne).not.toHaveBeenCalled();
+      expect(bcrypt.compare).not.toHaveBeenCalled();
+      expect(adminLoginGuard.recordLoginFailure).not.toHaveBeenCalled();
+    });
+
+    it('refuses to guess when the lock state is unverifiable (Redis down)', async () => {
+      adminLoginGuard.getLoginLockState.mockResolvedValue({ verifiable: false, locked: false, fails: 0, retryAfterSec: 0 });
+      const res = mockRes();
+      await adminController.adminLogin(mockReq({ body: { username: 'admin', password: 'p' } }), res);
+
+      expect(res.status).toHaveBeenCalledWith(503);
+      expect(Admin.findOne).not.toHaveBeenCalled();
+    });
+
+    it('counts a failed password attempt', async () => {
+      Admin.findOne.mockResolvedValue({ id: 1, username: 'a', status: 1, password: 'h', role_id: null });
+      bcrypt.compare.mockResolvedValue(false);
+      const res = mockRes();
+      await adminController.adminLogin(mockReq({ body: { username: 'a', password: 'p' } }), res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(adminLoginGuard.recordLoginFailure).toHaveBeenCalledWith('a');
+      expect(adminLoginGuard.clearLoginFailures).not.toHaveBeenCalled();
+    });
+
+    it('counts a wrong emergency password too', async () => {
+      config.admin.emergencyLogin = true;
+      Admin.findOne.mockRejectedValue(new Error('db down'));
+      const res = mockRes();
+      await adminController.adminLogin(mockReq({ body: { username: 'envadmin', password: 'nope' } }), res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(adminLoginGuard.recordLoginFailure).toHaveBeenCalledWith('envadmin');
+    });
+
+    it('clears the counter on successful login', async () => {
+      Admin.findOne.mockResolvedValue({ id: 1, username: 'admin', status: 1, password: 'h', role_id: null });
+      bcrypt.compare.mockResolvedValue(true);
+      const res = mockRes();
+      await adminController.adminLogin(mockReq({ body: { username: 'admin', password: 'p' } }), res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(adminLoginGuard.clearLoginFailures).toHaveBeenCalledWith('admin');
+      expect(adminLoginGuard.recordLoginFailure).not.toHaveBeenCalled();
+    });
+
+    it('does not count requests that never reached credential checking', async () => {
+      const res = mockRes();
+      await adminController.adminLogin(mockReq({ body: { username: 'admin' } }), res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(adminLoginGuard.getLoginLockState).not.toHaveBeenCalled();
+      expect(adminLoginGuard.recordLoginFailure).not.toHaveBeenCalled();
     });
   });
 
@@ -514,11 +626,27 @@ describe('Controller - Admin (admin.js)', () => {
     const ok = mockRes();
     await adminController.updateUserStatus(mockReq({ params: { id: '1' }, body: { status: '0' } }), ok);
     expect(ok.status).toHaveBeenCalledWith(200);
+    // 审计 H-5：封号顺带作废该用户全部会话
+    expect(tokenRevocation.revokeAllUserTokens).toHaveBeenCalled();
 
     User.findByPk.mockResolvedValue(null);
     const missing = mockRes();
     await adminController.updateUserStatus(mockReq({ params: { id: '1' }, body: { status: '0' } }), missing);
     expect(missing.status).toHaveBeenCalledWith(404);
+  });
+
+  it('解禁不吊销；吊销写不进 Redis 也不阻塞封号（审计 H-5 尽力而为）', async () => {
+    User.findByPk.mockResolvedValue(row());
+    const unban = mockRes();
+    await adminController.updateUserStatus(mockReq({ params: { id: '1' }, body: { status: '1' } }), unban);
+    expect(unban.status).toHaveBeenCalledWith(200);
+    expect(tokenRevocation.revokeAllUserTokens).not.toHaveBeenCalled();
+
+    tokenRevocation.revokeAllUserTokens.mockResolvedValue({ ok: false, verifiable: false, reason: 'redis-unavailable' });
+    const ban = mockRes();
+    await adminController.updateUserStatus(mockReq({ params: { id: '1' }, body: { status: '0' } }), ban);
+    // 封号本身靠 authMiddleware 每请求回查 status，吊销失败只记警告
+    expect(ban.status).toHaveBeenCalledWith(200);
   });
 
   it('updateOrderStatus handles missing and each status branch', async () => {
@@ -603,20 +731,40 @@ describe('Controller - Admin (admin.js)', () => {
   runDelete('deleteCompanionApplication', CompanionProfile);
 
   it('approveWithdraw approves pending and rejects other states', async () => {
-    Withdraw.findByPk.mockResolvedValue(row({ is_check: 0 }));
+    // 审计 C-2：审批改为条件更新（WHERE is_check=0），影响行数 1 才通过
+    Withdraw.update.mockResolvedValue([1]);
     const ok = mockRes();
     await adminController.approveWithdraw(mockReq({ params: { id: '1' } }), ok);
     expect(ok.status).toHaveBeenCalledWith(200);
+    expect(Withdraw.update).toHaveBeenCalledWith(
+      expect.objectContaining({ is_check: 1, status: 1, state: 'approved' }),
+      { where: { id: '1', is_check: 0 } }
+    );
 
+    Withdraw.update.mockResolvedValue([0]);
     Withdraw.findByPk.mockResolvedValue(row({ is_check: 1 }));
     const bad = mockRes();
     await adminController.approveWithdraw(mockReq({ params: { id: '1' } }), bad);
     expect(bad.status).toHaveBeenCalledWith(400);
 
+    Withdraw.update.mockResolvedValue([0]);
     Withdraw.findByPk.mockResolvedValue(null);
     const missing = mockRes();
     await adminController.approveWithdraw(mockReq({ params: { id: '1' } }), missing);
     expect(missing.status).toHaveBeenCalledWith(404);
+  });
+
+  it('approveWithdraw 并发双批时只有一次生效', async () => {
+    Withdraw.update.mockResolvedValueOnce([1]).mockResolvedValueOnce([0]);
+    Withdraw.findByPk.mockResolvedValue(row({ is_check: 1 }));
+
+    const first = mockRes();
+    await adminController.approveWithdraw(mockReq({ params: { id: '1' } }), first);
+    expect(first.status).toHaveBeenCalledWith(200);
+
+    const second = mockRes();
+    await adminController.approveWithdraw(mockReq({ params: { id: '1' } }), second);
+    expect(second.status).toHaveBeenCalledWith(400);
   });
 
   it('rejectWithdraw rejects and validates state', async () => {
@@ -624,6 +772,7 @@ describe('Controller - Admin (admin.js)', () => {
     sequelize.transaction.mockResolvedValue({ commit: jest.fn(), rollback: jest.fn() });
 
     Withdraw.findByPk.mockResolvedValue(row({ is_check: 0, remark: 'old' }));
+    Withdraw.update.mockResolvedValue([1]);
     const ok = mockRes();
     await adminController.rejectWithdraw(mockReq({ params: { id: '1' }, body: { reason: 'r' } }), ok);
     expect(ok.status).toHaveBeenCalledWith(200);
@@ -639,39 +788,78 @@ describe('Controller - Admin (admin.js)', () => {
     expect(err.status).toHaveBeenCalledWith(500);
   });
 
-  it('rejectWithdraw 同时置 status=2，并对 gift 渠道原路退回冻结金额', async () => {
+  it('rejectWithdraw 抢不到状态迁移（并发已处理）时不回滚退款', async () => {
+    const sequelize = require('../../../src/config/mysql');
+    const tx = { commit: jest.fn(), rollback: jest.fn(), finished: false };
+    sequelize.transaction.mockResolvedValue(tx);
+
+    Withdraw.findByPk.mockResolvedValue(row({ is_check: 0, channel: 'wallet', money: 100 }));
+    Withdraw.update.mockResolvedValue([0]);
+    const res = mockRes();
+    await adminController.rejectWithdraw(mockReq({ params: { id: '1' }, body: {} }), res);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(tx.rollback).toHaveBeenCalled();
+    expect(User.increment).not.toHaveBeenCalled();
+  });
+
+  it('rejectWithdraw 同时置 status=2，并对 gift 渠道退回 gift_money 与 money', async () => {
     const sequelize = require('../../../src/config/mysql');
     sequelize.transaction.mockResolvedValue({ commit: jest.fn(), rollback: jest.fn() });
 
-    const update = jest.fn().mockResolvedValue(true);
-    Withdraw.findByPk.mockResolvedValue(row({ is_check: 0, channel: 'gift', money: 100, update }));
+    Withdraw.findByPk.mockResolvedValue(row({ is_check: 0, channel: 'gift', money: 100 }));
+    Withdraw.update.mockResolvedValue([1]);
     const res = mockRes();
     await adminController.rejectWithdraw(mockReq({ params: { id: '1' }, body: { reason: 'r' } }), res);
 
     expect(res.status).toHaveBeenCalledWith(200);
-    // walletService.sumWalletWithdraw 按 status!==2 统计已申请提现，不置 2 会永久冻结用户资产
-    expect(update).toHaveBeenCalledWith(
+    // walletService.sumWalletWithdraw 按 status!==2 统计已申请提现，不置 2 会让统计口径长期偏大
+    expect(Withdraw.update).toHaveBeenCalledWith(
       expect.objectContaining({ is_check: 2, status: 2, state: 'rejected' }),
-      expect.anything()
+      expect.objectContaining({ where: { id: '1', is_check: 0 } })
     );
-    // gift 渠道申请时已扣减 gift_money，拒绝必须退回
+    // 申请时扣了 gift_money（额度）与 money（真实余额）两笔，拒绝必须都退回
     expect(User.increment).toHaveBeenCalledWith(
       'gift_money',
-      expect.objectContaining({ by: 100, where: { id: expect.anything() } })
+      expect.objectContaining({ by: 100, where: { id: 2 } })
+    );
+    expect(User.increment).toHaveBeenCalledWith(
+      'money',
+      expect.objectContaining({ by: 100, where: { id: 2 } })
     );
   });
 
-  it('rejectWithdraw 对 wallet 渠道不重复退回（余额为派生值）', async () => {
+  it('rejectWithdraw 对 wallet 渠道退回申请时扣减的 money（审计 C-2）', async () => {
     const sequelize = require('../../../src/config/mysql');
     sequelize.transaction.mockResolvedValue({ commit: jest.fn(), rollback: jest.fn() });
 
-    const update = jest.fn().mockResolvedValue(true);
-    Withdraw.findByPk.mockResolvedValue(row({ is_check: 0, channel: 'wallet', money: 100, update }));
+    Withdraw.findByPk.mockResolvedValue(row({ is_check: 0, channel: 'wallet', money: 100 }));
+    Withdraw.update.mockResolvedValue([1]);
     const res = mockRes();
     await adminController.rejectWithdraw(mockReq({ params: { id: '1' }, body: {} }), res);
 
     expect(res.status).toHaveBeenCalledWith(200);
-    expect(User.increment).not.toHaveBeenCalled();
+    expect(User.increment).toHaveBeenCalledWith(
+      'money',
+      expect.objectContaining({ by: 100, where: { id: 2 } })
+    );
+    expect(User.increment).not.toHaveBeenCalledWith(
+      'gift_money',
+      expect.anything()
+    );
+  });
+
+  it('rejectWithdraw 对历史 gift 单（channel 为空）按 gift 口径退回', async () => {
+    const sequelize = require('../../../src/config/mysql');
+    sequelize.transaction.mockResolvedValue({ commit: jest.fn(), rollback: jest.fn() });
+
+    Withdraw.findByPk.mockResolvedValue(row({ is_check: 0, channel: null, money: 60 }));
+    Withdraw.update.mockResolvedValue([1]);
+    const res = mockRes();
+    await adminController.rejectWithdraw(mockReq({ params: { id: '1' }, body: {} }), res);
+
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(User.increment).toHaveBeenCalledTimes(2);
   });
 
   it('handleReport validates status, missing report and success', async () => {
@@ -811,6 +999,30 @@ describe('Controller - Admin (admin.js)', () => {
     const created = ok.json.mock.calls[0][0];
     expect(created.data.list[0].cardKey).toMatch(/^\d{25}$/);
     expect(created.data.list[0].cardKey).not.toBe('DK9PW9');
+  });
+
+  // 审计 C-3：卡号/密码/密钥改为 crypto 生成，且唯一性检查同时覆盖卡号
+  it('createCard generates crypto-safe identifiers and checks both for duplicates', async () => {
+    const { Op } = require('sequelize');
+    Card.findOne.mockResolvedValue(null);
+    Card.create.mockResolvedValue(row({ id: 10, value: '10', coin_amount: 100 }));
+    await adminController.createCard(mockReq({ body: { faceValue: 10, coinAmount: 100, count: 2 } }), mockRes());
+
+    const [a, b] = [Card.create.mock.calls[0][0], Card.create.mock.calls[1][0]];
+    const ALPHABET = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]+$/;
+    // 卡号不再以 Date.now() 的 base36 开头（那会把可预测性交给发卡时间）
+    expect(a.card_no).toMatch(/^DK[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{14}$/);
+    expect(a.card_no.slice(2)).toMatch(ALPHABET);
+    expect(a.card_password).toMatch(ALPHABET);
+    expect(a.card_password).toHaveLength(12);
+    expect(a.card_key).toMatch(/^\d{25}$/);
+    // 两张卡的三件套都必须不同
+    expect(b.card_no).not.toBe(a.card_no);
+    expect(b.card_password).not.toBe(a.card_password);
+    expect(b.card_key).not.toBe(a.card_key);
+    // 查重一条查询覆盖卡号与密钥两列
+    const where = Card.findOne.mock.calls[0][0].where;
+    expect(where[Op.or].map((c) => Object.keys(c)[0]).sort()).toEqual(['card_key', 'card_no']);
   });
 
   it('deleteCard validates status', async () => {

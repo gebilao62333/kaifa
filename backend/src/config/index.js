@@ -1,7 +1,18 @@
 const path = require('path');
+const crypto = require('crypto');
+const { resolveTrustProxy } = require('./trustProxy');
 
 const nodeEnv = process.env.NODE_ENV || 'development';
 const isProd = nodeEnv === 'production';
+
+const jwtSecret = process.env.JWT_SECRET || 'default-secret-key';
+
+// 审计 M-3：管理端令牌此前与用户端令牌共用同一密钥，仅靠 payload 里的 role 声明区分，
+// 属于纵深防御缺失（用户端密钥泄露、或将来用户令牌带上 role 字段，即可伪造管理员身份）。
+// 现改用独立密钥：显式配置 ADMIN_JWT_SECRET 时完全隔离；未配置时用 HMAC-SHA256 + 固定标签
+// 从 JWT_SECRET 派生出**不同**的密钥材料，保证两类令牌互不通用（用错密钥签名直接验签失败）。
+// ⚠️ 派生值可被掌握 JWT_SECRET 的人算出，只有显式配置 ADMIN_JWT_SECRET 才是泄露隔离。
+const derivedAdminSecret = crypto.createHmac('sha256', jwtSecret).update('eudazi:admin-token:v1').digest('hex');
 
 if (isProd) {
   const required = ['JWT_SECRET', 'DB_PASSWORD'];
@@ -14,16 +25,38 @@ if (isProd) {
   }
 }
 
+// 审计 H-8：反代信任层级见 config/trustProxy.js；这里只做解析，取值非法即拒绝启动。
+const trustProxySetting = resolveTrustProxy(process.env.TRUST_PROXY);
+
 module.exports = {
   port: process.env.PORT || 3000,
   baseUrl: (process.env.SERVER_URL || `http://localhost:${process.env.PORT || 3000}`).replace(/\/+$/, ''),
   nodeEnv,
+  // 审计 H-8：NODE_ENV 缺省即 development，而所有限流器原先都按它整体放行。
+  // 这里显式导出「是否由运维设定」，供启动自检告警使用（见 server.js collectConfigRisks）。
+  nodeEnvExplicit: Boolean(process.env.NODE_ENV),
   useMockDb: process.env.USE_MOCK_DB === 'true',
+  trustProxy: trustProxySetting.value,
+  trustProxySource: trustProxySetting.source,
   
   jwt: {
-    secret: process.env.JWT_SECRET || 'default-secret-key',
+    secret: jwtSecret,
+    // 审计 M-3：管理端令牌独立密钥（与用户端分离），见文件顶部说明。
+    // adminSecretSource 供启动自检判断是否需要提示「未做泄露隔离」。
+    adminSecret: process.env.ADMIN_JWT_SECRET || derivedAdminSecret,
+    adminSecretSource: process.env.ADMIN_JWT_SECRET ? 'env' : 'derived',
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d'
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+    // 审计 M-2：管理端访问令牌单独定时效，不再与用户端共用 7 天。
+    // 后台权限/状态每次请求实时回读数据库，这里决定的是「凭令牌本身还能活多久」——
+    // 默认 12h（一个工作日），可用 ADMIN_JWT_EXPIRES_IN 调整（支持 s/m/h/d，如 '2h'、'1d'）
+    adminExpiresIn: process.env.ADMIN_JWT_EXPIRES_IN || '12h'
+  },
+
+  // 审计 M-8：实名信息（真实姓名/身份证号/正反面照）静态加密密钥（AES-256-GCM，见 utils/pii.js）。
+  // 生产环境缺失即拒绝启动（server.js 强制校验），非生产缺失时回落明文存储并告警。
+  pii: {
+    encryptionKey: process.env.PII_ENCRYPTION_KEY || ''
   },
   
   db: {
@@ -32,7 +65,9 @@ module.exports = {
       port: process.env.DB_PORT || 3306,
       name: process.env.DB_NAME || 'eudazi',
       user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '123456',
+      // 审计 H-9：原先兜底 '123456'，忘配 DB_PASSWORD 时会静默用弱口令连库；
+      // 现在保持未设置，连接直接失败，并由启动自检打印「DB_PASSWORD 未设置或为弱值」告警。
+      password: process.env.DB_PASSWORD || undefined,
       charset: process.env.DB_CHARSET || 'utf8mb4',
       pool: {
         max: parseInt(process.env.DB_POOL_MAX) || (process.env.NODE_ENV === 'production' ? 30 : 10),
@@ -103,7 +138,12 @@ module.exports = {
     secretKey: process.env.SMS_SECRET_KEY,
     sign: process.env.SMS_SIGN || 'eu搭子',
     templateId: process.env.SMS_TEMPLATE_ID,
-    notifyTemplateId: process.env.SMS_NOTIFY_TEMPLATE_ID
+    notifyTemplateId: process.env.SMS_NOTIFY_TEMPLATE_ID,
+    // 审计 M-5：非生产环境把验证码回传给调用方（前端联调自动回填）。
+    // 历史口径是 nodeEnv !== 'production'，而 NODE_ENV 未设置时 nodeEnv 会静默回落 'development'——
+    // 生产机器忘配 NODE_ENV 就把验证码直接写进响应体，等同于任意账号接管。
+    // 现要求「非生产」且「NODE_ENV 由运维显式声明」两个条件同时成立才回传。
+    returnCodeInDev: !isProd && Boolean(process.env.NODE_ENV)
   },
   
   trtc: {
@@ -151,7 +191,12 @@ module.exports = {
   
   rateLimit: {
     windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 60000,
-    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100
+    maxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+    // 审计 H-8：限流不再有「按环境整体放行」的隐含开关。确需临时关闭（压测/排障）必须显式声明，
+    // 且生产环境声明它会被 server.js 的强校验拒绝启动。
+    disabled: process.env.RATE_LIMIT_DISABLED === 'true',
+    // 验证码发送的 IP 维度频率（服务端另有按手机号 + 场景的 60 秒冷却，见 smsService）
+    smsMax: parseInt(process.env.SMS_RATE_LIMIT_MAX) || 1
   },
   
   cors: {

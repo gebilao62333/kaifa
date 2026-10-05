@@ -218,6 +218,24 @@ describe('common/request - HTTP 层', () => {
     await expect(common.request('/api/demo', 'GET')).rejects.toThrow('请求失败 (403)')
   })
 
+  // 安全扫描 H-5：生产 fail-closed 下 503（吊销状态无法确认）与 429 的可读文案必须到用户眼前
+  it('503 且响应体含 message 时透传后端消息', async () => {
+    fetchMock.mockResolvedValue(makeResponse(503, { message: '登出服务暂时不可用，请稍后重试' }))
+    let captured = null
+    try {
+      await common.request('/api/demo', 'POST', {})
+    } catch (e) {
+      captured = e
+    }
+    expect(captured.status).toBe(503)
+    expect(captured.message).toBe('登出服务暂时不可用，请稍后重试')
+  })
+
+  it('非 2xx 且响应体非法 JSON 时保留「请求失败 (状态码)」', async () => {
+    fetchMock.mockResolvedValue(makeResponse(503, 'gateway down'))
+    await expect(common.request('/api/demo', 'GET')).rejects.toThrow('请求失败 (503)')
+  })
+
   it('空响应体返回 code 200 且 data 为 null', async () => {
     fetchMock.mockResolvedValue(makeResponse(200, ''))
     await expect(common.request('/api/demo', 'GET')).resolves.toEqual({ code: 200, data: null, message: 'success' })

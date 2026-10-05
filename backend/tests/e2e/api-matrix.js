@@ -12,6 +12,7 @@ const fs = require('fs');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 const config = require('../../src/config');
+const { TOKEN_TYPES } = require('../../src/config/jwt');
 const sequelize = require('../../src/config/mysql');
 
 const BASE = process.env.MATRIX_BASE || 'http://127.0.0.1:3000';
@@ -162,7 +163,8 @@ function rank(r) {
   await ensureBackend();
   await sequelize.authenticate();
   const ids = await sampleIds();
-  const TOKEN_USER = jwt.sign({ userId: ids.userId }, config.jwt.secret, { expiresIn: '2h' });
+  // 审计 H-4：测试令牌必须带 type=access
+  const TOKEN_USER = jwt.sign({ userId: ids.userId, type: TOKEN_TYPES.ACCESS }, config.jwt.secret, { expiresIn: '2h' });
   const H_USER = { Authorization: 'Bearer ' + TOKEN_USER };
   const H_ADMIN = { 'x-admin-token': config.admin.token };
   const H_NONE = {};

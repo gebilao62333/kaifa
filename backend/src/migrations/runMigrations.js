@@ -19,6 +19,7 @@ const runMigrations = async () => {
   const { up: dropLegacyTablesUp } = require('./20261001000002_drop_legacy_tables');
   const { up: redPacketUniqueUp } = require('./20261003000001_add_red_packet_log_unique');
   const { up: cardKeyUp } = require('./20261003000003_add_card_key');
+  const { up: userExpUp } = require('./20261004000001_add_user_exp_and_backfill');
 
   console.log('\n1. 添加货币单位字段...');
   await currencyUp();
@@ -43,6 +44,9 @@ const runMigrations = async () => {
 
   console.log('\n8. 补密卡 25 位充值密钥字段（xn_card.card_key）...');
   await cardKeyUp();
+
+  console.log('\n9. 补用户经验/签到字段并按历史行为回填等级...');
+  await userExpUp();
 
   console.log('\n========== 数据库迁移完成 ==========');
 };

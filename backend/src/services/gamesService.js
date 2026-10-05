@@ -4,6 +4,8 @@ const { Op } = require('sequelize');
 const sequelize = require('../config/mysql');
 const { getCommissionRate } = require('./settingsService');
 const { moneyMinus } = require('../utils/sql');
+const levelService = require('./levelService');
+const logger = require('../utils/logger');
 
 // 订单分账比例（陪玩师分成）默认值：系统设置 order_commission_rate 缺省时使用
 const ORDER_COMMISSION_DEFAULT = 0.7;
@@ -240,7 +242,15 @@ const startOrder = async (companionId, orderId) => {
     throw new Error('订单状态不正确');
   }
   
-  await order.update({ status: 2 });
+  // 审计 H-7：条件更新占位（WHERE status=1），并发「开始 / 取消 / 申诉」不会互相覆盖状态。
+  const [affected] = await GameOrder.update(
+    { status: 2 },
+    { where: { id: orderId, target_user_id: companionId, status: 1 } }
+  );
+
+  if (!affected) {
+    throw new Error('订单状态不正确');
+  }
   
   return true;
 };
@@ -262,20 +272,31 @@ const completeOrder = async (userId, orderId) => {
   
   const companionUserId = order.target_user_id || order.companion_id;
   const totalPrice = Number(order.total_price) || 0;
-  const rate = await getCommissionRate('order_commission_rate', ORDER_COMMISSION_DEFAULT);
-  const companionIncome = Math.round(totalPrice * rate * 100) / 100;
   
   // 完成订单：给陪玩师分账 + 累加其资料（收入/单量），全部在同一事务内保证一致
   const transaction = await User.sequelize.transaction();
   
   try {
-    await order.update({
+    // 审计 H-7：分账比例在事务内读取，并先抢占状态迁移（WHERE status=2）再打款——
+    // 改造前「findByPk 判 status=2 → update(status=3) → increment(gift_money)」，
+    // 两个并发完成请求会各自通过校验并各分一次账（重复分账），同项目 cancelOrder 早已是条件更新写法。
+    const rate = await getCommissionRate('order_commission_rate', ORDER_COMMISSION_DEFAULT, transaction);
+    const companionIncome = Math.round(totalPrice * rate * 100) / 100;
+
+    const [claimed] = await GameOrder.update({
       status: 3,
       // 复用 amount 列记录陪玩师实际到手收入，供钱包收入聚合
       amount: companionIncome,
       user_time: getTimestamp(),
       end_time: getTimestamp()
-    }, { transaction });
+    }, {
+      where: { id: orderId, user_id: userId, status: 2 },
+      transaction
+    });
+
+    if (!claimed) {
+      throw new Error('订单状态不正确');
+    }
     
     if (companionUserId && companionIncome > 0) {
       await User.increment('gift_money', {
@@ -290,9 +311,13 @@ const completeOrder = async (userId, orderId) => {
       });
     }
     
+    // 锁住陪玩师资料行：income_total/order_num 是「读旧值再写新值」，
+    // 不加锁时并发完成两单会丢掉其中一单的累加（同 skinService 的处理）。
+    const lock = transaction.LOCK ? transaction.LOCK.UPDATE : undefined;
     const profile = await CompanionProfile.findOne({
       where: { user_id: companionUserId },
-      transaction
+      transaction,
+      lock
     });
     if (profile) {
       await profile.update({
@@ -307,7 +332,17 @@ const completeOrder = async (userId, orderId) => {
     await transaction.rollback();
     throw error;
   }
-  
+
+  // 经验来源：完成陪玩订单 +50（给接单方）。
+  // 必须在分账事务提交之后再记，经验失败不能回滚订单，也不能影响已完成的主流程。
+  if (companionUserId) {
+    try {
+      await levelService.addExp(companionUserId, 'order_completed');
+    } catch (e) {
+      logger.error('[订单] 记录完成经验失败:', e.message);
+    }
+  }
+
   return true;
 };
 
@@ -326,11 +361,20 @@ const appealOrder = async (userId, orderId, reason = '') => {
     throw new Error('当前订单状态不可申诉');
   }
   
-  await order.update({
-    status: 5,
-    appeal_reason: reason || '',
-    appeal_time: getTimestamp()
-  });
+  // 审计 H-7：条件更新占位（WHERE status IN (1,2,3)），并发申诉或与其他状态迁移交错时
+  // 只有一次生效，不会出现「已完成又被改回申诉中」的覆盖。
+  const [affected] = await GameOrder.update(
+    {
+      status: 5,
+      appeal_reason: reason || '',
+      appeal_time: getTimestamp()
+    },
+    { where: { id: orderId, user_id: userId, status: { [Op.in]: [1, 2, 3] } } }
+  );
+
+  if (!affected) {
+    throw new Error('当前订单状态不可申诉');
+  }
   
   return true;
 };
@@ -434,15 +478,19 @@ const applyAsCompanion = async (userId, gameId, price, tags, profile = {}) => {
   const existing = await CompanionProfile.findOne({
     where: { user_id: userId }
   });
-  
+
   // 仅写入模型实际存在的列，避免 Unknown column
   const extraFields = {
     icon: profile.icon || null,
     description: profile.description || null,
     voice_intro: profile.voiceIntro || null,
-    voice_time: parseInt(profile.voiceTime) || 0
+    voice_time: parseInt(profile.voiceTime) || 0,
+    // 未显式带类型时沿用原服务类型，避免编辑线上服务把线下类型改没
+    service_type: ['online', 'offline'].includes(profile.serviceType)
+      ? profile.serviceType
+      : (existing?.service_type || 'online')
   };
-  
+
   if (existing) {
     if (existing.status === 1) {
       throw new Error('申请正在审核中');
@@ -602,16 +650,30 @@ const evaluateOrder = async (userId, orderId, rating, comment) => {
   // 评价：写订单并回写陪玩师滚动平均分与评价数，事务内完成避免半更新
   const transaction = await User.sequelize.transaction();
   try {
-    await order.update({
+    const lock = transaction.LOCK ? transaction.LOCK.UPDATE : undefined;
+
+    // 审计 H-7：锁住订单行后重读，两个并发评价只有一个能落库；
+    // 否则同一单会被计两次，陪玩师的滚动平均分与评价数一并虚增。
+    const freshOrder = await GameOrder.findByPk(orderId, { transaction, lock });
+    if (!freshOrder || freshOrder.status !== 3 || freshOrder.user_id !== userId) {
+      throw new Error('订单尚未完成');
+    }
+    if (freshOrder.pingjia_status === 1) {
+      throw new Error('该订单已评价');
+    }
+
+    await freshOrder.update({
       star: score,
       content: comment || '',
       pingjia_status: 1,
       pingjia_time: getTimestamp()
     }, { transaction });
 
+    // 平均分同样是「读旧值再写新值」，锁住资料行才能让并发评价串行累加。
     const profile = await CompanionProfile.findOne({
       where: { user_id: companionUserId },
-      transaction
+      transaction,
+      lock
     });
     if (profile) {
       const count = profile.pingjia_num || 0;
@@ -728,6 +790,10 @@ const getMyServices = async (userId) => {
       gameName: game?.name || '',
       image: game?.image || '',
       price: Number(profile.price),
+      serviceType: profile.service_type || 'online',
+      serviceIcon: profile.icon || '',
+      voiceIntro: profile.voice_intro || '',
+      voiceTime: profile.voice_time || 0,
       tags: profile.tags ? profile.tags.split(',') : [],
       // status: 1=审核中 2=接单中 3=已暂停
       status: profile.status,

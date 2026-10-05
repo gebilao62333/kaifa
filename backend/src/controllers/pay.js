@@ -1,6 +1,30 @@
 const { payService, wechatPayService } = require('../services');
+// 只借用错误码常量：入账逻辑仍通过上面聚合入口调用，便于单测替换 service，
+// 而 controller 分流 HTTP 状态时需要一份不会变的契约（code），而不是靠比对中文文案。
+const { PAY_ERRORS } = require('../services/payService');
 const response = require('../utils/response');
 const logger = require('../utils/logger');
+
+// 审计 H-2：支付业务错误按 payService 挂上的 code 分流状态码。
+// 没有 code 的异常（数据库故障等意外错误）保持 500，不能伪装成 4xx 业务拒绝，
+// 否则监控告警和对账排查都会被误导。
+const payErrorResponse = (res, error) => {
+  const message = String((error && error.message) || '支付处理失败');
+  switch (error && error.code) {
+    case PAY_ERRORS.NOT_FOUND:
+      return response.notFound(res, message);
+    case PAY_ERRORS.FORBIDDEN:
+    case PAY_ERRORS.UNVERIFIED:
+      return response.forbidden(res, message);
+    case PAY_ERRORS.AMOUNT_MISMATCH:
+      return response.unprocessableEntity(res, message);
+    case PAY_ERRORS.SETTLED:
+      // 重复回执：钱已由先到的那笔事务入账一次，对调用方是幂等成功
+      return response.success(res, { duplicated: true }, '订单已入账');
+    default:
+      return response.error(res, message);
+  }
+};
 
 const getPackages = async (req, res) => {
   try {
@@ -55,40 +79,75 @@ const createWxOrder = async (req, res) => {
   }
 };
 
+// 微信支付异步通知是「未鉴权的公网入口」（只有 XML 里的 MD5 签名做身份），所以入口本身也要设防：
+//   1) 请求体上限 64KB —— 原实现把 chunk 无上限拼进字符串，任何人 POST 大 body 就能拖垮进程；
+//   2) 'end' 回调里的异常必须自己兜住 —— 原实现把 await 放在异步回调里，外层 try/catch 抓不到，
+//      一旦服务层抛错就既不回包也不记录，微信只会不停重发；
+//   3) return_msg 会被拼进 XML，先截断并拆掉 ']]>'，避免回显内容提前结束 CDATA 段。
+const WX_NOTIFY_MAX_BYTES = 64 * 1024;
+
+const notifyText = (msg) => String(msg || 'FAIL').slice(0, 80).replace(/\]\]>/g, '] ]>');
+
+const sendNotifyFail = (res, message) => {
+  res.set('Content-Type', 'text/xml');
+  res.send(`<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[${notifyText(message)}]]></return_msg></xml>`);
+};
+
 const wxNotify = async (req, res) => {
-  try {
-    let xmlData = '';
-    req.on('data', (chunk) => {
-      xmlData += chunk;
-    });
-    
-    req.on('end', async () => {
+  let xmlData = '';
+  let overflow = false;
+
+  req.on('data', (chunk) => {
+    if (overflow) return;
+    xmlData += chunk;
+    if (Buffer.byteLength(xmlData, 'utf8') > WX_NOTIFY_MAX_BYTES) {
+      overflow = true;
+      logger.error('[pay] wx-notify 请求体超过 64KB 上限，已拒绝');
+      sendNotifyFail(res, '请求体过大');
+      if (typeof req.destroy === 'function') req.destroy();
+    }
+  });
+
+  req.on('end', async () => {
+    if (overflow) return;
+    try {
+      if (!xmlData.trim()) {
+        return sendNotifyFail(res, '空回调内容');
+      }
+
       const result = await wechatPayService.handleNotify(xmlData);
-      
-      if (result.success) {
+
+      if (result && result.success) {
         res.set('Content-Type', 'text/xml');
         res.send('<xml><return_code><![CDATA[SUCCESS]]></return_code><return_msg><![CDATA[OK]]></return_msg></xml>');
       } else {
-        res.set('Content-Type', 'text/xml');
-        res.send('<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[FAIL]]></return_msg></xml>');
+        sendNotifyFail(res, (result && result.message) || 'FAIL');
       }
-    });
-  } catch (error) {
-    logger.error('微信支付回调错误:', error);
-    res.set('Content-Type', 'text/xml');
-    res.send('<xml><return_code><![CDATA[FAIL]]></return_code><return_msg><![CDATA[ERROR]]></return_msg></xml>');
-  }
+    } catch (error) {
+      logger.error('微信支付回调处理异常:', error);
+      sendNotifyFail(res, 'ERROR');
+    }
+  });
 };
 
+// 审计 H-2：这两个接口按订单号直接操作支付平台的单，原先只校验登录、不校验订单归属——
+// 任何登录用户都能用他人订单号反查支付状态，甚至关掉别人正在支付的单。先过归属再调平台接口。
 const queryWxOrder = async (req, res) => {
   try {
     const { orderNo } = req.query;
-    
+
     if (!orderNo) {
       return response.badRequest(res, '订单号不能为空');
     }
-    
+
     if (!wechatPayService.isConfigured()) { return response.serviceUnavailable(res, '微信支付未配置'); }
+
+    try {
+      await payService.requireOwnedOrder(req.userId, orderNo);
+    } catch (ownershipError) {
+      return payErrorResponse(res, ownershipError);
+    }
+
     const result = await wechatPayService.queryOrder(orderNo);
     response.success(res, result);
   } catch (error) {
@@ -100,12 +159,19 @@ const queryWxOrder = async (req, res) => {
 const closeWxOrder = async (req, res) => {
   try {
     const { orderNo } = req.body;
-    
+
     if (!orderNo) {
       return response.badRequest(res, '订单号不能为空');
     }
-    
+
     if (!wechatPayService.isConfigured()) { return response.serviceUnavailable(res, '微信支付未配置'); }
+
+    try {
+      await payService.requireOwnedOrder(req.userId, orderNo);
+    } catch (ownershipError) {
+      return payErrorResponse(res, ownershipError);
+    }
+
     const result = await wechatPayService.closeOrder(orderNo);
     response.success(res, result);
   } catch (error) {
@@ -117,13 +183,16 @@ const closeWxOrder = async (req, res) => {
 // 客户端支付回执：**必须先经服务端向支付平台反查确认，才能入账**。
 // 历史实现直接信任请求体里的 payNo/transactionId，任何人 POST 一次即可给自己充值。
 // 规则：
-//   1) 已配置微信支付参数 → 调 orderquery 反查，trade_state=SUCCESS 才入账；
-//   2) 未配置或反查失败 → 拒绝（403），不再静默入账；
-//   3) 仅本地联调可显式设置 ALLOW_UNVERIFIED_PAY_CALLBACK=true 放行，并会打印告警。
+//   1) 路由已加 authMiddleware，服务层再校验订单归属（只有下单人本人能触发这单入账）；
+//   2) 已配置微信支付参数 → 调 orderquery 反查，trade_state=SUCCESS 且返回的单号与请求一致才认可，
+//      反查拿到的实付分值一并交给服务层与订单应付值比对；
+//   3) 未配置或反查失败 → 拒绝（403），不再静默入账；
+//   4) 仅本地联调可显式设置 ALLOW_UNVERIFIED_PAY_CALLBACK=true 放行（非 production），会打印告警，
+//      且不带 paidCents（无平台金额可比），入账仍只按我们订单里记的金币数。
 const wxCallback = async (req, res) => {
   try {
     const { payNo, transactionId } = req.body;
-    
+
     if (!payNo) {
       return response.badRequest(res, '订单号不能为空');
     }
@@ -134,34 +203,59 @@ const wxCallback = async (req, res) => {
     const allowUnverified = process.env.ALLOW_UNVERIFIED_PAY_CALLBACK === 'true'
       && config.nodeEnv !== 'production';
 
+    let verification;
     if (allowUnverified) {
       logger.warn('[pay] ⚠️ ALLOW_UNVERIFIED_PAY_CALLBACK=true —— 接受未经校验的支付回执（仅非生产环境生效）！');
+      verification = { verified: true, source: 'local-unverified' };
     } else {
       if (process.env.ALLOW_UNVERIFIED_PAY_CALLBACK === 'true') {
         logger.error('[pay] 生产环境检测到 ALLOW_UNVERIFIED_PAY_CALLBACK=true，已强制忽略该开关');
       }
-      let verified = false;
-      let reason = '未配置微信支付参数';
 
-      if (config.wechat && config.wechat.appid) {
+      let reason = '未配置微信支付参数';
+      let queried = null;
+
+      if (wechatPayService.isConfigured()) {
         try {
-          const queried = await wechatPayService.queryOrder(payNo);
-          verified = !!queried && queried.status === 1;
-          reason = queried ? queried.tradeState : '订单查询无结果';
+          queried = await wechatPayService.queryOrder(payNo);
+          if (!queried) {
+            reason = '订单查询无结果';
+          } else if (queried.orderNo && queried.orderNo !== payNo) {
+            // 反查回来的单号与请求不一致：响应被串错或有人在中间做手脚，一律不认
+            reason = `反查返回的订单号与请求不一致：${queried.orderNo}`;
+            queried = null;
+          } else if (queried.status !== 1) {
+            reason = queried.tradeState || '订单未支付成功';
+            queried = null;
+          }
         } catch (queryError) {
           reason = queryError.message;
           logger.error('[pay] 支付回执反查失败:', queryError.message);
+          queried = null;
         }
       }
 
-      if (!verified) {
+      if (!queried) {
         logger.warn(`[pay] 拒绝未通过校验的支付回执 payNo=${payNo} reason=${reason}`);
         return response.forbidden(res, '支付结果未经服务端校验，拒绝入账');
       }
+
+      verification = {
+        verified: true,
+        source: 'wechat-query',
+        paidCents: queried.paidCents,
+        // 平台流水号仅作日志线索：xn_order_chong 无 pay_no 列可落库（见文档遗留项）
+        transactionId: queried.transactionId || transactionId
+      };
     }
-    
-    await payService.wxPayCallback(payNo, transactionId);
-    response.success(res, {}, '支付成功');
+
+    try {
+      const result = await payService.wxPayCallback(req.userId, payNo, verification);
+      return response.success(res, result, '支付成功');
+    } catch (settleError) {
+      logger.error('微信支付回调入账失败:', settleError);
+      return payErrorResponse(res, settleError);
+    }
   } catch (error) {
     logger.error('微信支付回调错误:', error);
     response.error(res, error.message);
@@ -176,24 +270,25 @@ const getOrderStatus = async (req, res) => {
       return response.badRequest(res, '订单号不能为空');
     }
     
-    const result = await payService.getOrderStatus(orderNo);
+    // 审计 H-2：带 user_id 查，避免用他人订单号探测支付状态
+    const result = await payService.getOrderStatus(req.userId, orderNo);
     response.success(res, result);
   } catch (error) {
     logger.error('查询订单状态错误:', error);
-    if (String(error.message) === '订单不存在') { return response.notFound(res, error.message); }
+    if (error && error.code === PAY_ERRORS.NOT_FOUND) { return response.notFound(res, error.message); }
     response.error(res, error.message);
   }
 };
 
 const validateCard = async (req, res) => {
   try {
-    const { cardCode } = req.body;
+    const { cardCode, cardPwd } = req.body;
 
     if (!cardCode) {
       return response.badRequest(res, '密卡不能为空');
     }
 
-    const result = await payService.validateCard(cardCode);
+    const result = await payService.validateCard(cardCode, cardPwd);
     response.success(res, result);
   } catch (error) {
     logger.error('验证密卡错误:', error);
@@ -203,13 +298,13 @@ const validateCard = async (req, res) => {
 
 const useCard = async (req, res) => {
   try {
-    const { cardCode } = req.body;
-    
+    const { cardCode, cardPwd } = req.body;
+
     if (!cardCode) {
       return response.badRequest(res, '密卡不能为空');
     }
-    
-    const result = await payService.useCard(req.userId, cardCode);
+
+    const result = await payService.useCard(req.userId, cardCode, cardPwd);
     response.success(res, result, '充值成功');
   } catch (error) {
     logger.error('使用密卡错误:', error);

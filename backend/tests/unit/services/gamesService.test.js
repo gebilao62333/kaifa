@@ -17,9 +17,13 @@ jest.mock('../../../src/models', () => {
 });
 jest.mock('../../../src/config/mysql', () => ({ literal: jest.fn((s) => s), transaction: jest.fn() }));
 jest.mock('../../../src/services/settingsService', () => ({ getCommissionRate: jest.fn() }));
+jest.mock('../../../src/services/levelService', () => ({ addExp: jest.fn() }));
+
+const levelService = require('../../../src/services/levelService');
 
 const gamesService = require('../../../src/services/gamesService');
 const { Game, CompanionProfile, GameOrder, User } = require('../../../src/models');
+const { Op } = require('sequelize');
 const { getCommissionRate } = require('../../../src/services/settingsService');
 
 const txn = () => ({ commit: jest.fn().mockResolvedValue(true), rollback: jest.fn().mockResolvedValue(true) });
@@ -167,10 +171,18 @@ describe('Service - GamesService', () => {
     });
 
     it('starts the order', async () => {
-      const update = jest.fn().mockResolvedValue(true);
-      GameOrder.findByPk.mockResolvedValue({ id: 1, target_user_id: 2, status: 1, update });
+      GameOrder.findByPk.mockResolvedValue({ id: 1, target_user_id: 2, status: 1 });
+      GameOrder.update.mockResolvedValue([1]);
       await expect(gamesService.startOrder(2, 1)).resolves.toBe(true);
-      expect(update).toHaveBeenCalledWith({ status: 2 });
+      expect(GameOrder.update.mock.calls[0][0]).toEqual({ status: 2 });
+      expect(GameOrder.update.mock.calls[0][1].where).toEqual({ id: 1, target_user_id: 2, status: 1 });
+    });
+
+    // 审计 H-7：条件更新落败（订单已被取消/申诉）时不得改写状态
+    it('refuses to start when the status moved concurrently', async () => {
+      GameOrder.findByPk.mockResolvedValue({ id: 1, target_user_id: 2, status: 1 });
+      GameOrder.update.mockResolvedValue([0]);
+      await expect(gamesService.startOrder(2, 1)).rejects.toThrow('订单状态不正确');
     });
   });
 
@@ -187,34 +199,64 @@ describe('Service - GamesService', () => {
     });
 
     it('splits income with and without a companion profile', async () => {
-      const update = jest.fn().mockResolvedValue(true);
-      GameOrder.findByPk.mockResolvedValue({ id: 1, user_id: 2, status: 2, target_user_id: 3, total_price: '100', update });
+      GameOrder.findByPk.mockResolvedValue({ id: 1, user_id: 2, status: 2, target_user_id: 3, total_price: '100' });
+      GameOrder.update.mockResolvedValue([1]);
       CompanionProfile.findOne.mockResolvedValue({ income_total: 5, order_num: 1, update: jest.fn().mockResolvedValue(true) });
       const tx = txn();
       User.sequelize.transaction.mockResolvedValue(tx);
 
       await expect(gamesService.completeOrder(2, 1)).resolves.toBe(true);
       expect(User.increment).toHaveBeenCalledTimes(2);
-      expect(update).toHaveBeenCalled();
+      // 先抢占 status=2 → 3，命中方才分账；分成比例在事务内读取
+      expect(GameOrder.update.mock.calls[0][0].status).toBe(3);
+      expect(GameOrder.update.mock.calls[0][1].where).toEqual({ id: 1, user_id: 2, status: 2 });
+      expect(getCommissionRate).toHaveBeenCalledWith('order_commission_rate', 0.7, tx);
+      // 完成订单给接单陪玩师记经验
+      expect(levelService.addExp).toHaveBeenCalledWith(3, 'order_completed');
 
       CompanionProfile.findOne.mockResolvedValue(null);
       User.sequelize.transaction.mockResolvedValue(txn());
       await expect(gamesService.completeOrder(2, 1)).resolves.toBe(true);
     });
 
+    // 审计 H-7：两个并发「完成订单」只有一个能命中条件更新，落败方不得再次分账
+    it('refuses to split twice when the complete claim is lost', async () => {
+      GameOrder.findByPk.mockResolvedValue({ id: 1, user_id: 2, status: 2, target_user_id: 3, total_price: '100' });
+      GameOrder.update.mockResolvedValue([0]);
+      const tx = txn();
+      User.sequelize.transaction.mockResolvedValue(tx);
+
+      await expect(gamesService.completeOrder(2, 1)).rejects.toThrow('订单状态不正确');
+      expect(User.increment).not.toHaveBeenCalled();
+      expect(CompanionProfile.findOne).not.toHaveBeenCalled();
+      expect(levelService.addExp).not.toHaveBeenCalled();
+      expect(tx.rollback).toHaveBeenCalled();
+    });
+
     it('skips increments when there is no companion id', async () => {
-      const update = jest.fn().mockResolvedValue(true);
-      GameOrder.findByPk.mockResolvedValue({ id: 1, user_id: 2, status: 2, target_user_id: 0, companion_id: 0, total_price: '100', update });
+      GameOrder.findByPk.mockResolvedValue({ id: 1, user_id: 2, status: 2, target_user_id: 0, companion_id: 0, total_price: '100' });
+      GameOrder.update.mockResolvedValue([1]);
       CompanionProfile.findOne.mockResolvedValue(null);
       User.sequelize.transaction.mockResolvedValue(txn());
 
       await expect(gamesService.completeOrder(2, 1)).resolves.toBe(true);
       expect(User.increment).not.toHaveBeenCalled();
+      expect(levelService.addExp).not.toHaveBeenCalled();
+    });
+
+    it('记账经验失败不影响订单完成', async () => {
+      GameOrder.findByPk.mockResolvedValue({ id: 1, user_id: 2, status: 2, target_user_id: 3, total_price: '100' });
+      GameOrder.update.mockResolvedValue([1]);
+      CompanionProfile.findOne.mockResolvedValue(null);
+      User.sequelize.transaction.mockResolvedValue(txn());
+      levelService.addExp.mockRejectedValueOnce(new Error('exp db down'));
+
+      await expect(gamesService.completeOrder(2, 1)).resolves.toBe(true);
     });
 
     it('rolls back on failure', async () => {
-      const update = jest.fn().mockRejectedValue(new Error('db'));
-      GameOrder.findByPk.mockResolvedValue({ id: 1, user_id: 2, status: 2, target_user_id: 3, total_price: '100', update });
+      GameOrder.findByPk.mockResolvedValue({ id: 1, user_id: 2, status: 2, target_user_id: 3, total_price: '100' });
+      GameOrder.update.mockRejectedValue(new Error('db'));
       const tx = txn();
       User.sequelize.transaction.mockResolvedValue(tx);
 
@@ -234,10 +276,19 @@ describe('Service - GamesService', () => {
       GameOrder.findByPk.mockResolvedValue({ id: 1, user_id: 2, status: 4 });
       await expect(gamesService.appealOrder(2, 1)).rejects.toThrow('当前订单状态不可申诉');
 
-      const update = jest.fn().mockResolvedValue(true);
-      GameOrder.findByPk.mockResolvedValue({ id: 1, user_id: 2, status: 1, update });
+      GameOrder.findByPk.mockResolvedValue({ id: 1, user_id: 2, status: 1 });
+      GameOrder.update.mockResolvedValue([1]);
       await expect(gamesService.appealOrder(2, 1, 'reason')).resolves.toBe(true);
-      expect(update).toHaveBeenCalled();
+      expect(GameOrder.update.mock.calls[0][0].appeal_reason).toBe('reason');
+      expect(GameOrder.update.mock.calls[0][1].where.user_id).toBe(2);
+      expect(GameOrder.update.mock.calls[0][1].where.status[Op.in]).toEqual([1, 2, 3]);
+    });
+
+    // 审计 H-7：并发申诉/状态变更时条件更新落败，不得把已完成订单改回申诉中
+    it('refuses when the appeal claim is lost', async () => {
+      GameOrder.findByPk.mockResolvedValue({ id: 1, user_id: 2, status: 1 });
+      GameOrder.update.mockResolvedValue([0]);
+      await expect(gamesService.appealOrder(2, 1, 'reason')).rejects.toThrow('当前订单状态不可申诉');
     });
   });
 
@@ -322,6 +373,33 @@ describe('Service - GamesService', () => {
       await expect(gamesService.applyAsCompanion(2, 1, 30, 'a')).resolves.toBe(true);
       expect(CompanionProfile.create).toHaveBeenCalled();
     });
+
+    it('persists the submitted service type', async () => {
+      const update = jest.fn().mockResolvedValue(true);
+      CompanionProfile.findOne.mockResolvedValue({ status: 0, update, service_type: 'offline' });
+      await gamesService.applyAsCompanion(2, 1, 30, 'a', { serviceType: 'online' });
+      expect(update.mock.calls[0][0].service_type).toBe('online');
+
+      CompanionProfile.findOne.mockResolvedValue(null);
+      CompanionProfile.create.mockResolvedValue({ id: 1 });
+      await gamesService.applyAsCompanion(2, 1, 30, 'a', { serviceType: 'offline' });
+      expect(CompanionProfile.create.mock.calls[0][0].service_type).toBe('offline');
+    });
+
+    it('keeps the original service type when the request omits or sends a bad one', async () => {
+      const update = jest.fn().mockResolvedValue(true);
+      CompanionProfile.findOne.mockResolvedValue({ status: 0, update, service_type: 'offline' });
+      await gamesService.applyAsCompanion(2, 1, 30, 'a', { description: 'd' });
+      expect(update.mock.calls[0][0].service_type).toBe('offline');
+
+      await gamesService.applyAsCompanion(2, 1, 30, 'a', { serviceType: 'whatever' });
+      expect(update.mock.calls[1][0].service_type).toBe('offline');
+
+      CompanionProfile.findOne.mockResolvedValue(null);
+      CompanionProfile.create.mockResolvedValue({ id: 1 });
+      await gamesService.applyAsCompanion(2, 1, 30, 'a');
+      expect(CompanionProfile.create.mock.calls[0][0].service_type).toBe('online');
+    });
   });
 
   it('getApplyStatus handles missing and existing profiles', async () => {
@@ -387,6 +465,22 @@ describe('Service - GamesService', () => {
       const result = await gamesService.evaluateOrder(2, 1, 5, 'nice');
       expect(result.rating).toBe(5);
       expect(tx.commit).toHaveBeenCalled();
+      // 审计 H-7：事务内二次加锁读取订单行，评价状态以重读结果为准
+      expect(GameOrder.findByPk).toHaveBeenCalledTimes(2);
+      expect(GameOrder.findByPk.mock.calls[1][1].transaction).toBe(tx);
+    });
+
+    // 审计 H-7：并发重复评价时，锁内重读已看到 pingjia_status=1，不得二次计入平均分
+    it('refuses a duplicate evaluation that passes the pre-read check', async () => {
+      GameOrder.findByPk
+        .mockResolvedValueOnce({ id: 1, order_no: 'O1', user_id: 2, status: 3, pingjia_status: 0, target_user_id: 3, update: jest.fn() })
+        .mockResolvedValueOnce({ id: 1, user_id: 2, status: 3, pingjia_status: 1 });
+      const tx = txn();
+      User.sequelize.transaction.mockResolvedValue(tx);
+
+      await expect(gamesService.evaluateOrder(2, 1, 5, 'nice')).rejects.toThrow('该订单已评价');
+      expect(CompanionProfile.findOne).not.toHaveBeenCalled();
+      expect(tx.rollback).toHaveBeenCalled();
     });
 
     it('rolls back on failure', async () => {
@@ -429,6 +523,15 @@ describe('Service - GamesService', () => {
     const result = await gamesService.getMyServices(2);
     expect(result.total).toBe(1);
     expect(result.list[0].gameName).toBe('g');
+    // 缺列时回落默认值，编辑页据此沿用类型与语音时长
+    expect(result.list[0]).toMatchObject({ serviceType: 'online', voiceIntro: '', voiceTime: 0 });
+
+    CompanionProfile.findAll.mockResolvedValue([{
+      id: 2, game_id: 2, price: '10', tags: 'a', status: 3,
+      service_type: 'offline', icon: 'https://cos/me.png', voice_intro: 'https://cos/v.webm', voice_time: 18
+    }]);
+    const typed = await gamesService.getMyServices(2);
+    expect(typed.list[0]).toMatchObject({ serviceType: 'offline', serviceIcon: 'https://cos/me.png', voiceIntro: 'https://cos/v.webm', voiceTime: 18 });
   });
 
   it('toggleServiceStatus switches between active and paused', async () => {

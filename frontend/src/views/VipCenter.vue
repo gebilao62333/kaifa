@@ -188,12 +188,27 @@ const loadVipPackages = async () => {
     }
   ]
   try {
+    // 套餐的价格、时长、等级由后端（管理端维护）下发；icon/desc/benefits 为展示文案，
+    // 库表暂无对应列，缺失时按等级回退到内置文案。
+    const metaByLevel = {}
+    defaultPackages.forEach(p => { metaByLevel[p.level] = p })
     const data = await getVipPackages()
-    packages.value = data
-    if (data.length > 0) {
-      const hotPkg = data.find(p => p.hot)
-      selectedPkgId.value = hotPkg ? hotPkg.id : data[0].id
-      data.forEach(pkg => {
+    packages.value = (data || []).map(pkg => {
+      const meta = metaByLevel[pkg.level] || {}
+      return {
+        ...pkg,
+        icon: pkg.icon || meta.icon || '👑',
+        desc: pkg.desc || meta.desc || `VIP${pkg.level} · ${pkg.duration}天`,
+        benefits: pkg.benefits || meta.benefits || [],
+        durations: (pkg.durations && pkg.durations.length)
+          ? pkg.durations
+          : [{ label: `${pkg.duration}天`, months: 1, price: String(pkg.price), original: pkg.original ? String(pkg.original) : null }]
+      }
+    })
+    if (packages.value.length > 0) {
+      const hotPkg = packages.value.find(p => p.hot)
+      selectedPkgId.value = hotPkg ? hotPkg.id : packages.value[0].id
+      packages.value.forEach(pkg => {
         selectedDurations.value[pkg.id] = pkg.durations[0].months
       })
     } else {
@@ -247,19 +262,26 @@ const buyVip = async () => {
   isLoading.value = true
 
   try {
-    const order = await createVipOrder(selectedPkgId.value, months, dur?.price || '0')
+    const order = await createVipOrder(selectedPkgId.value)
     if (import.meta.env.DEV) console.log('创建订单成功:', order)
 
     await completeVipOrder(order.orderNo)
     if (import.meta.env.DEV) console.log('VIP开通成功')
 
     await loadUserVipInfo()
+    // 服务端已完成扣币，刷新本地余额
+    await userStore.fetchUserInfo()
 
-    toast.success(`开通成功！${order.packageName || (pkg ? pkg.name + ' ' + (dur ? dur.label : '') : '')}`)
+    toast.success(`开通成功！${order.packageName || (pkg ? pkg.name : '')}`)
     router.back()
   } catch (error) {
     console.error('开通VIP失败:', error)
-    toast.error('开通失败，请稍后重试')
+    if (String(error.message).includes('余额不足')) {
+      toast.error('金币不足，请先充值')
+      router.push('/recharge')
+      return
+    }
+    toast.error(error.message || '开通失败，请稍后重试')
   } finally {
     isLoading.value = false
   }

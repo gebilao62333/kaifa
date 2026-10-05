@@ -31,6 +31,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import adminService from '@/services/adminService'
 
 const route = useRoute()
 const router = useRouter()
@@ -72,7 +73,9 @@ const isActive = (page) => {
 const pageTitle = computed(() => (route.meta && route.meta.title) || '管理后台')
 
 const handleLogout = () => {
-  localStorage.removeItem('admin_token')
+  // 审计 H-5：原先只删 admin_token，refresh 与权限快照 admin_user 都留在 localStorage 里，
+  // 而且服务端从未吊销令牌——现在统一交给 signOut()（请服务端吊销 + 清三件套）
+  adminService.signOut()
   router.push('/login')
 }
 </script>

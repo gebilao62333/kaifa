@@ -78,7 +78,7 @@ describe('Controller - VIP', () => {
     vipService.completeVipOrder.mockResolvedValue(true);
     const res = mockRes();
     await vipController.completeVipOrder(mockReq({ body: { orderNo: 'V1', transactionId: 't' } }), res);
-    expect(vipService.completeVipOrder).toHaveBeenCalledWith('V1', 't');
+    expect(vipService.completeVipOrder).toHaveBeenCalledWith('V1', 't', 100001);
     expect(res.status).toHaveBeenCalledWith(200);
   });
 

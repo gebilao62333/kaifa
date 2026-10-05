@@ -5,7 +5,7 @@ const { CURRENCY_UNIT, WITHDRAW_FEE_RATE, calculateWithdrawFee } = require('../u
 const { toFullUrl } = require('../utils/url');
 const { Op } = require('sequelize');
 const sequelize = require('../config/mysql');
-const { moneyMinus, affectedCount } = require('../utils/sql');
+const { moneyMinus, affectedCount, assertFiniteNumber } = require('../utils/sql');
 
 const sendGift = async (senderId, receiverId, giftId, roomId = 0, count = 1) => {
   const gift = await Gift.findByPk(giftId);
@@ -143,8 +143,9 @@ const withdraw = async (userId, goldCoins, type, bankInfo) => {
     throw new Error('用户不存在');
   }
 
-  const amount = Number(goldCoins);
-  
+  // assertFiniteNumber：NaN 既不 <100 也不 <=0，会一路穿透到 SQL 里变成 "gift_money - NaN"
+  const amount = assertFiniteNumber(goldCoins, '提现金额');
+
   if (amount < 100) {
     throw new Error(`最低提现金额为 100 ${CURRENCY_UNIT}`);
   }
@@ -172,6 +173,19 @@ const withdraw = async (userId, goldCoins, type, bankInfo) => {
       // 不在此处回滚：统一交给下方 catch 处理，避免二次 rollback 抛
       // "Transaction cannot be rolled back because it has been finished" 覆盖真实业务错误。
       throw new Error('可提现余额不足');
+    }
+
+    // 审计 C-2：礼物收益入账时是 money 与 gift_money **同时**增加的（见 sendGift），
+    // 只扣 gift_money 会让同一笔钱既能消费又能提现。故同步条件扣减真实余额 money，
+    // 扣不动说明收益已被消费，整笔回滚（gift_money 的扣减一并撤销）。
+    const moneyResult = await User.decrement('money', {
+      by: amount,
+      where: { id: userId, money: { [Op.gte]: amount } },
+      transaction
+    });
+
+    if (affectedCount(moneyResult) !== 1) {
+      throw new Error('金币余额不足，礼物收益已部分消费，无法全额提现');
     }
 
     await Withdraw.create({
@@ -274,56 +288,41 @@ const sendRedPacket = async (senderId, type, totalAmount, totalNum, roomId = 0) 
 };
 
 const receiveRedPacket = async (userId, packetNo) => {
-  const packet = await RedPacket.findOne({
-    where: { packet_no: packetNo }
-  });
-  
-  if (!packet) {
-    throw new Error('红包不存在');
-  }
-  
-  if (packet.status !== 0) {
-    throw new Error('红包已过期或已领完');
-  }
-  
-  if (packet.expire_time < getTimestamp()) {
-    throw new Error('红包已过期');
-  }
-  
-  if (packet.sender_id === userId) {
-    throw new Error('不能领取自己的红包');
-  }
-  
-  const existingReceive = await RedPacketLog.findOne({
-    where: {
-      packet_id: packet.id,
-      user_id: userId
-    }
-  });
-  
-  if (existingReceive) {
-    throw new Error('已领取过该红包');
-  }
-  
-  let amount;
-  
-  if (packet.type === 1) {
-    // 拼手气红包必须用密码学安全随机数：Math.random 可被预测，会被用来挑时间点抢大包
-    const remainCents = Math.max(1, Math.floor(Number(packet.remain_amount) * 100));
-    amount = crypto.randomInt(1, remainCents + 1) / 100;
-    amount = Math.floor(amount * 100) / 100;
-    if (amount < 0.01) amount = 0.01;
-  } else {
-    amount = Number(packet.total_amount) / packet.total_num;
-    amount = Math.floor(amount * 100) / 100;
-  }
-  
   const transaction = await sequelize.transaction();
-  
+
   try {
-    // 审计 B-01：重复领取检查与名额扣减都必须在事务内完成。
-    // 原实现把 findOne 放在事务外，并发请求可同时通过检查 → 同一红包被重复领取。
-    // 名额用**条件更新**原子占用（remain_num > 0 才会成功），越领在数据库层被拦下。
+    // 审计 M-7：红包金额必须在事务内、**锁定红包行之后**再计算。
+    // 原实现先用事务外读到的（可能过期的）remain_amount 取拼手气随机数，再仅用「remain_num > 0」
+    // 的条件更新占用名额：并发领取时，多个请求各自基于同一个旧余额取随机金额，
+    // 累计入账可超过 total_amount（GREATEST(remain_amount - amount, 0) 只把剩余额夹到 0，
+    // 并不会收回已经记入用户钱包的金额）。改为 SELECT ... FOR UPDATE 把同一红包的领取串行化，
+    // 后到的请求在拿到行锁后才读到已被扣减的 remain_num/remain_amount，按最新余额分配，
+    // 保证累计发放恰好等于 total_amount。
+    const lock = transaction.LOCK ? transaction.LOCK.UPDATE : undefined;
+    const packet = await RedPacket.findOne({
+      where: { packet_no: packetNo },
+      transaction,
+      lock
+    });
+
+    if (!packet) {
+      throw new Error('红包不存在');
+    }
+
+    if (packet.status !== 0) {
+      throw new Error('红包已过期或已领完');
+    }
+
+    if (packet.expire_time < getTimestamp()) {
+      throw new Error('红包已过期');
+    }
+
+    if (packet.sender_id === userId) {
+      throw new Error('不能领取自己的红包');
+    }
+
+    // 重复领取检查与名额扣减都必须在事务内完成（审计 B-01）。
+    // 唯一索引 (packet_id, user_id) 是数据库层兜底，这里先做业务判定以给出友好文案。
     const claimed = await RedPacketLog.findOne({
       where: { packet_id: packet.id, user_id: userId },
       transaction
@@ -332,10 +331,33 @@ const receiveRedPacket = async (userId, packetNo) => {
       throw new Error('已领取过该红包');
     }
 
+    // 以「分」为单位分配，避免浮点误差累积导致总和偏移；金额上限由最新 remain_amount 决定。
+    const remainNum = Number(packet.remain_num);
+    const remainCents = Math.floor(Number(packet.remain_amount) * 100 + 1e-6);
+    if (remainNum <= 0 || remainCents <= 0) {
+      throw new Error('红包已被抢完');
+    }
+
+    let amountCents;
+    if (remainNum === 1) {
+      // 最后一人拿走剩余全部：否则零头会随红包关闭（remain_amount 置 0）凭空消失
+      amountCents = remainCents;
+    } else if (packet.type === 1) {
+      // 拼手气：给其余每人至少留 1 分，随机区间 [1, remainCents-(remainNum-1)]。
+      // 密码学安全随机数（Math.random 可被预测，会被用来挑时间点抢大包）。
+      const maxCents = Math.max(1, remainCents - (remainNum - 1));
+      amountCents = crypto.randomInt(1, maxCents + 1);
+    } else {
+      // 普通红包：均分（向下取整），不足部分留给最后一人
+      amountCents = Math.floor(remainCents / remainNum);
+    }
+    amountCents = Math.min(amountCents, remainCents);
+    const amount = amountCents / 100;
+
     const [reserved] = await RedPacket.update(
       {
         remain_num: sequelize.literal('remain_num - 1'),
-        remain_amount: sequelize.literal('GREATEST(remain_amount - ' + String(amount) + ', 0)')
+        remain_amount: moneyMinus('remain_amount', amount)
       },
       { where: { id: packet.id, remain_num: { [Op.gt]: 0 } }, transaction }
     );
@@ -350,24 +372,26 @@ const receiveRedPacket = async (userId, packetNo) => {
       amount,
       create_time: getTimestamp()
     }, { transaction });
-    
+
     await User.increment('money', {
       by: amount,
       where: { id: userId },
       transaction
     });
-    
+
     // 名额领完则关闭红包（条件更新，避免覆盖其它并发请求的结果）
     await RedPacket.update(
       { remain_num: 0, remain_amount: 0, status: 1 },
       { where: { id: packet.id, remain_num: { [Op.lte]: 0 } }, transaction }
     );
-    
+
     await transaction.commit();
-    
+
     return { amount };
   } catch (error) {
-    await transaction.rollback();
+    if (!transaction.finished) {
+      try { await transaction.rollback(); } catch (rollbackError) { /* 已回滚，忽略 */ }
+    }
     // 唯一索引冲突（(packet_id,user_id)）说明并发生效，统一转为业务错误
     if (/duplicate|ER_DUP_ENTRY/i.test(error.message || '')) {
       throw new Error('已领取过该红包');

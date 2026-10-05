@@ -1,11 +1,11 @@
 jest.mock('../../../src/models', () => ({
-  CallRecord: { findByPk: jest.fn() },
+  CallRecord: { findByPk: jest.fn(), findOne: jest.fn(), create: jest.fn() },
   CallBilling: { create: jest.fn() },
   User: { findByPk: jest.fn(), update: jest.fn(), increment: jest.fn() }
 }));
 jest.mock('../../../src/config/mysql', () => ({ transaction: jest.fn() }));
 
-const { CallRecord } = require('../../../src/models');
+const { CallRecord, User } = require('../../../src/models');
 const callBillingService = require('../../../src/services/callBillingService');
 
 const makeCall = (over = {}) => Object.assign({
@@ -53,5 +53,58 @@ describe('Service - callBillingService.endCall', () => {
   it('已结束的单不能重复结束', async () => {
     CallRecord.findByPk.mockResolvedValue(makeCall({ status: 4 }));
     await expect(callBillingService.endCall(1, 1)).rejects.toThrow('通话状态不正确');
+  });
+});
+
+// 审计 C-4 附带项：TRTC 房间号必须避开「仍在进行」的通话，否则两通电话会串房。
+describe('Service - callBillingService.startCall 房间号分配', () => {
+  const { Op } = require('sequelize');
+
+  beforeEach(() => {
+    CallRecord.findOne.mockReset();
+    CallRecord.create.mockReset();
+    User.findByPk.mockReset();
+    User.findByPk.mockResolvedValue({ id: 1 });
+    CallRecord.create.mockImplementation((data) =>
+      Promise.resolve({ id: 5, call_no: data.call_no, trtc_room_id: data.trtc_room_id })
+    );
+  });
+
+  it('查重只针对呼叫中/已接通的通话', async () => {
+    CallRecord.findOne.mockResolvedValue(null);
+    const r = await callBillingService.startCall(1, 2, 1);
+
+    const where = CallRecord.findOne.mock.calls[0][0].where;
+    expect(where.status[Op.in]).toEqual([0, 1]);
+    expect(r.trtcRoomId).toBeGreaterThan(0);
+    expect(r.trtcRoomId).toBeLessThan(1000000);
+  });
+
+  it('房间号与进行中的通话撞号时换新号重试', async () => {
+    let queries = 0;
+    CallRecord.findOne.mockImplementation(() => {
+      queries += 1;
+      return Promise.resolve(queries === 1 ? { id: 9 } : null);
+    });
+
+    const r = await callBillingService.startCall(1, 2, 1);
+    expect(CallRecord.findOne).toHaveBeenCalledTimes(2);
+    // 两次查重的候选号不同（密码学随机，不再用 Math.random 且不带时间前缀）
+    const tried = CallRecord.findOne.mock.calls.map((args) => args[0].where.trtc_room_id);
+    expect(new Set(tried).size).toBe(2);
+    expect(r.trtcRoomId).toBe(tried[1]);
+  });
+
+  it('连续撞号则明确失败，不建单', async () => {
+    CallRecord.findOne.mockResolvedValue({ id: 9 });
+    await expect(callBillingService.startCall(1, 2, 1)).rejects.toThrow('通话房间号分配失败');
+    expect(CallRecord.findOne).toHaveBeenCalledTimes(5);
+    expect(CallRecord.create).not.toHaveBeenCalled();
+  });
+
+  it('用户不存在时不分配房间号', async () => {
+    User.findByPk.mockResolvedValue(null);
+    await expect(callBillingService.startCall(1, 2, 1)).rejects.toThrow('用户不存在');
+    expect(CallRecord.findOne).not.toHaveBeenCalled();
   });
 });

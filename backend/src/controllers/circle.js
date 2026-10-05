@@ -1,6 +1,7 @@
-const { circleService, cosSignedUrlService } = require('../services');
+const { circleService, cosSignedUrlService, levelService } = require('../services');
 const response = require('../utils/response');
 const logger = require('../utils/logger');
+const { isLevelGateError, handleLevelGate } = require('../utils/levelGate');
 
 // 审计 B-15：分享奖励原先无上限、无去重，可对同一帖子反复"分享"刷钱。
 // 这里做「每用户每日次数上限」（默认 10，SHARE_REWARD_DAILY_LIMIT 可调）：
@@ -62,6 +63,11 @@ const createPost = async (req, res) => {
     if (!content && (!images || images.length === 0) && !videos) {
       return response.badRequest(res, '内容不能为空');
     }
+
+    // Lv.15 解锁动态发布图片
+    if (Array.isArray(images) && images.filter(Boolean).length > 0) {
+      await levelService.requireLevel(req.userId, 'post_images');
+    }
     
     const result = await circleService.createPost(
       req.userId,
@@ -76,6 +82,7 @@ const createPost = async (req, res) => {
     );
     response.created(res, result, '发布成功');
   } catch (error) {
+    if (isLevelGateError(error)) return handleLevelGate(res, error);
     logger.error('发布帖子错误:', error);
     response.error(res, error.message);
   }

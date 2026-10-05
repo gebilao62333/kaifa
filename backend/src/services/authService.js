@@ -1,8 +1,10 @@
 const crypto = require('crypto');
 const axios = require('axios');
-const { generateToken, generateTokenPair, verifyToken, refreshAccessToken } = require('../config/jwt');
+const { generateTokenPair, verifyToken, refreshAccessToken, TOKEN_TYPES } = require('../config/jwt');
 const { User, UserFollow } = require('../models');
 const bcrypt = require('bcryptjs');
+const smsService = require('./smsService');
+const tokenRevocation = require('./tokenRevocation');
 const { getTimestamp } = require('../utils/helper');
 const { Op } = require('sequelize');
 
@@ -15,7 +17,11 @@ const ensureUserIdValid = async (user) => {
   }
 }
 
-const register = async (mobile, password, nickname, platform = 'app') => {
+const register = async (mobile, password, nickname, code, platform = 'app') => {
+  // 安全：注册必须先通过短信验证码，否则任何人拿任意手机号即可批量占位注册。
+  // 验证码由 sendSMS 写入 Redis（非生产环境由接口回传给调用方，生产走真实短信通道）。
+  await smsService.verifyCode(mobile, code, 'register');
+
   const existingUser = await User.findOne({ where: { mobile } });
   
   if (existingUser) {
@@ -45,6 +51,10 @@ const register = async (mobile, password, nickname, platform = 'app') => {
 };
 
 const loginWithMobile = async (mobile, code, deviceId, platform = 'app') => {
+  // 审计 C-1：历史实现收下 code 却从不校验，任何人凭任意手机号即可登录（并可自动注册）
+  // 任意账号 —— 完整账户接管。校验放在查库之前，避免"先建号再验码"留下垃圾账号。
+  await smsService.verifyCode(mobile, code, 'login');
+
   let user = await User.findOne({ where: { mobile } });
   let isNewUser = false
   
@@ -194,7 +204,8 @@ const verifyPassword = async (password, hashedPassword) => {
 };
 
 const changePassword = async (userId, oldPassword, newPassword) => {
-  const user = await User.findByPk(userId);
+  // 审计 M-8：User 默认作用域排除 password，需显式 withPassword 才能取回口令哈希
+  const user = await User.scope('withPassword').findByPk(userId);
   
   if (!user || !user.password) {
     throw new Error('用户不存在或未设置密码');
@@ -214,7 +225,8 @@ const changePassword = async (userId, oldPassword, newPassword) => {
 };
 
 const loginWithPassword = async (username, password) => {
-  const user = await User.findOne({
+  // 审计 M-8：User 默认作用域排除 password，需显式 withPassword 才能取回口令哈希
+  const user = await User.scope('withPassword').findOne({
     where: {
       [Op.or]: [
         { username: username },
@@ -258,10 +270,25 @@ const refreshToken = async (refreshTokenStr) => {
   if (!refreshTokenStr) {
     throw new Error('refresh token不能为空');
   }
-  
+
+  // 审计 H-5：刷新链路也要查吊销。水位线键的 TTL 按 refresh 寿命设置正是为了覆盖这里——
+  // 否则「全端下线」7 天后键自动清理，一枚 30 天期的被盗 refresh 又能重新换取 access 令牌。
+  const decodedRefresh = verifyToken(refreshTokenStr, [TOKEN_TYPES.REFRESH]);
+  if (!decodedRefresh) {
+    throw new Error('无效的refresh token');
+  }
+
+  const revocation = await tokenRevocation.checkRevocation(refreshTokenStr, decodedRefresh);
+  if (revocation.revoked) {
+    throw new Error('REFRESH_REVOKED');
+  }
+  if (!revocation.verifiable && tokenRevocation.revocationFailMode() === 'closed') {
+    throw new Error('REVOCATION_UNAVAILABLE');
+  }
+
   const newTokens = refreshAccessToken(refreshTokenStr);
   
-  const decoded = verifyToken(newTokens.accessToken);
+  const decoded = verifyToken(newTokens.accessToken, [TOKEN_TYPES.ACCESS]);
   if (!decoded) {
     throw new Error('生成的token无效');
   }

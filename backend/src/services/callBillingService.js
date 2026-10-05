@@ -1,8 +1,32 @@
+const crypto = require('crypto');
 const { CallRecord, CallBilling, User } = require('../models');
 const { getTimestamp, generateCallNo, parseQuery } = require('../utils/helper');
 const sequelize = require('../config/mysql');
 const { Op } = require('sequelize');
 const { moneyMinus } = require('../utils/sql');
+
+// TRTC 房间号是进房的唯一坐标，两个「仍在进行」的通话共用一个号就会互相串音串画。
+// 原实现用 Math.random 取 1..1000000 且不查重，按生日悖论约 1200 通并发就有近一半概率撞号。
+// 现改为密码学随机 + 活跃通话查重（0=呼叫中 1=已接通）。
+const TRTC_ROOM_ID_MAX = 1000000;
+const ACTIVE_CALL_STATUS = [0, 1];
+
+const allocateTrtcRoomId = async () => {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const candidate = crypto.randomInt(1, TRTC_ROOM_ID_MAX);
+    const occupied = await CallRecord.findOne({
+      where: {
+        trtc_room_id: candidate,
+        status: { [Op.in]: ACTIVE_CALL_STATUS }
+      },
+      attributes: ['id']
+    });
+    if (!occupied) {
+      return candidate;
+    }
+  }
+  throw new Error('通话房间号分配失败，请稍后重试');
+};
 
 const startCall = async (callerId, calleeId, callType, isCompanionCall = false, orderId = 0) => {
   const caller = await User.findByPk(callerId);
@@ -13,7 +37,7 @@ const startCall = async (callerId, calleeId, callType, isCompanionCall = false, 
   }
   
   const callNo = generateCallNo();
-  const trtcRoomId = Math.floor(Math.random() * 1000000) + 1;
+  const trtcRoomId = await allocateTrtcRoomId();
   
   const call = await CallRecord.create({
     call_no: callNo,

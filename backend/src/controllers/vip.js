@@ -46,7 +46,7 @@ const completeVipOrder = async (req, res) => {
       return response.badRequest(res, '订单号不能为空');
     }
     
-    const result = await vipService.completeVipOrder(orderNo, transactionId);
+    const result = await vipService.completeVipOrder(orderNo, transactionId, req.userId);
     response.success(res, result, '开通成功');
   } catch (error) {
     logger.error('完成VIP订单错误:', error);

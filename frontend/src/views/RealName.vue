@@ -6,7 +6,7 @@
       <span class="placeholder"></span>
     </template>
 
-    <div class="content" v-if="!isVerified">
+    <div class="content" v-if="showForm">
       <div class="tips-card">
         <div class="tips-icon">ℹ️</div>
         <div class="tips-text">
@@ -55,30 +55,32 @@
 
     <div class="content" v-else>
       <div class="success-card">
-        <div class="success-icon">✅</div>
-        <div class="success-title">认证成功</div>
-        <div class="success-desc">您已完成实名认证</div>
+        <div class="success-icon">{{ statusMeta.icon }}</div>
+        <div class="success-title">{{ statusMeta.title }}</div>
+        <div class="success-desc">{{ statusMeta.desc }}</div>
       </div>
 
       <div class="info-card">
         <div class="info-item">
           <div class="info-label">真实姓名</div>
-          <div class="info-value">张**</div>
+          <div class="info-value">{{ maskedName || '—' }}</div>
         </div>
         <div class="info-item">
           <div class="info-label">身份证号</div>
-          <div class="info-value">110***********1234</div>
+          <div class="info-value">{{ maskedIdCard || '—' }}</div>
         </div>
         <div class="info-item">
-          <div class="info-label">认证时间</div>
-          <div class="info-value">2024-05-20</div>
+          <div class="info-label">提交时间</div>
+          <div class="info-value">{{ verifyTime ? formatTime(verifyTime, 'YYYY-MM-DD') : '—' }}</div>
         </div>
       </div>
 
-      <div class="status-badge">
+      <div class="status-badge" :class="{ pending: status === 1, rejected: status === 3 }">
         <span class="status-dot"></span>
-        已认证
+        {{ statusMeta.badge }}
       </div>
+
+      <button class="submit-btn resubmit-btn" v-if="status === 3" @click="status = 0">重新提交认证</button>
     </div>
 
     <input type="file" ref="fileInput" accept="image/*" style="display: none" @change="handleFileChange" />
@@ -86,16 +88,32 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import authService from '../services/authService'
 import { uploadFile } from '../services/uploadService'
 import { toast } from '../composables/useToast'
+import { formatTime } from '../common/common'
 
 const router = useRouter()
 
-const isVerified = ref(false)
+// 后端 real_name_status：0-未认证 1-待审 2-已认证 3-驳回
+const status = ref(0)
+const maskedName = ref('')
+const maskedIdCard = ref('')
+const verifyTime = ref(0)
+
+// 驳回态先展示结果卡（含原因），由「重新提交认证」回到表单，避免用户看不到审核结论
+const showForm = computed(() => status.value === 0)
+
+const STATUS_META = {
+  1: { icon: '⏳', title: '认证审核中', desc: '认证信息已提交，将在 1-3 个工作日内完成审核', badge: '审核中' },
+  2: { icon: '✅', title: '认证成功', desc: '您已完成实名认证', badge: '已认证' },
+  3: { icon: '❌', title: '认证未通过', desc: '请核对姓名与身份证照片后重新提交', badge: '未通过' }
+}
+
+const statusMeta = computed(() => STATUS_META[status.value] || STATUS_META[2])
 const realName = ref('')
 const idCard = ref('')
 const frontImg = ref('')
@@ -186,7 +204,9 @@ const submitForm = async () => {
       back: backUrl
     })
     toast.success('认证信息已提交，将在1-3个工作日内审核')
-    isVerified.value = true
+    status.value = 1
+    frontImg.value = frontUrl
+    backImg.value = backUrl
   } catch (err) {
     toast.error(err.message || '提交失败，请重试')
   } finally {
@@ -197,10 +217,11 @@ const submitForm = async () => {
 onMounted(async () => {
   try {
     const res = await authService.getRealNameStatus()
-    const st = res?.data?.status
-    if (st === 1 || st === 2) {
-      isVerified.value = true
-    }
+    const st = res?.data || {}
+    status.value = Number(st.status) || 0
+    maskedName.value = st.realName || ''
+    maskedIdCard.value = st.idCard || ''
+    verifyTime.value = Number(st.time) || 0
   } catch (e) { /* 未登录或接口异常时忽略 */ }
 })
 </script>
@@ -437,5 +458,29 @@ onMounted(async () => {
   height: 8px;
   background: #34c759;
   border-radius: 50%;
+}
+
+.status-badge.pending {
+  background: rgba(255, 149, 0, 0.12);
+  color: #ff9500;
+}
+
+.status-badge.pending .status-dot {
+  background: #ff9500;
+}
+
+.status-badge.rejected {
+  background: rgba(255, 59, 48, 0.12);
+  color: #ff3b30;
+}
+
+.status-badge.rejected .status-dot {
+  background: #ff3b30;
+}
+
+.resubmit-btn {
+  display: block;
+  width: fit-content;
+  margin: 16px auto 0;
 }
 </style>

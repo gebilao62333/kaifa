@@ -72,6 +72,16 @@ const response = {
     });
   },
   
+  // 频繁尝试（登录失败锁定等业务侧限流；与 rateLimit 中间件的 429 同一状态码）
+  tooManyRequests: (res, message = '操作过于频繁，请稍后再试', data = {}) => {
+    setJsonUtf8(res);
+    return res.status(429).json({
+      code: 429,
+      message,
+      data
+    });
+  },
+
   error: (res, message = '服务器错误') => {
     setJsonUtf8(res);
     const safe = _isSafeMessage(message) ? message : '服务器内部错误';

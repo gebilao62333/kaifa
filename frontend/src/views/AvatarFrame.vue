@@ -112,7 +112,7 @@ const selectFrame = (frame) => {
   const payload = { id: frame.id, name: frame.name, style: frame.style }
   localStorage.setItem('selectedAvatarFrame', JSON.stringify(payload))
   // 同步到服务端偏好
-  userPrefService.save({ selectedAvatarFrame: payload }, 0).catch(() => {})
+  userPrefService.save({ selectedAvatarFrame: payload }).catch(() => {})
 }
 
 // 加载服务端已选头像框（替代纯 localStorage）

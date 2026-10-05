@@ -49,6 +49,11 @@ const get = (url, headers) => new Promise((resolve) => {
     const v = String(process.env[k] || '');
     return v && (v.length < 24 || /(changeme|change-me|admin-secret|your-|123456|admin123|eudazi)/i.test(v));
   });
+  // 审计 H-9：容器内拿不到 MONGO_ROOT_PASSWORD 等 compose 插值变量，但 MONGO_URI 内嵌了应用口令；
+  // 按 server.js collectConfigRisks 的同一组弱口令特征补检，避免「URI 里是弱口令却检测不到」。
+  if (/(:admin123@|:changeme@|:password@|:123456@)/i.test(String(process.env.MONGO_URI || ''))) {
+    weak.push('MONGO_URI(内嵌口令)');
+  }
   weak.length ? fail('secret', '仍为弱值/占位值: ' + weak.join(', ')) : ok('secret', '未检测到弱密钥');
 
   // ---------- 3. 数据库 ----------

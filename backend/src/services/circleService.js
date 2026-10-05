@@ -1,5 +1,6 @@
 const { Post, PostLike, PostComment, PostUnlock, User, UserFollow } = require('../models');
 const mediaAssetService = require('./mediaAssetService');
+const levelService = require('./levelService');
 const { getTimestamp, parseQuery } = require('../utils/helper');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
@@ -62,13 +63,19 @@ const createPost = async (userId, content, images, videos, tagIds, location, vis
     }
   }
 
+  // 经验来源：发布动态 +20。经验是附属副作用，失败不能影响发帖。
+  try {
+    await levelService.addExp(userId, 'post_created');
+  } catch (e) {
+    logger.error('[动态] 记录发布经验失败:', e.message);
+  }
+
   return {
     postId: post.id
   };
 };
 
-const repostPost = async (userId, repostId, comment = '') => {
-  // 找原帖
+const repostPost = async (userId, repostId, comment = '') => {  // 找原帖
   const original = await Post.findByPk(repostId);
   if (!original) throw new Error('原帖不存在或已删除');
   if (original.is_private === 1) throw new Error('不能转发私密帖子');

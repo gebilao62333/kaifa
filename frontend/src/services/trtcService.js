@@ -2,8 +2,10 @@ import { request } from '../common/common'
 
 export const trtcService = {
   // ========== 通话管理 ==========
-  async getAuth() {
-    return request('/api/trtc/auth', 'GET')
+  // 审计 C-4：后端现在只在「带 roomId 且确认你是这通电话的双方之一」时才签发 userSig；
+  // 不传 roomId 只返回可用性（configured/appId/userId），userSig 为 null。
+  async getAuth(roomId) {
+    return request('/api/trtc/auth', 'GET', roomId ? { roomId } : {})
   },
 
   async startCall(calleeId, callType = 1, isCompanionCall = false, orderId = 0) {

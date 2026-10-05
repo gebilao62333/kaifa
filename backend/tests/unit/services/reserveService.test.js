@@ -10,6 +10,7 @@ jest.mock('../../../src/services/settingsService', () => ({ getCommissionRate: j
 
 const reserveService = require('../../../src/services/reserveService');
 const { Reserve, ReserveSlot, User, Game } = require('../../../src/models');
+const { Op } = require('sequelize');
 const sequelize = require('../../../src/config/mysql');
 const { getCommissionRate } = require('../../../src/services/settingsService');
 
@@ -43,12 +44,27 @@ describe('Service - ReserveService', () => {
     ReserveSlot.findOne.mockResolvedValue(null);
     await expect(reserveService.toggleSlot(2, 1)).rejects.toThrow('时间槽不存在');
 
-    const update = jest.fn().mockResolvedValue(true);
-    ReserveSlot.findOne.mockResolvedValue({ status: 0, update });
+    ReserveSlot.findOne.mockResolvedValue({ id: 1, status: 0 });
+    ReserveSlot.update.mockResolvedValue([1]);
     expect(await reserveService.toggleSlot(2, 1)).toEqual({ status: 2 });
+    expect(ReserveSlot.update.mock.calls[0][1].where.status).toBe(0);
 
-    ReserveSlot.findOne.mockResolvedValue({ status: 2, update });
+    ReserveSlot.findOne.mockResolvedValue({ id: 1, status: 2 });
     expect(await reserveService.toggleSlot(2, 1)).toEqual({ status: 0 });
+    expect(ReserveSlot.update.mock.calls[1][1].where.status).toBe(2);
+  });
+
+  // 审计 H-7：已成交时段不可再切换，否则等于释放一个已占用时段 → 同一时段被重复预约
+  it('toggleSlot refuses a booked slot', async () => {
+    ReserveSlot.findOne.mockResolvedValue({ id: 1, status: 1 });
+    await expect(reserveService.toggleSlot(2, 1)).rejects.toThrow('该时间段已被预约，不可修改');
+    expect(ReserveSlot.update).not.toHaveBeenCalled();
+  });
+
+  it('toggleSlot refuses when the slot changed under it', async () => {
+    ReserveSlot.findOne.mockResolvedValue({ id: 1, status: 0 });
+    ReserveSlot.update.mockResolvedValue([0]);
+    await expect(reserveService.toggleSlot(2, 1)).rejects.toThrow('时间槽状态已变更');
   });
 
   describe('createReserve', () => {
@@ -119,18 +135,38 @@ describe('Service - ReserveService', () => {
     });
 
     it('confirms a reservation', async () => {
-      const update = jest.fn().mockResolvedValue(true);
-      Reserve.findByPk.mockResolvedValue({ id: 1, target_user_id: 2, status: 0, update });
+      Reserve.findByPk.mockResolvedValue({ id: 1, target_user_id: 2, status: 0 });
+      Reserve.update.mockResolvedValue([1]);
       await expect(reserveService.confirmReserve(2, 1)).resolves.toBe(true);
-      expect(update).toHaveBeenCalled();
+      expect(Reserve.update.mock.calls[0][0].status).toBe(1);
+      expect(Reserve.update.mock.calls[0][1].where).toEqual({ id: 1, target_user_id: 2, status: 0 });
+    });
+
+    // 审计 H-7：并发确认只有一个条件更新能命中，落败方不得改写状态
+    it('refuses to confirm when the status moved concurrently', async () => {
+      Reserve.findByPk.mockResolvedValue({ id: 1, target_user_id: 2, status: 0 });
+      Reserve.update.mockResolvedValue([0]);
+      await expect(reserveService.confirmReserve(2, 1)).rejects.toThrow('预约状态不正确');
     });
 
     it('rejects a reservation and frees the slot', async () => {
-      const update = jest.fn().mockResolvedValue(true);
-      Reserve.findByPk.mockResolvedValue({ id: 1, target_user_id: 2, status: 0, reserve_date: 'd', reserve_time: 't', update });
+      Reserve.findByPk.mockResolvedValue({ id: 1, target_user_id: 2, status: 0, reserve_date: 'd', reserve_time: 't' });
+      Reserve.update.mockResolvedValue([1]);
       ReserveSlot.update.mockResolvedValue([1]);
       await expect(reserveService.rejectReserve(2, 1)).resolves.toBe(true);
       expect(ReserveSlot.update).toHaveBeenCalled();
+      // 只释放仍处于占用状态的槽位
+      expect(ReserveSlot.update.mock.calls[0][1].where.status).toBe(1);
+    });
+
+    it('rolls back the slot release when the reject claim is lost', async () => {
+      Reserve.findByPk.mockResolvedValue({ id: 1, target_user_id: 2, status: 0, reserve_date: 'd', reserve_time: 't' });
+      Reserve.update.mockResolvedValue([0]);
+      const tx = txn();
+      sequelize.transaction.mockResolvedValue(tx);
+      await expect(reserveService.rejectReserve(2, 1)).rejects.toThrow('预约状态不正确');
+      expect(ReserveSlot.update).not.toHaveBeenCalled();
+      expect(tx.rollback).toHaveBeenCalled();
     });
 
     it('validates reject ownership and status', async () => {
@@ -155,19 +191,21 @@ describe('Service - ReserveService', () => {
     });
 
     it('refunds fully when far in the future', async () => {
-      const update = jest.fn().mockResolvedValue(true);
-      Reserve.findByPk.mockResolvedValue({ id: 1, user_id: 2, target_user_id: 3, status: 0, price: '100', update, ...futureDate(72) });
+      Reserve.findByPk.mockResolvedValue({ id: 1, user_id: 2, target_user_id: 3, status: 0, price: '100', ...futureDate(72) });
+      Reserve.update.mockResolvedValue([1]);
       ReserveSlot.update.mockResolvedValue([1]);
       User.increment.mockResolvedValue([1]);
       const result = await reserveService.cancelReserve(2, 1);
       expect(result.refundRate).toBe(1);
       expect(result.refundAmount).toBe(100);
       expect(User.increment).toHaveBeenCalled();
+      // 抢占式状态迁移：退款只可能由命中 WHERE status IN (0,1) 的那一次请求执行
+      expect(Reserve.update.mock.calls[0][1].where.status[Op.in]).toEqual([0, 1]);
     });
 
     it('refunds half when within 24h and nothing when under 12h', async () => {
-      const update = jest.fn().mockResolvedValue(true);
-      Reserve.findByPk.mockResolvedValue({ id: 1, user_id: 2, target_user_id: 3, status: 1, price: '100', update, ...futureDate(20) });
+      Reserve.findByPk.mockResolvedValue({ id: 1, user_id: 2, target_user_id: 3, status: 1, price: '100', ...futureDate(20) });
+      Reserve.update.mockResolvedValue([1]);
       ReserveSlot.update.mockResolvedValue([1]);
       User.increment.mockResolvedValue([1]);
       const half = await reserveService.cancelReserve(2, 1);
@@ -175,10 +213,22 @@ describe('Service - ReserveService', () => {
       expect(half.refundAmount).toBe(50);
 
       User.increment.mockClear();
-      Reserve.findByPk.mockResolvedValue({ id: 1, user_id: 2, target_user_id: 3, status: 0, price: '100', update, ...futureDate(1) });
+      Reserve.findByPk.mockResolvedValue({ id: 1, user_id: 2, target_user_id: 3, status: 0, price: '100', ...futureDate(1) });
       const none = await reserveService.cancelReserve(2, 1);
       expect(none.refundRate).toBe(0);
       expect(User.increment).not.toHaveBeenCalled();
+    });
+
+    // 审计 H-7：两个并发取消只有一个能命中条件更新，落败方必须整体回滚、不得退款
+    it('refuses to refund when the cancel claim is lost', async () => {
+      Reserve.findByPk.mockResolvedValue({ id: 1, user_id: 2, target_user_id: 3, status: 0, price: '100', ...futureDate(72) });
+      Reserve.update.mockResolvedValue([0]);
+      const tx = txn();
+      sequelize.transaction.mockResolvedValue(tx);
+      await expect(reserveService.cancelReserve(2, 1)).rejects.toThrow('预约无法取消');
+      expect(User.increment).not.toHaveBeenCalled();
+      expect(ReserveSlot.update).not.toHaveBeenCalled();
+      expect(tx.rollback).toHaveBeenCalled();
     });
   });
 
@@ -195,23 +245,42 @@ describe('Service - ReserveService', () => {
     });
 
     it('pays the companion on completion', async () => {
-      const update = jest.fn().mockResolvedValue(true);
-      Reserve.findByPk.mockResolvedValue({ id: 1, user_id: 2, target_user_id: 3, status: 1, price: '100', update });
+      const tx = txn();
+      sequelize.transaction.mockResolvedValue(tx);
+      Reserve.findByPk.mockResolvedValue({ id: 1, user_id: 2, target_user_id: 3, status: 1, price: '100' });
+      Reserve.update.mockResolvedValue([1]);
       User.increment.mockResolvedValue([1]);
       await expect(reserveService.completeReserve(2, 1)).resolves.toBe(true);
       expect(User.increment).toHaveBeenCalledTimes(2);
+      // 分成比例在事务内读取（第三个参数就是本次事务）
+      expect(getCommissionRate).toHaveBeenCalledWith('reserve_commission_rate', 1, tx);
+      // 先抢占 status=1 → 3，命中方才分账
+      expect(Reserve.update.mock.calls[0][0].status).toBe(3);
+      expect(Reserve.update.mock.calls[0][1].where.status).toBe(1);
+      expect(tx.commit).toHaveBeenCalled();
     });
 
     it('skips payment when there is no income', async () => {
-      const update = jest.fn().mockResolvedValue(true);
-      Reserve.findByPk.mockResolvedValue({ id: 1, user_id: 2, target_user_id: null, status: 1, price: '0', update });
+      Reserve.findByPk.mockResolvedValue({ id: 1, user_id: 2, target_user_id: null, status: 1, price: '0' });
+      Reserve.update.mockResolvedValue([1]);
       await expect(reserveService.completeReserve(2, 1)).resolves.toBe(true);
       expect(User.increment).not.toHaveBeenCalled();
     });
 
+    // 审计 H-7：两个并发完成只有一个能命中条件更新，落败方不得再次分账
+    it('refuses to pay twice when the complete claim is lost', async () => {
+      Reserve.findByPk.mockResolvedValue({ id: 1, user_id: 2, target_user_id: 3, status: 1, price: '100' });
+      Reserve.update.mockResolvedValue([0]);
+      const tx = txn();
+      sequelize.transaction.mockResolvedValue(tx);
+      await expect(reserveService.completeReserve(2, 1)).rejects.toThrow('预约状态不正确，仅可完成已确认的预约');
+      expect(User.increment).not.toHaveBeenCalled();
+      expect(tx.rollback).toHaveBeenCalled();
+    });
+
     it('rolls back on failure', async () => {
-      const update = jest.fn().mockRejectedValue(new Error('db'));
-      Reserve.findByPk.mockResolvedValue({ id: 1, user_id: 2, target_user_id: 3, status: 1, price: '10', update });
+      Reserve.findByPk.mockResolvedValue({ id: 1, user_id: 2, target_user_id: 3, status: 1, price: '10' });
+      Reserve.update.mockRejectedValue(new Error('db'));
       const tx = txn();
       sequelize.transaction.mockResolvedValue(tx);
       await expect(reserveService.completeReserve(2, 1)).rejects.toThrow('db');

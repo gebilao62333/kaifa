@@ -6,7 +6,7 @@ const sequelize = require('../config/mysql');
  * 现固化为 JS 迁移并接入 runMigrations，使服务重启即可自愈（原先该脚本不被自动执行，导致真实库漂移）。
  *
  *  1. xn_reserve          补充服务时长/金额/备注/服务类型
- *  2. xn_companion_profile 补充服务展示图与技能介绍
+ *  2. xn_companion_profile 补充服务展示图、技能介绍与服务类型（online/offline）
  *  3. xn_user             补充实名认证字段
  *  4. xn_game_order       补充申诉字段
  *  5. 新增 xn_user_visit / xn_user_pref 表
@@ -21,7 +21,8 @@ const TABLE_COLUMNS = {
   ],
   xn_companion_profile: [
     { name: 'icon', def: 'VARCHAR(255) NULL COMMENT \'服务展示图\'' },
-    { name: 'description', def: 'VARCHAR(500) NULL COMMENT \'技能介绍\'' }
+    { name: 'description', def: 'VARCHAR(500) NULL COMMENT \'技能介绍\'' },
+    { name: 'service_type', def: "VARCHAR(16) NULL DEFAULT 'online' COMMENT '服务类型 online/offline'" }
   ],
   xn_user: [
     { name: 'real_name', def: 'VARCHAR(50) NULL COMMENT \'真实姓名\'' },

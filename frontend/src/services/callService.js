@@ -68,7 +68,9 @@ class CallService {
       // 注意：request() 返回的是 { code, message, data }，鉴权信息在 data 里
       const body = res && typeof res === 'object' ? res : {}
       const info = body.data && typeof body.data === 'object' ? body.data : body
-      const configured = !!(body.code === 200 && info && (info.appId || info.sdkAppId) && info.userSig)
+      // 审计 C-4：探测不再要求 userSig——后端只在带 roomId 且校验通过后才发票据，
+      // 这里只需判断「通道是否开通」（configured + appId），票据留给出房时的 getAuth(roomId)。
+      const configured = !!(body.code === 200 && info && (info.appId || info.sdkAppId) && info.configured !== false)
       if (!configured) {
         this._trtcAvailable = false
         return false
@@ -251,8 +253,9 @@ class CallService {
   }
 
   // ===== 获取 TRTC 配置（给 Vue 组件用） =====
-  async getAuth() {
-    return trtcService.getAuth()
+  // 传 roomId 才会拿到进房票据（后端校验房间成员）；不传只拿可用性信息。
+  async getAuth(roomId) {
+    return trtcService.getAuth(roomId)
   }
 
   getCallHistory(page, pageSize) {

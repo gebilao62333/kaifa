@@ -22,6 +22,9 @@ const regionService = require('./regionService');
 const walletService = require('./walletService');
 const feedbackService = require('./feedbackService');
 const settingsService = require('./settingsService');
+const levelService = require('./levelService');
+// 审计 H-6：装扮目录/价格/所有权收归服务端
+const skinService = require('./skinService');
 
 module.exports = {
   authService,
@@ -47,5 +50,6 @@ module.exports = {
   regionService,
   walletService,
   feedbackService,
-  settingsService
+  settingsService,
+  levelService
 };

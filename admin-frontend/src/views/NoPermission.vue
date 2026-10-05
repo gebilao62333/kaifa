@@ -14,6 +14,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { getFirstAccessiblePath } from '@/router'
+import adminService from '@/services/adminService'
 
 const router = useRouter()
 
@@ -21,9 +22,8 @@ const router = useRouter()
 const homePath = computed(() => getFirstAccessiblePath())
 
 const logout = () => {
-  localStorage.removeItem('admin_token')
-  localStorage.removeItem('admin_refresh_token')
-  localStorage.removeItem('admin_user')
+  // 审计 H-5：与管理端其它登出入口同一口径——先让服务端吊销本次令牌，再清本地三件套
+  adminService.signOut()
   router.push('/login')
 }
 </script>

@@ -179,7 +179,11 @@ const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout =
 
       if (!isRedirecting) {
         isRedirecting = true
+        // 审计 H-5：后端这里的 401 现在多了一种来源——令牌已被服务端吊销（登出/改密/禁用）。
+        // 本地态要整套清干净：只删 admin_token 会把权限快照 admin_user 和 refresh 留在浏览器里。
         localStorage.removeItem('admin_token')
+        localStorage.removeItem('admin_refresh_token')
+        localStorage.removeItem('admin_user')
         setTimeout(() => {
           // 开发模式 base='/'，生产模式 base='/admin/'
           const base = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/admin/'
@@ -213,7 +217,18 @@ const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout =
     }
 
     if (!response.ok) {
-      throw new RequestError(`请求失败 (${response.status})`, -1, response.status)
+      // 审计 H-3：429/503 的响应体里带的是可读文案（「登录失败次数过多，请 N 分钟后再试」
+      // 「登录校验服务暂不可用，请稍后重试」），此前一律吞成「请求失败 (429)」，
+      // 管理员既不知道该等多久，也不知道是口令错还是被锁。
+      let message = `请求失败 (${response.status})`
+      try {
+        const text = await readResponseText(response)
+        if (text) {
+          const result = JSON.parse(text)
+          if (result.message) message = result.message
+        }
+      } catch (e) { /* 响应体不是 JSON 时保留默认文案 */ }
+      throw new RequestError(message, -1, response.status)
     }
 
     const text = await readResponseText(response)

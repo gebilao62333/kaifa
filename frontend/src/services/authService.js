@@ -12,6 +12,15 @@ const authService = {
     return request('/api/user/update', 'POST', data)
   },
 
+  // 审计 H-5：服务端登出。必须在清本地令牌之前调用——request() 在同步阶段就用
+  // localStorage 里的 token 拼好 Authorization，先清就会发成一个未认证请求。
+  // logoutAllDevices：C 端不保存后端下发的 refreshToken（也没有刷新链路），只拉黑 access
+  // 会留下一枚 30 天内仍可换新令牌的孤儿凭据，所以按「该账号此刻之前的令牌全部作废」处理。
+  // 5 秒超时 + 静默中止：登出失败不该把界面卡在「退出中」。
+  async logout() {
+    return request('/api/user/logout', 'POST', { logoutAllDevices: true }, {}, 5000, { silentAbort: true })
+  },
+
   async login(phone, password) {
     validateParams({ phone, password }, {
       phone: {

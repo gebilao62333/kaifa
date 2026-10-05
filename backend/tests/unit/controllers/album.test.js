@@ -4,7 +4,8 @@ jest.mock('../../../src/services', () => ({
   cosSignedUrlService: {
     getSignedAccessUrl: jest.fn(url => Promise.resolve('signed:' + url)),
     resolveUrls: jest.fn(urls => Promise.resolve(urls || []))
-  }
+  },
+  levelService: { canUse: jest.fn() }
 }));
 
 jest.mock('../../../src/services/albumService', () => ({
@@ -14,8 +15,13 @@ jest.mock('../../../src/services/albumService', () => ({
   likePhoto: jest.fn()
 }));
 
-const { cosSignedUrlService } = require('../../../src/services');
+jest.mock('../../../src/models', () => ({
+  AlbumPhoto: { count: jest.fn() }
+}));
+
+const { cosSignedUrlService, levelService } = require('../../../src/services');
 const albumService = require('../../../src/services/albumService');
+const { AlbumPhoto } = require('../../../src/models');
 
 const mockReq = (overrides = {}) => ({ userId: 100001, body: {}, query: {}, params: {}, ...overrides });
 const mockRes = () => {
@@ -27,7 +33,12 @@ const mockRes = () => {
 };
 
 describe('Controller - Album', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // 相册额度：默认按已扩容处理，让非额度用例聚焦各自断言
+    levelService.canUse.mockResolvedValue(true);
+    AlbumPhoto.count.mockResolvedValue(0);
+  });
 
   describe('getPhotos', () => {
     it('signs each photo url and thumbnail', async () => {
@@ -102,6 +113,32 @@ describe('Controller - Album', () => {
       await albumController.uploadPhoto(req, res);
 
       expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('caps the album at 20 photos below Lv.25', async () => {
+      levelService.canUse.mockResolvedValue(false);
+      AlbumPhoto.count.mockResolvedValue(20);
+      const req = mockReq({ body: { url: 'x.jpg' } });
+      const res = mockRes();
+
+      await albumController.uploadPhoto(req, res);
+
+      expect(albumService.uploadPhoto).not.toHaveBeenCalled();
+      expect(res.status).toHaveBeenCalledWith(422);
+      expect(res.json.mock.calls[0][0].message).toContain('Lv.25 可扩容至 50 张');
+    });
+
+    it('allows up to 50 photos once Lv.25 is reached', async () => {
+      levelService.canUse.mockResolvedValue(true);
+      AlbumPhoto.count.mockResolvedValue(49);
+      albumService.uploadPhoto.mockResolvedValue({ id: 10 });
+      const req = mockReq({ body: { url: 'y.jpg' } });
+      const res = mockRes();
+
+      await albumController.uploadPhoto(req, res);
+
+      expect(albumService.uploadPhoto).toHaveBeenCalledWith(100001, 'y.jpg', undefined, undefined, undefined, undefined);
+      expect(res.status).toHaveBeenCalledWith(200);
     });
   });
 

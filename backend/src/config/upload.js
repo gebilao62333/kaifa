@@ -1,8 +1,8 @@
 const fs = require('fs');
-const path = require('path');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const config = require('./index');
+const { safeExtension } = require('../utils/uploadFileNaming');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -16,7 +16,9 @@ const storage = multer.diskStorage({
     cb(null, uploadPath);
   },
   filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
+    // 审计 M-12：/uploads 为静态目录，客户端文件名后缀不可信（MIME 可伪造），
+    // 直接采用会产生可被静态执行的后缀（如 .html）→ 存储型 XSS；此处收敛为安全后缀白名单。
+    const ext = safeExtension(file.originalname, file.mimetype);
     const filename = `${uuidv4()}${ext}`;
     cb(null, filename);
   }

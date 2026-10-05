@@ -291,6 +291,7 @@ const editForm = ref({
   tags: [],
   icon: '',
   audioUrl: '',
+  audioTime: 0,
   gameName: '',
   city: ''
 })
@@ -371,7 +372,10 @@ const mapService = (s) => ({
   name: s.gameName ? `${s.gameName} 陪玩` : '陪玩服务',
   gameName: s.gameName,
   gameId: s.gameId,
-  icon: s.image,
+  icon: s.serviceIcon || s.image,
+  serviceType: s.serviceType === 'offline' ? 'offline' : 'online',
+  audioUrl: s.voiceIntro || '',
+  voiceTime: s.voiceTime || 0,
   description: (s.tags && s.tags.length) ? s.tags.join(' · ') : '暂无技能介绍',
   tags: s.tags || [],
   price: s.price,
@@ -451,6 +455,8 @@ const selectPickerItem = (item) => {
 }
 
 const editService = (service) => {
+  // 编辑弹窗沿用服务自身的类型（线上/线下），不再固定 online
+  activeTab.value = service.serviceType || 'online'
   editForm.value = {
     id: service.id,
     name: service.name,
@@ -462,6 +468,7 @@ const editService = (service) => {
     tags: [...(service.tags || [])],
     icon: service.icon,
     audioUrl: service.audioUrl || '',
+    audioTime: service.voiceTime || 0,
     gameName: service.gameName || '',
     city: service.city || ''
   }
@@ -484,6 +491,7 @@ const closeEditModal = () => {
     tags: [],
     icon: '',
     audioUrl: '',
+    audioTime: 0,
     gameName: '',
     city: ''
   }
@@ -596,6 +604,7 @@ const startRecording = async () => {
       if (audioChunks.value.length > 0) {
         const audioBlob = new Blob(audioChunks.value, { type: mimeType })
         editForm.value.audioUrl = URL.createObjectURL(audioBlob)
+        editForm.value.audioTime = recordDuration.value
       }
       stream.getTracks().forEach(track => track.stop())
       audioChunks.value = []
@@ -655,6 +664,7 @@ const stopRecording = () => {
 const deleteAudio = () => {
   const audioUrl = editForm.value.audioUrl
   editForm.value.audioUrl = ''
+  editForm.value.audioTime = 0
   if (audioUrl && audioUrl.startsWith('blob:')) {
     setTimeout(() => {
       URL.revokeObjectURL(audioUrl)
@@ -702,7 +712,7 @@ const saveService = async () => {
 
     await gamesService.applyCompanion({
       gameId: target.gameId,
-      serviceType: 'online',
+      serviceType: activeTab.value,
       price: Number(editForm.value.price),
       tags: (target.tags || []).join(','),
       description: editForm.value.description || '',

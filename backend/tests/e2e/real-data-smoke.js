@@ -27,6 +27,7 @@ const request = require('supertest');
 const jwt = require('jsonwebtoken');
 
 const config = require('../../src/config');
+const { TOKEN_TYPES } = require('../../src/config/jwt');
 const sequelize = require('../../src/config/mysql');
 const setupRoutes = require('../../src/routes');
 
@@ -53,8 +54,9 @@ app.use((err, req, res, next) => {
 // ------------------------------------------------------------------
 // 令牌：本地用配置中的密钥签发（只读，不改库）
 // ------------------------------------------------------------------
+// 审计 H-4：中间件按用途白名单校验，本地签发的测试令牌必须带 type=access
 const userToken = (uid) =>
-  jwt.sign({ userId: uid }, config.jwt.secret, { expiresIn: '1h' });
+  jwt.sign({ userId: uid, type: TOKEN_TYPES.ACCESS }, config.jwt.secret, { expiresIn: '1h' });
 
 const USER_A = 1; // 游戏达人小王
 const USER_B = 2; // 玩家小美

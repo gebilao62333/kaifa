@@ -63,7 +63,10 @@ export const trtcRoomService = {
   /** 进入房间并推流；失败时抛错，由通话页决定回退策略 */
   async join({ callType = 1, roomId } = {}) {
     const TRTC = await loadTrtcSdk()
-    const authRes = await trtcService.getAuth()
+    if (!roomId) throw new Error('缺少 TRTC 房间号')
+    // 审计 C-4：票据必须按房间申领——后端会查 xn_call_record 确认请求者是这通电话的
+    // 主叫或被叫，非成员返回 403，这里按错误信息抛给通话页处理。
+    const authRes = await trtcService.getAuth(roomId)
     // request() 返回 { code, message, data }，鉴权信息在 data 内层
     const body = authRes && typeof authRes === 'object' ? authRes : {}
     const info = body.data && typeof body.data === 'object' ? body.data : body
@@ -71,8 +74,9 @@ export const trtcRoomService = {
     const userSig = info && info.userSig
     const userId = String((info && (info.userId || info.uid)) || '')
 
-    if (!sdkAppId || !userSig || !userId) throw new Error('TRTC 鉴权信息不完整')
-    if (!roomId) throw new Error('缺少 TRTC 房间号')
+    if (!sdkAppId || !userSig || !userId) {
+      throw new Error(body.message || 'TRTC 鉴权信息不完整')
+    }
 
     trtc = TRTC.create()
     const EVENTS = TRTC.EVENT || {}

@@ -297,7 +297,7 @@ const confirmAdd = async () => {
         privacyPassword.value,
         privacyPrice.value
       )
-      if (result.code === 0) {
+      if (result?.data) {
         uploadResults.push(result.data)
       }
     }
@@ -311,6 +311,9 @@ const confirmAdd = async () => {
     } else {
       toast.error('上传失败')
     }
+  } catch (error) {
+    // 相册额度（Lv.25 扩容）等服务端拒绝原因必须可见，否则只剩一句「上传失败」
+    toast.error(error?.message || '上传失败，请稍后重试')
   } finally {
     isUploading.value = false
   }

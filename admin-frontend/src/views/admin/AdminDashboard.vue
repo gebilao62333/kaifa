@@ -78,7 +78,11 @@ const getStatusClass = (status) => {
 }
 
 const handleAuth = () => {
+  // 这是「令牌已失效」的兜底跳转，不是用户主动登出（服务端吊销走 adminService.signOut()）。
+  // 审计 H-5：本地态要整套清掉，只删 admin_token 会把权限快照 admin_user 和 refresh 留给下一个访问者。
   localStorage.removeItem('admin_token')
+  localStorage.removeItem('admin_refresh_token')
+  localStorage.removeItem('admin_user')
   // 使用 window.location 跳转更可靠（不依赖 vue-router 上下文）
   const base = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/admin/'
   setTimeout(() => {

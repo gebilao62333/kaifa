@@ -6,6 +6,7 @@ jest.mock('../../../src/services', () => ({
     getPackages: jest.fn(),
     createOrder: jest.fn(),
     wxPayCallback: jest.fn(),
+    requireOwnedOrder: jest.fn(),
     getOrderStatus: jest.fn(),
     validateCard: jest.fn(),
     useCard: jest.fn(),
@@ -31,6 +32,10 @@ jest.mock('../../../src/models', () => ({
 
 const { payService, wechatPayService } = require('../../../src/services');
 const { OrderChong } = require('../../../src/models');
+// 错误码取自真实常量模块（controller 同样从这里取），避免测试里写死字符串与实现分叉
+const { PAY_ERRORS } = require('../../../src/services/payService');
+
+const payBizError = (code, message) => Object.assign(new Error(message), { code });
 
 const mockReq = (overrides = {}) => ({ userId: 100001, body: {}, query: {}, params: {}, ...overrides });
 const mockRes = () => {
@@ -131,9 +136,12 @@ describe('Controller - Pay', () => {
     await payController.queryWxOrder(mockReq({ query: {} }), bad);
     expect(bad.status).toHaveBeenCalledWith(400);
 
+    payService.requireOwnedOrder.mockResolvedValue({ id: 1, order_no: 'O1', user_id: 100001 });
     wechatPayService.queryOrder.mockResolvedValue({ status: 1 });
     const ok = mockRes();
     await payController.queryWxOrder(mockReq({ query: { orderNo: 'O1' } }), ok);
+    // 审计 H-2：先校验订单归属，再向平台反查
+    expect(payService.requireOwnedOrder).toHaveBeenCalledWith(100001, 'O1');
     expect(wechatPayService.queryOrder).toHaveBeenCalledWith('O1');
     expect(ok.status).toHaveBeenCalledWith(200);
 
@@ -142,6 +150,7 @@ describe('Controller - Pay', () => {
     const notCfg = mockRes();
     await payController.queryWxOrder(mockReq({ query: { orderNo: 'O1' } }), notCfg);
     expect(notCfg.status).toHaveBeenCalledWith(503);
+    expect(payService.requireOwnedOrder).not.toHaveBeenCalled();
   });
 
   it('closeWxOrder validates and succeeds', async () => {
@@ -149,9 +158,11 @@ describe('Controller - Pay', () => {
     await payController.closeWxOrder(mockReq({ body: {} }), bad);
     expect(bad.status).toHaveBeenCalledWith(400);
 
+    payService.requireOwnedOrder.mockResolvedValue({ id: 1, order_no: 'O1', user_id: 100001 });
     wechatPayService.closeOrder.mockResolvedValue(true);
     const ok = mockRes();
     await payController.closeWxOrder(mockReq({ body: { orderNo: 'O1' } }), ok);
+    expect(payService.requireOwnedOrder).toHaveBeenCalledWith(100001, 'O1');
     expect(wechatPayService.closeOrder).toHaveBeenCalledWith('O1');
     expect(ok.status).toHaveBeenCalledWith(200);
 
@@ -159,6 +170,87 @@ describe('Controller - Pay', () => {
     const notCfg = mockRes();
     await payController.closeWxOrder(mockReq({ body: { orderNo: 'O1' } }), notCfg);
     expect(notCfg.status).toHaveBeenCalledWith(503);
+    expect(payService.requireOwnedOrder).not.toHaveBeenCalled();
+  });
+
+  // 审计 H-2：/wx-query、/wx-close 按订单号操作支付平台的单，必须挡住他人订单号
+  it('queryWxOrder/closeWxOrder 对非本人订单直接拒绝，且不触碰支付平台', async () => {
+    payService.requireOwnedOrder.mockRejectedValue(payBizError(PAY_ERRORS.FORBIDDEN, '无权操作该订单'));
+
+    const q = mockRes();
+    await payController.queryWxOrder(mockReq({ query: { orderNo: 'OTHER' } }), q);
+    expect(q.status).toHaveBeenCalledWith(403);
+    expect(wechatPayService.queryOrder).not.toHaveBeenCalled();
+
+    const c = mockRes();
+    await payController.closeWxOrder(mockReq({ body: { orderNo: 'OTHER' } }), c);
+    expect(c.status).toHaveBeenCalledWith(403);
+    expect(wechatPayService.closeOrder).not.toHaveBeenCalled();
+
+    payService.requireOwnedOrder.mockRejectedValue(payBizError(PAY_ERRORS.NOT_FOUND, '订单不存在'));
+    const nf = mockRes();
+    await payController.queryWxOrder(mockReq({ query: { orderNo: 'NOPE' } }), nf);
+    expect(nf.status).toHaveBeenCalledWith(404);
+  });
+
+  // 审计 H-2：通知是未鉴权公网入口，超大请求体必须先拒绝，不能拼进内存再交给服务层
+  it('wxNotify 请求体超过 64KB 直接回 FAIL 且不调用服务层', async () => {
+    const req = new EventEmitter();
+    const res = mockRes();
+
+    await payController.wxNotify(req, res);
+    req.emit('data', 'x'.repeat(64 * 1024 + 16));
+    req.emit('end');
+    await flush();
+
+    expect(wechatPayService.handleNotify).not.toHaveBeenCalled();
+    expect(res.send).toHaveBeenCalledWith(expect.stringContaining('FAIL'));
+  });
+
+  // 原实现把 await 放在 'end' 的异步回调里，外层 try/catch 抓不到服务层异常：
+  // 既不回包也不记录，微信只会按退避策略无限重发。
+  it('wxNotify 服务层抛错时仍回 FAIL（不再悬挂响应）', async () => {
+    wechatPayService.handleNotify.mockRejectedValue(new Error('boom'));
+    const req = new EventEmitter();
+    const res = mockRes();
+
+    await payController.wxNotify(req, res);
+    req.emit('data', '<xml>ok</xml>');
+    req.emit('end');
+    await flush();
+    await flush();
+
+    expect(res.send).toHaveBeenCalledWith(expect.stringContaining('FAIL'));
+  });
+
+  it('wxNotify 空请求体直接回 FAIL', async () => {
+    const req = new EventEmitter();
+    const res = mockRes();
+
+    await payController.wxNotify(req, res);
+    req.emit('data', '   ');
+    req.emit('end');
+    await flush();
+
+    expect(wechatPayService.handleNotify).not.toHaveBeenCalled();
+    expect(res.send).toHaveBeenCalledWith(expect.stringContaining('FAIL'));
+  });
+
+  // FAIL 包里的 return_msg 会被拼进 XML：把 ']]>' 拆掉，防止回显内容提前结束 CDATA 段
+  it('wxNotify 的 return_msg 会拆掉 ]]> 防止提前闭合 CDATA', async () => {
+    wechatPayService.handleNotify.mockResolvedValue({ success: false, message: 'a]]>b' });
+    const req = new EventEmitter();
+    const res = mockRes();
+
+    await payController.wxNotify(req, res);
+    req.emit('data', '<xml>x</xml>');
+    req.emit('end');
+    await flush();
+    await flush();
+
+    const body = res.send.mock.calls[0][0];
+    expect(body).not.toContain('a]]>b');
+    expect(body).toContain('] ]>');
   });
 
   it('wxCallback 缺少订单号返回 400', async () => {
@@ -178,14 +270,96 @@ describe('Controller - Pay', () => {
   it('wxCallback 仅在显式开启本地联调开关时放行', async () => {
     process.env.ALLOW_UNVERIFIED_PAY_CALLBACK = 'true';
     try {
-      payService.wxPayCallback.mockResolvedValue(true);
+      payService.wxPayCallback.mockResolvedValue({ orderNo: 'O1', coins: 100, duplicated: false });
       const ok = mockRes();
       await payController.wxCallback(mockReq({ body: { payNo: 'O1', transactionId: 't' } }), ok);
-      expect(payService.wxPayCallback).toHaveBeenCalledWith('O1', 't');
+      // 审计 H-2：本地联调路径不带平台金额（无 paidCents），但必须带上当前登录用户做归属校验
+      expect(payService.wxPayCallback).toHaveBeenCalledWith(100001, 'O1', {
+        verified: true,
+        source: 'local-unverified'
+      });
       expect(ok.status).toHaveBeenCalledWith(200);
     } finally {
       delete process.env.ALLOW_UNVERIFIED_PAY_CALLBACK;
     }
+  });
+
+  it('wxCallback 反查通过后透传实付金额与订单归属人入账', async () => {
+    delete process.env.ALLOW_UNVERIFIED_PAY_CALLBACK;
+    wechatPayService.queryOrder.mockResolvedValue({
+      orderNo: 'O1',
+      status: 1,
+      tradeState: 'SUCCESS',
+      paidCents: 1050,
+      transactionId: 'WX1'
+    });
+    payService.wxPayCallback.mockResolvedValue({ orderNo: 'O1', coins: 100, duplicated: false });
+
+    const ok = mockRes();
+    await payController.wxCallback(mockReq({ body: { payNo: 'O1', transactionId: 'client-tx' } }), ok);
+
+    expect(payService.wxPayCallback).toHaveBeenCalledWith(100001, 'O1', {
+      verified: true,
+      source: 'wechat-query',
+      paidCents: 1050,
+      transactionId: 'WX1'
+    });
+    expect(ok.status).toHaveBeenCalledWith(200);
+  });
+
+  it('wxCallback 反查未成功 / 返回单号不一致都拒绝，绝不入账', async () => {
+    delete process.env.ALLOW_UNVERIFIED_PAY_CALLBACK;
+
+    wechatPayService.queryOrder.mockResolvedValue({ orderNo: 'O1', status: 0, tradeState: 'NOTPAY' });
+    const notPaid = mockRes();
+    await payController.wxCallback(mockReq({ body: { payNo: 'O1' } }), notPaid);
+    expect(notPaid.status).toHaveBeenCalledWith(403);
+
+    // 平台回包里换了单号：说明响应被串错或被中间篡改，一律不认
+    wechatPayService.queryOrder.mockResolvedValue({ orderNo: 'OTHER', status: 1, paidCents: 1 });
+    const wrongNo = mockRes();
+    await payController.wxCallback(mockReq({ body: { payNo: 'O1' } }), wrongNo);
+    expect(wrongNo.status).toHaveBeenCalledWith(403);
+
+    wechatPayService.queryOrder.mockRejectedValue(new Error('ORDERNOTEXIST'));
+    const queryFail = mockRes();
+    await payController.wxCallback(mockReq({ body: { payNo: 'O1' } }), queryFail);
+    expect(queryFail.status).toHaveBeenCalledWith(403);
+
+    expect(payService.wxPayCallback).not.toHaveBeenCalled();
+  });
+
+  // 审计 H-2：入账阶段业务错误按 code 分流，意外故障必须保持 500
+  it('wxCallback 按业务错误码分流 403/404/422，重复回执按幂等成功返回', async () => {
+    delete process.env.ALLOW_UNVERIFIED_PAY_CALLBACK;
+    wechatPayService.queryOrder.mockResolvedValue({ orderNo: 'O1', status: 1, paidCents: 100 });
+
+    const cases = [
+      [PAY_ERRORS.FORBIDDEN, 403],
+      [PAY_ERRORS.UNVERIFIED, 403],
+      [PAY_ERRORS.NOT_FOUND, 404],
+      [PAY_ERRORS.AMOUNT_MISMATCH, 422],
+      [PAY_ERRORS.SETTLED, 200]
+    ];
+
+    for (const [code, status] of cases) {
+      payService.wxPayCallback.mockRejectedValue(payBizError(code, `E_${code}`));
+      const res = mockRes();
+      await payController.wxCallback(mockReq({ body: { payNo: 'O1' } }), res);
+      expect([code, res.status.mock.calls[0][0]]).toEqual([code, status]);
+    }
+
+    // 重复回执：data 带 duplicated 标记，供前端区分「本次没再加钱」
+    payService.wxPayCallback.mockRejectedValue(payBizError(PAY_ERRORS.SETTLED, '订单已入账'));
+    const dup = mockRes();
+    await payController.wxCallback(mockReq({ body: { payNo: 'O1' } }), dup);
+    expect(dup.json.mock.calls[0][0].data).toEqual({ duplicated: true });
+
+    // 没有 code 的意外故障（数据库异常等）保持 500，不伪装成业务拒绝
+    payService.wxPayCallback.mockRejectedValue(new Error('ECONNREFUSED'));
+    const boom = mockRes();
+    await payController.wxCallback(mockReq({ body: { payNo: 'O1' } }), boom);
+    expect(boom.status).toHaveBeenCalledWith(500);
   });
 
   it('getOrderStatus validates and succeeds', async () => {
@@ -196,7 +370,19 @@ describe('Controller - Pay', () => {
     payService.getOrderStatus.mockResolvedValue({ status: 1 });
     const ok = mockRes();
     await payController.getOrderStatus(mockReq({ query: { orderNo: 'O1' } }), ok);
+    // 审计 H-2：带当前登录用户查，避免用他人订单号探测支付状态
+    expect(payService.getOrderStatus).toHaveBeenCalledWith(100001, 'O1');
     expect(ok.status).toHaveBeenCalledWith(200);
+
+    payService.getOrderStatus.mockRejectedValue(payBizError(PAY_ERRORS.NOT_FOUND, '订单不存在'));
+    const nf = mockRes();
+    await payController.getOrderStatus(mockReq({ query: { orderNo: 'OTHER' } }), nf);
+    expect(nf.status).toHaveBeenCalledWith(404);
+
+    payService.getOrderStatus.mockRejectedValue(new Error('bad'));
+    const err = mockRes();
+    await payController.getOrderStatus(mockReq({ query: { orderNo: 'O1' } }), err);
+    expect(err.status).toHaveBeenCalledWith(500);
   });
 
   it('validateCard validates and succeeds', async () => {
@@ -206,8 +392,9 @@ describe('Controller - Pay', () => {
 
     payService.validateCard.mockResolvedValue({ valid: true });
     const ok = mockRes();
-    await payController.validateCard(mockReq({ body: { cardCode: 'C1' } }), ok);
-    expect(payService.validateCard).toHaveBeenCalledWith('C1');
+    // 审计 C-3：cardPwd 必须透传到服务层，服务端只认「卡号 + 密码」
+    await payController.validateCard(mockReq({ body: { cardCode: 'C1', cardPwd: 'P1' } }), ok);
+    expect(payService.validateCard).toHaveBeenCalledWith('C1', 'P1');
     expect(ok.status).toHaveBeenCalledWith(200);
   });
 
@@ -218,8 +405,8 @@ describe('Controller - Pay', () => {
 
     payService.useCard.mockResolvedValue({ money: 100 });
     const ok = mockRes();
-    await payController.useCard(mockReq({ body: { cardCode: 'C1' } }), ok);
-    expect(payService.useCard).toHaveBeenCalledWith(100001, 'C1');
+    await payController.useCard(mockReq({ body: { cardCode: 'C1', cardPwd: 'P1' } }), ok);
+    expect(payService.useCard).toHaveBeenCalledWith(100001, 'C1', 'P1');
     expect(ok.status).toHaveBeenCalledWith(200);
   });
 

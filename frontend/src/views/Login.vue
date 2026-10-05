@@ -190,6 +190,8 @@ const sendLoginCode = async () => {
   try {
     const result = await userStore.sendSms(codePhone.value.trim(), 'login')
     if (result.success) {
+      // 非生产环境后端会回传验证码，自动填入以便联调；生产恒为空
+      if (result.devCode) codeValue.value = result.devCode
       toast.success('验证码已发送', 5000)
       let countdown = 60
       loginCountdown.value = countdown
@@ -396,6 +398,11 @@ const sendCode = async () => {
     const result = await userStore.sendSms(phone, type)
     
     if (result.success) {
+      // 非生产环境后端会回传验证码，自动填入对应输入框；生产恒为空
+      if (result.devCode) {
+        if (showRegister.value) regCode.value = result.devCode
+        else forgotCode.value = result.devCode
+      }
       toast.success('验证码已发送', 5000)
       
       let countdown = 60

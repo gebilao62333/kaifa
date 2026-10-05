@@ -37,32 +37,63 @@ describe('Service - payService 卡密充值（25 位密钥链路回归）', () =
     Card.update.mockResolvedValue([1]); // 默认：原子占用成功（影响 1 行）
   });
 
-  it('validateCard 返回金币数而非面值', async () => {
+  it('validateCard 校验卡号+密码后返回金币数而非面值', async () => {
     Card.findOne.mockResolvedValue(makeCard());
-    const r = await payService.validateCard('DK1');
+    const r = await payService.validateCard('DK1', 'PW1');
     expect(r).toEqual({ cardId: 1, faceValue: 6, coinAmount: 60 });
   });
 
   it('validateCard 未设置金币数时回落到面值', async () => {
     Card.findOne.mockResolvedValue(makeCard({ value: '10.00', coin_amount: 0 }));
-    const r = await payService.validateCard('DK1');
+    const r = await payService.validateCard('DK1', 'PW1');
     expect(r.coinAmount).toBe(10);
+  });
+
+  // 审计 C-3：原先只比卡号、密码从不校验，拿到卡号即可入账。
+  it('validateCard 缺少密码时直接拒绝且不查库', async () => {
+    await expect(payService.validateCard('DK1')).rejects.toThrow('请输入卡号和密码');
+    await expect(payService.validateCard('DK1', '   ')).rejects.toThrow('请输入卡号和密码');
+    expect(Card.findOne).not.toHaveBeenCalled();
+  });
+
+  it('validateCard 密码错误与卡号不存在回同一文案（不泄露存在性）', async () => {
+    Card.findOne.mockResolvedValue(makeCard());
+    await expect(payService.validateCard('DK1', 'WRONG')).rejects.toThrow('卡号或密码错误');
+    Card.findOne.mockResolvedValue(null);
+    await expect(payService.validateCard('NOPE', 'PW1')).rejects.toThrow('卡号或密码错误');
+  });
+
+  it('validateCard 拒绝已使用或已禁用的卡', async () => {
+    Card.findOne.mockResolvedValue(makeCard({ status: 1 }));
+    await expect(payService.validateCard('DK1', 'PW1')).rejects.toThrow('该卡密已被使用或已禁用');
   });
 
   it('useCard 按金币数入账（不是面值）', async () => {
     Card.findOne.mockResolvedValue(makeCard());
-    const r = await payService.useCard(1, 'DK1');
+    const r = await payService.useCard(1, 'DK1', 'PW1');
     expect(r).toEqual({ amount: 60 });
     expect(User.increment).toHaveBeenCalledWith('money', expect.objectContaining({ by: 60 }));
   });
 
   it('useCard 以 status=0 为条件原子占用卡密', async () => {
     Card.findOne.mockResolvedValue(makeCard());
-    await payService.useCard(1, 'DK1');
+    await payService.useCard(1, 'DK1', 'PW1');
     expect(Card.update).toHaveBeenCalledWith(
       expect.objectContaining({ status: 1, use_user_id: 1 }),
       expect.objectContaining({ where: { id: 1, status: 0 } })
     );
+  });
+
+  it('useCard 密码错误时不占用卡密也不入账', async () => {
+    Card.findOne.mockResolvedValue(makeCard());
+    await expect(payService.useCard(1, 'DK1', 'WRONG')).rejects.toThrow('卡号或密码错误');
+    expect(Card.update).not.toHaveBeenCalled();
+    expect(User.increment).not.toHaveBeenCalled();
+  });
+
+  it('useCard 缺少密码时直接拒绝且不查库', async () => {
+    await expect(payService.useCard(1, 'DK1')).rejects.toThrow('请输入卡号和密码');
+    expect(Card.findOne).not.toHaveBeenCalled();
   });
 
   it('redeemCardByKey 按 card_key 查找并按金币数入账', async () => {
@@ -108,7 +139,7 @@ describe('Service - payService 卡密充值（25 位密钥链路回归）', () =
   it('useCard 抢占失败时拒绝且不入账', async () => {
     Card.findOne.mockResolvedValue(makeCard());
     Card.update.mockResolvedValue([0]);
-    await expect(payService.useCard(1, 'DK1')).rejects.toThrow('密卡已被使用或已禁用');
+    await expect(payService.useCard(1, 'DK1', 'PW1')).rejects.toThrow('该卡密已被使用或已禁用');
     expect(User.increment).not.toHaveBeenCalled();
   });
 });

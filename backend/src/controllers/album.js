@@ -1,7 +1,9 @@
 const albumService = require('../services/albumService');
-const { cosSignedUrlService } = require('../services');
+const { cosSignedUrlService, levelService } = require('../services');
+const { AlbumPhoto } = require('../models');
 const response = require('../utils/response');
 const logger = require('../utils/logger');
+const { ALBUM_LIMIT_BASE, ALBUM_LIMIT_EXPANDED } = require('../utils/level');
 
 const getPhotos = async (req, res) => {
   try {
@@ -28,6 +30,18 @@ const uploadPhoto = async (req, res) => {
 
     if (!url) {
       return response.badRequest(res, '缺少图片地址');
+    }
+
+    // Lv.25 解锁相册扩容：未达等级只有基础额度
+    const expanded = await levelService.canUse(req.userId, 'album_expand');
+    const limit = expanded ? ALBUM_LIMIT_EXPANDED : ALBUM_LIMIT_BASE;
+    const used = await AlbumPhoto.count({ where: { user_id: req.userId } });
+    if (used >= limit) {
+      return response.unprocessableEntity(
+        res,
+        `相册最多 ${limit} 张，Lv.25 可扩容至 ${ALBUM_LIMIT_EXPANDED} 张`,
+        { album: [`当前 ${used} 张，已达上限 ${limit} 张`] }
+      );
     }
 
     const result = await albumService.uploadPhoto(req.userId, url, description, privacy, password, price);

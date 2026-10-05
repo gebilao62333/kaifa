@@ -1,4 +1,6 @@
+const { Op } = require('sequelize');
 const { VipPackage, VipOrder, User } = require('../models');
+const { affectedCount } = require('../utils/sql');
 const { getTimestamp, generateOrderNo } = require('../utils/helper');
 
 const getVipPackages = async () => {
@@ -6,7 +8,7 @@ const getVipPackages = async () => {
     where: { status: 1 },
     order: [['sort', 'ASC'], ['id', 'ASC']]
   });
-  
+
   return packages.map(pkg => ({
     id: pkg.id,
     name: pkg.name,
@@ -14,7 +16,15 @@ const getVipPackages = async () => {
     original: pkg.original_price ? Number(pkg.original_price) : null,
     duration: pkg.duration,
     level: pkg.level,
-    hot: pkg.hot === 1
+    hot: pkg.hot === 1,
+    // 套餐的价格（金币）与时长（天）由管理端维护，用户端按此单一档位下单，
+    // 避免出现"前端选 12 个月、后端按套餐原价扣款"的口径不一致。
+    durations: [{
+      label: `${pkg.duration}天`,
+      months: 1,
+      price: Number(pkg.price),
+      original: pkg.original_price ? Number(pkg.original_price) : null
+    }]
   }));
 };
 
@@ -48,7 +58,7 @@ const createVipOrder = async (userId, packageId) => {
     user_id: userId,
     order_no: orderNo,
     package_id: pkg.id,
-    price: pkg.price,
+    price: Number(pkg.price),
     duration: pkg.duration,
     level: pkg.level,
     pay_type: 1,
@@ -64,32 +74,56 @@ const createVipOrder = async (userId, packageId) => {
   };
 };
 
-const completeVipOrder = async (orderNo, transactionId = null) => {
-  const order = await VipOrder.findOne({
-    where: { order_no: orderNo, status: 0 }
-  });
-  
+// 资损修复（2026-10-04）：金币购买 VIP 必须在此扣款，且只允许订单归属人完成。
+// 扣减走同一事务内的条件更新（WHERE money >= price），避免"先查余额再扣"的 TOCTOU，
+// 与 controllers/user.js savePref 的扣币实现保持一致。
+const completeVipOrder = async (orderNo, transactionId = null, userId = null) => {
+  const where = { order_no: orderNo, status: 0 };
+  if (userId !== undefined && userId !== null) {
+    where.user_id = userId;
+  }
+
+  const order = await VipOrder.findOne({ where });
+
   if (!order) {
     throw new Error('订单不存在或已处理');
   }
-  
+
+  const price = Number(order.price) || 0;
   const transaction = await User.sequelize.transaction();
-  
+
   try {
+    if (price > 0) {
+      const decreaseResult = await User.decrement('money', {
+        by: price,
+        where: { id: order.user_id, money: { [Op.gte]: price } },
+        transaction
+      });
+      // decrement 在 MySQL 下返回 [[null, N]]，不能用真值判断（[null,0] 也是真值）。
+      if (affectedCount(decreaseResult) !== 1) {
+        await transaction.rollback();
+        throw new Error('余额不足');
+      }
+    }
+
     await order.update({
       status: 1,
       pay_no: transactionId,
       pay_time: getTimestamp()
     }, { transaction });
-    
-    const user = await User.findByPk(order.user_id);
+
+    const user = await User.findByPk(order.user_id, { transaction });
+    if (!user) {
+      await transaction.rollback();
+      throw new Error('用户不存在');
+    }
     const now = getTimestamp();
     let newExpireTime = now + order.duration * 24 * 60 * 60;
-    
+
     if (user.vip_expire_time > now) {
       newExpireTime = user.vip_expire_time + order.duration * 24 * 60 * 60;
     }
-    
+
     await User.update({
       vip: 1,
       vip_lv: Math.max(user.vip_lv, order.level),
@@ -98,15 +132,18 @@ const completeVipOrder = async (orderNo, transactionId = null) => {
       where: { id: order.user_id },
       transaction
     });
-    
+
     await transaction.commit();
-    
+
     return {
       success: true,
-      expireTime: newExpireTime
+      expireTime: newExpireTime,
+      amount: price
     };
   } catch (error) {
-    await transaction.rollback();
+    if (!transaction.finished) {
+      try { await transaction.rollback(); } catch (rollbackError) { /* 已回滚 */ }
+    }
     throw error;
   }
 };

@@ -1,6 +1,8 @@
+const { Op } = require('sequelize');
 const { Withdraw, User } = require('../models');
 const sequelize = require('../config/mysql');
 const { CURRENCY_UNIT, calculateWithdrawFee } = require('../utils/currency');
+const { assertFiniteNumber, affectedCount } = require('../utils/sql');
 
 // 收入来源元信息（与前端一致，按实际业务构成，不编造）
 const SOURCE_META = {
@@ -22,6 +24,29 @@ const EXPENSE_META = {
 };
 
 const WITHDRAW_MIN = 100; // 最低提现金额（与礼物提现保持一致）
+
+// xn_withdraw 收款信息列长：name(50)/account(255)/bank(255)/image(255)。
+// 收款码必须是上传后返回的图片链接：整段 base64 dataURL 远超 255，
+// 严格模式报 Data too long 使提现失败，非严格模式静默截断导致审核端二维码不可用。
+const WITHDRAW_FIELD_LIMITS = {
+  name: ['收款人姓名', 50],
+  account: ['收款账号', 255],
+  bank: ['开户银行', 255],
+  image: ['收款码图片', 255]
+};
+
+const checkWithdrawFieldLengths = (fields) => {
+  for (const [key, raw] of Object.entries(fields)) {
+    const [label, max] = WITHDRAW_FIELD_LIMITS[key];
+    const value = raw === null || raw === undefined ? '' : String(raw);
+    if (key === 'image' && value.startsWith('data:')) {
+      throw new Error('收款码请先上传图片，再提交图片链接');
+    }
+    if (value.length > max) {
+      throw new Error(`${label}过长，请控制在 ${max} 个字符以内`);
+    }
+  }
+};
 
 // 收入流水聚合：从各真实业务表实时汇总用户收入（替代不存在的 xn_income_record）
 const collectIncomeRecords = async (userId) => {
@@ -228,8 +253,16 @@ const getIncomeBreakdown = async (userId) => {
   return { list, total: Math.round(total * 100) / 100 };
 };
 
-// 总资产 = 累计收入 - 已提现（钱包渠道）
+// 总资产口径 = 用户真实余额 xn_user.money（审计 C-2）。
+// 历史实现用「累计收入 - 已申请提现」派生总资产：既不含已消费（下单/VIP/解锁），也不含充值余额，
+// 于是同一笔收入可以「花完再提一次」，且申请提现时并不从 money 扣款，属于资损。
+// 收入聚合（grossIncome / todayIncome）与提现聚合（totalWithdraw）保留作统计展示，不再参与余额判定。
 const getWalletOverview = async (userId) => {
+  const user = await User.findByPk(userId, { attributes: ['id', 'money', 'gift_money'] });
+  if (!user) {
+    throw new Error('用户不存在');
+  }
+
   const all = await collectIncomeRecords(userId);
   const grossIncome = all.reduce((sum, r) => sum + Number(r.amount), 0);
 
@@ -239,7 +272,9 @@ const getWalletOverview = async (userId) => {
     .reduce((sum, r) => sum + Number(r.amount), 0);
 
   const totalWithdraw = await sumWalletWithdraw(userId);
-  const totalAssets = Math.max(0, Math.round((grossIncome - totalWithdraw) * 100) / 100);
+  // DECIMAL 列在 mysql2 下回传字符串，统一 Number() 兜底为 0
+  const balance = Math.max(0, Math.round((Number(user.money) || 0) * 100) / 100);
+  const giftMoney = Math.max(0, Math.round((Number(user.gift_money) || 0) * 100) / 100);
 
   const allExpense = await collectExpenseRecords(userId);
   const todayExpense = allExpense
@@ -247,7 +282,9 @@ const getWalletOverview = async (userId) => {
     .reduce((sum, r) => sum + Number(r.amount), 0);
 
   return {
-    totalAssets,
+    totalAssets: balance,
+    balance,
+    giftMoney,
     grossIncome: Math.round(grossIncome * 100) / 100,
     totalWithdraw: Math.round(totalWithdraw * 100) / 100,
     todayIncome: Math.round(todayIncome * 100) / 100,
@@ -316,30 +353,39 @@ const getWithdrawRecords = async (userId) => {
     .sort((a, b) => b.createTime - a.createTime);
 };
 
-// 从总资产提现：记录提现单，可用余额随"累计收入-已提现"自动减少
+// 从真实余额提现：申请即从 xn_user.money 条件扣减（审计 C-2）
 const applyWithdraw = async (userId, { amount, type = 1, account = '', name = '', image = '', bank = '' }) => {
-  const amountNum = Number(amount);
+  const amountNum = assertFiniteNumber(amount, '提现金额');
 
-  if (!amountNum || amountNum <= 0) {
+  if (amountNum <= 0) {
     throw new Error('提现金额必须大于0');
   }
   if (amountNum < WITHDRAW_MIN) {
     throw new Error(`最低提现金额为 ${WITHDRAW_MIN} ${CURRENCY_UNIT}`);
   }
 
+  checkWithdrawFieldLengths({ name, account, bank, image });
+
   const fee = calculateWithdrawFee(amountNum);
   const netAmount = Math.round((amountNum - fee) * 100) / 100;
   const typeInt = parseInt(type, 10) || 1;
 
-  // 审计 B-03：余额基于"累计收入 - 已申请提现"聚合计算，读与写之间并发会超额提现。
-  // 用用户行锁把同一用户的提现申请串行化，锁内重新计算再落单。
+  // 审计 C-2：历史实现只把提现单写库，靠「累计收入 - 已申请提现」的派生聚合扣减总资产，
+  // xn_user.money 一分未动 —— 用户可把同一笔余额既消费又提现，还能反复发起。
+  // 现改为与礼物/管理端一致的「条件扣减 + 影响行数判定」：where 带 money >= amount，
+  // 并发下最多扣成功一次，不需要额外行锁（原先的 SELECT ... FOR UPDATE 锁的是用户行，
+  // 而余额判断读的是提现表聚合，锁不住判断依据）。
+  // 审核拒绝时由 controllers/admin.js rejectWithdraw 原路退回 money。
   const transaction = await sequelize.transaction();
   try {
-    await User.findByPk(userId, { transaction, lock: transaction.LOCK.UPDATE });
+    const decreaseResult = await User.decrement('money', {
+      by: amountNum,
+      where: { id: userId, money: { [Op.gte]: amountNum } },
+      transaction
+    });
 
-    const overview = await getWalletOverview(userId);
-    if (amountNum > overview.totalAssets + 1e-9) {
-      await transaction.rollback();
+    if (affectedCount(decreaseResult) !== 1) {
+      // 不在这里 rollback：统一交给下方 catch，避免二次回滚覆盖真实业务错误
       throw new Error('可提现余额不足');
     }
 

@@ -40,6 +40,12 @@ const CompanionProfile = sequelize.define('xn_companion_profile', {
     type: DataTypes.STRING(500),
     allowNull: true
   },
+  service_type: {
+    type: DataTypes.STRING(16),
+    allowNull: true,
+    defaultValue: 'online',
+    comment: '服务类型 online/offline'
+  },
   order_num: {
     type: DataTypes.INTEGER,
     defaultValue: 0

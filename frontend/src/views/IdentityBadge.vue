@@ -133,8 +133,9 @@ const selectBadge = (badge) => {
   selectedBadge.style = badge.style
   const payload = { id: badge.id, label: badge.label, icon: badge.icon, style: badge.style }
   localStorage.setItem('selectedBadge', JSON.stringify(payload))
-  // 同步到服务端偏好
-  userPrefService.save({ selectedBadge: payload }, 0).catch(() => {})
+  // 同步到服务端偏好（身份标识是 Lv.20 权益，被拒时给出服务端原因）
+  userPrefService.save({ selectedBadge: payload })
+    .catch((e) => { if (e?.status === 422) toast.show(e.message) })
 }
 
 // 加载服务端已选标识（替代纯 localStorage）

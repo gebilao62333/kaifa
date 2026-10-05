@@ -9,8 +9,8 @@ const vipService = {
     return request('/api/vip/info', 'GET')
   },
 
-  async createVipOrder(packageId, months, price) {
-    return request('/api/vip/order', 'POST', { packageId, months, price })
+  async createVipOrder(packageId) {
+    return request('/api/vip/order', 'POST', { packageId })
   },
 
   async completeVipOrder(orderNo, transactionId) {

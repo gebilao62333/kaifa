@@ -50,7 +50,7 @@ const loadVisitors = async () => {
       nickName: r.nickname || '用户',
       avatar: r.avatar || DEFAULT_AVATAR,
       time: formatTime(r.time),
-      isFollowed: false
+      isFollowed: !!r.isFollowed
     }))
   } catch (e) {
     console.error('加载访客记录失败:', e)
@@ -72,7 +72,8 @@ const followUser = async (item) => {
 }
 
 const viewProfile = (user) => {
-  router.push({ name: 'UserProfile', params: { id: user.id || '10001' } })
+  if (!user?.id) return
+  router.push({ name: 'UserProfile', params: { id: user.id } })
 }
 </script>
 

@@ -1,6 +1,6 @@
 jest.mock('../../../src/models', () => ({
   Withdraw: { findAndCountAll: jest.fn(), create: jest.fn(), findByPk: jest.fn(), update: jest.fn() },
-  User: { findByPk: jest.fn() }
+  User: { findByPk: jest.fn(), decrement: jest.fn(), increment: jest.fn() }
 }));
 jest.mock('../../../src/config/mysql', () => ({
   query: jest.fn(),
@@ -33,7 +33,9 @@ describe('Service - WalletService', () => {
     sequelize.transaction.mockResolvedValue({
       commit: jest.fn(), rollback: jest.fn(), finished: false, LOCK: { UPDATE: 'UPDATE' }
     });
-    User.findByPk.mockResolvedValue({ id: 2 });
+    User.findByPk.mockResolvedValue({ id: 2, money: '1000', gift_money: '0' });
+    // 条件扣减默认成功（MySQL 下 decrement 返回 [[null, 受影响行数]]）
+    User.decrement.mockResolvedValue([[null, 1]]);
   });
 
   describe('getIncomeRecords', () => {
@@ -77,7 +79,7 @@ describe('Service - WalletService', () => {
     expect(result.list.find(x => x.sourceType === 'order').percent).toBeCloseTo(66.7, 1);
   });
 
-  it('getWalletOverview computes assets, withdraw and expenses', async () => {
+  it('getWalletOverview takes totalAssets from the real money balance (audit C-2)', async () => {
     setSeq([
       [{ id: 1, amount: 100, create_time: nowSec }], [], [], [], [],
       [{ id: 1, amount: 30, create_time: nowSec }], [], []
@@ -88,10 +90,15 @@ describe('Service - WalletService', () => {
         { amount: 5, status: 2 }
       ]
     });
+    // money 是 DECIMAL 列，驱动回传字符串
+    User.findByPk.mockResolvedValue({ id: 2, money: '46.5', gift_money: '10' });
     const result = await walletService.getWalletOverview(2);
     expect(result.grossIncome).toBe(100);
     expect(result.totalWithdraw).toBe(20);
-    expect(result.totalAssets).toBe(80);
+    // 总资产 = 真实余额，不再等于「累计收入 - 已提现」（那个口径不含消费与充值）
+    expect(result.totalAssets).toBe(46.5);
+    expect(result.balance).toBe(46.5);
+    expect(result.giftMoney).toBe(10);
     expect(result.currencyUnit).toBe('金币');
     expect(result.todayExpense).toBeGreaterThanOrEqual(0);
   });
@@ -99,8 +106,15 @@ describe('Service - WalletService', () => {
   it('getWalletOverview never returns negative assets', async () => {
     setSeq([[], [], [], [], [], [], [], []]);
     Withdraw.findAndCountAll.mockResolvedValue({ rows: [{ amount: 99, status: 1 }] });
+    User.findByPk.mockResolvedValue({ id: 2, money: '-3', gift_money: null });
     const result = await walletService.getWalletOverview(2);
     expect(result.totalAssets).toBe(0);
+    expect(result.giftMoney).toBe(0);
+  });
+
+  it('getWalletOverview rejects a missing user', async () => {
+    User.findByPk.mockResolvedValue(null);
+    await expect(walletService.getWalletOverview(2)).rejects.toThrow('用户不存在');
   });
 
   it('getExpenseRecords aggregates expenses', async () => {
@@ -154,21 +168,67 @@ describe('Service - WalletService', () => {
       await expect(walletService.applyWithdraw(2, { amount: 50 })).rejects.toThrow('最低提现金额为 100 金币');
     });
 
-    it('rejects when the balance is insufficient', async () => {
-      setSeq([[], [], [], [], [], [], [], []]);
+    it('rejects a non-numeric amount before opening a transaction', async () => {
+      await expect(walletService.applyWithdraw(2, { amount: 'abc' })).rejects.toThrow('提现金额必须为有限数字');
+      await expect(walletService.applyWithdraw(2, { amount: 'Infinity' })).rejects.toThrow('提现金额必须为有限数字');
+      expect(sequelize.transaction).not.toHaveBeenCalled();
+    });
+
+    it('rejects when the real balance is insufficient (conditional decrement)', async () => {
+      User.decrement.mockResolvedValue([[null, 0]]);
       await expect(walletService.applyWithdraw(2, { amount: 200 })).rejects.toThrow('可提现余额不足');
+      expect(Withdraw.create).not.toHaveBeenCalled();
+    });
+
+    it('rolls back the transaction when the decrement fails', async () => {
+      User.decrement.mockResolvedValue([[null, 0]]);
+      // beforeEach 用 mockResolvedValue 复用同一个事务对象，可直接断言它的 rollback 被调用
+      const tx = await sequelize.transaction();
+      await expect(walletService.applyWithdraw(2, { amount: 200 })).rejects.toThrow('可提现余额不足');
+      expect(tx.rollback).toHaveBeenCalledTimes(1);
+      expect(tx.commit).not.toHaveBeenCalled();
     });
 
     it('creates a withdraw request with fee', async () => {
-      setSeq([
-        [{ id: 1, amount: 500, create_time: nowSec }], [], [], [], [],
-        [], [], []
-      ]);
       const result = await walletService.applyWithdraw(2, { amount: 200, type: '2', account: 'a', name: 'n', bank: 'b' });
       expect(result.success).toBe(true);
       expect(result.fee).toBe(10);
       expect(result.netAmount).toBe(190);
-      expect(Withdraw.create).toHaveBeenCalled();
+      expect(User.decrement).toHaveBeenCalledWith('money', expect.objectContaining({
+        by: 200,
+        where: { id: 2, money: { [require('sequelize').Op].gte: 200 } }
+      }));
+      expect(Withdraw.create).toHaveBeenCalledWith(
+        expect.objectContaining({ user_id: 2, money: 200, amount: 200, channel: 'wallet' }),
+        expect.anything()
+      );
+    });
+
+    // xn_withdraw.image 为 STRING(255)：整段 base64 收款码会让严格模式报 Data too long、
+    // 非严格模式静默截断，必须在落库前拦截。
+    it('rejects oversized receiving fields before opening a transaction', async () => {
+      const dataUrl = 'data:image/png;base64,' + 'A'.repeat(300);
+      await expect(walletService.applyWithdraw(2, { amount: 200, image: dataUrl }))
+        .rejects.toThrow('收款码请先上传图片，再提交图片链接');
+      await expect(walletService.applyWithdraw(2, { amount: 200, name: 'X'.repeat(51) }))
+        .rejects.toThrow('收款人姓名过长');
+      await expect(walletService.applyWithdraw(2, { amount: 200, account: 'X'.repeat(256) }))
+        .rejects.toThrow('收款账号过长');
+      expect(Withdraw.create).not.toHaveBeenCalled();
+      expect(sequelize.transaction).not.toHaveBeenCalled();
+    });
+
+    it('accepts an uploaded image url within the column length', async () => {
+      setSeq([
+        [{ id: 1, amount: 500, create_time: nowSec }], [], [], [], [],
+        [], [], []
+      ]);
+      const url = 'https://cdn.example.com/withdraw/qrcode_1700000000.png';
+      await walletService.applyWithdraw(2, { amount: 200, type: '1', account: 'a', image: url });
+      expect(Withdraw.create).toHaveBeenCalledWith(
+        expect.objectContaining({ image: url }),
+        expect.anything()
+      );
     });
   });
 });

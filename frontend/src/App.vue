@@ -13,6 +13,7 @@
     <Toast v-bind="toast.state"></Toast>
     <IncomingCall ref="incomingCallRef"></IncomingCall>
     <NetworkStatus></NetworkStatus>
+    <SplashPopup :splash="splash" @close="closeSplash" @navigate="navigateSplash"></SplashPopup>
   </div>
 </template>
 
@@ -22,8 +23,11 @@ import Toast from './components/Toast.vue'
 import IncomingCall from './components/IncomingCall.vue'
 import NetworkStatus from './components/NetworkStatus.vue'
 import ErrorBoundary from './components/ErrorBoundary.vue'
+import SplashPopup from './components/SplashPopup.vue'
 import { useToast } from './composables/useToast'
 import { socketService } from './services/socketService'
+import { pickSplash } from './utils/splashScreen'
+import { socketUrl as configSocketUrl } from './common/config'
 import { useUserStore } from './store/user-info'
 import { onMounted, onUnmounted, ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -31,6 +35,7 @@ import { useRoute, useRouter } from 'vue-router'
 const toast = useToast()
 const userStore = useUserStore()
 const incomingCallRef = ref(null)
+const splash = ref(null)
 const route = useRoute()
 const router = useRouter()
 
@@ -107,7 +112,10 @@ const initSocket = () => {
     return
   }
 
-  const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000'
+  // 审计低危项：此前 `|| 'http://localhost:3000'` 会在生产（.env.production 的
+  // VITE_SOCKET_URL 为空）把连接回落本机，既连不上还会把 token 交给本机监听进程。
+  // 改取 common/config 的 socketUrl：开发=localhost:3000、生产=空串（同源，走 nginx）。
+  const socketUrl = import.meta.env.VITE_SOCKET_URL || configSocketUrl
   if (import.meta.env.DEV) console.log('[App] 初始化Socket连接:', socketUrl)
   socketService.connect(socketUrl)
 
@@ -119,12 +127,32 @@ const initSocket = () => {
   })
 }
 
+const loadSplash = async () => {
+  try {
+    splash.value = await pickSplash()
+  } catch (error) {
+    if (import.meta.env.DEV) console.log('[App] 开屏弹窗加载失败:', error)
+  }
+}
+
+const closeSplash = () => { splash.value = null }
+
+const navigateSplash = (link) => {
+  splash.value = null
+  if (/^https?:\/\//i.test(link)) {
+    window.location.href = link
+    return
+  }
+  router.push(link.startsWith('/') ? link : `/${link}`)
+}
+
 onMounted(() => {
   if (userStore.isLogin) {
     // 持久化白名单不再保留余额/手机号等字段，启动后主动从服务端刷新完整资料
     userStore.fetchUserInfo().catch(() => {})
     initSocket()
   }
+  loadSplash()
   window.addEventListener('pointerdown', onPointerDown, { passive: true })
   window.addEventListener('pointerup', onPointerUp, { passive: true })
   window.addEventListener('pointercancel', onPointerCancel, { passive: true })

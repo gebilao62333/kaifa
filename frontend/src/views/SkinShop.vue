@@ -18,7 +18,7 @@
 
     <div class="content">
       <div class="skin-grid" v-if="activeTab === 'frame'">
-        <div class="skin-card" v-for="item in frameList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item, 'frame')">
+        <div class="skin-card" v-for="item in frameList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item)">
           <div class="skin-preview" :style="item.style">
             <img class="skin-avatar" :src="demoAvatar" alt="" />
           </div>
@@ -36,7 +36,7 @@
       </div>
 
       <div class="skin-grid" v-if="activeTab === 'badge'">
-        <div class="skin-card" v-for="item in badgeList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item, 'badge')">
+        <div class="skin-card" v-for="item in badgeList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item)">
           <div class="badge-preview" :style="item.style">
             <span class="badge-preview-icon">{{ item.icon }}</span>
             <span class="badge-preview-label">{{ item.label }}</span>
@@ -55,7 +55,7 @@
       </div>
 
       <div class="skin-grid" v-if="activeTab === 'bubble'">
-        <div class="skin-card" v-for="item in bubbleList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item, 'bubble')">
+        <div class="skin-card" v-for="item in bubbleList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item)">
           <div class="bubble-preview" :style="item.style">
             <span class="bubble-text">{{ item.preview }}</span>
           </div>
@@ -73,7 +73,7 @@
       </div>
 
       <div class="skin-grid" v-if="activeTab === 'theme'">
-        <div class="skin-card" v-for="item in themeList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item, 'theme')">
+        <div class="skin-card" v-for="item in themeList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item)">
           <div class="theme-preview" :style="{ background: item.bg }">
             <div class="theme-preview-item" :style="{ background: item.primary }"></div>
             <div class="theme-preview-item sm" :style="{ background: item.secondary }"></div>
@@ -100,15 +100,14 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { DEFAULT_AVATAR } from '@/common/constants'
-import userPrefService from '../services/userPrefService'
-import { useUserStore } from '../store/user-info'
+import skinService from '../services/skinService'
 
 const router = useRouter()
 
-const userStore = useUserStore()
 const userBalance = ref(0)
 const demoAvatar = ref(DEFAULT_AVATAR)
 const activeTab = ref('frame')
+const busy = ref(false)
 
 const toast = reactive({ show: false, message: '' })
 
@@ -118,164 +117,79 @@ const showToast = (msg) => {
   setTimeout(() => { toast.show = false }, 2000)
 }
 
-const frameList = ref([
-  { id: 'sf1', name: '简约白边', style: { border: '3px solid #ddd', borderRadius: '10px', boxShadow: '0 0 6px rgba(0,0,0,0.1)' }, price: 0, owned: true, using: true, vipOnly: false },
-  { id: 'sf2', name: '清新绿边', style: { border: '3px solid #2ecc71', borderRadius: '10px', boxShadow: '0 0 8px rgba(46,204,113,0.3)' }, price: 500, owned: true, using: false, vipOnly: false },
-  { id: 'sf3', name: '活力橙边', style: { border: '3px solid #e67e22', borderRadius: '10px', boxShadow: '0 0 8px rgba(230,126,34,0.3)' }, price: 800, owned: false, using: false, vipOnly: false },
-  { id: 'sf4', name: '梦幻粉边', style: { border: '3px solid #e84393', borderRadius: '10px', boxShadow: '0 0 10px rgba(232,67,147,0.4)' }, price: 1200, owned: false, using: false, vipOnly: false },
-  { id: 'sf5', name: '深邃蓝边', style: { border: '3px solid #0984e3', borderRadius: '10px', boxShadow: '0 0 10px rgba(9,132,227,0.4)' }, price: 1500, owned: false, using: false, vipOnly: false },
-  { id: 'sf6', name: '极光幻彩', style: { border: '3px solid transparent', borderRadius: '10px', boxShadow: '0 0 14px rgba(102,126,234,0.5)', background: 'linear-gradient(135deg, #667eea, #764ba2, #ffd700) padding-box, linear-gradient(135deg, #667eea, #764ba2, #ffd700) border-box' }, price: 3000, owned: false, using: false, vipOnly: false, vipLevel: 2 },
-  { id: 'sf7', name: '烈焰金边', style: { border: '4px solid #ffd700', borderRadius: '10px', boxShadow: '0 0 18px rgba(255,215,0,0.5), 0 0 0 3px #fff' }, price: 5000, owned: false, using: false, vipOnly: false, vipLevel: 3 },
-  { id: 'sf8', name: '暗夜流光', style: { border: '4px solid #6c5ce7', borderRadius: '10px', boxShadow: '0 0 20px rgba(108,92,231,0.5), 0 0 0 3px rgba(255,255,255,0.3)' }, price: 8888, owned: false, using: false, vipOnly: false, vipLevel: 4 },
-])
+// 审计 H-6：装扮目录、价格、VIP 门槛、所有权与扣款金额全部由服务端决定。
+// 此前这里硬编码四个目录、把 owned/using 快照连同客户端自报的 spend 发给 /api/user/pref，
+// 抓包改 spend=0 即可白拿任意装扮；现在组件只认 GET /api/user/skins 的返回，也不再写本地所有权缓存。
+const frameList = ref([])
+const badgeList = ref([])
+const bubbleList = ref([])
+const themeList = ref([])
 
-const badgeList = ref([
-  { id: 'sb1', name: '人气新星', icon: '🌟', label: '人气新星', style: { background: 'linear-gradient(135deg, #74b9ff, #0984e3)', color: '#fff', borderRadius: '10px', padding: '6px 14px' }, price: 0, owned: true, using: true, vipOnly: false },
-  { id: 'sb2', name: '游戏达人', icon: '🎮', label: '游戏达人', style: { background: 'linear-gradient(135deg, #a29bfe, #6c5ce7)', color: '#fff', borderRadius: '10px', padding: '6px 14px' }, price: 600, owned: false, using: false, vipOnly: false },
-  { id: 'sb3', name: '社交达人', icon: '💬', label: '社交达人', style: { background: 'linear-gradient(135deg, #fd79a8, #e84393)', color: '#fff', borderRadius: '10px', padding: '6px 14px' }, price: 1000, owned: false, using: false, vipOnly: false },
-  { id: 'sb4', name: '上分高手', icon: '🏆', label: '上分高手', style: { background: 'linear-gradient(135deg, #fdcb6e, #e17055)', color: '#fff', borderRadius: '10px', padding: '6px 14px' }, price: 2000, owned: false, using: false, vipOnly: false },
-  { id: 'sb5', name: '神壕', icon: '💰', label: '神壕', style: { background: 'linear-gradient(135deg, #ffd700, #ff8c00)', color: '#fff', borderRadius: '10px', padding: '6px 14px' }, price: 5000, owned: false, using: false, vipOnly: false, vipLevel: 3 },
-  { id: 'sb6', name: '全服偶像', icon: '💎', label: '全服偶像', style: { background: 'linear-gradient(135deg, #ff6b6b, #c0392b, #ffd700)', color: '#fff', borderRadius: '10px', padding: '6px 14px' }, price: 9999, owned: false, using: false, vipOnly: false, vipLevel: 4 },
-])
+const LISTS = { frame: frameList, badge: badgeList, bubble: bubbleList, theme: themeList }
 
-const bubbleList = ref([
-  { id: 'sbbl1', name: '默认气泡', preview: '你好呀~', style: { background: '#f0f0f0', color: '#333', borderRadius: '12px 12px 12px 4px', padding: '10px 16px' }, price: 0, owned: true, using: true, vipOnly: false },
-  { id: 'sbbl2', name: '清新对话', preview: '你好呀~', style: { background: 'linear-gradient(135deg, #dfe6e9, #b2bec3)', color: '#2d3436', borderRadius: '12px 12px 12px 4px', padding: '10px 16px' }, price: 400, owned: false, using: false, vipOnly: false },
-  { id: 'sbbl3', name: '可爱粉泡', preview: '你好呀~', style: { background: 'linear-gradient(135deg, #fd79a8, #e84393)', color: '#fff', borderRadius: '18px 18px 18px 4px', padding: '10px 18px' }, price: 800, owned: false, using: false, vipOnly: false },
-  { id: 'sbbl4', name: '星空泡泡', preview: '你好呀~', style: { background: 'linear-gradient(135deg, #74b9ff, #0984e3)', color: '#fff', borderRadius: '16px 4px 16px 4px', padding: '10px 16px' }, price: 1200, owned: false, using: false, vipOnly: false },
-  { id: 'sbbl5', name: '炫金气泡', preview: '你好呀~', style: { background: 'linear-gradient(135deg, #ffd700, #ff8c00)', color: '#fff', borderRadius: '20px 20px 4px 20px', padding: '10px 20px', boxShadow: '0 4px 12px rgba(255,215,0,0.3)' }, price: 2500, owned: false, using: false, vipOnly: false, vipLevel: 2 },
-  { id: 'sbbl6', name: '暗夜贵族', preview: '你好呀~', style: { background: 'linear-gradient(135deg, #2d3436, #636e72)', color: '#ffd700', borderRadius: '12px 12px 4px 12px', padding: '10px 16px', border: '1px solid #ffd700' }, price: 4000, owned: false, using: false, vipOnly: false, vipLevel: 3 },
-])
-
-const themeList = ref([
-  { id: 'sth1', name: '经典蓝', bg: '#f5f5f5', primary: '#667eea', secondary: '#764ba2', price: 0, owned: true, using: true, vipOnly: false },
-  { id: 'sth2', name: '少女粉', bg: '#fff5f5', primary: '#fd79a8', secondary: '#e84393', price: 600, owned: false, using: false, vipOnly: false },
-  { id: 'sth3', name: '森林绿', bg: '#f0fff4', primary: '#2ecc71', secondary: '#27ae60', price: 1000, owned: false, using: false, vipOnly: false },
-  { id: 'sth4', name: '暗夜黑', bg: '#1a1a2e', primary: '#6c5ce7', secondary: '#a29bfe', price: 2000, owned: false, using: false, vipOnly: false },
-  { id: 'sth5', name: '土豪金', bg: '#fff8e1', primary: '#ffd700', secondary: '#ff8c00', price: 3500, owned: false, using: false, vipOnly: false, vipLevel: 2 },
-  { id: 'sth6', name: '极光紫', bg: '#f0e6ff', primary: '#a855f7', secondary: '#d946ef', price: 5000, owned: false, using: false, vipOnly: false, vipLevel: 3 },
-])
-
-const ownedMap = reactive({})
-const usingMap = reactive({})
-
-const loadData = () => {
-  try {
-    const saved = localStorage.getItem('skinShopData')
-    if (saved) {
-      const { owned, using, balance } = JSON.parse(saved)
-      Object.assign(ownedMap, owned)
-      Object.assign(usingMap, using)
-      if (balance) userBalance.value = balance
-    }
-  } catch {}
+const renderGroups = (payload) => {
+  const groups = { frame: [], badge: [], bubble: [], theme: [] }
+  const items = Array.isArray(payload.items) ? payload.items : []
+  items.forEach((item) => {
+    const group = groups[item.type]
+    if (!group) return
+    // 展示资源（style / icon / preview / bg 等）随目录一起下发，摊平后模板无需变化
+    group.push({ ...item.assets, ...item })
+  })
+  Object.keys(groups).forEach((type) => { LISTS[type].value = groups[type] })
+  if (payload.balance != null) userBalance.value = Number(payload.balance) || 0
 }
 
-const saveData = () => {
-  persistPref(0)
+const loadSkins = async () => {
+  try {
+    const res = await skinService.list()
+    const payload = (res && res.data) || {}
+    renderGroups(payload)
+    if (payload.unlocked === false) showToast(`装扮商城需 Lv.${payload.needLevel} 解锁`)
+  } catch (e) {
+    showToast(e.message || '装扮列表加载失败')
+  }
 }
 
-// 持久化到服务端偏好；spend>0 时由服务端扣金币并回传最新余额
-const persistPref = async (spend = 0) => {
-  localStorage.setItem('skinShopData', JSON.stringify({
-    owned: { ...ownedMap },
-    using: { ...usingMap }
-  }))
+onMounted(loadSkins)
+
+// 服务端是唯一事实来源：四类共用一个「使用中」位，成功后按回传刷新视图，
+// 下次进页面仍以 GET /api/user/skins 为准。
+const markUsed = (skinId) => {
+  Object.keys(LISTS).forEach((type) => {
+    LISTS[type].value.forEach((item) => {
+      item.using = item.id === skinId
+      if (item.id === skinId) item.owned = true
+    })
+  })
+}
+
+// 余额与 VIP 都不做本地预判：本地值可能已过期，判定权交给服务端，
+// 用户看到的是服务端给出的真实原因（等级不足 / 需要 VIP / 金币不足）。
+const actionItem = async (item) => {
+  if (busy.value || item.using) return
+  const wasOwned = !!item.owned
+  busy.value = true
   try {
-    const res = await userPrefService.save(
-      { skinShop: { owned: { ...ownedMap }, using: { ...usingMap } } },
-      spend
-    )
-    if (res?.data?.balance != null) userBalance.value = Number(res.data.balance)
-    return true
+    const res = wasOwned
+      ? await skinService.use(item.id)
+      : await skinService.purchase(item.id)
+    const payload = (res && res.data) || {}
+    markUsed(payload.skin && payload.skin.id ? payload.skin.id : item.id)
+    if (payload.balance != null) userBalance.value = Number(payload.balance) || 0
+    if (payload.charged > 0) showToast(`购买成功，已切换至「${item.name}」`)
+    else if (!wasOwned) showToast(`已获得「${item.name}」`)
+    else showToast(`已切换至「${item.name}」`)
   } catch (e) {
     showToast(e.message || '操作失败')
-    return false
+  } finally {
+    busy.value = false
   }
-}
-
-// 加载服务端装扮与余额
-const loadPref = async () => {
-  try {
-    const res = await userPrefService.get()
-    const prefs = res?.data?.data || {}
-    if (prefs.skinShop) {
-      Object.assign(ownedMap, prefs.skinShop.owned || {})
-      Object.assign(usingMap, prefs.skinShop.using || {})
-    }
-  } catch (e) { /* 静默 */ }
-  try {
-    await userStore.fetchUserInfo()
-    if (userStore.balance != null) userBalance.value = Number(userStore.balance)
-  } catch (e) { /* 静默 */ }
-}
-
-onMounted(loadPref)
-
-const actionItem = (item, type) => {
-  const key = `${type}_${item.id}`
-  if (usingMap[key]) return
-
-  if (ownedMap[key]) {
-    Object.keys(usingMap).forEach(k => { usingMap[k] = false })
-    usingMap[key] = true
-    saveData()
-    showToast(`已切换至「${item.name}」`)
-    return
-  }
-
-  if (item.price === 0) {
-    ownedMap[key] = true
-    Object.keys(usingMap).forEach(k => { usingMap[k] = false })
-    usingMap[key] = true
-    saveData()
-    showToast(`已获得「${item.name}」`)
-    return
-  }
-
-  if (item.vipOnly) {
-    showToast(`需要 VIP${item.vipLevel} 及以上才可购买`)
-    return
-  }
-
-  if (userBalance.value < item.price) {
-    showToast('金币不足，请先充值')
-    return
-  }
-
-  ownedMap[key] = true
-  Object.keys(usingMap).forEach(k => { usingMap[k] = false })
-  usingMap[key] = true
-  persistPref(item.price).then((ok) => {
-    if (ok) showToast(`购买成功！已切换至「${item.name}」`)
-  })
-}
-
-const syncData = (list, type) => {
-  list.forEach(item => {
-    const key = `${type}_${item.id}`
-    if (ownedMap[key] === undefined) {
-      ownedMap[key] = item.owned
-    }
-    if (usingMap[key] === undefined) {
-      usingMap[key] = item.using
-    }
-    item.owned = ownedMap[key]
-    item.using = usingMap[key]
-    // 带 vipLevel 的装扮按 VIP 专属处理，使 VIP 拦截与 VIP 价格展示生效
-    item.vipOnly = item.vipOnly || !!item.vipLevel
-  })
 }
 
 const goBack = () => {
   router.back()
 }
-
-loadData()
-syncData(frameList.value, 'frame')
-syncData(badgeList.value, 'badge')
-syncData(bubbleList.value, 'bubble')
-syncData(themeList.value, 'theme')
 </script>
 
 <style scoped>

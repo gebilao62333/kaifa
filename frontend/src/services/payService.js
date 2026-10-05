@@ -25,23 +25,23 @@ const payService = {
     return request('/api/pay/order-status', 'GET', { orderNo })
   },
 
-  async validateCard(cardNo) {
-    return request('/api/pay/validate-card', 'POST', { cardCode: cardNo })
+  async validateCard(cardNo, cardPwd) {
+    return request('/api/pay/validate-card', 'POST', { cardCode: cardNo, cardPwd })
   },
 
-  async useCard(cardNo) {
-    return request('/api/pay/use-card', 'POST', { cardCode: cardNo })
+  async useCard(cardNo, cardPwd) {
+    return request('/api/pay/use-card', 'POST', { cardCode: cardNo, cardPwd })
   },
 
   // 统一的卡密核销：先校验、再使用，返回发放的金币数量。
-  // 密卡充值 / 充值中心密卡支付 / 支付网关密卡支付 均复用此方法，保证逻辑一致。
-  // 后端仅接受单字段 cardCode（即卡号），cardPwd 不再参与请求。
+  // 支付网关密卡支付复用此方法，保证逻辑一致。
+  // 审计 C-3：后端现要求「卡号 + 密码」双项才兑现，cardPwd 必须随请求发送。
   async redeemCard(cardNo, cardPwd) {
-    const validateRes = await request('/api/pay/validate-card', 'POST', { cardCode: cardNo })
+    const validateRes = await request('/api/pay/validate-card', 'POST', { cardCode: cardNo, cardPwd })
     if (validateRes.code !== 200 && validateRes.code !== 0) {
       throw new RequestError(validateRes.message || '卡密验证失败', validateRes.code, 400)
     }
-    const useRes = await request('/api/pay/use-card', 'POST', { cardCode: cardNo })
+    const useRes = await request('/api/pay/use-card', 'POST', { cardCode: cardNo, cardPwd })
     if (useRes.code !== 200 && useRes.code !== 0) {
       throw new RequestError(useRes.message || '密卡使用失败', useRes.code, 400)
     }

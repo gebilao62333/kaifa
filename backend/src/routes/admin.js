@@ -98,10 +98,25 @@ const {
   updateDownloadStatus,
   deleteDownload
 } = require('../controllers/download');
-const { adminAuth, requirePermission } = require('../middlewares');
+const { adminAuth, requirePermission, adminLoginLimiter, validate, LIMITS } = require('../middlewares');
+const { adminLogout } = require('../controllers/adminManage');
 
-// 登录接口不需要认证
-router.post('/login', adminLogin);
+// 审计 M-6：管理端建提现单（会直接扣用户余额）统一在边界校验，userId/amount 必须是合法整数/数字。
+const createWithdrawSchema = {
+  required: ['userId', 'amount'],
+  fields: {
+    userId: { type: 'integer', min: 1, max: LIMITS.ID_MAX },
+    amount: { type: 'number', min: 0.01, max: LIMITS.MONEY_MAX },
+    type: { type: 'integer', min: 1, max: 3 },
+    account: { type: 'string', maxLength: 255 }
+  }
+};
+
+// 登录接口不需要认证，但需要限流（审计 H-3：原先只吃全局 apiLimiter，可在线爆破口令）
+router.post('/login', adminLoginLimiter, adminLogin);
+
+// 审计 H-5：后台登出——与 /api/admin-manage/logout 共用同一实现（两个入口本就是同一套口令与会话）
+router.post('/logout', adminAuth, adminLogout);
 
 // ================ 标准API (RESTful风格) ================
 // 用户管理
@@ -122,7 +137,7 @@ router.delete('/orders/:id', adminAuth, requirePermission('order:write'), delete
 // 提现管理
 router.get('/withdraws', adminAuth, requirePermission('withdraw:read'), getWithdrawList);
 router.get('/withdraws/:id', adminAuth, requirePermission('withdraw:read'), getWithdrawDetail);
-router.post('/withdraws', adminAuth, requirePermission('withdraw:write'), createWithdraw);
+router.post('/withdraws', adminAuth, requirePermission('withdraw:write'), validate(createWithdrawSchema), createWithdraw);
 router.post('/withdraws/:id/approve', adminAuth, requirePermission('withdraw:write'), approveWithdraw);
 router.post('/withdraws/:id/reject', adminAuth, requirePermission('withdraw:write'), rejectWithdraw);
 router.delete('/withdraws/:id', adminAuth, requirePermission('withdraw:write'), deleteWithdraw);

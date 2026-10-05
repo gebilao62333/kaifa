@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const zlib = require('zlib');
 const config = require('../config');
 const logger = require('../utils/logger');
+const { CallRecord } = require('../models');
 
 // ============================================================================
 // TRTC / IM 鉴权票据（UserSig / PrivateMapKey）—— 腾讯官方 TLSSigAPIv2 算法
@@ -211,6 +212,54 @@ const getMeetingInfo = (roomId) => {
   };
 };
 
+// ============================================================================
+// 房间成员校验（安全扫描 C-4）
+//
+// 本模块没有任何「房间表」：`createRoom` 返回的对象从不落库，参与者名单唯一的
+// 真相来源是 `xn_call_record`（`trtc_room_id` + `caller_id` + `callee_id`，由
+// `callBillingService.startCall` 在发起通话时写入）。
+// 原实现里 `enterRoom(userId, roomId)` 只是把客户端传来的 roomId 直接写进票据，
+// 既不查库也不比对身份——任何登录用户拿到（或猜到）一个房间号就能进别人的通话；
+// `GET /auth` 更是无条件发放 UserSig。现改为「先证明你是这通电话的双方之一，再签票」。
+// ============================================================================
+
+// 可进房的通话状态：0=呼叫中（主叫需先进房等待）、1=已接通；
+// 2=被拒绝 3=主叫取消 4=已结束 5=无应答 都不再允许进房。
+const ENTERABLE_CALL_STATUS = [0, 1];
+
+const resolveRoomCall = async (userId, roomId) => {
+  const room = Number(roomId);
+  const uid = Number(userId);
+
+  if (!Number.isFinite(room) || room <= 0) {
+    throw new Error('房间号格式不正确');
+  }
+
+  // 历史数据里房间号可能重复（旧 startCall 用 Math.random 且不查重），按状态升序取单：
+  // 0=呼叫中、1=已接通 排在 2/3/4/5 之前，因此优先命中「仍在进行」的那通电话，
+  // 不会因残留的旧记录把正在通话的双方挡在门外。
+  const call = await CallRecord.findOne({
+    where: { trtc_room_id: room },
+    order: [['status', 'ASC'], ['create_time', 'DESC']]
+  });
+  if (!call) {
+    throw new Error('房间不存在或已过期');
+  }
+  if (Number(call.caller_id) !== uid && Number(call.callee_id) !== uid) {
+    throw new Error('无权进入该房间');
+  }
+
+  return call;
+};
+
+const requireEnterableRoom = async (userId, roomId) => {
+  const call = await resolveRoomCall(userId, roomId);
+  if (!ENTERABLE_CALL_STATUS.includes(Number(call.status))) {
+    throw new Error('通话已结束，无法进入该房间');
+  }
+  return call;
+};
+
 const createRoom = async (userId, roomType = 'video') => {
   const roomId = Math.floor(Math.random() * 900000) + 100000;
   
@@ -227,41 +276,66 @@ const createRoom = async (userId, roomType = 'video') => {
 };
 
 const enterRoom = async (userId, roomId) => {
+  const call = await requireEnterableRoom(userId, roomId);
   const roomSig = generateRoomSig(roomId, userId);
-  
+
   return {
     roomId,
     userId,
     userSig: generateUserSig(userId),
     roomSig,
+    callId: call.id,
+    callStatus: Number(call.status),
     enterTime: Math.floor(Date.now() / 1000)
   };
 };
 
+// 离房不校验通话是否已结束（挂断与离房的先后顺序本就可能交错），只校验成员身份。
 const leaveRoom = async (userId, roomId) => {
+  const call = await resolveRoomCall(userId, roomId);
+
   return {
     roomId,
     userId,
+    callId: call.id,
     leaveTime: Math.floor(Date.now() / 1000),
     success: true
   };
 };
 
-const getRoomInfo = async (roomId) => {
+const CALL_STATUS_TEXT = {
+  0: 'calling',
+  1: 'active',
+  2: 'rejected',
+  3: 'cancelled',
+  4: 'ended',
+  5: 'unanswered'
+};
+
+const getRoomInfo = async (userId, roomId) => {
+  const call = await resolveRoomCall(userId, roomId);
+
   return {
     roomId,
     appId: config.trtc.appId,
     sdkAppId: config.trtc.appId,
-    status: 'active',
-    createTime: Math.floor(Date.now() / 1000) - 3600
+    callId: call.id,
+    status: CALL_STATUS_TEXT[Number(call.status)] || 'unknown',
+    statusCode: Number(call.status),
+    callerId: Number(call.caller_id),
+    calleeId: Number(call.callee_id),
+    createTime: Number(call.create_time) || 0
   };
 };
 
 const startBilling = async (userId, roomId, callType) => {
+  const call = await requireEnterableRoom(userId, roomId);
+
   return {
     billingId: Math.floor(Math.random() * 1000000),
     userId,
     roomId,
+    callId: call.id,
     callType,
     startTime: Math.floor(Date.now() / 1000),
     status: 'active'
@@ -287,6 +361,8 @@ module.exports = {
   generateRoomSig,
   verifyUserSig,
   getMeetingInfo,
+  resolveRoomCall,
+  requireEnterableRoom,
   createRoom,
   enterRoom,
   leaveRoom,

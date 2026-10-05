@@ -66,7 +66,8 @@ const goBack = () => {
 }
 
 const viewProfile = (user) => {
-  router.push({ name: 'UserProfile', params: { id: user.id || '10001' } })
+  if (!user?.id) return
+  router.push({ name: 'UserProfile', params: { id: user.id } })
 }
 </script>
 

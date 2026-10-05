@@ -1,6 +1,8 @@
-const { verifyToken } = require('../config/jwt');
+const { verifyToken, TOKEN_TYPES } = require('../config/jwt');
 const { User, UserSession } = require('../models');
 const chatService = require('../services/chatService');
+const tokenRevocation = require('../services/tokenRevocation');
+const p2pRelay = require('../utils/p2pRelay');
 const logger = require('../utils/logger');
 const config = require('../config');
 const { Redis } = require('ioredis');
@@ -81,11 +83,25 @@ const initializeSocket = (socketIO) => {
         return next(new Error('UNAUTHORIZED'));
       }
 
-      const decoded = verifyToken(token);
+      // 审计 H-4：Socket 只接受 access 令牌，refresh / 管理员令牌不能建立私聊与通话会话
+      const decoded = verifyToken(token, [TOKEN_TYPES.ACCESS]);
 
       if (!decoded) {
         logger.warn('[Socket] 拒绝连接：令牌无效或已过期');
         return next(new Error('UNAUTHORIZED'));
+      }
+
+      // 审计 H-5：登出后的令牌不能继续留在实时通道上收私聊与通话信令。
+      // 与 authMiddleware 同一 fail-mode 取向：生产无法确认即拒绝（客户端按可重试处理），
+      // 非生产 fail-open 放行并记日志，避免本地没有 Redis 时整条实时链路不可用。
+      const revocation = await tokenRevocation.checkRevocation(token, decoded);
+      if (revocation.revoked) {
+        logger.warn('[Socket] 拒绝连接：令牌已登出');
+        return next(new Error('UNAUTHORIZED'));
+      }
+      if (!revocation.verifiable && tokenRevocation.revocationFailMode() === 'closed') {
+        logger.warn('[Socket] 拒绝连接：吊销状态无法确认（fail-closed）');
+        return next(new Error('AUTH_SERVICE_UNAVAILABLE'));
       }
 
       const userId = decoded.userId || decoded.id;
@@ -333,15 +349,25 @@ const initializeSocket = (socketIO) => {
       await updateUserOnlineStatus(socket.userId, false);
     });
 
+    // P2P 信令统一校验（审计 M-10）：目标/请求 ID 必须合法，且任何转发的媒体 URL 必须指向
+    // 平台自有存储；不合法一律丢弃（P2P 可回退直连，静默丢弃不产生用户可见影响）。
+    const rejectP2P = (event, reason, data) => {
+      logger.warn(`[P2P] 丢弃非法 ${event} from=${socket.userId} to=${data && data.toId} reason=${reason}`);
+    };
+
     // P2P 热内容取回流：请求方 -> 拥有方 的取数请求（如头像/缩略图）
     socket.on('p2p_fetch_request', async (data) => {
       try {
-        const { toId, requestId, url, type } = data;
-        io.to(`user:${toId}`).emit('p2p_fetch_request', {
+        const { toId, requestId, url, type } = data || {};
+        const target = p2pRelay.normalizeRelayTarget(toId, socket.userId);
+        const rid = p2pRelay.normalizeRequestId(requestId);
+        if (!target || !rid) return rejectP2P('p2p_fetch_request', 'target/requestId', data);
+        if (!p2pRelay.isSafeMediaUrl(url)) return rejectP2P('p2p_fetch_request', 'url', data);
+        io.to(`user:${target}`).emit('p2p_fetch_request', {
           fromId: socket.userId,
-          requestId,
+          requestId: rid,
           url,
-          type
+          type: p2pRelay.normalizeType(type)
         });
       } catch (error) {
         logger.error('P2P取数请求错误:', error);
@@ -351,10 +377,17 @@ const initializeSocket = (socketIO) => {
     // 拥有方 -> 请求方 的取数响应（回传经DataChannel转发的字节或回退签名URL）
     socket.on('p2p_fetch_response', async (data) => {
       try {
-        const { toId, requestId, payload, fallbackUrl } = data;
-        io.to(`user:${toId}`).emit('p2p_fetch_response', {
+        const { toId, requestId, payload, fallbackUrl } = data || {};
+        const target = p2pRelay.normalizeRelayTarget(toId, socket.userId);
+        const rid = p2pRelay.normalizeRequestId(requestId);
+        if (!target || !rid) return rejectP2P('p2p_fetch_response', 'target/requestId', data);
+        if (!p2pRelay.isBoundedSignal(payload)) return rejectP2P('p2p_fetch_response', 'payload', data);
+        if (fallbackUrl != null && !p2pRelay.isSafeMediaUrl(fallbackUrl)) {
+          return rejectP2P('p2p_fetch_response', 'fallbackUrl', data);
+        }
+        io.to(`user:${target}`).emit('p2p_fetch_response', {
           fromId: socket.userId,
-          requestId,
+          requestId: rid,
           payload,
           fallbackUrl
         });
@@ -366,13 +399,18 @@ const initializeSocket = (socketIO) => {
     // P2P DataChannel 建连信令转发（offer/answer/ice），复用与WebRTC一致的转发模式
     socket.on('p2p_offer', async (data) => {
       try {
-        const { toId, requestId, offer, url, type } = data;
-        io.to(`user:${toId}`).emit('p2p_offer', {
+        const { toId, requestId, offer, url, type } = data || {};
+        const target = p2pRelay.normalizeRelayTarget(toId, socket.userId);
+        const rid = p2pRelay.normalizeRequestId(requestId);
+        if (!target || !rid) return rejectP2P('p2p_offer', 'target/requestId', data);
+        if (!p2pRelay.isBoundedSignal(offer)) return rejectP2P('p2p_offer', 'offer', data);
+        if (url != null && !p2pRelay.isSafeMediaUrl(url)) return rejectP2P('p2p_offer', 'url', data);
+        io.to(`user:${target}`).emit('p2p_offer', {
           fromId: socket.userId,
-          requestId,
+          requestId: rid,
           offer,
           url,
-          type
+          type: p2pRelay.normalizeType(type)
         });
       } catch (error) {
         logger.error('P2P offer转发错误:', error);
@@ -381,10 +419,14 @@ const initializeSocket = (socketIO) => {
 
     socket.on('p2p_answer', async (data) => {
       try {
-        const { toId, requestId, answer } = data;
-        io.to(`user:${toId}`).emit('p2p_answer', {
+        const { toId, requestId, answer } = data || {};
+        const target = p2pRelay.normalizeRelayTarget(toId, socket.userId);
+        const rid = p2pRelay.normalizeRequestId(requestId);
+        if (!target || !rid) return rejectP2P('p2p_answer', 'target/requestId', data);
+        if (!p2pRelay.isBoundedSignal(answer)) return rejectP2P('p2p_answer', 'answer', data);
+        io.to(`user:${target}`).emit('p2p_answer', {
           fromId: socket.userId,
-          requestId,
+          requestId: rid,
           answer
         });
       } catch (error) {
@@ -394,10 +436,14 @@ const initializeSocket = (socketIO) => {
 
     socket.on('p2p_ice_candidate', async (data) => {
       try {
-        const { toId, requestId, candidate } = data;
-        io.to(`user:${toId}`).emit('p2p_ice_candidate', {
+        const { toId, requestId, candidate } = data || {};
+        const target = p2pRelay.normalizeRelayTarget(toId, socket.userId);
+        const rid = p2pRelay.normalizeRequestId(requestId);
+        if (!target || !rid) return rejectP2P('p2p_ice_candidate', 'target/requestId', data);
+        if (!p2pRelay.isBoundedSignal(candidate)) return rejectP2P('p2p_ice_candidate', 'candidate', data);
+        io.to(`user:${target}`).emit('p2p_ice_candidate', {
           fromId: socket.userId,
-          requestId,
+          requestId: rid,
           candidate
         });
       } catch (error) {

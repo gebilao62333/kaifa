@@ -19,7 +19,10 @@ class SocketService {
     }
   }
 
-  connect(url = configSocketUrl || 'http://localhost:3000') {
+  // 审计低危项：默认地址取 common/config 的 socketUrl（开发=localhost:3000，生产=空串）。
+  // 空串表示同源连接，交给 socket.io 回落到当前站点（nginx 代理 /socket.io/），
+  // 不再硬编码 http://localhost:3000 把生产连接指向用户本机。
+  connect(url = configSocketUrl) {
     if (this.socket?.connected) {
       if (import.meta.env.DEV) console.log('[Socket] 已经连接')
       return this.socket
@@ -35,7 +38,8 @@ class SocketService {
     if (import.meta.env.DEV) console.log('[Socket] 正在连接:', url)
 
     try {
-      this.socket = io(url, {
+      // 空串 → undefined：socket.io 对 undefined 会按当前站点同源连接（url() 内部回落 location）
+      this.socket = io(url || undefined, {
         // auth 使用函数：每次 CONNECT（含自动重连）时读取当前最新 token
         auth: (cb) => cb({ token: SocketService.readToken() }),
         transports: ['websocket', 'polling'],

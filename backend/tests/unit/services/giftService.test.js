@@ -14,7 +14,7 @@ const giftService = require('../../../src/services/giftService');
 const { User, Gift, GiftLog, GiftBag, RedPacket, RedPacketLog, Withdraw } = require('../../../src/models');
 const sequelize = require('../../../src/config/mysql');
 
-const txn = () => ({ commit: jest.fn().mockResolvedValue(true), rollback: jest.fn().mockResolvedValue(true) });
+const txn = () => ({ commit: jest.fn().mockResolvedValue(true), rollback: jest.fn().mockResolvedValue(true), finished: false, LOCK: { UPDATE: 'UPDATE' } });
 const gift = { id: 1, title: '爱心', image: 'i.png', svga: 'a.svga', money: 10, type: 0, is_vip: 0, tian: 0, status: 1 };
 
 describe('Service - GiftService', () => {
@@ -152,10 +152,59 @@ describe('Service - GiftService', () => {
       await expect(giftService.withdraw(2, 200, 1)).rejects.toThrow('db');
       expect(tx.rollback).toHaveBeenCalled();
     });
+
+    // 审计 C-2：礼物收益入账时 money 与 gift_money 同时增加，只扣 gift_money 会让同一笔钱
+    // 既能消费又能提现，故申请时两笔一起条件扣减。
+    it('申请时同时条件扣减真实余额 money', async () => {
+      User.findByPk.mockResolvedValue({ id: 2, gift_money: 500, money: 500, mobile: '138' });
+      User.decrement.mockResolvedValue([1]);
+      Withdraw.create.mockResolvedValue({ id: 1 });
+      const tx = txn();
+      sequelize.transaction.mockResolvedValue(tx);
+
+      await giftService.withdraw(2, 200, 2, {});
+
+      const calls = User.decrement.mock.calls.map((c) => c[0]);
+      expect(calls).toEqual(['gift_money', 'money']);
+      expect(User.decrement).toHaveBeenCalledWith('money', expect.objectContaining({
+        by: 200,
+        where: expect.objectContaining({ id: 2 }),
+        transaction: tx
+      }));
+    });
+
+    it('rejects non-numeric amounts (NaN 不再穿透到 SQL)', async () => {
+      User.findByPk.mockResolvedValue({ id: 2, gift_money: 500, money: 500, mobile: '138' });
+      await expect(giftService.withdraw(2, 'abc', 1)).rejects.toThrow('提现金额必须为有限数字');
+      expect(sequelize.transaction).not.toHaveBeenCalled();
+      expect(User.decrement).not.toHaveBeenCalled();
+    });
+
+    it('gift_money 足够但 money 已被消费时整单回滚', async () => {
+      User.findByPk.mockResolvedValue({ id: 2, gift_money: 500, money: 120, mobile: '138' });
+      User.decrement
+        .mockResolvedValueOnce([1])   // gift_money 扣减成功
+        .mockResolvedValueOnce([0]);  // money 不足，条件扣减未命中
+      const tx = txn();
+      sequelize.transaction.mockResolvedValue(tx);
+
+      await expect(giftService.withdraw(2, 200, 2, {})).rejects.toThrow('金币余额不足');
+      expect(tx.rollback).toHaveBeenCalled();
+      expect(Withdraw.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('receiveRedPacket', () => {
-    const basePacket = { id: 1, status: 0, expire_time: Math.floor(Date.now() / 1000) + 3600, sender_id: 9, type: 0, total_amount: 10, total_num: 2, remain_amount: 10, remain_num: 2, update: jest.fn() };
+    const basePacket = { id: 1, status: 0, expire_time: Math.floor(Date.now() / 1000) + 3600, sender_id: 9, type: 0, total_amount: 10, total_num: 2, remain_amount: 10, remain_num: 2 };
+
+    const stubReceive = (packet) => {
+      RedPacket.findOne.mockResolvedValue(packet);
+      RedPacketLog.findOne.mockResolvedValue(null);
+      RedPacketLog.create.mockResolvedValue({ id: 1 });
+      RedPacket.update.mockResolvedValue([1]);
+      User.findByPk.mockResolvedValue({ id: 2, nickname: 'n' });
+      User.increment.mockResolvedValue([1]);
+    };
 
     it('validates the packet state', async () => {
       RedPacket.findOne.mockResolvedValue(null);
@@ -175,14 +224,24 @@ describe('Service - GiftService', () => {
       await expect(giftService.receiveRedPacket(2, 'P1')).rejects.toThrow('已领取过该红包');
     });
 
+    // 审计 M-7：领取必须在事务内先锁定红包行，再基于最新余额计算金额。
+    // 原实现用事务外读到的过期 remain_amount 取拼手气随机数，并发下累计入账可超 total_amount。
+    it('锁定红包行后再计算金额（SELECT ... FOR UPDATE 在事务内）', async () => {
+      const tx = txn();
+      sequelize.transaction.mockResolvedValue(tx);
+      stubReceive(basePacket);
+
+      await giftService.receiveRedPacket(2, 'P1');
+
+      expect(RedPacket.findOne).toHaveBeenCalledWith(expect.objectContaining({
+        where: { packet_no: 'P1' },
+        transaction: tx,
+        lock: 'UPDATE'
+      }));
+    });
+
     it('receives a normal packet and decrements the remainder', async () => {
-      RedPacket.findOne.mockResolvedValue({ ...basePacket, update: jest.fn().mockResolvedValue(true) });
-      RedPacketLog.findOne.mockResolvedValue(null);
-      RedPacketLog.create.mockResolvedValue({ id: 1 });
-      User.findByPk.mockResolvedValue({ id: 2, nickname: 'n' });
-      User.increment.mockResolvedValue([1]);
-      // 审计 B-01：名额改为条件原子更新
-      RedPacket.update.mockResolvedValue([1]);
+      stubReceive({ ...basePacket });
 
       const result = await giftService.receiveRedPacket(2, 'P1');
       expect(result.amount).toBe(5);
@@ -192,13 +251,48 @@ describe('Service - GiftService', () => {
       );
     });
 
-    it('receives a lucky packet and closes it when it is the last one', async () => {
-      RedPacket.findOne.mockResolvedValue({ ...basePacket, type: 1, remain_num: 1, update: jest.fn() });
+    it('普通红包最后一人领取剩余零头（累计=total_amount）', async () => {
+      // 3 人均分 10 元：前两人各 3.33，最后一人拿 3.34
+      stubReceive({ ...basePacket, remain_num: 1, remain_amount: 3.34 });
+
+      const result = await giftService.receiveRedPacket(2, 'P1');
+      expect(result.amount).toBe(3.34);
+    });
+
+    it('拼手气金额为其余人各留至少 1 分（不超过 remain-(n-1) 分）', async () => {
+      stubReceive({ ...basePacket, type: 1, remain_num: 2, remain_amount: 10 });
+
+      const result = await giftService.receiveRedPacket(2, 'P1');
+      expect(result.amount).toBeGreaterThanOrEqual(0.01);
+      expect(result.amount).toBeLessThanOrEqual(9.99);
+    });
+
+    it('拼手气最后一人拿走剩余全部', async () => {
+      stubReceive({ ...basePacket, type: 1, remain_num: 1, remain_amount: 6.66 });
+
+      const result = await giftService.receiveRedPacket(2, 'P1');
+      expect(result.amount).toBe(6.66);
+    });
+
+    it('remain_amount 用递减更新（不再用 GREATEST 夹值掩盖超额）', async () => {
+      stubReceive({ ...basePacket });
+
+      await giftService.receiveRedPacket(2, 'P1');
+
+      const literals = sequelize.literal.mock.calls.map((c) => c[0]);
+      expect(literals).toContain('remain_amount - 5');
+      expect(literals.some((s) => typeof s === 'string' && s.includes('GREATEST'))).toBe(false);
+    });
+
+    it('名额为 0 时拒绝（即使 status 仍为 0）', async () => {
+      RedPacket.findOne.mockResolvedValue({ ...basePacket, remain_num: 0 });
       RedPacketLog.findOne.mockResolvedValue(null);
-      RedPacketLog.create.mockResolvedValue({ id: 1 });
-      User.findByPk.mockResolvedValue({ id: 2, nickname: 'n' });
-      User.increment.mockResolvedValue([1]);
-      RedPacket.update.mockResolvedValue([1]);
+      await expect(giftService.receiveRedPacket(2, 'P1')).rejects.toThrow('红包已被抢完');
+      expect(User.increment).not.toHaveBeenCalled();
+    });
+
+    it('receives a lucky packet and closes it when it is the last one', async () => {
+      stubReceive({ ...basePacket, type: 1, remain_num: 1 });
 
       const result = await giftService.receiveRedPacket(2, 'P1');
       expect(result.amount).toBeGreaterThan(0);
@@ -210,15 +304,18 @@ describe('Service - GiftService', () => {
     });
 
     it('rolls back on failure', async () => {
-      RedPacket.findOne.mockResolvedValue({ ...basePacket, update: jest.fn() });
-      RedPacketLog.findOne.mockResolvedValue(null);
-      RedPacket.update.mockResolvedValue([1]);
+      stubReceive({ ...basePacket });
       RedPacketLog.create.mockRejectedValue(new Error('db'));
       const tx = txn();
       sequelize.transaction.mockResolvedValue(tx);
-      User.findByPk.mockResolvedValue({ id: 2, nickname: 'n' });
       await expect(giftService.receiveRedPacket(2, 'P1')).rejects.toThrow('db');
       expect(tx.rollback).toHaveBeenCalled();
+    });
+
+    it('唯一索引冲突（并发重复领）转为已领取过', async () => {
+      stubReceive({ ...basePacket });
+      RedPacketLog.create.mockRejectedValue(new Error('ER_DUP_ENTRY: Duplicate entry'));
+      await expect(giftService.receiveRedPacket(2, 'P1')).rejects.toThrow('已领取过该红包');
     });
   });
 

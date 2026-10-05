@@ -56,8 +56,23 @@ const toggleSlot = async (companionId, slotId) => {
     throw new Error('时间槽不存在');
   }
 
+  // 审计 H-7：已成交（status=1）的时段一律不可切换——原实现会把 1 翻回 0，
+  // 等于凭空释放一个已被占用的时段，直接造成同一时段被重复预约。
+  if (slot.status === 1) {
+    throw new Error('该时间段已被预约，不可修改');
+  }
+
   const newStatus = slot.status === 0 ? 2 : 0;
-  await slot.update({ status: newStatus });
+
+  // 条件更新：只有仍处在读取时的状态才算切换成功，避免并发切换把状态写反。
+  const [claimed] = await ReserveSlot.update(
+    { status: newStatus },
+    { where: { id: slotId, user_id: companionId, status: slot.status } }
+  );
+
+  if (!claimed) {
+    throw new Error('时间槽状态已变更，请刷新后重试');
+  }
 
   return { status: newStatus };
 };
@@ -160,10 +175,16 @@ const confirmReserve = async (companionId, reserveId) => {
     throw new Error('预约状态不正确');
   }
 
-  await reserve.update({
-    status: 1,
-    update_time: getTimestamp()
-  });
+  // 审计 H-7：状态迁移改为条件更新（WHERE status=0），并发确认只会有一次生效，
+  // 后续状态（拒绝/取消）不会与被本次覆盖的写入交错。
+  const [claimed] = await Reserve.update(
+    { status: 1, update_time: getTimestamp() },
+    { where: { id: reserveId, target_user_id: companionId, status: 0 } }
+  );
+
+  if (!claimed) {
+    throw new Error('预约状态不正确');
+  }
 
   return true;
 };
@@ -183,20 +204,38 @@ const rejectReserve = async (companionId, reserveId) => {
     throw new Error('预约状态不正确');
   }
 
-  await reserve.update({
-    status: 2,
-    update_time: getTimestamp()
-  });
+  // 审计 H-7：拒绝涉及「预约单状态 + 时间槽释放」两处写入，必须同事务且先占位再释放，
+  // 否则并发拒绝会各自释放一次时间槽、甚至覆盖已重新被占用的槽位。
+  const transaction = await sequelize.transaction();
 
-  await ReserveSlot.update({
-    status: 0
-  }, {
-    where: {
-      user_id: companionId,
-      reserve_date: reserve.reserve_date,
-      reserve_time: reserve.reserve_time
+  try {
+    const [claimed] = await Reserve.update(
+      { status: 2, update_time: getTimestamp() },
+      { where: { id: reserveId, target_user_id: companionId, status: 0 }, transaction }
+    );
+
+    if (!claimed) {
+      throw new Error('预约状态不正确');
     }
-  });
+
+    await ReserveSlot.update(
+      { status: 0 },
+      {
+        where: {
+          user_id: companionId,
+          reserve_date: reserve.reserve_date,
+          reserve_time: reserve.reserve_time,
+          status: 1
+        },
+        transaction
+      }
+    );
+
+    await transaction.commit();
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
+  }
 
   return true;
 };
@@ -231,10 +270,24 @@ const cancelReserve = async (userId, reserveId) => {
 
   const transaction = await sequelize.transaction();
   try {
-    await reserve.update({
-      status: 4,
-      update_time: getTimestamp()
-    }, { transaction });
+    // 审计 H-7：退款前先抢占状态迁移（WHERE status IN (0,1)），
+    // 两个并发取消只有一个能进入退款分支，重复退款从根上不可能；
+    // 同项目 cancelOrder 早已是这个写法，此处属遗漏。
+    const [claimed] = await Reserve.update(
+      { status: 4, update_time: getTimestamp() },
+      {
+        where: {
+          id: reserveId,
+          user_id: userId,
+          status: { [Op.in]: [0, 1] }
+        },
+        transaction
+      }
+    );
+
+    if (!claimed) {
+      throw new Error('预约无法取消');
+    }
 
     await ReserveSlot.update({
       status: 0
@@ -242,7 +295,8 @@ const cancelReserve = async (userId, reserveId) => {
       where: {
         user_id: reserve.target_user_id,
         reserve_date: reserve.reserve_date,
-        reserve_time: reserve.reserve_time
+        reserve_time: reserve.reserve_time,
+        status: 1
       },
       transaction
     });
@@ -282,15 +336,33 @@ const completeReserve = async (userId, reserveId) => {
 
   const price = Number(reserve.price) || 0;
   const companionUserId = reserve.target_user_id;
-  const rate = await getCommissionRate('reserve_commission_rate', RESERVE_COMMISSION_DEFAULT);
-  const companionIncome = Math.round(price * rate * 100) / 100;
 
   const transaction = await sequelize.transaction();
   try {
-    await reserve.update({
-      status: 3,
-      update_time: getTimestamp()
-    }, { transaction });
+    // 审计 H-7：分成比例必须在事务内读取，且先抢占状态迁移再打款——
+    // 改造前「findByPk 判 status=1 → update(status=3) → increment(gift_money)」，
+    // 两个并发完成请求会各自通过校验并各分一次账（重复分账）。
+    const rate = await getCommissionRate('reserve_commission_rate', RESERVE_COMMISSION_DEFAULT, transaction);
+    const companionIncome = Math.round(price * rate * 100) / 100;
+
+    const [claimed] = await Reserve.update(
+      { status: 3, update_time: getTimestamp() },
+      {
+        where: {
+          id: reserveId,
+          status: 1,
+          [Op.or]: [
+            { user_id: userId },
+            { target_user_id: userId }
+          ]
+        },
+        transaction
+      }
+    );
+
+    if (!claimed) {
+      throw new Error('预约状态不正确，仅可完成已确认的预约');
+    }
 
     // 完成结算：按系统设置比例把预约金额计入陪玩师可提现收入
     if (companionIncome > 0 && companionUserId) {

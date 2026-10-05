@@ -12,7 +12,9 @@ vi.mock('@/services/authService', () => ({
     getUserInfo: vi.fn(),
     updateProfile: vi.fn(),
     follow: vi.fn(),
-    unfollow: vi.fn()
+    unfollow: vi.fn(),
+    // 审计 H-5：logout 现在是服务端行为，store 必须能拿到一个 promise（缺省实现返回 undefined 会抛 TypeError）
+    logout: vi.fn()
   }
 }))
 
@@ -43,6 +45,7 @@ describe('User Store - actions', () => {
     localStorage.clear()
     setActivePinia(createPinia())
     store = useUserStore()
+    authService.logout.mockResolvedValue(ok({ clientShouldClearToken: true }))
   })
 
   afterEach(() => {
@@ -176,6 +179,16 @@ describe('User Store - actions', () => {
     expect(r.success).toBe(false)
     expect(r.error).toBe(err)
     expect(store.loading).toBe(false)
+  })
+
+  it('login 抛出空 fieldErrors 的 422 时不吞掉 message（登录统一文案后必需）', async () => {
+    const err = new Error('手机号或密码错误')
+    err.fieldErrors = {}
+    authService.login.mockRejectedValue(err)
+    const r = await store.login({ phone: 'x', password: 'y' })
+    expect(r.success).toBe(false)
+    expect(r.error).toBeUndefined()
+    expect(r.message).toBe('手机号或密码错误')
   })
 
   it('login 抛出普通错误的兜底消息', async () => {
@@ -356,6 +369,36 @@ describe('User Store - actions', () => {
     expect(localStorage.getItem('userInfo')).toBeNull()
     expect(clearPersistedState).toHaveBeenCalled()
     expect(socketService.disconnect).toHaveBeenCalled()
+  })
+
+  // 审计 H-5：请求必须带令牌发出。request() 在同步阶段读 localStorage 拼 Authorization，
+  // 所以服务端登出要排在本地清理之前——顺序被改动就会把一个已登录会话退成未认证请求。
+  it('logout 先发起服务端登出，令牌此刻仍在本地', () => {
+    store.setToken('t')
+    let tokenAtRequest = null
+    authService.logout.mockImplementation(() => {
+      tokenAtRequest = localStorage.getItem('token')
+      return Promise.resolve(ok({ clientShouldClearToken: true }))
+    })
+
+    const pending = store.logout()
+
+    expect(authService.logout).toHaveBeenCalledTimes(1)
+    expect(tokenAtRequest).toBe('t')
+    expect(store.token).toBe('')
+    return expect(pending).resolves.toBeTruthy()
+  })
+
+  // 后端不可用（503/超时）不能把用户卡在「退出中」：本地态照常清理，promise 不 reject
+  it('logout 服务端失败仍清理本地态', async () => {
+    store.setToken('t')
+    authService.logout.mockRejectedValue(new Error('登出服务暂时不可用'))
+
+    const result = await store.logout()
+
+    expect(result).toBeNull()
+    expect(store.token).toBe('')
+    expect(localStorage.getItem('token')).toBeNull()
   })
 
   it('initFromStorage 恢复有效 token', () => {

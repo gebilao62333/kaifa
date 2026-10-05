@@ -67,7 +67,7 @@ services:
   # API 请求通过 Vite proxy → nginx → backend
   # ============================================
   admin-vite:
-    image: node:18-alpine
+    image: node:24-alpine
     container_name: eudazi-admin-vite
     working_dir: /app
     ports:

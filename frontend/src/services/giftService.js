@@ -17,8 +17,8 @@ export const giftService = {
     return request('/api/gift/redpacket/send', 'POST', { totalAmount: amount, totalNum: count, type, receiverId, message })
   },
 
-  async receiveRedPacket(packetId) {
-    return request('/api/gift/redpacket/receive', 'POST', { packetId })
+  async receiveRedPacket(packetNo) {
+    return request('/api/gift/redpacket/receive', 'POST', { packetNo })
   },
 
   async getRedPacketHistory(type = 'all') {

@@ -134,10 +134,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from 'vue'
+import { ref, reactive, watch, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import userPrefService from '../services/userPrefService'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -170,22 +171,29 @@ const loadSettings = () => {
 
 const saveSettings = () => {
   localStorage.setItem('priorityMatchingSettings', JSON.stringify(settings))
-  userPrefService.save({ priorityMatchingSettings: { ...settings } }, 0).catch(() => {})
+  // 优先匹配是 Lv.30 权益，服务端拒绝时必须让用户看到原因
+  userPrefService.save({ priorityMatchingSettings: { ...settings } })
+    .catch((e) => { if (e?.status === 422) toast.show(e.message) })
 }
 
+// 服务端回填期间抑制 watch，避免「拉取 → 覆盖本地值 → 立刻再 POST 一次」的重复写入
+let hydrating = false
+
 const loadPref = async () => {
+  hydrating = true
   try {
     const res = await userPrefService.get()
     const prefs = res?.data?.data || {}
     if (prefs.priorityMatchingSettings) Object.assign(settings, prefs.priorityMatchingSettings)
   } catch (e) { /* 静默 */ }
+  await nextTick()
+  hydrating = false
 }
 
 onMounted(loadPref)
 
 const toggleSetting = (key) => {
   settings[key] = !settings[key]
-  saveSettings()
 }
 
 const goBack = () => {
@@ -194,7 +202,10 @@ const goBack = () => {
 
 loadSettings()
 
-watch(settings, saveSettings, { deep: true })
+watch(settings, () => {
+  if (hydrating) return
+  saveSettings()
+}, { deep: true })
 </script>
 
 <style scoped>

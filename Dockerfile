@@ -3,7 +3,7 @@
 # 多阶段构建：builder 安装依赖 → runtime 运行
 # ============================================
 
-FROM node:18-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ RUN npm prune --production
 # ============================================
 # 运行阶段
 # ============================================
-FROM node:18-alpine
+FROM node:24-alpine
 
 # 安装运行时依赖：tzdata（时区）、curl（健康检查）
 RUN apk add --no-cache tzdata curl && \

@@ -137,7 +137,7 @@ const getOrders = async (req, res) => {
 
 const applyAsCompanion = async (req, res) => {
   try {
-    const { gameId, price, tags, description, icon, voiceIntro, voiceTime } = req.body;
+    const { gameId, price, tags, description, icon, voiceIntro, voiceTime, serviceType } = req.body;
     
     if (!gameId || !price) {
       return response.badRequest(res, '游戏ID和价格不能为空');
@@ -148,7 +148,7 @@ const applyAsCompanion = async (req, res) => {
       parseInt(gameId),
       parseFloat(price),
       tags,
-      { description, icon, voiceIntro, voiceTime }
+      { description, icon, voiceIntro, voiceTime, serviceType }
     );
     response.success(res, {}, '申请已提交，等待审核');
   } catch (error) {

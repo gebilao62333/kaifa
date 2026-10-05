@@ -1,11 +1,15 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { User, GameOrder, Withdraw, GiftLog, Post, VipPackage, RechargePackage, Banner, SplashScreen, CompanionProfile, Game, OrderChong, Report, Admin, AdminRole } = require('../models');
-const { signToken } = require('../config/jwt');
+const { signToken, TOKEN_TYPES } = require('../config/jwt');
 const config = require('../config');
 const response = require('../utils/response');
+const adminLoginGuard = require('../services/adminLoginGuard');
+const tokenRevocation = require('../services/tokenRevocation');
 const { resolvePermissions } = require('../utils/permissions');
+const { safeEqual } = require('../utils/secureCompare');
 const { Op, fn, col, literal } = require('sequelize');
+const { affectedCount } = require('../utils/sql');
 const logger = require('../utils/logger');
 
 // 环境变量应急管理员账号：**不设任何默认口令**，必须同时满足
@@ -15,13 +19,6 @@ const logger = require('../utils/logger');
 // 历史版本曾默认 admin/admin123，构成任意人可登录的超级管理员后门，已移除。
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || '';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
-
-// 定长摘要后比较，避免长度差异导致 timingSafeEqual 抛错，同时避免时序侧信道
-const safeEqual = (a, b) => {
-  const ha = crypto.createHash('sha256').update(String(a ?? '')).digest();
-  const hb = crypto.createHash('sha256').update(String(b ?? '')).digest();
-  return crypto.timingSafeEqual(ha, hb);
-};
 
 // 数据库错误统一响应：不再静默降级，显式报错
 function dbErrorResponse(res, operation, dbError) {
@@ -37,6 +34,21 @@ const adminLogin = async (req, res) => {
       return response.badRequest(res, '用户名和密码不能为空');
     }
 
+    // 审计 H-3：账号维度的失败锁定（IP 限流见 routes/admin.js 的 adminLoginLimiter）。
+    // 只数「口令错」这类失败，缺参数的 400 不计，避免任何人用空请求锁死他人账号。
+    const lock = await adminLoginGuard.getLoginLockState(username);
+    if (!lock.verifiable) {
+      logger.error('[adminLogin] Redis 不可用，无法确认该账号的失败锁定状态，保守拒绝登录');
+      return response.serviceUnavailable(res, '登录校验服务暂不可用，请稍后重试');
+    }
+    if (lock.locked) {
+      return response.tooManyRequests(
+        res,
+        `登录失败次数过多，请 ${Math.ceil(lock.retryAfterSec / 60)} 分钟后再试`,
+        { retryAfterSec: lock.retryAfterSec }
+      );
+    }
+
     // 优先走数据库账号校验（支持角色权限体系）
     try {
       const admin = await Admin.findOne({ where: { username } });
@@ -49,15 +61,19 @@ const adminLogin = async (req, res) => {
             role = await AdminRole.findByPk(admin.role_id);
           }
           const permissions = resolvePermissions(admin.permissions, role);
+          // 审计 M-2：adminScope 标明 id 指向 Admin 账号（adminAuth 据此回读实时主体），
+          // 时效改用专用 adminExpiresIn（不再硬编码 7d）
           const token = signToken({
             id: admin.id,
             username: admin.username,
             role: 'admin',
+            adminScope: 'account',
             role_id: admin.role_id,
             roleId: admin.role_id,
             permissions
-          }, '7d');
+          }, config.jwt.adminExpiresIn, TOKEN_TYPES.ADMIN);
 
+          await adminLoginGuard.clearLoginFailures(username);
           return response.success(res, {
             token,
             user: {
@@ -84,11 +100,13 @@ const adminLogin = async (req, res) => {
               id: role.id,
               username: role.username,
               role: 'admin',
+              adminScope: 'role',
               role_id: role.id,
               roleId: role.id,
               permissions
-            }, '7d');
+            }, config.jwt.adminExpiresIn, TOKEN_TYPES.ADMIN);
 
+            await adminLoginGuard.clearLoginFailures(username);
             return response.success(res, {
               token,
               user: {
@@ -117,6 +135,9 @@ const adminLogin = async (req, res) => {
       !safeEqual(username, ADMIN_USERNAME) ||
       !safeEqual(password, ADMIN_PASSWORD)
     ) {
+      // 口令错误、账号不存在、账号被禁用都汇到这一条 401（文案统一，不泄露账号是否存在），
+      // 也都在这里计一次失败——计数覆盖「不存在的用户名」才能让锁定行为对枚举方保持一致。
+      await adminLoginGuard.recordLoginFailure(username);
       return response.unauthorized(res, '用户名或密码错误');
     }
 
@@ -125,11 +146,13 @@ const adminLogin = async (req, res) => {
       id: 0,
       username: ADMIN_USERNAME,
       role: 'admin',
+      adminScope: 'emergency',
       role_id: 0,
       roleId: 0,
       permissions: ['all']
-    }, '7d');
+    }, config.jwt.adminExpiresIn, TOKEN_TYPES.ADMIN);
 
+    await adminLoginGuard.clearLoginFailures(username);
     return response.success(res, {
       token,
       user: {
@@ -302,6 +325,16 @@ const updateUserStatus = async (req, res) => {
     
     const newStatus = parseInt(status);
     await user.update({ status: newStatus });
+
+    // 审计 H-5：封号后顺带作废该用户的全部会话。这里是尽力而为——用户端鉴权每个请求都回查
+    // xn_user.status，封号本身已经生效（403），所以吊销失败不该把封号操作阻塞掉，只记警告。
+    if (newStatus !== 1) {
+      const revoked = await tokenRevocation.revokeAllUserTokens(user.id);
+      if (!revoked.ok) {
+        logger.warn(`[updateUserStatus] 用户 ${user.id} 会话吊销未完成: ${revoked.reason}`);
+      }
+    }
+
     response.success(res, { status: newStatus }, '状态更新成功');
   } catch (error) {
     logger.error('更新用户状态错误:', error);
@@ -635,27 +668,52 @@ const getWithdrawList = async (req, res) => {
   }
 };
 
+// 提现被拒绝时，按渠道把申请时冻结的余额原路退回。
+// 审计 C-2：wallet 渠道过去只写提现单、从不扣款（注释还写着「派生余额，无需退回」），
+// 现在申请即条件扣减 money，因此拒绝必须退回 money；gift 渠道扣的是 gift_money + money 两笔，两笔都要退。
+// channel 列 DEFAULT 'gift'，历史空值按 gift 处理（与 walletService.normalizeWithdraw 的兜底一致）。
+const refundWithdrawByChannel = async (withdraw, transaction) => {
+  const refundAmount = Number(withdraw.money) || Number(withdraw.amount) || 0;
+  if (!(refundAmount > 0)) {
+    return;
+  }
+
+  const userId = withdraw.user_id;
+  const channel = withdraw.channel || 'gift';
+
+  if (channel === 'gift') {
+    await User.increment('gift_money', { by: refundAmount, where: { id: userId }, transaction });
+    await User.increment('money', { by: refundAmount, where: { id: userId }, transaction });
+  } else if (channel === 'wallet' || channel === 'admin') {
+    await User.increment('money', { by: refundAmount, where: { id: userId }, transaction });
+  }
+};
+
 const approveWithdraw = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    const withdraw = await Withdraw.findByPk(id);
-    if (!withdraw) {
-      return response.notFound(res, '提现记录不存在');
-    }
-    
-    if (withdraw.is_check !== 0) {
-      return response.badRequest(res, '该提现记录状态不允许操作');
-    }
-    
-    // is_check=1 供后台列表显示，status=1 供钱包/账务统计口径使用（二者必须同步）
-    await withdraw.update({
+
+    // 审计 C-2：原「先 findByPk 判 is_check、再 update」是两个语句间的窗口，
+    // 两个管理员（或双击）并发审批同一单都会通过。改为条件更新 + 影响行数判定，
+    // 状态机迁移天然幂等。
+    const [affected] = await Withdraw.update({
       is_check: 1,
       status: 1,
       state: 'approved',
       handle_time: Math.floor(Date.now() / 1000),
       update_time: Math.floor(Date.now() / 1000)
-    });
+    }, { where: { id, is_check: 0 } });
+
+    if (affectedCount(affected) !== 1) {
+      const withdraw = await Withdraw.findByPk(id);
+      if (!withdraw) {
+        return response.notFound(res, '提现记录不存在');
+      }
+      return response.badRequest(res, '该提现记录状态不允许操作');
+    }
+
+    // is_check=1 供后台列表显示，status=1 供钱包/账务统计口径使用（二者必须同步）
+    // 款项已在用户申请提现时从 money 扣减，此处只推进状态，不再动余额。
     response.success(res, { auditStatus: 1 }, '审核通过');
   } catch (error) {
     logger.error('审核提现错误:', error);
@@ -667,44 +725,47 @@ const rejectWithdraw = async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
-    
+
     const withdraw = await Withdraw.findByPk(id);
     if (!withdraw) {
       return response.notFound(res, '提现记录不存在');
     }
-    
+
     if (withdraw.is_check !== 0) {
       return response.badRequest(res, '该提现记录状态不允许操作');
     }
-    
+
     // 拒绝必须同时满足三件事：
-    //   1) status=2 —— walletService.sumWalletWithdraw 按 status!==2 统计已申请提现，不同步会永久冻结用户资产；
-    //   2) gift 渠道要原路退回申请时冻结的 gift_money（wallet 渠道是派生余额，无需退回）；
+    //   1) status=2 —— walletService.sumWalletWithdraw 按 status!==2 统计已申请提现，不同步会让统计口径长期偏大；
+    //   2) 申请时冻结的余额原路退回（见上方 refundWithdrawByChannel）；
     //   3) 整体放在事务里，避免"标记已拒绝但没退钱"。
     const sequelize = require('../config/mysql');
     const transaction = await sequelize.transaction();
 
     try {
-      await withdraw.update({
+      // 审计 C-2：状态迁移用条件更新（WHERE is_check=0）而非实例 update，
+      // 抢不到这一行的请求就不会重复退款。
+      const [affected] = await Withdraw.update({
         is_check: 2,
         status: 2,
         state: 'rejected',
         remark: reason || withdraw.remark,
         handle_time: Math.floor(Date.now() / 1000),
         update_time: Math.floor(Date.now() / 1000)
-      }, { transaction });
+      }, { where: { id, is_check: 0 }, transaction });
 
-      const refundAmount = Number(withdraw.money) || Number(withdraw.amount) || 0;
-      if (withdraw.channel === 'gift') {
-        await User.increment('gift_money', { by: refundAmount, where: { id: withdraw.user_id }, transaction });
-      } else if (withdraw.channel === 'admin') {
-        // 管理端建单时扣的是通用余额 money，拒绝时原路退回
-        await User.increment('money', { by: refundAmount, where: { id: withdraw.user_id }, transaction });
+      if (affectedCount(affected) !== 1) {
+        await transaction.rollback();
+        return response.badRequest(res, '该提现记录状态不允许操作');
       }
+
+      await refundWithdrawByChannel(withdraw, transaction);
 
       await transaction.commit();
     } catch (e) {
-      await transaction.rollback();
+      if (!transaction.finished) {
+        try { await transaction.rollback(); } catch (rollbackError) { /* 已回滚 */ }
+      }
       throw e;
     }
 
@@ -771,7 +832,6 @@ const createWithdraw = async (req, res) => {
     const transaction = await sequelize.transaction();
     let newWithdraw;
     try {
-      const { affectedCount } = require('../utils/sql');
       const decreaseResult = await User.decrement('money', {
         by: moneyVal,
         where: { id: userId, money: { [Op.gte]: moneyVal } },
@@ -2489,6 +2549,18 @@ const deleteCompanionApplication = async (req, res) => {
 
 const { Card } = require('../models');
 
+// 卡号/卡密密码取样字符集：去掉 I O（与 1 0 易混淆）后共 32 个字符。
+const CARD_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+// 逐字符用 crypto.randomInt 取样：crypto.randomInt(n) 本身即拒绝采样，无取模偏置。
+const randomFromAlphabet = (alphabet, length) => {
+  let out = '';
+  for (let i = 0; i < length; i++) {
+    out += alphabet.charAt(crypto.randomInt(alphabet.length));
+  }
+  return out;
+};
+
 
 const getCardList = async (req, res) => {
   try {
@@ -2530,36 +2602,30 @@ const createCard = async (req, res) => {
     if (!faceValue || faceValue <= 0) return response.badRequest(res, '请输入有效面值');
     const genCount = Math.min(parseInt(count) || 1, 100);
 
-    const generateCardNo = () => {
-      const ts = Date.now().toString(36).toUpperCase();
-      const rand = Math.random().toString(36).substring(2, 8).toUpperCase();
-      return `DK${ts}${rand}`;
-    };
-    const generateCardPwd = () => {
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      let pwd = '';
-      for (let i = 0; i < 12; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
-      return pwd;
-    };
-    const generateCardKey = () => {
-      let key = '';
-      for (let i = 0; i < 25; i++) key += Math.floor(Math.random() * 10);
-      return key;
-    };
+    // 审计 C-3：卡号/密码/密钥是唯一的兑现凭证，必须用密码学安全随机数生成。
+    //   原实现三处都用 Math.random（32bit 内部状态、可被复现），且卡号还以 Date.now() 开头
+    //   —— 已知发卡时间即可把卡号空间缩到几个随机字符，配合原先不校验密码的核销逻辑等于可预测资产。
+    //   统一改用 crypto.randomInt 逐字符取样；卡号与密码用去掉易混淆 I/O 的 32 字符集，密钥用 25 位数字。
+    const generateCardNo = () => `DK${randomFromAlphabet(CARD_ALPHABET, 14)}`;
+    const generateCardPwd = () => randomFromAlphabet(CARD_ALPHABET, 12);
+    const generateCardKey = () => randomFromAlphabet('0123456789', 25);
 
     const createdCards = [];
     const now = Math.floor(Date.now() / 1000);
 
     for (let i = 0; i < genCount; i++) {
-      const cardNo = generateCardNo();
-      const cardPwd = generateCardPwd();
-      // 25 位密钥必须全局唯一；冲突则重新生成
+      // 卡号与 25 位密钥都必须全局唯一；冲突则整组重新生成
+      let cardNo = generateCardNo();
       let cardKey = generateCardKey();
       for (let retry = 0; retry < 5; retry++) {
-        const dup = await Card.findOne({ where: { card_key: cardKey } });
+        const dup = await Card.findOne({
+          where: { [Op.or]: [{ card_no: cardNo }, { card_key: cardKey }] }
+        });
         if (!dup) break;
+        cardNo = generateCardNo();
         cardKey = generateCardKey();
       }
+      const cardPwd = generateCardPwd();
       const card = await Card.create({
         card_no: cardNo,
         card_password: cardPwd,

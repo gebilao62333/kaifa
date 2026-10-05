@@ -20,6 +20,7 @@ const request = require('supertest');
 const jwt = require('jsonwebtoken');
 
 const config = require('../../src/config');
+const { TOKEN_TYPES } = require('../../src/config/jwt');
 const sequelize = require('../../src/config/mysql');
 const setupRoutes = require('../../src/routes');
 
@@ -32,7 +33,8 @@ app.use((req, res) => res.status(404).json({ code: 404, message: '接口不存�
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => res.status(500).json({ code: 500, message: '服务器内部错误' }));
 
-const tok = (uid) => jwt.sign({ userId: uid }, config.jwt.secret, { expiresIn: '1h' });
+// 审计 H-4：测试令牌必须带 type=access，否则会被按用途校验的中间件拒绝
+const tok = (uid) => jwt.sign({ userId: uid, type: TOKEN_TYPES.ACCESS }, config.jwt.secret, { expiresIn: '1h' });
 const U1 = tok(1);   // 游戏达人小王（5000）
 const U2 = tok(2);   // 玩家小美（1200）
 const U5 = tok(5);   // 资深玩家（15000）

@@ -357,7 +357,22 @@ const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout =
     }
 
     if (!response.ok) {
-      throw new RequestError(`请求失败 (${response.status})`, -1, response.status)
+      // 审计 H-5：生产 fail-closed 下 Redis 抖动会让需登录的接口统一回 503，登出/改密也是 503，
+      // 响应体里带的是可读文案；此前一律吞成「请求失败 (503)」，用户不知道该重试还是该重登。
+      // （与《前端技术文档》v7.16 管理端 common.js 同一口径）
+      let errorMessage = `请求失败 (${response.status})`
+      try {
+        const text = await readResponseText(response)
+        if (text) {
+          const result = JSON.parse(text)
+          if (result.message) {
+            errorMessage = result.message
+          }
+        }
+      } catch (e) {
+        // 响应体不是 JSON 时保留默认文案
+      }
+      throw new RequestError(errorMessage, -1, response.status)
     }
 
     const text = await readResponseText(response)

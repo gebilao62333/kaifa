@@ -4,7 +4,7 @@
 # 使用方式：docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 # ============================================
 
-FROM node:18-alpine
+FROM node:24-alpine
 
 # 安装运行时 + 构建依赖（sqlite3 等原生模块需要编译）
 RUN apk add --no-cache tzdata curl python3 make g++ sqlite-dev && \

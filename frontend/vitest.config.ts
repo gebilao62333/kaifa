@@ -1,7 +1,10 @@
 import { defineConfig } from 'vitest/config'
+import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 
 export default defineConfig({
+  // 视图组件测试需要编译 .vue 单文件组件
+  plugins: [vue()],
   test: {
     globals: true,
     environment: 'jsdom',

@@ -61,6 +61,21 @@ const User = sequelize.define('xn_user', {
     type: DataTypes.INTEGER,
     defaultValue: 1
   },
+  exp: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    comment: '当前等级内已积累的经验值'
+  },
+  last_check_in_time: {
+    type: DataTypes.INTEGER(10),
+    defaultValue: 0,
+    comment: '最近一次每日签到时间戳（按自然日去重）'
+  },
+  level_backfill_time: {
+    type: DataTypes.INTEGER(10),
+    defaultValue: 0,
+    comment: '历史经验回填完成时间戳，0 表示尚未回填'
+  },
   vip: {
     type: DataTypes.TINYINT(1),
     defaultValue: 0
@@ -124,19 +139,21 @@ const User = sequelize.define('xn_user', {
     allowNull: true
   },
   real_name: {
-    type: DataTypes.STRING(50),
+    // 审计 M-8：敏感个人信息静态加密存储（utils/pii.js，AES-256-GCM 密文为十六进制串，
+    // 长度约 192 + 明文字节数×2），故列宽需容纳密文；存量明文行仍可读（读取侧按密文特征判定）。
+    type: DataTypes.STRING(255),
     allowNull: true
   },
   id_card: {
-    type: DataTypes.STRING(18),
+    type: DataTypes.STRING(255),
     allowNull: true
   },
   real_name_front: {
-    type: DataTypes.STRING(255),
+    type: DataTypes.STRING(512),
     allowNull: true
   },
   real_name_back: {
-    type: DataTypes.STRING(255),
+    type: DataTypes.STRING(512),
     allowNull: true
   },
   real_name_status: {
@@ -151,6 +168,14 @@ const User = sequelize.define('xn_user', {
 }, {
   tableName: 'xn_user',
   timestamps: false,
+  // 审计 M-8：口令哈希默认不出现在任何查询结果里（防止顺手 res.json(user) 之类把哈希带出去）；
+  // 仅认证链路上显式 User.scope('withPassword') 才取回（见 services/authService.js）。
+  defaultScope: {
+    attributes: { exclude: ['password'] }
+  },
+  scopes: {
+    withPassword: { attributes: { include: ['password'] } }
+  },
   indexes: [
     { fields: ['mobile'] },
     { fields: ['open_id'] },

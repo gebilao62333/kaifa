@@ -109,10 +109,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted } from 'vue'
+import { ref, reactive, watch, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import PageLayout from '../components/PageLayout.vue'
 import userPrefService from '../services/userPrefService'
+import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
@@ -137,15 +138,23 @@ const loadSettings = () => {
 
 const saveSettings = () => {
   localStorage.setItem('stealthSettings', JSON.stringify(settings))
-  userPrefService.save({ stealthSettings: { ...settings } }, 0).catch(() => {})
+  // 等级门槛等服务端拒绝原因要让用户看到，网络类错误保持静默
+  userPrefService.save({ stealthSettings: { ...settings } })
+    .catch((e) => { if (e?.status === 422) toast.show(e.message) })
 }
 
+// 服务端回填期间抑制 watch，避免「拉取 → 覆盖本地值 → 立刻再 POST 一次」的重复写入
+let hydrating = false
+
 const loadPref = async () => {
+  hydrating = true
   try {
     const res = await userPrefService.get()
     const prefs = res?.data?.data || {}
     if (prefs.stealthSettings) Object.assign(settings, prefs.stealthSettings)
   } catch (e) { /* 静默 */ }
+  await nextTick()
+  hydrating = false
 }
 
 onMounted(loadPref)
@@ -162,7 +171,6 @@ const toggleSetting = (key) => {
     if (!settings.stealth) return
     settings[key] = !settings[key]
   }
-  saveSettings()
 }
 
 const goBack = () => {
@@ -171,7 +179,10 @@ const goBack = () => {
 
 loadSettings()
 
-watch(settings, saveSettings, { deep: true })
+watch(settings, () => {
+  if (hydrating) return
+  saveSettings()
+}, { deep: true })
 </script>
 
 <style scoped>

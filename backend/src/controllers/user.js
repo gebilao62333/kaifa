@@ -1,9 +1,19 @@
-const { authService, smsService } = require('../services');
+const { authService, smsService, levelService, skinService } = require('../services');
 const { User, Post, PostLike, UserFollow, UserVisit, UserPref } = require('../models');
 const { Op } = require('sequelize');
 const response = require('../utils/response');
 const logger = require('../utils/logger');
-const { generateToken } = require('../config/jwt');
+const { isLevelGateError, handleLevelGate } = require('../utils/levelGate');
+const pii = require('../utils/pii');
+const tokenRevocation = require('../services/tokenRevocation');
+const { verifyToken, TOKEN_TYPES } = require('../config/jwt');
+const socialPrivacy = require('../utils/socialPrivacy');
+
+// 审计低危项：账号枚举。此前「用户不存在 / 密码错误 / 该用户未设置密码」分别返回
+// 不同文案并定位到不同字段，登录接口因此成了一个「手机号是否已注册」的枚举 oracle
+// （与 C-3 修掉的卡密枚举同源）。现三者统一为同一 422 与同一文案，真实失败原因只落
+// 服务端日志；前端在空 fieldErrors 时回落到 message 展示，无需按字段定位。
+const LOGIN_CREDENTIAL_ERRORS = new Set(['用户不存在', '密码错误', '该用户未设置密码']);
 
 const login = async (req, res) => {
   try {
@@ -18,15 +28,10 @@ const login = async (req, res) => {
     response.success(res, result, '登录成功');
   } catch (error) {
     logger.error('登录错误:', error);
-    if (error.message === '用户不存在') {
-      response.unprocessableEntity(res, '用户不存在', { phone: ['用户不存在，请检查手机号或使用验证码登录'] });
-    } else if (error.message === '密码错误') {
-      response.unprocessableEntity(res, '密码错误', { password: ['密码错误，请重新输入'] });
-    } else if (error.message === '该用户未设置密码') {
-      response.unprocessableEntity(res, '该用户未设置密码', { password: ['该用户未设置密码，请使用验证码登录或重置密码'] });
-    } else {
-      response.error(res, '登录失败');
+    if (LOGIN_CREDENTIAL_ERRORS.has(error.message)) {
+      return response.unprocessableEntity(res, '手机号或密码错误');
     }
+    response.error(res, '登录失败');
   }
 };
 
@@ -46,7 +51,7 @@ const register = async (req, res) => {
       return response.badRequest(res, '密码长度6-16位');
     }
 
-    const result = await authService.register(phone, password, `用户${phone.slice(-4)}`);
+    const result = await authService.register(phone, password, `用户${phone.slice(-4)}`, code);
     response.created(res, result, '注册成功');
   } catch (error) {
     logger.error('注册错误:', error);
@@ -70,10 +75,10 @@ const resetPassword = async (req, res) => {
     // 任何人只要知道手机号就能重置该用户密码（完整账户接管）。
     // verifyCode 校验成功后会删除验证码，天然一次性使用。
     try {
-      await smsService.verifyCode(phone, code);
+      await smsService.verifyCode(phone, code, 'reset');
     } catch (codeError) {
       const msg = codeError.message || '验证码错误或已过期';
-      logger.warn(`[resetPassword] 验证码校验失败 phone=${phone}: ${msg}`);
+      logger.warn(`[resetPassword] 验证码校验失败 phone=${smsService.maskMobile(phone)}: ${msg}`);
       if (msg.includes('不可用')) {
         return response.custom(res, 503, '短信服务暂不可用，请稍后重试');
       }
@@ -89,9 +94,19 @@ const resetPassword = async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
+    // 审计 H-5：重置口令必须同时让旧会话作废——用户端鉴权不回查口令，
+    // 否则「重置密码」后攻击者手里的旧令牌还能继续用满整个有效期。
+    // 放在写库之前：生产拿不到吊销状态就不改密，避免出现「密码已改、旧令牌仍有效」的中间态。
+    // 非生产沿用读取侧的 fail-open 取向（本地常常没有 Redis），只在响应里如实回报是否真吊销了。
+    const revoked = await tokenRevocation.revokeAllUserTokens(user.id);
+    if (!revoked.verifiable && tokenRevocation.revocationFailMode() === 'closed') {
+      return response.serviceUnavailable(res, '登出服务暂时不可用，请稍后重试');
+    }
+
     await user.update({ password: hashedPassword });
 
-    response.success(res, {}, '密码重置成功');
+    response.success(res, { devicesRevoked: revoked.ok }, '密码重置成功，所有设备需重新登录');
   } catch (error) {
     logger.error('重置密码错误:', error);
     response.error(res, '密码重置失败');
@@ -111,9 +126,14 @@ const getUserInfo = async (req, res) => {
 
 const updateUserInfo = async (req, res) => {
   try {
+    // Lv.5 解锁个性签名：清空签名不受限，只有写入内容才需要等级
+    if (String(req.body.dec ?? '').trim() !== '') {
+      await levelService.requireLevel(req.userId, 'signature');
+    }
     await authService.updateUserInfo(req.userId, req.body);
     response.success(res, {}, '更新成功');
   } catch (error) {
+    if (isLevelGateError(error)) return handleLevelGate(res, error);
     logger.error('更新用户信息错误:', error);
     response.error(res, error.message);
   }
@@ -121,14 +141,16 @@ const updateUserInfo = async (req, res) => {
 
 const sendSms = async (req, res) => {
   try {
-    const { phone, mobile } = req.body;
+    const { phone, mobile, type } = req.body;
     const phoneNumber = phone || mobile;
+    // 场景决定验证码存取的 Redis key；只读校验接口也接受 type，但仅允许登录/注册/重置三类
+    const scene = type && smsService.SMS_SCENES.includes(type) ? type : 'login';
     
     if (!phoneNumber || !/^1[3-9]\d{9}$/.test(phoneNumber)) {
       return response.badRequest(res, '请输入正确的手机号');
     }
     
-    const result = await smsService.sendSMS(phoneNumber);
+    const result = await smsService.sendSMS(phoneNumber, scene);
     // 开发环境下返回验证码方便调试
     const responseData = result.code ? { code: result.code } : {};
     response.success(res, responseData, '发送成功');
@@ -191,8 +213,16 @@ const getFans = async (req, res) => {
   try {
     const { User, UserFollow } = require('../models');
     const { parseQuery } = require('../utils/helper');
-    
-    const userId = req.query.userId || req.userId;
+
+    // 审计 M-11：粉丝/关注列表是「谁和谁有关系」的社交关系隐私，只允许本人读取——
+    // 此前 `?userId=他人ID` 可让任意登录用户拉取任何人的社交关系图（前端从不传该参数）。
+    const scope = socialPrivacy.resolveSelfScope(req.query.userId, req.userId);
+    if (!scope.ok) {
+      return scope.reason === socialPrivacy.PRIVATE_SCOPE
+        ? response.forbidden(res, '无权查看他人社交关系')
+        : response.badRequest(res, '用户ID格式不正确');
+    }
+    const userId = scope.userId;
     const { page, pageSize, offset } = parseQuery(req.query);
     
     const follows = await UserFollow.findAndCountAll({
@@ -231,8 +261,15 @@ const getFollows = async (req, res) => {
   try {
     const { User, UserFollow } = require('../models');
     const { parseQuery } = require('../utils/helper');
-    
-    const userId = req.query.userId || req.userId;
+
+    // 审计 M-11：同 getFans——关注列表只允许本人读取，拒绝跨用户社交关系查询。
+    const scope = socialPrivacy.resolveSelfScope(req.query.userId, req.userId);
+    if (!scope.ok) {
+      return scope.reason === socialPrivacy.PRIVATE_SCOPE
+        ? response.forbidden(res, '无权查看他人社交关系')
+        : response.badRequest(res, '用户ID格式不正确');
+    }
+    const userId = scope.userId;
     const { page, pageSize, offset } = parseQuery(req.query);
     
     const follows = await UserFollow.findAndCountAll({
@@ -281,9 +318,55 @@ const refreshToken = async (req, res) => {
     logger.error('刷新token错误:', error);
     if (error.message === '无效的refresh token' || error.message === 'refresh token不能为空') {
       response.unprocessableEntity(res, error.message);
+    } else if (error.message === 'REFRESH_REVOKED') {
+      // 审计 H-5：本人已在别处「全端下线」或这枚 refresh 已被登出，必须重新登录
+      response.unauthorized(res, '登录状态已失效，请重新登录');
+    } else if (error.message === 'REVOCATION_UNAVAILABLE') {
+      response.serviceUnavailable(res, '认证服务暂时不可用，请稍后重试');
     } else {
       response.error(res, '刷新token失败');
     }
+  }
+};
+
+// 审计 H-5：此前全站没有登出接口，前端「退出登录」只清 localStorage，
+// 令牌在剩余有效期内（默认 7 天）依然可以直接打接口——被盗的令牌不会因为用户登出而失效。
+const logout = async (req, res) => {
+  try {
+    const results = [await tokenRevocation.revokeToken(req.token)];
+
+    const refreshTokenStr = (req.body || {}).refreshToken;
+    if (refreshTokenStr) {
+      const decodedRefresh = verifyToken(refreshTokenStr, [TOKEN_TYPES.REFRESH]);
+      // 只吊销本人的 refresh：不加这层归属判断，任何人送别人的令牌就能定向替对方登出
+      if (decodedRefresh && Number(decodedRefresh.userId) === Number(req.userId)) {
+        results.push(await tokenRevocation.revokeToken(refreshTokenStr));
+      }
+    }
+
+    // 用户端登录响应里本来就会下发 refreshToken，但 C 端 SPA 从不保存它（也没有刷新链路），
+    // 于是「只拉黑 access」会留下一枚 30 天内还能换新令牌的孤儿凭据。C 端登出因此带上
+    // logoutAllDevices：改走水位线，把该用户此刻之前的全部令牌（含 refresh）一次作废。
+    if ((req.body || {}).logoutAllDevices) {
+      results.push(await tokenRevocation.revokeAllUserTokens(req.userId));
+    }
+
+    // 与读取侧同一取向：生产无法确认吊销即 503（不能声称「已登出」），
+    // 非生产 fail-open 让流程走完，但用 serverRevoked 如实回报，前端据此清本地态。
+    if (results.some((item) => !item.verifiable)) {
+      if (tokenRevocation.revocationFailMode() === 'closed') {
+        return response.serviceUnavailable(res, '登出服务暂时不可用，请稍后重试');
+      }
+      logger.warn('[logout] 吊销状态无法确认，按 fail-open 返回登出成功');
+    }
+
+    response.success(res, {
+      clientShouldClearToken: true,
+      serverRevoked: results.every((item) => item.ok)
+    }, '已登出');
+  } catch (error) {
+    logger.error('登出错误:', error);
+    response.error(res, '登出失败');
   }
 };
 
@@ -319,10 +402,11 @@ const submitRealName = async (req, res) => {
       return response.error(res, '用户不存在');
     }
     await user.update({
-      real_name: realName,
-      id_card: idCard,
-      real_name_front: front,
-      real_name_back: back,
+      // 审计 M-8：实名敏感字段静态加密后落库（密钥见 utils/pii.js；生产缺失密钥时启动即被拒绝）
+      real_name: pii.encryptField(realName),
+      id_card: pii.encryptField(idCard),
+      real_name_front: pii.encryptField(front),
+      real_name_back: pii.encryptField(back),
       real_name_status: 1,
       real_name_time: Math.floor(Date.now() / 1000)
     });
@@ -339,16 +423,33 @@ const getRealNameStatus = async (req, res) => {
     if (!user) {
       return response.error(res, '用户不存在');
     }
+    const maskName = (v) => (v ? String(v).replace(/.(?=.{1})/g, '*') : '');
+    const maskIdCard = (v) => (v ? String(v).replace(/^(.{3}).*(.{4})$/, '$1***********$2') : '');
     response.success(res, {
       status: user.real_name_status || 0,
-      realName: user.real_name ? String(user.real_name).replace(/.(?=.{1})/g, '*') : '',
-      idCard: user.id_card ? String(user.id_card).replace(/^(.{3}).*(.{4})$/, '$1***********$2') : '',
+      // 审计 M-8：先解密再脱敏；存量明文行 decryptField 原样返回，行为与历史一致
+      realName: maskName(pii.decryptField(user.real_name)),
+      idCard: maskIdCard(pii.decryptField(user.id_card)),
       time: user.real_name_time || 0
     });
   } catch (error) {
     logger.error('查询实名状态错误:', error);
     response.error(res, error.message);
   }
+};
+
+// 批量回填「我是否已关注此人」，避免前端关注态恒为 false
+const attachFollowingState = async (list, currentUserId) => {
+  const ids = [...new Set(list.map(item => item.userId).filter(Boolean))];
+  if (!ids.length) {
+    return list.map(item => ({ ...item, isFollowed: false }));
+  }
+  const rows = await UserFollow.findAll({
+    where: { follower_id: currentUserId, following_id: { [Op.in]: ids } },
+    attributes: ['following_id']
+  });
+  const followedIds = new Set(rows.map(r => r.following_id));
+  return list.map(item => ({ ...item, isFollowed: followedIds.has(item.userId) }));
 };
 
 // 点赞记录：谁赞过我的动态
@@ -369,13 +470,14 @@ const getLikes = async (req, res) => {
       ? await User.findAll({ where: { id: { [Op.in]: userIds } }, attributes: ['id', 'nickname', 'avatar'] })
       : [];
     const userMap = Object.fromEntries(users.map(u => [u.id, u]));
-    const list = likes.map(l => ({
+    const rawList = likes.map(l => ({
       userId: l.user_id,
       nickname: userMap[l.user_id]?.nickname || '',
       avatar: userMap[l.user_id]?.avatar || '',
       postId: l.post_id,
       time: l.create_time
     }));
+    const list = await attachFollowingState(rawList, req.userId);
     response.success(res, { list, total: list.length });
   } catch (error) {
     logger.error('获取点赞记录错误:', error);
@@ -396,12 +498,13 @@ const getVisitors = async (req, res) => {
       ? await User.findAll({ where: { id: { [Op.in]: visitorIds } }, attributes: ['id', 'nickname', 'avatar'] })
       : [];
     const userMap = Object.fromEntries(users.map(u => [u.id, u]));
-    const list = visits.map(v => ({
+    const rawList = visits.map(v => ({
       userId: v.visitor_id,
       nickname: userMap[v.visitor_id]?.nickname || '',
       avatar: userMap[v.visitor_id]?.avatar || '',
       time: v.create_time
     }));
+    const list = await attachFollowingState(rawList, req.userId);
     response.success(res, { list, total: list.length });
   } catch (error) {
     logger.error('获取访客记录错误:', error);
@@ -434,6 +537,59 @@ const recordVisit = async (req, res) => {
   }
 };
 
+// ===== 等级与经验 =====
+const getLevelInfo = async (req, res) => {
+  try {
+    const data = await levelService.getInfo(req.userId);
+    response.success(res, data);
+  } catch (error) {
+    logger.error('获取等级信息错误:', error);
+    response.error(res, '获取等级信息失败');
+  }
+};
+
+const checkIn = async (req, res) => {
+  try {
+    const data = await levelService.checkIn(req.userId);
+    response.success(res, data, '签到成功');
+  } catch (error) {
+    if (error.message === '今日已签到') {
+      return response.unprocessableEntity(res, error.message);
+    }
+    logger.error('签到错误:', error);
+    response.error(res, '签到失败');
+  }
+};
+
+// 只在请求真正「开启」该权益时校验等级：
+// 关闭隐身、纯保存偏好都不该被门槛挡住。
+// 审计 H-6：skin_shop 的判定不再出现在这里——它由 POST /api/user/skins/purchase 无条件校验，
+// 因为改造前这里写的是 `data.skinShop && spendNum > 0`，客户端只要把 spend 传 0 就同时绕过了扣费和门槛。
+const benefitsRequested = (data) => {
+  const keys = [];
+  if (!data || typeof data !== 'object') return keys;
+  if (data.stealthSettings && data.stealthSettings.stealth === true) keys.push('stealth_visit');
+  if (data.selectedBadge) keys.push('identity_badge');
+  if (data.priorityMatchingSettings) keys.push('priority_matching');
+  return keys;
+};
+
+// 审计 H-6：装扮所有权是服务端事实，通用偏好接口不再接受客户端提交的 skinShop 快照。
+const stripUntrustedPref = (data) => {
+  if (!data || typeof data !== 'object') return {};
+  const clone = { ...data };
+  delete clone[skinService.STATE_KEY];
+  return clone;
+};
+
+// spend 字段已废弃：只容忍旧客户端显式传 0（保持兼容），任何非 0 值都直接 422 指路到新接口。
+const rejectedSpend = (spend) => {
+  if (spend === undefined || spend === null || spend === '') return null;
+  const num = Number(spend);
+  if (Number.isFinite(num) && num === 0) return null;
+  return '扣款金额不再由客户端决定，请改调 POST /api/user/skins/purchase';
+};
+
 // ===== 用户偏好/装扮数据（服务端持久化，替代纯前端 localStorage） =====
 const getPref = async (req, res) => {
   try {
@@ -442,7 +598,8 @@ const getPref = async (req, res) => {
     if (row && row.data) {
       try { data = JSON.parse(row.data); } catch (e) { data = {}; }
     }
-    response.success(res, { data });
+    // 装扮状态改由 GET /api/user/skins 提供（目录 + 所有权 + 余额），这里不再回传 skinShop
+    response.success(res, { data: stripUntrustedPref(data) });
   } catch (error) {
     logger.error('获取用户偏好错误:', error);
     response.error(res, error.message);
@@ -452,54 +609,112 @@ const getPref = async (req, res) => {
 const savePref = async (req, res) => {
   try {
     const { data, spend } = req.body;
-    const spendNum = Number(spend) || 0;
+    const spendMessage = rejectedSpend(spend);
+    if (spendMessage) {
+      return response.unprocessableEntity(res, spendMessage, { spend: [spendMessage] });
+    }
+    const safeData = stripUntrustedPref(data);
     const now = Math.floor(Date.now() / 1000);
     const sequelize = require('../config/mysql');
 
-    // 审计 B-04：原实现"先查余额再 decrement"存在 TOCTOU，并发可绕过扣费。
-    // 改为同一事务内**条件扣减**（WHERE money >= spend），扣款与偏好写入同生共死。
-    const transaction = await sequelize.transaction();
-    let fresh;
-    try {
-      if (spendNum > 0) {
-        const { affectedCount } = require('../utils/sql');
-        const decreaseResult = await User.decrement('money', {
-          by: spendNum,
-          where: { id: req.userId, money: { [Op.gte]: spendNum } },
-          transaction
-        });
-        // 注意：decrement 在 MySQL 下返回 [[null, N]]，不能用真值判断（[null,0] 也是真值）。
-        if (affectedCount(decreaseResult) !== 1) {
-          await transaction.rollback();
-          return response.unprocessableEntity(res, '余额不足');
-        }
-      }
+    for (const benefit of benefitsRequested(safeData)) {
+      await levelService.requireLevel(req.userId, benefit);
+    }
 
+    // 审计 B-04 的条件扣款已整体移入 skinService.purchase（金额取自服务端目录，
+    // 扣款与所有权写入同生共死）；这里只剩纯偏好读写，仍在事务内做读-改-写避免并发覆盖。
+    const transaction = await sequelize.transaction();
+    try {
       const row = await UserPref.findOne({ where: { user_id: req.userId }, transaction });
       let merged = {};
       if (row && row.data) {
         try { merged = JSON.parse(row.data) || {}; } catch (e) { merged = {}; }
       }
-      Object.assign(merged, data || {});
+      // 审计 H-6：以服务端持有的 skinShop 为准，客户端快照不参与合并
+      if (merged[skinService.STATE_KEY]) {
+        merged[skinService.STATE_KEY] = skinService.sanitizeState(merged[skinService.STATE_KEY]);
+      }
+      Object.assign(merged, safeData);
       const payload = JSON.stringify(merged);
       if (row) {
         await row.update({ data: payload, update_time: now }, { transaction });
       } else {
         await UserPref.create({ user_id: req.userId, data: payload, update_time: now }, { transaction });
       }
-
-      fresh = await User.findByPk(req.userId, { attributes: ['money'], transaction });
       await transaction.commit();
     } catch (txError) {
-      if (!transaction.finished) {
+      if (transaction.finished !== 'commit') {
         try { await transaction.rollback(); } catch (rollbackError) { /* 已回滚 */ }
       }
       throw txError;
     }
-    response.success(res, { balance: fresh ? Number(fresh.money) : undefined }, '已保存');
+    response.success(res, {}, '已保存');
   } catch (error) {
+    if (isLevelGateError(error)) return handleLevelGate(res, error);
     logger.error('保存用户偏好错误:', error);
     response.error(res, error.message);
+  }
+};
+
+// ===== 装扮商城（审计 H-6：目录、价格、所有权、扣款全部服务端化） =====
+const publicSkin = (skin) => ({
+  id: skin.id,
+  type: skin.type,
+  name: skin.name,
+  price: Number(skin.price) || 0,
+  vipLevel: Number(skin.vipLevel) || 0
+});
+
+const skinFailure = (res, error, label) => {
+  if (isLevelGateError(error)) return handleLevelGate(res, error);
+  if (skinService.isBusinessError(error)) {
+    return response.unprocessableEntity(res, error.message, { skin: [error.code] });
+  }
+  logger.error(`${label}错误:`, error);
+  return response.error(res, `${label}失败`);
+};
+
+const listSkins = async (req, res) => {
+  try {
+    response.success(res, await skinService.listForUser(req.userId));
+  } catch (error) {
+    logger.error('获取装扮列表错误:', error);
+    response.error(res, '获取装扮列表失败');
+  }
+};
+
+const purchaseSkin = async (req, res) => {
+  try {
+    const { skinId } = req.body;
+    if (!skinId || typeof skinId !== 'string') {
+      return response.badRequest(res, '缺少 skinId');
+    }
+    const result = await skinService.purchase(req.userId, skinId);
+    response.success(res, {
+      skin: publicSkin(result.skin),
+      charged: result.charged,
+      alreadyOwned: result.alreadyOwned,
+      balance: result.balance
+    }, result.charged > 0 ? '购买成功' : '已获得');
+  } catch (error) {
+    return skinFailure(res, error, '购买装扮');
+  }
+};
+
+const useSkin = async (req, res) => {
+  try {
+    const { skinId } = req.body;
+    if (!skinId || typeof skinId !== 'string') {
+      return response.badRequest(res, '缺少 skinId');
+    }
+    const result = await skinService.use(req.userId, skinId);
+    response.success(res, {
+      skin: publicSkin(result.skin),
+      charged: result.charged,
+      balance: result.balance
+    }, '已切换');
+  } catch (error) {
+    return skinFailure(res, error, '切换装扮');
   }
 };
 
@@ -517,11 +732,17 @@ module.exports = {
   getFollows,
   checkFollow,
   refreshToken,
+  logout,
   submitRealName,
   getRealNameStatus,
   getLikes,
   getVisitors,
   recordVisit,
   getPref,
-  savePref
+  savePref,
+  listSkins,
+  purchaseSkin,
+  useSkin,
+  getLevelInfo,
+  checkIn
 };

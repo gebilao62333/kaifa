@@ -88,6 +88,7 @@
               <span class="qr-upload-icon">📷</span>
               <span class="qr-upload-text">上传支付宝收款码</span>
             </template>
+            <span v-if="qrUploading" class="qr-uploading">上传中...</span>
           </div>
         </div>
       </template>
@@ -105,6 +106,7 @@
               <span class="qr-upload-icon">📷</span>
               <span class="qr-upload-text">上传微信收款码</span>
             </template>
+            <span v-if="qrUploading" class="qr-uploading">上传中...</span>
           </div>
         </div>
       </template>
@@ -180,6 +182,7 @@ import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
 import walletService from '../services/walletService'
 import payService from '../services/payService'
+import { uploadFile } from '../services/uploadService'
 import { isLoggedIn } from '@/common/common'
 
 const router = useRouter()
@@ -199,6 +202,7 @@ const wechatQrUrl = ref('')
 const showBankPicker = ref(false)
 const currentQrType = ref('')
 const qrFileInput = ref(null)
+const qrUploading = ref(false)
 
 const bankOptions = [
   '中国工商银行', '中国农业银行', '中国银行', '中国建设银行',
@@ -304,27 +308,42 @@ const switchPayMethod = (id) => {
 }
 
 const triggerQrUpload = (type) => {
+  if (qrUploading.value) return
   currentQrType.value = type
   qrFileInput.value?.click()
 }
 
-const handleQrUpload = (e) => {
+// 收款码选图后立即直传（COS，失败自动回退后端中转），表单只保存返回的图片链接。
+// 不能把 base64 dataURL 当 image 提交：后端 xn_withdraw.image 为 STRING(255)。
+const handleQrUpload = async (e) => {
   const file = e.target.files?.[0]
-  if (!file) return
-  const reader = new FileReader()
-  reader.onload = (event) => {
-    const url = event.target?.result?.toString() || ''
-    if (currentQrType.value === 'alipay') {
-      alipayQrUrl.value = url
-    } else if (currentQrType.value === 'wechat') {
-      wechatQrUrl.value = url
-    }
+  e.target.value = ''
+  if (!file || qrUploading.value) return
+
+  const target = currentQrType.value
+  const urlRef = target === 'alipay' ? alipayQrUrl : wechatQrUrl
+  const previous = urlRef.value
+  urlRef.value = URL.createObjectURL(file)
+  qrUploading.value = true
+  try {
+    const res = await uploadFile(file, 'image')
+    const url = res?.data?.url
+    if (!url) throw new Error(res?.message || '上传失败')
+    urlRef.value = url
+  } catch (err) {
+    urlRef.value = previous
+    toast.error(err.message || '收款码上传失败，请重试')
+  } finally {
+    qrUploading.value = false
   }
-  reader.readAsDataURL(file)
 }
 
 const doWithdraw = async () => {
   if (!canWithdraw.value || submitting.value) return
+  if (qrUploading.value) {
+    toast.error('收款码上传中，请稍候')
+    return
+  }
   submitting.value = true
 
   try {
@@ -639,6 +658,12 @@ const doWithdraw = async () => {
   max-height: 160px;
   border-radius: 8px;
   object-fit: contain;
+}
+
+.qr-uploading {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #ff6b9d;
 }
 
 .bank-picker-overlay {

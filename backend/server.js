@@ -10,6 +10,7 @@ const path = require('path');
 
 const config = require('./src/config');
 const { xssProtection, apiLimiter } = require('./src/middlewares');
+const { parseInsecureConfigWaivers, NON_WAIVABLE_CHECKS } = require('./src/utils/startupConfigGuard');
 
 console.log('🚀 正在启动eu搭子后端服务...\n');
 
@@ -58,6 +59,11 @@ function collectConfigRisks() {
   for (const [name, val, minLen] of checks) {
     if (isWeakSecret(val, minLen)) weak.push(name);
   }
+  // 审计 M-3：ADMIN_JWT_SECRET 留空是**正常状态**（走 JWT_SECRET 派生），不能按弱值报，
+  // 只有显式配置成一个弱值才计入（派生分支的隔离性不足走上面的 warnings 提示）
+  if (process.env.ADMIN_JWT_SECRET && isWeakSecret(process.env.ADMIN_JWT_SECRET, 16)) {
+    weak.push('ADMIN_JWT_SECRET');
+  }
 
   // MongoDB 连接串里内嵌的口令也检查一遍（docker-compose 的默认兜底值是 admin123）
   const mongoUri = String(config.db.mongo.uri || '');
@@ -66,14 +72,60 @@ function collectConfigRisks() {
   }
 
   const warnings = [];
+  // 短信通道配了 AppId 却没配模板号时，发送会在运行期才报「短信服务未配置完整」，
+  // 表现为生产环境收不到验证码；提前在启动阶段告警。
+  if (config.sms && config.sms.appId && (!config.sms.templateId || !config.sms.notifyTemplateId)) {
+    const missing = [
+      !config.sms.templateId && 'SMS_TEMPLATE_ID',
+      !config.sms.notifyTemplateId && 'SMS_NOTIFY_TEMPLATE_ID'
+    ].filter(Boolean).join(' / ');
+    warnings.push(`SMS_APP_ID 已配置但缺少 ${missing}：验证码/通知短信将无法下发`);
+  }
   if (config.admin && config.admin.emergencyLogin) {
     warnings.push('ADMIN_EMERGENCY_LOGIN=true：环境变量应急管理员登录已开启，创建正式管理员后请立即改为 false');
+  }
+  // 审计 M-3：管理端令牌已改用独立密钥签名（用户端令牌签不出、验不过）。但未显式配置
+  // ADMIN_JWT_SECRET 时，该密钥由 JWT_SECRET 派生——任何人拿到 JWT_SECRET 都能算出它，
+  // 于是「用户端密钥泄露」会连带击穿管理端。派生是可用但非隔离的默认，故在此告警。
+  if (config.jwt && config.jwt.adminSecretSource === 'derived') {
+    warnings.push('ADMIN_JWT_SECRET 未显式设置，管理端令牌密钥由 JWT_SECRET 派生：两类令牌已互不通用，但掌握 JWT_SECRET 者即可推出该值，需要「用户端密钥泄露不影响管理端」的隔离请显式配置 ADMIN_JWT_SECRET');
   }
   if ((config.cors.origin || []).includes('*')) {
     warnings.push('CORS_ORIGIN=*：生产环境必须改为具体前端域名（逗号分隔）');
   }
   if (config.useMockDb && config.nodeEnv === 'production') {
     warnings.push('USE_MOCK_DB=true 且 NODE_ENV=production：生产环境不应运行在 Mock 数据库模式');
+  }
+
+  // 审计 H-8：NODE_ENV 缺省值为 development，此前会让五道限流整体放行（现已取消环境豁免）。
+  // 这里保留告警，是因为 Swagger、错误堆栈等仍按「非 production」处理，环境必须显式声明。
+  if (!config.nodeEnvExplicit) {
+    warnings.push(`NODE_ENV 未显式设置，当前按 ${config.nodeEnv} 处理：部署时必须指定 development/production`);
+  }
+  // 限流按 IP 计数，IP 是否可信完全由 TRUST_PROXY 决定（解析结果在创建 app 时打印）。
+  if (config.trustProxySource === 'default') {
+    warnings.push('TRUST_PROXY 未设置，已按默认值 loopback 只信任同机反代：nginx 与后端不同机时真实客户端 IP 会取错，请按拓扑显式配置');
+  }
+  if (config.trustProxy === false) {
+    warnings.push('TRUST_PROXY=false：完全忽略 X-Forwarded-For，经反向代理部署时所有请求的 req.ip 都会是代理地址，按 IP 限流将退化为按代理限流');
+  }
+  if (config.rateLimit.disabled) {
+    warnings.push('RATE_LIMIT_DISABLED=true：全部接口限流已关闭，生产环境会直接拒绝启动（该项不可豁免）');
+  }
+
+  // 审计 H-9：TURN 走 coturn REST 静态共享密钥（--use-auth-secret），密钥即身份，
+  // 谁掌握它就能冒签任意用户的中继凭据。仅在 TURN_URL 已配置（中继真正启用）时检查——
+  // 未部署 TURN 时本键为空是正常状态，不应告警；compose 侧因插值先于 profile 生效
+  // 无法用 ${TURN_SECRET:?} 强制校验（见 docker-compose.yml coturn 注释），故在启动自检补位。
+  if (config.call && config.call.turn && config.call.turn.url && isWeakSecret(config.call.turn.secret, 16)) {
+    warnings.push('TURN_URL 已配置但 TURN_SECRET 未设置或为弱值：中继凭据可被冒签（docker 部署下 coturn 还会回落已知占位密钥），启用 TURN 前必须换成强随机值');
+  }
+  // 审计 M-8：实名信息（真实姓名/身份证号/正反面照）静态加密密钥。
+  // 生产环境缺失/弱值由下方强制校验直接拒绝启动；非生产在此提示一次，避免长期以明文存储敏感个人信息。
+  if (!config.pii.encryptionKey) {
+    warnings.push('PII_ENCRYPTION_KEY 未设置：实名信息将以明文存储（生产环境会拒绝启动）');
+  } else if (isWeakSecret(config.pii.encryptionKey, 32)) {
+    warnings.push('PII_ENCRYPTION_KEY 为弱值：实名信息静态加密密钥强度不足，请用 openssl rand -hex 32 生成');
   }
   return { weak, warnings };
 }
@@ -93,37 +145,62 @@ function warnWeakSecrets(weak, warnings) {
 }
 
 // 生产环境强制校验：关键密钥缺失/弱值直接拒绝启动
-// 可设置 ALLOW_INSECURE_CONFIG=true 显式降级为告警（仅限受控排障，不推荐）。
+// 审计 M-13：原实现支持 ALLOW_INSECURE_CONFIG=true「一键跳过全部校验」，现改为
+// **按项豁免**——该变量须列出具体检查项名（逗号分隔，如 DB_PASSWORD）；true/1/all/* 已废弃，
+// 且 CORS_ORIGIN / USE_MOCK_DB / RATE_LIMIT_DISABLED 属不可豁免项。
 function enforceProductionConfig() {
   if (config.nodeEnv !== 'production') return;
 
-  if (String(process.env.ALLOW_INSECURE_CONFIG).toLowerCase() === 'true') {
-    console.log('\n⚠️  ALLOW_INSECURE_CONFIG=true：已跳过生产环境密钥强制校验（不推荐）\n');
-    return;
+  const { blanket, waivers, notWaivable, unknown } = parseInsecureConfigWaivers(process.env.ALLOW_INSECURE_CONFIG);
+  if (blanket) {
+    console.error('\n❌ ALLOW_INSECURE_CONFIG 不再支持整体跳过（true/1/all/*）：请改为显式列出要豁免的检查项（逗号分隔），本次不会豁免任何项。');
+  }
+  if (unknown.length) {
+    console.log(`⚠️  ALLOW_INSECURE_CONFIG 中无法识别的项已忽略：${unknown.join(', ')}`);
+  }
+  if (notWaivable.length) {
+    console.log(`⚠️  ALLOW_INSECURE_CONFIG 请求豁免以下不可豁免项，已拒绝：${notWaivable.join(', ')}`);
   }
 
+  // [检查项名, 是否命中, 提示]；项名与 ALLOW_INSECURE_CONFIG 的豁免写法一一对应
+  const checks = [
+    ['JWT_SECRET', isWeakSecret(config.jwt.secret, 16), 'JWT_SECRET 未设置或为弱值（可被用于伪造任意用户 JWT）'],
+    ['DB_PASSWORD', isWeakSecret(config.db.mysql.password, 12), 'DB_PASSWORD 未设置或为弱值'],
+    // ADMIN_TOKEN 为空表示应急令牌通道关闭（安全）；非空但弱值才是问题
+    ['ADMIN_TOKEN', Boolean(config.admin.token) && isWeakSecret(config.admin.token, 16), 'ADMIN_TOKEN 为弱值（x-admin-token 等同于超级管理员身份）'],
+    // 审计 M-3：ADMIN_JWT_SECRET 留空走派生（可用），显式配置为弱值才拦（可被用于伪造管理端 JWT）
+    ['ADMIN_JWT_SECRET', Boolean(process.env.ADMIN_JWT_SECRET) && isWeakSecret(process.env.ADMIN_JWT_SECRET, 16), 'ADMIN_JWT_SECRET 为弱值（管理端令牌签名密钥，可被用于伪造管理员 JWT）'],
+    // 审计 M-8：实名字段静态加密密钥缺失/弱值即拒绝启动——否则敏感个人信息（真实姓名/身份证号/正反面照）将以明文入库
+    ['PII_ENCRYPTION_KEY', isWeakSecret(config.pii.encryptionKey, 32), 'PII_ENCRYPTION_KEY 未设置或为弱值（实名信息将以明文存储敏感个人信息）'],
+    ['CORS_ORIGIN', (config.cors.origin || []).includes('*'), 'CORS_ORIGIN=*：允许任意站点跨域调用接口'],
+    ['USE_MOCK_DB', Boolean(config.useMockDb), 'USE_MOCK_DB=true：生产环境禁止使用 Mock 数据库'],
+    // 审计 H-8：限流此前会因 NODE_ENV 缺省为 development 而整体放行，现在改为只有
+    // RATE_LIMIT_DISABLED=true 一个开关能关掉，因此这一条必须在生产环境硬拦下来。
+    ['RATE_LIMIT_DISABLED', Boolean(config.rateLimit.disabled), 'RATE_LIMIT_DISABLED=true：生产环境禁止关闭接口限流（登录/短信/卡密/上传全部裸露在爆破面下）']
+  ];
+
   const fatal = [];
-  if (isWeakSecret(config.jwt.secret, 16)) {
-    fatal.push('JWT_SECRET 未设置或为弱值（可被用于伪造任意用户 JWT）');
+  const waived = [];
+  for (const [key, bad, msg] of checks) {
+    if (!bad) continue;
+    // 不可豁免项始终致命；可豁免项只有被显式点名才放行
+    if (NON_WAIVABLE_CHECKS.includes(key) || !waivers.has(key)) {
+      fatal.push(msg);
+    } else {
+      waived.push(`${key}（${msg}）`);
+    }
   }
-  if (isWeakSecret(config.db.mysql.password, 12)) {
-    fatal.push('DB_PASSWORD 未设置或为弱值');
-  }
-  // ADMIN_TOKEN 为空表示应急令牌通道关闭（安全）；非空但弱值才是问题
-  if (config.admin.token && isWeakSecret(config.admin.token, 16)) {
-    fatal.push('ADMIN_TOKEN 为弱值（x-admin-token 等同于超级管理员身份）');
-  }
-  if ((config.cors.origin || []).includes('*')) {
-    fatal.push('CORS_ORIGIN=*：允许任意站点跨域调用接口');
-  }
-  if (config.useMockDb) {
-    fatal.push('USE_MOCK_DB=true：生产环境禁止使用 Mock 数据库');
+
+  if (waived.length) {
+    console.log('\n⚠️  ALLOW_INSECURE_CONFIG 已按项豁免以下生产校验（仅限受控排障，请尽快修正并重启）：');
+    waived.forEach((w) => console.log('   - ' + w));
   }
 
   if (fatal.length) {
     console.error('\n❌ 生产环境配置校验失败，拒绝启动：');
     fatal.forEach((f) => console.error('   - ' + f));
-    console.error('   请修正 .env 后重启；确需临时跳过请设置 ALLOW_INSECURE_CONFIG=true。\n');
+    console.error('   请修正 .env 后重启；确需临时豁免某一项，请用 ALLOW_INSECURE_CONFIG=<检查项名> 显式声明（逗号分隔，如 DB_PASSWORD）。');
+    console.error('   注意：CORS_ORIGIN / USE_MOCK_DB / RATE_LIMIT_DISABLED 属不可豁免项。\n');
     process.exit(1);
   }
 }
@@ -133,7 +210,17 @@ warnWeakSecrets(__configRisks.weak, __configRisks.warnings);
 enforceProductionConfig();
 
 const app = express();
-app.set('trust proxy', 1);
+// 审计 H-8：原先写死 `app.set('trust proxy', 1)`（无条件信任一跳），只要 origin 本身可达，
+// 攻击者在 X-Forwarded-For 里随便加一跳就能改写 req.ip，绕开全部按 IP 计的限流。
+// 现在取值来自 config.trustProxy（TRUST_PROXY 环境变量，默认 loopback，见 src/config/trustProxy.js）。
+const trustProxyLabel = Array.isArray(config.trustProxy)
+  ? config.trustProxy.join(',')
+  : String(config.trustProxy);
+console.log(
+  `🔒 trust proxy = ${trustProxyLabel}` +
+  `（来源：${config.trustProxySource === 'default' ? '默认值' : 'TRUST_PROXY'}）`
+);
+app.set('trust proxy', config.trustProxy);
 const server = http.createServer(app);
 
 const io = new Server(server, {
@@ -227,10 +314,13 @@ app.get('/api/health', async (req, res) => {
       }
     });
   } catch (e) {
+    // 审计低危项：/api/health 属匿名可达端点，此前不健康分支把 e.message 原样回传，
+    // 依赖异常（连接串、驱动报错）会外泄；现仅落服务端日志，响应体只给通用状态。
+    console.error('❌ 健康检查探测失败:', e && e.message);
     res.status(503).json({
       code: 503,
       message: 'unhealthy',
-      data: { status: 'unhealthy', error: e.message }
+      data: { status: 'unhealthy' }
     });
   }
 });
@@ -262,7 +352,8 @@ if (process.env.NODE_ENV !== 'production' || process.env.ENABLE_SWAGGER === 'tru
 }
 
 // 全局限流：覆盖 /api 下所有业务路由（健康检查/API测试已在此之前注册，不受限流影响）
-// 开发环境自动跳过；阈值由 RATE_LIMIT_WINDOW_MS / RATE_LIMIT_MAX_REQUESTS 控制
+// 审计 H-8：各环境一律生效，阈值由 RATE_LIMIT_WINDOW_MS / RATE_LIMIT_MAX_REQUESTS 控制，
+// 只在本地排障需要放行时才临时设 RATE_LIMIT_DISABLED=true（生产环境设了会拒绝启动）
 app.use('/api', apiLimiter);
 
 // 设置路由（如果可用）
