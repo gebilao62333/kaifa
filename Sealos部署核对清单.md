@@ -66,7 +66,7 @@ LOGS_PATH=/var/log/eudazi        # 与 compose 的 eudazi_logs 卷一致
    ```bash
    cd backend && node src/migrations/runMigrations.js
    ```
-   其中已包含：货币单位、虚拟人在线调度、帖子标签相册、交互修复字段、删遗留表、红包唯一约束、**密卡 card_key**。
+   其中已包含：货币单位、虚拟人在线调度、帖子标签相册、交互修复字段、删遗留表、红包唯一约束、**密卡 card_key**、**聊天到期撤回 `xn_chat_log.expire_at`**（第 10 步）、**已读自动销毁 `read_at/destroy_at/destroyed_at`**（本轮新增，第 11 步）。
 3. 若指向**全新空库**，先导入 `backend/sql/01_init_schema.sql`（已含 `xn_card.card_key` 与唯一索引）。
 4. 手动迁移（历史上仅对当前云库执行过，新库需跑）：
    ```bash
@@ -75,6 +75,8 @@ LOGS_PATH=/var/log/eudazi        # 与 compose 的 eudazi_logs 卷一致
 5. **核对点**（我可以给你 SQL 一键核对）：
    - 表数量 43、`xn_card.card_key` 存在且有唯一索引
    - 关键列类型：`xn_post.user_id` 等 12 列为 BIGINT；`xn_user.ip`/`xn_admin.last_login_ip` 为 VARCHAR(45)
+   - 聊天自动撤回：`xn_chat_log.expire_at` 存在（INT，默认 0）且索引 `idx_chat_log_expire` 存在 —— **这一列缺失会导致聊天接口 500，必须核对**
+   - 聊天已读销毁：`xn_chat_log.read_at` / `destroy_at` / `destroyed_at` 存在（INT，默认 0）且索引 `idx_chat_log_destroy` 存在 —— **缺列同样导致聊天接口 500**
 
 ---
 

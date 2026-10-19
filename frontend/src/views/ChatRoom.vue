@@ -129,6 +129,7 @@
     <div v-if="showMessageContextMenu" class="modal" @click.self="showMessageContextMenu = false">
       <div class="context-menu" :style="contextMenuStyle">
         <div class="context-item" v-if="selectedMessage?.isOwn" @click="revokeMessage(selectedMessage)">撤回</div>
+        <div class="context-item" v-if="selectedMessage && !selectedMessage.isOwn && selectedMessage.type !== 'system'" @click="openReportMessage(selectedMessage)">举报</div>
         <div class="context-item" @click="copyMessage(selectedMessage)">复制</div>
         <div class="context-item" @click="forwardMessage(selectedMessage)">转发</div>
         <div class="context-item cancel" @click="showMessageContextMenu = false">取消</div>
@@ -299,8 +300,8 @@
 
     <ReportModal
       :visible="showReport"
-      :target-type="1"
-      :target-id="userInfo.userId"
+      :target-type="reportTarget.type"
+      :target-id="reportTarget.id"
       @close="showReport = false"
       @submitted="onReported"
     />
@@ -366,6 +367,7 @@ import ReportModal from '../components/report-modal/report-modal.vue';
 import { toast } from '../composables/useToast';
 import { DEFAULT_AVATAR, STORAGE_KEYS } from '../common/constants';
 import { provinceList, cityData as chinaCityData } from '../data/china-regions';
+import { applyRevokedState, isRevokedMessage, isChatMessageExpired } from '../utils/chatMessage';
 
 const router = useRouter();
 const route = useRoute();
@@ -432,6 +434,8 @@ const showLocationSelector = ref(false);
 const showGiftPanel = ref(false);
 const showRedPacketPanel = ref(false);
 const showReport = ref(false);
+// 举报目标：1=用户（会话级入口）、4=聊天消息（气泡右键入口，举报后冻结该消息的自动撤回/销毁）
+const reportTarget = ref({ type: 1, id: 0 });
 const showForwardPanel = ref(false);
 const previewImageUrl = ref('');
 const previewVideoUrl = ref('');
@@ -469,39 +473,59 @@ let typingTimer = null;
 let mediaRecorder = null;
 let recordedChunks = [];
 
-const privacySettings = ref({
-  autoRecall: 0,
-  autoDestroy: 0
-});
+// 时间自动撤回 / 已读自动销毁均由服务端下发（expireAt / destroyAt），
+// 本机只做展示倒计时；原先读 localStorage 的本地实现已移除。
 
-const loadPrivacySettings = () => {
-  const saved = localStorage.getItem('privacy');
-  if (saved) {
-    privacySettings.value = JSON.parse(saved);
-  }
+// 时间自动撤回：撤回期限由服务端写进消息（expireAt），这里只为「正停留在会话里」的双方补实时视觉。
+// 刷新 / 重进会话由 loadMessages 按服务端 isRevoked + expireAt 重新判定，本地定时器不是事实来源。
+const expireTimers = new Map();
+
+const clearExpireTimers = () => {
+  expireTimers.forEach((timer) => clearTimeout(timer));
+  expireTimers.clear();
 };
 
-loadPrivacySettings();
-
-const scheduleAutoRecall = (msgId, delaySeconds) => {
-  if (delaySeconds <= 0) return;
-  setTimeout(() => {
-    const index = messages.value.findIndex(m => m.id === msgId);
-    if (index > -1 && messages.value[index].isOwn) {
-      messages.value[index].status = 'recalled';
+const scheduleExpireAt = (message, expireAtSec) => {
+  if (!message || !message.id) return;
+  const expireAt = Number(expireAtSec) || 0;
+  if (expireAt <= 0 || message.type === 'system') return;
+  const key = String(message.id);
+  if (expireTimers.has(key)) clearTimeout(expireTimers.get(key));
+  const apply = () => {
+    expireTimers.delete(key);
+    const index = messages.value.findIndex((m) => m.id === message.id);
+    if (index > -1 && messages.value[index].type !== 'system') {
+      messages.value[index] = applyRevokedState(messages.value[index]);
     }
-  }, delaySeconds * 1000);
+  };
+  const delay = expireAt * 1000 - Date.now();
+  if (delay <= 0) { apply(); return; }
+  expireTimers.set(key, setTimeout(apply, delay));
 };
 
-const scheduleAutoDestroy = (msgId) => {
-  const delaySeconds = privacySettings.value.autoDestroy;
-  if (delaySeconds <= 0) return;
-  setTimeout(() => {
-    const index = messages.value.findIndex(m => m.id === msgId);
-    if (index > -1) {
-      messages.value.splice(index, 1);
-    }
-  }, delaySeconds * 1000);
+// 已读自动销毁：读取方 markAsRead 时服务端写入 destroy_at，双方按它移除气泡。
+// 本地定时器只负责「停留中的会话」即时消失，刷新/重进由服务端过滤保证。
+const destroyTimers = new Map();
+
+const clearDestroyTimers = () => {
+  destroyTimers.forEach((timer) => clearTimeout(timer));
+  destroyTimers.clear();
+};
+
+const scheduleDestroyAt = (message, destroyAtSec) => {
+  if (!message || !message.id) return;
+  const destroyAt = Number(destroyAtSec) || 0;
+  if (destroyAt <= 0) return;
+  const key = String(message.id);
+  if (destroyTimers.has(key)) clearTimeout(destroyTimers.get(key));
+  const apply = () => {
+    destroyTimers.delete(key);
+    const index = messages.value.findIndex((m) => m.id === message.id);
+    if (index > -1) messages.value.splice(index, 1);
+  };
+  const delay = destroyAt * 1000 - Date.now();
+  if (delay <= 0) { apply(); return; }
+  destroyTimers.set(key, setTimeout(apply, delay));
 };
 const formatTime = (timestamp) => {
  const date = new Date(timestamp);
@@ -553,8 +577,15 @@ const blockUser = async () => {
  }
 };
 const openReport = () => {
- showMoreMenu.value = false;
- showReport.value = true;
+  showMoreMenu.value = false;
+  reportTarget.value = { type: 1, id: userInfo.value.userId };
+  showReport.value = true;
+};
+const openReportMessage = (msg) => {
+  if (!msg || msg.isOwn) return;
+  showMessageContextMenu.value = false;
+  reportTarget.value = { type: 4, id: msg.id };
+  showReport.value = true;
 };
 const onReported = () => {
  showReport.value = false;
@@ -615,8 +646,8 @@ const sendText = async () => {
  const idx = messages.value.findIndex(m => m.id === msgId || (serverId && m.id === serverId));
  if (idx > -1) {
  // 不再本地伪造「已读」，改由对方的 message:read 回执驱动
- scheduleAutoRecall(messages.value[idx].id, privacySettings.value.autoRecall);
- scheduleAutoDestroy(messages.value[idx].id);
+ // 时间自动撤回以服务端返回的 expireAt 为准（服务端已在消息上写好到期时间）
+ scheduleExpireAt(messages.value[idx], sent && sent.data ? sent.data.expireAt : 0);
  }
  }, 1000);
  }
@@ -1358,8 +1389,14 @@ const loadMessages = async () => {
  duration: item.duration || 0,
  showTime: true,
  status: item.isRead ? 'read' : 'sent',
- createTime: item.sendTime ? item.sendTime * 1000 : Date.now()
+ createTime: item.sendTime ? item.sendTime * 1000 : Date.now(),
+ expireAt: Number(item.expireAt) || 0,
+ readAt: Number(item.readAt) || 0,
+ destroyAt: Number(item.destroyAt) || 0
  }
+ // 已撤回消息优先按撤回态渲染：历史接口是刷新后唯一的真相来源，不能把原文显示回来
+ // 已撤回，或已到期但清理器还没扫到：读取侧按 expireAt 再兜一层，绝不把原文下发到界面
+ if (isRevokedMessage(item) || isChatMessageExpired(item.expireAt)) return applyRevokedState(base)
  if (!structured) return base
  if (typeName === 'gift') {
  return Object.assign(base, {
@@ -1377,6 +1414,10 @@ const loadMessages = async () => {
  message: structured.message || ''
  })
 });
+      // 给尚未到期的消息挂上展示倒计时（到期后本机自动切成「已撤回」）
+      messages.value.forEach((m) => { if (m.expireAt > 0) scheduleExpireAt(m, m.expireAt); });
+      // 已读销毁：服务端可能已算好 destroyAt（例如另一台设备读过），到点移除气泡
+      messages.value.forEach((m) => { if (m.destroyAt > 0) scheduleDestroyAt(m, m.destroyAt); });
     } else {
       messages.value = []
     }
@@ -1399,10 +1440,21 @@ const upgradePeerAvatarViaP2P = () => {
 
 // 打开会话 / 收到新消息时清未读，并通过 socket 通知对方「我已读」
 const markConversationRead = () => {
- const peerId = userInfo.value.userId;
- if (!peerId) return;
- chatService.markAsRead(peerId).catch(() => {});
- socketService.emit('message:read', { fromUserId: peerId });
+  const peerId = userInfo.value.userId;
+  if (!peerId) return;
+  chatService.markAsRead(peerId).then((res) => {
+    const destroyAt = Number(res && res.data ? res.data.destroyAt : 0) || 0;
+    // 通知对方「已读」；带上服务端算好的 destroyAt，发送方据此移除自己的气泡
+    socketService.emit('message:read', { fromUserId: peerId, destroyAt });
+    // 读取方本地：被读的对方消息按 destroyAt 消失（服务端已写入 destroy_at）
+    if (destroyAt > 0) {
+      messages.value
+        .filter((m) => !m.isOwn && m.type !== 'system')
+        .forEach((m) => scheduleDestroyAt(m, destroyAt));
+    }
+  }).catch(() => {
+    socketService.emit('message:read', { fromUserId: peerId });
+  });
 };
 
 // 保存监听器引用，便于组件卸载时精确移除（避免重复监听/消息重复处理）
@@ -1444,6 +1496,8 @@ const setupSocketListeners = () => {
  };
  messages.value.push(newMessage);
  scrollToBottom();
+ // 对方发来的消息若带自动撤回期限，同样按 expireAt 做展示倒计时（事实仍以服务端为准）
+ scheduleExpireAt(newMessage, data.expireAt);
  if (Number(data.giftType) === 1 && (data.giftImage || data.giftAnimation)) {
    triggerGiftEffect({ icon: data.giftImage, name: data.giftName || '豪华礼物', animation: data.giftAnimation || '' }, data.giftCount || 1);
  }
@@ -1468,10 +1522,17 @@ const setupSocketListeners = () => {
  }
  };
  socketHandlers['message:read'] = (data) => {
- // 对方已读：把自己发出的气泡全部置为已读
- if (String(data.fromUserId) !== String(userInfo.value.userId)) return;
- messages.value.forEach(m => { if (m.isOwn) m.status = 'read'; });
- };
+  // 对方已读：把自己发出的气泡全部置为已读
+  if (String(data.fromUserId) !== String(userInfo.value.userId)) return;
+  messages.value.forEach(m => { if (m.isOwn) m.status = 'read'; });
+  // 已读自动销毁：按服务端（socket 侧夹取过的）destroyAt 移除自己发出的气泡
+  const destroyAt = Number(data.destroyAt) || 0;
+  if (destroyAt > 0) {
+    messages.value
+      .filter((m) => m.isOwn && m.type !== 'system')
+      .forEach((m) => scheduleDestroyAt(m, destroyAt));
+  }
+  };
   socketService.on('private_message', socketHandlers.private_message);
   socketService.on('typing', socketHandlers.typing);
   socketService.on('message_revoked', socketHandlers.message_revoked);
@@ -1514,6 +1575,8 @@ onMounted(async () => {
 });
 onUnmounted(() => {
  teardownSocketListeners();
+ clearExpireTimers();
+ clearDestroyTimers();
  objectUrls.forEach((url) => {
   try {
    URL.revokeObjectURL(url);

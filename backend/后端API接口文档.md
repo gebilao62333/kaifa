@@ -1,6 +1,9 @@
 # eu搭子 - 后端 API 接口文档
 
-> 版本: v6.32.0
+> 版本: v6.35.0
+> v6.35.0 变更: 已读自动销毁服务端化 + 聊天消息级举报——**新增字段与 1 个举报类型，路径/请求体不变**。①`POST /api/chat/mark-read` 响应新增 `destroyAt`，服务端在标记已读时按**发送方**的 `privacy.autoDestroy`（20/30/60 秒）写入 `read_at`/`destroy_at`；②`GET /api/chat/messages` 每条消息新增 `readAt`/`destroyAt`，到期后不再返回该消息（读侧兜底，清理器 60 秒内落库 `is_del=1` 并清内容/回收媒体）；③socket `message:read` 负载新增 `destroyAt`（服务端夹取到 now+300 内，仅 UI 提示）；④`POST /api/report` 支持 `targetType=4`（聊天消息）：举报后**冻结该消息的自动撤回/销毁期限**，保证管理员可核查
+> v6.34.0 变更: 时间自动撤回服务端化——**新增 1 个响应字段，路径/请求体不变**。①`POST /api/chat/send` 响应新增 `expireAt`（到期撤回时间戳，0=不自动撤回）；②`GET /api/chat/messages` 每条消息新增 `expireAt`，已到期（含清理器未扫到）的消息按已撤回下发（`isRevoked: true`、`content` 空串、`mediaUrl` 为 `null`）；③socket `private_message` / `private_message_ack` 负载新增 `expireAt`；④撤回期限来自用户偏好 `xn_user_pref.data.privacy.autoRecall`（秒，上限 300），由 `POST /api/user/pref` 写入
+> v6.33.0 变更: 撤回语义收口（手动撤回刷新丢失 + 原文残留）——**接口契约不变，语义加严**。①`POST /api/chat/revoke`：通过校验后除置 `is_revoked=1` 外**清空 `content`**，媒体消息同时清空 `vod_url` 并删除媒资登记；②`GET /api/chat/messages`：`is_revoked=1` 的消息不再下发原文与媒体地址（`content` 为空串、`mediaUrl` 为 `null`）；③撤回拦截类型由 `3/4` 更正为 `6/7`（礼物/红包），视频（3）与位置（4）恢复可撤回；④订正 3.2 消息类型表。
 > v6.32.0 变更: 文档维护——移除已废弃等级权益的过时记载，权益口径统一为《数据库设计文档》4.1.2 的 7 项真实门槛（唯一口径 `backend/src/utils/level.js`）。**本轮无接口/代码变更**，不影响任何路由、请求体或响应。
 > v6.31.0 变更: 安全扫描「低危项 + 依赖」打包收口——**接口契约基本零变更，仅登录失败载荷收敛**。①`POST /api/user/login` 的凭证类失败（用户不存在 / 密码错误 / 该用户未设置密码）此前分别返回不同 `message` 与按字段定位的 `errors`，现统一为同一 **422** 与同一文案「手机号或密码错误」、`errors` 为空对象 `{}`——用于消除「手机号是否已注册」的账号枚举 oracle（与 C-3 卡密枚举同源）。成功登录的响应体与状态码不变。②`GET /api/health` 的 503（unhealthy）分支**不再回传 `error: e.message`**，载荷固定为 `{ code:503, message:'unhealthy', data:{ status:'unhealthy' } }`（依赖异常只落服务端日志）。③其余改动均不在接口面：JWT 验签固定 `algorithms:['HS256']`（无接口变化）、`/api/health` 之外的错误响应不变、基础镜像与前端 `window.open`/socket 地址属部署与前端内部。其余路由/参数/成功载荷/状态码均不变。详见《后端开发文档》v6.29、《后端交互功能梳理》发现清单第 34 条
 > v6.30.0 变更: ALLOW_INSECURE_CONFIG 一键跳过生产校验改为按项豁免（安全扫描 M-13）——**接口契约零变更**。本轮只改 `server.js` 的**启动期**生产配置校验逻辑（新增纯函数 `src/utils/startupConfigGuard.js` 的 `parseInsecureConfigWaivers`）与四份 `.env*.example`/《部署文档》的注释，不新增/删除/修改任何路由、请求参数、响应体或状态码，所有 REST 与 Socket.IO 接口的运行时行为不变。唯一的运维可见差异在**启动阶段**：`ALLOW_INSECURE_CONFIG=true`（及 `1/yes/y/on/all/*`）不再整体跳过全部生产校验，须显式写成 `ALLOW_INSECURE_CONFIG=<检查项名>`（逗号分隔，可豁免 JWT_SECRET / DB_PASSWORD / ADMIN_TOKEN / ADMIN_JWT_SECRET / PII_ENCRYPTION_KEY）才逐项放行，且 CORS_ORIGIN / USE_MOCK_DB / RATE_LIMIT_DISABLED 无豁免途径——配错会导致**进程拒绝启动**（非任何接口返回变化）。详见《后端开发文档》v6.28、《后端交互功能梳理》发现清单第 33 条
@@ -482,14 +485,22 @@
         "duration": 0,
         "sendTime": 1715040000,
         "isSelf": true,
-        "isRevoked": false
+        "isRevoked": false,
+        "isRead": true,
+        "expireAt": 0,
+        "readAt": 0,
+        "destroyAt": 0
       }
     ],
     "total": 100
   }
 }
 ```
-- **消息类型**: 0-文字, 1-图片, 2-语音, 3-视频, 4-位置, 5-礼物, 6-红包, 7-系统
+- **消息类型**: 0-文字, 1-语音, 2-图片, 3-视频, 4-位置, 5-语音, 6-礼物, 7-红包
+  （与 `frontend/src/views/ChatRoom.vue` 的 `MESSAGE_TYPE_MAP`、`backend/src/services/chatService.js` 的媒体类型判定 `[2,3,5]` 对齐。说明：礼物/红包气泡当前在客户端本地渲染、不落 `xn_chat_log`，6/7 仅可能由「转发」路径写入，转发侧的既有映射偏差见《未完成事项清单》C-10）
+- **撤回语义**: `isRevoked: true` 的消息服务端不再下发原文与媒体地址（`content` 为空串、`mediaUrl` 为 `null`），客户端应渲染「消息已撤回」占位；刷新或重进会话同样生效
+- **时间自动撤回**: `expireAt > 0` 表示该消息到期后自动撤回（用户偏好 `privacy.autoRecall`，单位秒，0=关闭，上限 300）。到期判定在服务端：读接口即时按 `expireAt` 兜底，后台清理器每 60 秒把到期消息落库为 `is_revoked=1` 并回收媒体；客户端只按 `expireAt` 做展示倒计时，不是事实来源
+- **已读自动销毁**: `destroyAt > 0` 表示该消息在对方读到后到期自动销毁（期限来自**发送方**的 `privacy.autoDestroy`，前端可选 20/30/60 秒）。到期后该消息**不再出现在历史消息里**，服务端清空内容并置 `is_del=1`；`readAt` 为首次被读时间。已被举报（`targetType=4`）的消息会冻结这两类期限，不会被自动销毁
 
 ### 3.3 发送消息
 
@@ -506,17 +517,35 @@
 }
 ```
 
+- **响应**:
+```json
+{
+  "code": 200,
+  "data": {
+    "messageId": 1001,
+    "sendTime": 1715040000,
+    "expireAt": 0
+  }
+}
+```
+- **说明**: `expireAt` 为到期自动撤回的绝对时间戳（秒），服务端按发送者的 `privacy.autoRecall` 计算；0 表示不自动撤回。对端通过 socket `private_message` 的同名字段拿到它
+
 ### 3.4 撤回消息
 
 - **接口**: `POST /api/chat/revoke`
 - **认证**: 需要
 - **请求体**: `{ "messageId": "xxx" }`
+- **行为**: 校验消息存在、属于当前用户、非礼物/红包（type 6/7）、发送时间 ≤ 120 秒；通过后置 `is_revoked=1` 并**清空 `content`**，媒体消息（type 2/3/5）同时清空 `vod_url` 并删除媒资登记；随后客户端通过 socket `revoke_message` 通知对端实时替换气泡
+- **错误**: 消息不存在 → 404；`只能撤回自己发送的消息` / `礼物/红包消息不可撤回` / `消息超过2分钟，无法撤回` → 422
 
 ### 3.5 标记已读
 
 - **接口**: `POST /api/chat/mark-read`
 - **认证**: 需要
 - **请求体**: `{ "targetUserId": 123 }`
+- **响应**: `{ "code": 200, "data": { "destroyAt": 0 } }`
+- **行为**: 把「对方发给我的未读消息」置为已读并写 `read_at`；若**发送方**开启了已读自动销毁，同时写入 `destroy_at = now + autoDestroy`，并在响应里返回同一个 `destroyAt`（0=不销毁）。读取方据此调度本地消失，并通过 socket `message:read` 把 `destroyAt` 转告发送方
+- **说明**: 期限由发送方偏好决定（`xn_user_pref.data.privacy.autoDestroy`），读取方无法延长或缩短
 
 ### 3.6 房间管理
 
@@ -1173,6 +1202,9 @@
 | `/api/report/detail` | GET | 可选认证 | 举报详情（`?reportId=xxx`） |
 | `/api/report/handle` | POST | 可选认证 | 处理举报 |
 
+**举报目标类型（`targetType`）**：`1`=用户、`2`=动态、`3`=评论、`4`=聊天消息（`targetId` 传消息 ID）。
+`targetType=4` 时服务端会校验：必须是会话参与方、不能举报自己发送的消息、已撤回/已销毁的消息不可举报；举报成功后**冻结该消息的 `expire_at` 与 `destroy_at`**（置 0），避免管理员核查时内容已被自动清理。
+
 ### 16.3 行政区划 (`/api/region`)
 
 | 接口 | 方法 | 说明 |
@@ -1765,6 +1797,9 @@ npm run test:coverage
 
 | 版本 | 日期 | 更新内容 | 状态 |
 |------|------|----------|------|
+| v6.35.0 | 2026-10-17 | 已读自动销毁服务端化 + 消息级举报：`mark-read` 返回 `destroyAt`、历史消息新增 `readAt`/`destroyAt` 且到期不再返回、socket `message:read` 带 `destroyAt`；`POST /api/report` 支持 `targetType=4` 并冻结该消息的撤回/销毁期限 | ✅ 已完成 |
+| v6.34.0 | 2026-10-17 | 时间自动撤回服务端化：发送/历史消息/socket 负载新增 `expireAt`；到期消息在读接口按已撤回下发；撤回期限来自 `xn_user_pref.data.privacy.autoRecall`（上限 300 秒）；后台每 60 秒清理到期消息并回收媒体 | ✅ 已完成 |
+| v6.33.0 | 2026-10-17 | 聊天撤回语义收口（接口契约不变）：3.4 撤回后清空 `content`/媒体地址并删除媒资；3.2 历史消息对 `is_revoked=1` 不再下发原文（`content` 空串、`mediaUrl` 为 `null`）；撤回拦截类型由 3/4 更正为 6/7；3.2 消息类型表按 `MESSAGE_TYPE_MAP` 订正 | ✅ 已完成 |
 | v6.20.0 | 2026-10-05 | 安全扫描第十四项 M-2（管理员 JWT 硬编码 7 天且权限写在 token 里）的接口侧记录：**路径/请求体/成功载荷一字未改**。①管理端访问令牌新增独立时效配置 `ADMIN_JWT_EXPIRES_IN`（默认 **12h**，支持 `s/m/h/d`），两个登录入口的账号/角色/应急共 6 处签发统一使用，不再与用户端共用 `JWT_EXPIRES_IN`（7d）；②payload 新增 `adminScope`（`account`/`role`/`emergency`）区分 `id` 指向 `xn_admin`/`xn_admin_role`/应急账号（两表 id 独立自增可碰撞）；③`adminAuth` 每次请求实时回读数据库（`resolveLiveAdmin`）：管理员已删除 → 401「令牌已失效」，被禁用 → 403「账号已被禁用」，`permissions`/`role_id` 取库内当前值——改权限/换角色/禁用/删号**下一个请求立即生效**；④无 `adminScope` 的存量令牌一律 401 强制重登（与 H-4 同口径）；⑤回读失败沿用吊销 fail 取向（生产 fail-closed 503、非生产 fail-open 快照放行）。分工：改口令踢旧令牌仍只靠 H-5 吊销（回读不校验口令版本）；删号/禁用为吊销+回读双保险；改权限/角色不吊销令牌、改库即生效。22.1 补「令牌时效」并重写「会话终止」，22.19 五处标注。**行为变更**：升级后存量管理员令牌全部失效需重登一次；管理端 `common.js` 401/403 本就清态跳登录，**前端零改动**。**遗留**：payload 权限快照保留（仅非生产回退）；`admin_refresh` 无消费入口；`ADMIN_TOKEN` 不可吊销；与用户端共用密钥/role 声明放行属 M-3。改写 `tests/unit/middlewares/auth.test.js`（新增 8 例）与 `admin.test.js`/`adminManage.test.js` 签发断言，因本机无 node/npm **未执行**，仅静态复核。详见《后端开发文档》v6.18 | ✅ 最新 |
 | v6.19.0 | 2026-10-05 | 安全扫描第十三项 M-1（后台 RBAC 自提权）的接口侧记录：七个 admin-manage 写接口（管理员 CRUD/改密 + 角色 CRUD）在 `admin:write` 之上加**两级授权边界**——**对象边界**（非超管不能操作超管与「有效权限超出自身」的管理员/角色，五条 403 文案）与**授予边界**（非超管提交的 `permissions`/`role_id` 必须 ⊆ 自身，两条 403 文案），完整口径见 22.19/22.20 末「写接口授权边界」小节；超管（id=1 / role_id=1 / 权限含 `all`）不受限。**顺带修复**：`POST /admins` 始终按有效角色（`role_id \|\| 2`）校验，缺省角色 2 不再是绕检旁路。路径/请求体/成功载荷不变；越界操作由「成功」变为 403（管理端透传 message，无需发版）。**遗留**：改 `permissions`/`role_id` 不吊销在用令牌（快照口径）；应急账号恒 `['all']` 不受限。新增 `tests/unit/utils/permissions.test.js`（11 例）与 `adminManage.test.js` M-1 describe（12 例）因本机无 node/npm **未执行** | ✅ 已完成（M-2 见 v6.20.0） |
 | v6.18.0 | 2026-10-05 | 安全扫描第十二项 H-9（.env 卫生与弱口令兜底）：**无接口变更**，登记四条兜底行为变化——`DB_PASSWORD` 未设置时不再回落 `'123456'`（本地连库直接失败）、`scripts/backup.js` Redis 备份不再回落 `'redis123'`、`TURN_SECRET` 缺失/弱值时启动告警（仅 `TURN_URL` 已配置即中继真正启用时）、`scripts/deploy-selfcheck.js` 补 `MONGO_URI` 内嵌口令扫描；四份 `.env*.example` 补键位删死键（只写键名）。详见《后端开发文档》v6.16 | ✅ 已完成（M-1 见 v6.19.0） |

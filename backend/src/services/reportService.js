@@ -1,9 +1,42 @@
-const { Report, User, Post, PostComment } = require('../models');
+const { Report, User, Post, PostComment, ChatLog } = require('../models');
+const sequelize = require('../config/mysql');
 const { getTimestamp, parseQuery } = require('../utils/helper');
 
 const createReport = async (userId, targetType, targetId, reason, images) => {
   let targetUserId = 0;
   
+  // 4 = 聊天消息：举报即冻结该消息的自动撤回/已读销毁期限，否则管理员核查时内容已被清掉
+  if (targetType === 4) {
+    const message = await ChatLog.findByPk(targetId);
+    if (!message || message.is_del === 1) throw new Error('消息不存在或已销毁');
+    if (message.fromid !== userId && message.toid !== userId) throw new Error('无权举报该消息');
+    if (message.fromid === userId) throw new Error('不能举报自己发送的消息');
+    if (message.is_revoked === 1) throw new Error('消息已撤回，无法举报');
+    const nowSec = getTimestamp();
+    if (Number(message.destroy_at) > 0 && Number(message.destroy_at) <= nowSec) throw new Error('消息已销毁，无法举报');
+    targetUserId = message.fromid;
+
+    const report = await sequelize.transaction(async (transaction) => {
+      const created = await Report.create({
+        user_id: userId,
+        target_user_id: targetUserId,
+        target_type: targetType,
+        target_id: targetId,
+        reason,
+        images: images ? images.join(',') : '',
+        status: 0,
+        create_time: nowSec
+      }, { transaction });
+      // 冻结：清掉两类到期时间，消息从此不会被自动撤回/销毁（仍可人工处置）
+      await message.update({ destroy_at: 0, expire_at: 0 }, { transaction });
+      return created;
+    });
+
+    return {
+      reportId: report.id
+    };
+  }
+
   if (targetType === 1) {
     const user = await User.findByPk(targetId);
     if (!user) throw new Error('用户不存在');

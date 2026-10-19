@@ -102,8 +102,9 @@ const markAsRead = async (req, res) => {
       return response.badRequest(res, '目标用户ID不能为空');
     }
 
-    await chatService.markAsRead(req.userId, parseInt(targetUserId));
-    response.success(res, {}, '已读');
+    const result = await chatService.markAsRead(req.userId, parseInt(targetUserId));
+    // destroyAt：读取方据此调度本地消失；发送方经 socket message:read 拿到同值
+    response.success(res, { destroyAt: (result && result.destroyAt) || 0 }, '已读');
   } catch (error) {
     logger.error('标记已读错误:', error);
     response.error(res, error.message);

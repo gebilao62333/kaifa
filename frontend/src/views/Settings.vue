@@ -294,6 +294,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '../store/user-info'
 import { STORAGE_KEYS } from '../common/constants'
 import { notificationService } from '../services/notificationService'
+import userPrefService from '../services/userPrefService'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
 import { useNavAnimation } from '../composables/useNavAnimation'
@@ -361,12 +362,19 @@ const recallTimeOptions = [
 
 const destroyTimeOptions = [
   { label: '关闭', value: 0 },
-  { label: '5秒后', value: 5 },
-  { label: '10秒后', value: 10 },
+  { label: '20秒后', value: 20 },
   { label: '30秒后', value: 30 },
-  { label: '1分钟后', value: 60 },
-  { label: '5分钟后', value: 300 }
+  { label: '1分钟后', value: 60 }
 ]
+
+// 历史档位（5/10/300 秒）已下线：加载时归一到当前档位，避免设置页显示空值
+const normalizeDestroySeconds = (value) => {
+  const seconds = Number(value) || 0
+  if (destroyTimeOptions.some((o) => o.value === seconds)) return seconds
+  if (seconds <= 0) return 0
+  if (seconds <= 20) return 20
+  return 60
+}
 
 const toggleDarkMode = () => {
   darkMode.value = !darkMode.value
@@ -386,8 +394,20 @@ const saveNotification = () => {
   showNotification.value = false
 }
 
-const savePrivacy = () => {
+const savePrivacy = async () => {
+  // 本地只作离线兜底：时间自动撤回需要服务端在发消息时写 expire_at，必须持久化到 xn_user_pref
   localStorage.setItem('privacy', JSON.stringify(privacy.value))
+  try {
+    await userPrefService.save({
+      privacy: {
+        autoRecall: privacy.value.autoRecall,
+        autoDestroy: privacy.value.autoDestroy
+      }
+    })
+  } catch (e) {
+    toast.error('设置已保存到本机，服务端同步失败，请稍后重试')
+    return
+  }
   toast.success('隐私设置已保存')
   showPrivacy.value = false
 }
@@ -427,7 +447,17 @@ onMounted(() => {
   const savedPrivacy = localStorage.getItem('privacy')
   if (savedPrivacy) {
     privacy.value = JSON.parse(savedPrivacy)
+    privacy.value.autoDestroy = normalizeDestroySeconds(privacy.value.autoDestroy)
   }
+
+  // 服务端偏好优先（跨设备）：时间自动撤回/已读销毁以服务端为准，本地值仅作离线兜底
+  userPrefService.get().then((res) => {
+    const prefs = (res && res.data && res.data.data) || {}
+    if (prefs.privacy && typeof prefs.privacy === 'object') {
+      Object.assign(privacy.value, prefs.privacy)
+      privacy.value.autoDestroy = normalizeDestroySeconds(privacy.value.autoDestroy)
+    }
+  }).catch(() => { /* 离线时沿用本机值 */ })
   
   const savedCallSettings = localStorage.getItem('callSettings')
   if (savedCallSettings) {

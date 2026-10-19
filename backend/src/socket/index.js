@@ -175,13 +175,16 @@ const initializeSocket = (socketIO) => {
           mediaUrl: mediaUrl || '',
           duration: duration || 0,
           sendTime: result.sendTime,
-          isRevoked: false
+          isRevoked: false,
+          // 时间自动撤回的到期时间戳（秒），对端据此做本地展示倒计时
+          expireAt: result.expireAt || 0
         };
         
         io.to(`user:${toId}`).emit('private_message', messageData);
         socket.emit('private_message_ack', {
           id: result.messageId,
-          sendTime: result.sendTime
+          sendTime: result.sendTime,
+          expireAt: result.expireAt || 0
         });
         
         logger.info(`私聊消息: ${socket.userId} -> ${toId}`);
@@ -321,10 +324,16 @@ const initializeSocket = (socketIO) => {
     // 前端约定：发送方（读的人）传 { fromUserId: 对方id }，服务端转发时把 fromUserId 换成读的人自己。
     socket.on('message:read', async (data) => {
       try {
-        const { fromUserId } = data || {};
+        const { fromUserId, destroyAt } = data || {};
         if (!fromUserId) return;
+        // destroyAt 仅作接收方的 UI 倒计时提示：夹取到 (now, now+300]，非法值一律置 0。
+        // 销毁事实仍由服务端 destroy_at 列 + 清理器保证，客户端传什么都改不了。
+        const nowSec = Math.floor(Date.now() / 1000);
+        const num = Number(destroyAt);
+        const safeDestroyAt = Number.isFinite(num) && num > nowSec && num <= nowSec + 300 ? Math.floor(num) : 0;
         io.to(`user:${fromUserId}`).emit('message:read', {
-          fromUserId: socket.userId
+          fromUserId: socket.userId,
+          destroyAt: safeDestroyAt
         });
       } catch (error) {
         logger.error('转发已读回执错误:', error);

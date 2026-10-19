@@ -20,6 +20,8 @@ const runMigrations = async () => {
   const { up: redPacketUniqueUp } = require('./20261003000001_add_red_packet_log_unique');
   const { up: cardKeyUp } = require('./20261003000003_add_card_key');
   const { up: userExpUp } = require('./20261004000001_add_user_exp_and_backfill');
+  const { up: chatExpireUp } = require('./20261017000000_add_chat_log_expire_at');
+  const { up: chatDestroyUp } = require('./20261017000001_add_chat_log_read_destroy');
 
   console.log('\n1. 添加货币单位字段...');
   await currencyUp();
@@ -47,6 +49,12 @@ const runMigrations = async () => {
 
   console.log('\n9. 补用户经验/签到字段并按历史行为回填等级...');
   await userExpUp();
+
+  console.log('\n10. 补聊天时间自动撤回到期字段（xn_chat_log.expire_at）...');
+  await chatExpireUp();
+
+  console.log('\n11. 补聊天已读自动销毁字段（xn_chat_log.read_at/destroy_at/destroyed_at）...');
+  await chatDestroyUp();
 
   console.log('\n========== 数据库迁移完成 ==========');
 };

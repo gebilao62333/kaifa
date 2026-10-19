@@ -490,6 +490,14 @@ const startServer = async () => {
       } catch (e) {
         console.log('⚠️  通话单清理器启动失败:', e.message);
       }
+
+      // 聊天时间自动撤回清理器（把到期消息落库为「已撤回」并回收媒体）
+      try {
+        const chatRecallCleanup = require('./src/services/chatAutoRecallCleanup');
+        chatRecallCleanup.startChatAutoRecallCleanup();
+      } catch (e) {
+        console.log('⚠️  聊天自动撤回清理器启动失败:', e.message);
+      }
     });
 
   } catch (error) {
@@ -529,6 +537,8 @@ process.on('SIGTERM', async () => {
     scheduler.stopVirtualUserOnlineScheduler();
     const callCleanup = require('./src/services/callRecordCleanup');
     callCleanup.stopCallRecordCleanup();
+    const chatRecallCleanup = require('./src/services/chatAutoRecallCleanup');
+    chatRecallCleanup.stopChatAutoRecallCleanup();
   } catch (e) { /* ignore */ }
   server.close(() => {
     const closeMsg = '服务器已关闭';

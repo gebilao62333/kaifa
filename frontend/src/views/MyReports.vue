@@ -126,7 +126,7 @@ const detail = ref(null)
 
 const hasMore = ref(false)
 
-const targetTypeText = (type) => ({ 1: '用户', 2: '动态', 3: '评论' }[type] || '其他')
+const targetTypeText = (type) => ({ 1: '用户', 2: '动态', 3: '评论', 4: '聊天消息' }[type] || '其他')
 const statusText = (s) => ({ 0: '待处理', 2: '已处理' }[s] || '处理中')
 
 const formatTime = (ts) => {

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "id": "kaifa.skills",
+  "name": "kaifa 项目技能包",
+  "version": "1.0.0",
+  "description": "kaifa（eu搭子）项目技能包：11 个技能，覆盖后端分层、前端页面、数据库迁移、资金链路、通话链路、权限键、安全不变量、改动验收、部署自检、文档同步与联调探针。",
+  "main": "main.js",
+  "contributes": {
+    "skills": [
+      "skills/kaifa-project-index.md",
+      "skills/kaifa-backend-feature.md",
+      "skills/kaifa-vue-page.md",
+      "skills/kaifa-verify-change.md",
+      "skills/kaifa-deploy-check.md",
+      "skills/kaifa-doc-sync.md",
+      "skills/kaifa-e2e-probe.md",
+      "skills/kaifa-security-invariants.md",
+      "skills/kaifa-db-migration.md",
+      "skills/kaifa-money-path.md",
+      "skills/kaifa-call-chain.md",
+      "skills/kaifa-permission-key.md"
+    ]
+  },
+  "permissions": [
+    "agent.prompt.inject"
+  ],
+  "engines": {
+    "piDesktop": ">=0.1.0"
+  },
+  "activationEvents": [
+    "onStartup"
+  ]
+}
