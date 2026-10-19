@@ -1,0 +1,151 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
+
+// 审计 H-5：store.logout() 现在要先发起服务端登出（令牌还在 localStorage 里时）。
+// 本文件只测纯状态逻辑，整体替换 authService 以免单测走到真实的 fetch/网络栈。
+vi.mock('@/services/authService', () => ({
+  default: { logout: vi.fn(() => Promise.resolve({ code: 200, data: { clientShouldClearToken: true } })) }
+}))
+
+import { useUserStore } from '@/store/user-info'
+import { DEFAULT_AVATAR, STORAGE_KEYS } from '@/common/constants'
+
+describe('User Store', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+  })
+
+  it('should initialize with empty user info', () => {
+    const userStore = useUserStore()
+    
+    expect(userStore.token).toBe('')
+    expect(userStore.userId).toBe(0)
+    expect(userStore.nickName).toBe('')
+    // avatar 无值时由 getter 兜底为 DEFAULT_AVATAR
+    expect(userStore.avatar).toBe(DEFAULT_AVATAR)
+  })
+
+  it('should set token correctly', () => {
+    const userStore = useUserStore()
+    const testToken = 'test_token_123'
+    
+    userStore.setToken(testToken)
+    
+    expect(userStore.token).toBe(testToken)
+  })
+
+  it('should set user info correctly', () => {
+    const userStore = useUserStore()
+    const userInfo = {
+      userId: 1,
+      nickName: 'Test User',
+      avatar: 'https://example.com/avatar.jpg',
+      level: 5,
+      vip: 1,
+      vipLevel: 2,
+      balance: 1000,
+      score: 500,
+      fansCount: 100,
+      followCount: 50,
+      likeCount: 200
+    }
+    
+    userStore.setUserInfo(userInfo)
+    
+    expect(userStore.userId).toBe(1)
+    expect(userStore.nickName).toBe('Test User')
+    expect(userStore.avatar).toBe('https://example.com/avatar.jpg')
+    expect(userStore.level).toBe(5)
+    expect(userStore.vip).toBe(1)
+    expect(userStore.vipLevel).toBe(2)
+    expect(userStore.balance).toBe(1000)
+    expect(userStore.score).toBe(500)
+    expect(userStore.fansCount).toBe(100)
+    expect(userStore.followCount).toBe(50)
+    expect(userStore.likeCount).toBe(200)
+  })
+
+  it('should handle null userInfo gracefully', () => {
+    const userStore = useUserStore()
+    
+    userStore.setUserInfo(null)
+    
+    expect(userStore.userId).toBe(0)
+    expect(userStore.nickName).toBe('')
+  })
+
+  it('should calculate isLogin correctly', () => {
+    const userStore = useUserStore()
+    
+    expect(userStore.isLogin).toBe(false)
+    
+    userStore.setToken('test_token')
+    expect(userStore.isLogin).toBe(true)
+  })
+
+  it('should calculate isVip correctly', () => {
+    const userStore = useUserStore()
+    
+    expect(userStore.isVip).toBe(false)
+    
+    userStore.setUserInfo({ vip: 1 })
+    expect(userStore.isVip).toBe(true)
+  })
+
+  it('should logout and clear data', () => {
+    const userStore = useUserStore()
+    
+    userStore.setToken('test_token')
+    userStore.setUserInfo({
+      userId: 1,
+      nickName: 'Test',
+      avatar: 'test.jpg',
+      phone: '13800000000',
+      balance: 999
+    })
+    // 模拟持久化插件与历史遗留 key 中残留的敏感数据
+    localStorage.setItem('pinia-app-state-user', JSON.stringify({
+      profile: { phone: '13800000000', balance: 999 }
+    }))
+    localStorage.setItem(STORAGE_KEYS.LEGACY_USER_INFO, JSON.stringify({ balance: 999 }))
+    
+    userStore.logout()
+    
+    expect(userStore.token).toBe('')
+    expect(userStore.userId).toBe(0)
+    expect(userStore.nickName).toBe('')
+    // 登出必须清空 token / 持久化 state / 历史遗留 userInfo（F-02）
+    expect(localStorage.getItem(STORAGE_KEYS.TOKEN)).toBeNull()
+    expect(localStorage.getItem('pinia-app-state-user')).toBeNull()
+    expect(localStorage.getItem(STORAGE_KEYS.LEGACY_USER_INFO)).toBeNull()
+  })
+
+  it('should set balance correctly', () => {
+    const userStore = useUserStore()
+    
+    userStore.setBalance(5000)
+    
+    expect(userStore.balance).toBe(5000)
+  })
+
+  it('should set score correctly', () => {
+    const userStore = useUserStore()
+    
+    userStore.setScore(1000)
+    
+    expect(userStore.score).toBe(1000)
+  })
+
+  it('should set config info correctly', () => {
+    const userStore = useUserStore()
+    const configInfo = {
+      isHomeSearchOpen: 1,
+      otherSetting: 'value'
+    }
+    
+    userStore.setConfigInfo(configInfo)
+    
+    expect(userStore.configInfo).toEqual(configInfo)
+    expect(userStore.isHomeSearchOpen).toBe(true)
+  })
+})

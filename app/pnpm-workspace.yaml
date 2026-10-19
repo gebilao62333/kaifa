@@ -1,0 +1,9 @@
+onlyBuiltDependencies:
+  - esbuild
+  - '@parcel/watcher'
+  - core-js
+  - core-js-pure
+  - vue-demi
+nodeLinker: hoisted
+verifyDepsBeforeRun: false
+dangerouslyAllowAllBuilds: true

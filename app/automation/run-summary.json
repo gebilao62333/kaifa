@@ -1,0 +1,49 @@
+{
+  "at": "2026-10-19T03:50:22.490Z",
+  "runLog": "C:\\Users\\admin\\Desktop\\kaifa\\app\\.automation\\runner-20261019-114735.log",
+  "overall": "pass",
+  "results": [
+    {
+      "id": "doctor",
+      "status": "pass",
+      "duration": 147,
+      "exitCode": 0
+    },
+    {
+      "id": "install",
+      "status": "pass",
+      "duration": 7411,
+      "exitCode": 0
+    },
+    {
+      "id": "test",
+      "status": "pass",
+      "duration": 16850,
+      "exitCode": 0
+    },
+    {
+      "id": "build-h5",
+      "status": "pass",
+      "duration": 22192,
+      "exitCode": 0
+    },
+    {
+      "id": "smoke-h5",
+      "status": "pass",
+      "duration": 99225,
+      "exitCode": 0
+    },
+    {
+      "id": "build-app",
+      "status": "pass",
+      "duration": 20163,
+      "exitCode": 0
+    },
+    {
+      "id": "report",
+      "status": "pass",
+      "duration": 540,
+      "exitCode": 0
+    }
+  ]
+}

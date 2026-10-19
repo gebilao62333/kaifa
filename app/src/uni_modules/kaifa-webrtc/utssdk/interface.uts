@@ -1,0 +1,19 @@
+// 公共接口契约：App 端与 H5 端保持同一套调用语义
+export type IceServer = { urls: string; username?: string; credential?: string }
+export type CallOptions = { userId: string; audio: boolean; video: boolean }
+export type CallEvent = { type: string; userId?: string; sdp?: string; candidate?: string; state?: string }
+
+export function isSupported(): boolean { return true }
+export function init(): void {}
+export function createPeerConnection(options: CallOptions, iceServers: IceServer[]): void {}
+export function createOffer(userId: string): void {}
+export function createAnswer(userId: string): void {}
+export function setRemoteDescription(userId: string, type: string, sdp: string): void {}
+export function addIceCandidate(userId: string, candidate: string, sdpMid: string, sdpMLineIndex: number): void {}
+export function startLocalAudio(): void {}
+export function startLocalVideo(): void {}
+export function muteAudio(muted: boolean): void {}
+export function switchCamera(): void {}
+export function setSpeaker(on: boolean): void {}
+export function hangup(): void {}
+export function onEvent(callback: (event: CallEvent) => void): void {}

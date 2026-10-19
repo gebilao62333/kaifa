@@ -1,0 +1,9 @@
+node_modules/
+dist/
+unpackage/
+.automation/
+dev-h5*.log
+dev-h5.pid
+automation/heartbeat.json
+automation/allow-shutdown
+automation/context-*.json

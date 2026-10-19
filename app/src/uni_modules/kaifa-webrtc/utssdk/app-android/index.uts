@@ -1,0 +1,96 @@
+// Android UTS 入口：桥接 Kotlin 的 KaifaWebRTC（同包名，无需 import 包名）
+import { IceServer, CallOptions, CallEvent } from '../interface.uts'
+
+let eventCallback: ((event: CallEvent) => void) | null = null
+
+export function isSupported(): boolean {
+  return true
+}
+
+export function init(): void {
+  KaifaWebRTC.init()
+}
+
+export function createPeerConnection(options: CallOptions, iceServers: IceServer[]): void {
+  KaifaWebRTC.createPeerConnection(
+    options.userId,
+    options.audio,
+    options.video,
+    JSON.stringify(iceServers)
+  )
+}
+
+export function createOffer(userId: string): void {
+  KaifaWebRTC.createOffer(userId)
+}
+
+export function createAnswer(userId: string): void {
+  KaifaWebRTC.createAnswer(userId)
+}
+
+export function setRemoteDescription(userId: string, type: string, sdp: string): void {
+  KaifaWebRTC.setRemoteDescription(userId, type, sdp)
+}
+
+export function addIceCandidate(userId: string, candidate: string, sdpMid: string, sdpMLineIndex: number): void {
+  KaifaWebRTC.addIceCandidate(userId, candidate, sdpMid, sdpMLineIndex)
+}
+
+export function startLocalAudio(): void {
+  KaifaWebRTC.startLocalAudio()
+}
+
+export function startLocalVideo(): void {
+  KaifaWebRTC.startLocalVideo()
+}
+
+export function muteAudio(muted: boolean): void {
+  KaifaWebRTC.muteAudio(muted)
+}
+
+export function switchCamera(): void {
+  KaifaWebRTC.switchCamera()
+}
+
+export function setSpeaker(on: boolean): void {
+  KaifaWebRTC.setSpeaker(on)
+}
+
+export function hangup(): void {
+  KaifaWebRTC.hangup()
+}
+
+export function onEvent(callback: (event: CallEvent) => void): void {
+  eventCallback = callback
+  KaifaWebRTC.setEventCallback((type: string, json: string) => {
+    try {
+      const data = JSON.parse(json) as any as CallEvent
+      if (data == null) return
+      if (eventCallback != null) eventCallback!({ ...data, type: data.type || type })
+    } catch (e) {
+      // 忽略非法事件
+    }
+  })
+}
+
+/**
+ * 请求通话需要的运行时权限（Android 6+）。
+ * UTSAndroid.requestSystemPermission 在 HBuilderX 4.x 可用；失败时由 JS 层用 plus.android 兜底。
+ */
+export function requestCallPermissions(): void {
+  const activity = UTSAndroid.getUniActivity()
+  if (activity == null) return
+  const permissions = [
+    'android.permission.CAMERA',
+    'android.permission.RECORD_AUDIO',
+    'android.permission.POST_NOTIFICATIONS'
+  ]
+  UTSAndroid.requestSystemPermission(activity, permissions, (allRight: boolean, _granted: string[]) => {
+    // 权限结果通过事件回传，由 JS 决定是否继续
+    if (eventCallback != null) {
+      eventCallback!({ type: allRight ? 'permissions-granted' : 'permissions-denied' })
+    }
+  }, (_denied: string[]) => {
+    if (eventCallback != null) eventCallback!({ type: 'permissions-denied' })
+  })
+}

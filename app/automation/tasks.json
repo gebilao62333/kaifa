@@ -1,0 +1,75 @@
+{
+  "version": 1,
+  "description": "kaifa 用户端 uni-app 迁移自动化任务。每个任务独立进程、独立日志；按 dependsOn 顺序执行。",
+  "tasks": [
+    {
+      "id": "doctor",
+      "label": "环境检查（Node/pnpm/Chrome/依赖）",
+      "script": "scripts/task-doctor.mjs",
+      "required": true,
+      "timeout": 120000
+    },
+    {
+      "id": "install",
+      "label": "安装依赖与插件",
+      "script": "scripts/task-install.mjs",
+      "required": true,
+      "dependsOn": [
+        "doctor"
+      ],
+      "timeout": 600000
+    },
+    {
+      "id": "test",
+      "label": "单元测试（vitest）",
+      "script": "scripts/task-test.mjs",
+      "required": true,
+      "dependsOn": [
+        "install"
+      ],
+      "timeout": 300000
+    },
+    {
+      "id": "build-h5",
+      "label": "构建 H5 产物",
+      "script": "scripts/task-build.mjs",
+      "required": true,
+      "dependsOn": [
+        "install"
+      ],
+      "timeout": 600000
+    },
+    {
+      "id": "smoke-h5",
+      "label": "H5 页面矩阵冒烟（Chrome 无头）",
+      "script": "scripts/task-smoke.mjs",
+      "required": true,
+      "dependsOn": [
+        "build-h5"
+      ],
+      "timeout": 600000
+    },
+    {
+      "id": "build-app",
+      "label": "构建 App 资源（CLI，不含 HBuilderX 原生插件）",
+      "script": "scripts/task-app-build.mjs",
+      "required": false,
+      "dependsOn": [
+        "install"
+      ],
+      "timeout": 600000
+    },
+    {
+      "id": "report",
+      "label": "汇总报告",
+      "script": "scripts/task-report.mjs",
+      "required": true,
+      "alwaysRun": true,
+      "dependsOn": [
+        "smoke-h5",
+        "build-app"
+      ],
+      "timeout": 120000
+    }
+  ]
+}

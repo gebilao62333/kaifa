@@ -1,0 +1,433 @@
+{
+  "pages": [
+    {
+      "path": "pages/Login",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/Home",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/Search",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/Square",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "广场",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/Preferred",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/Mine",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/ChatUsers",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/CompanionApply",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/CompanionList",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "陪玩列表",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/PostDetail",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/PublishPost",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/PublishDemand",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "发布需求",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/ChatRoom",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/Recharge",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/VipCenter",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/GameIndex",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/Paidan",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/MyServices",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/Wallet",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/CardRecharge",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "卡密充值",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/MyOrder",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/MyDynamic",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/IncomeRecords",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/ExpenseRecords",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/WithdrawRecords",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/Withdraw",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/PaymentGateway",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/LikesRecords",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/VisitedRecords",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "eu搭子",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/EditProfile",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "编辑资料",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/Settings",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "设置",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/MyAlbum",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的相册",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/MyReserve",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的预约",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/MyReports",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的举报",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/RealName",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "实名认证",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/Feedback",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "意见反馈",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/AboutUs",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "关于我们",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/Follows",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的关注",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/Fans",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的粉丝",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/UserProfile",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "用户资料",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/VideoCall",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "视频通话",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/AudioCall",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "语音通话",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/CustomerService",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "在线客服",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/LevelAcceleration",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "等级加速",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/IdentityBadge",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "身份标识",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/AvatarFrame",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "专属头像框",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/StealthVisit",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "隐身访问",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/PriorityMatching",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "优先匹配",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/SkinShop",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "装扮商城",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/VirtualUserList",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "AI陪聊",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/AIChat",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "AI聊天",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/TagManager",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "标签管理",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
+      "path": "pages/NotFound",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "页面不存在",
+        "backgroundColor": "#f5f5f7"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationStyle": "custom",
+    "backgroundColor": "#f5f5f7",
+    "navigationBarTextStyle": "black"
+  }
+}

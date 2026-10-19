@@ -1,0 +1,19 @@
+{
+  "id": "kaifa-webrtc",
+  "displayName": "kaifa WebRTC (Android)",
+  "version": "0.0.1",
+  "description": "kaifa 自建 WebRTC 的 UTS 原生插件骨架（Google WebRTC + 现有 socket.io 信令 + coturn）",
+  "keywords": [
+    "webrtc",
+    "kaifa"
+  ],
+  "engines": {
+    "HBuilderX": ">=3.6.0"
+  },
+  "dcloudext": {
+    "type": "uts",
+    "category": [
+      "uts"
+    ]
+  }
+}

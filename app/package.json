@@ -1,0 +1,49 @@
+{
+  "name": "eudazi-uni-app",
+  "version": "3.0.0",
+  "private": true,
+  "scripts": {
+    "dev:h5": "uni",
+    "build:h5": "uni build",
+    "dev:app": "uni -p app",
+    "build:app": "uni build -p app",
+    "task:install": "node scripts/task-install.mjs",
+    "task:build": "node scripts/task-build.mjs",
+    "task:dev": "node scripts/task-dev.mjs",
+    "task:smoke": "node scripts/task-smoke.mjs",
+    "task:verify": "node scripts/task-verify.mjs",
+    "task:all": "node scripts/task-auto.mjs",
+    "task:list": "node scripts/task-auto.mjs --list",
+    "task:auto": "node scripts/task-auto.mjs",
+    "task:doctor": "node scripts/task-doctor.mjs",
+    "task:app": "node scripts/task-app-build.mjs",
+    "task:report": "node scripts/task-report.mjs",
+    "task:shutdown": "node scripts/task-shutdown.mjs",
+    "task:cost-check": "node scripts/task-cost-check.mjs",
+    "task:context": "node scripts/task-context.mjs",
+    "task:matrix": "node scripts/task-matrix.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "task:test": "node scripts/task-test.mjs"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "3.0.0-alpha-5030220261016001",
+    "@dcloudio/uni-app-plus": "3.0.0-alpha-5030220261016001",
+    "@dcloudio/uni-components": "3.0.0-alpha-5030220261016001",
+    "@dcloudio/uni-h5": "3.0.0-alpha-5030220261016001",
+    "pinia": "^2.1.7",
+    "socket.io-client": "^4.7.5",
+    "vue": "3.4.21"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "3.4.31",
+    "@dcloudio/vite-plugin-uni": "3.0.0-alpha-5030220261016001",
+    "@vitejs/plugin-vue": "^5.2.4",
+    "@vue/test-utils": "2.4.6",
+    "jsdom": "^24.1.3",
+    "playwright-core": "^1.63.0",
+    "sass": "^1.72.0",
+    "vite": "5.2.8",
+    "vitest": "^1.6.1"
+  }
+}
