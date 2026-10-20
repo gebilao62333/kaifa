@@ -35,7 +35,9 @@
 STORAGE_PROVIDER=auto             # 默认：配了 COS/七牛/OSS 就优先远端（cos→qiniu→oss），未配置/失败回落本地
 # STORAGE_PROVIDER=local           # 强制只用本地（当前线上未接远端时用这个）
 # STORAGE_PROVIDER=cos,qiniu,oss,local   # 显式指定优先级链
-# 注意：七牛/OSS 需要镜像内已安装 qiniu / ali-oss SDK；未安装会告警并降级本地
+# 远端 SDK 已内置（cos-nodejs-sdk-v5 / ali-oss / qiniu），配齐任一家即可；
+# 七牛必须配 QINIU_DOMAIN、OSS 必须配 OSS_ENDPOINT 或 OSS_DOMAIN，否则返回的是相对 key、图片打不开
+# COS 桶按常规：权限「公有读私有写」+ CORS 放行站点域名（直传用）
 
 STORAGE_FALLBACK=true             # false = 链首失败直接报错，不降级
 # COS_SECRET_ID / COS_SECRET_KEY / COS_BUCKET / COS_REGION
