@@ -1,135 +1,135 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">优先匹配</span>
-      <span class="placeholder"></span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">优先匹配</text>
+      <text class="placeholder"></text>
     </template>
 
-    <div class="content">
-      <div class="intro-card">
-        <div class="intro-icon">⚡</div>
-        <div class="intro-text">
-          <div class="intro-title">优先匹配特权</div>
-          <div class="intro-desc">VIP用户享有优先匹配权，订单将被优先推送，匹配速度更快</div>
-        </div>
-      </div>
+    <view class="content">
+      <view class="intro-card">
+        <view class="intro-icon">⚡</view>
+        <view class="intro-text">
+          <view class="intro-title">优先匹配特权</view>
+          <view class="intro-desc">VIP用户享有优先匹配权，订单将被优先推送，匹配速度更快</view>
+        </view>
+      </view>
 
-      <div class="status-card">
-        <div class="status-header">
-          <span class="status-label">当前状态</span>
-          <span class="status-badge" :class="{ active: priorityEnabled }">{{ priorityEnabled ? '已开启' : '未开启' }}</span>
-        </div>
-        <div class="status-body">
-          <div class="status-row">
-            <span class="row-label">优先队列</span>
-            <span class="row-value">{{ priorityEnabled ? `第 ${queuePosition} 位` : '—' }}</span>
-          </div>
-          <div class="status-row">
-            <span class="row-label">预计匹配时间</span>
-            <span class="row-value highlight">{{ priorityEnabled ? avgMatchTime : '—' }}</span>
-          </div>
-          <div class="status-row">
-            <span class="row-label">本月优先匹配</span>
-            <span class="row-value">{{ priorityEnabled ? `${monthMatchCount} 次` : '—' }}</span>
-          </div>
-        </div>
-      </div>
+      <view class="status-card">
+        <view class="status-header">
+          <text class="status-label">当前状态</text>
+          <text class="status-badge" :class="{ active: priorityEnabled }">{{ priorityEnabled ? '已开启' : '未开启' }}</text>
+        </view>
+        <view class="status-body">
+          <view class="status-row">
+            <text class="row-label">优先队列</text>
+            <text class="row-value">{{ priorityEnabled ? `第 ${queuePosition} 位` : '—' }}</text>
+          </view>
+          <view class="status-row">
+            <text class="row-label">预计匹配时间</text>
+            <text class="row-value highlight">{{ priorityEnabled ? avgMatchTime : '—' }}</text>
+          </view>
+          <view class="status-row">
+            <text class="row-label">本月优先匹配</text>
+            <text class="row-value">{{ priorityEnabled ? `${monthMatchCount} 次` : '—' }}</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="setting-section">
-        <div class="section-title">匹配设置</div>
-        <div class="setting-card">
-          <div class="setting-item">
-            <div class="setting-info">
-              <div class="setting-name">优先推送</div>
-              <div class="setting-desc">下单后优先推送给优质陪玩</div>
-            </div>
-            <div class="switch" :class="{ active: settings.priorityPush }" @click="toggleSetting('priorityPush')"></div>
-          </div>
-          <div class="setting-item">
-            <div class="setting-info">
-              <div class="setting-name">智能推荐</div>
-              <div class="setting-desc">根据偏好智能匹配最佳陪玩</div>
-            </div>
-            <div class="switch" :class="{ active: settings.smartRecommend }" @click="toggleSetting('smartRecommend')"></div>
-          </div>
-          <div class="setting-item">
-            <div class="setting-info">
-              <div class="setting-name">自动接单</div>
-              <div class="setting-desc">优先匹配的订单自动确认</div>
-            </div>
-            <div class="switch" :class="{ active: settings.autoAccept }" @click="toggleSetting('autoAccept')"></div>
-          </div>
-          <div class="setting-item">
-            <div class="setting-info">
-              <div class="setting-name">同城优先</div>
-              <div class="setting-desc">优先匹配同城陪玩</div>
-            </div>
-            <div class="switch" :class="{ active: settings.sameCity }" @click="toggleSetting('sameCity')"></div>
-          </div>
-        </div>
-      </div>
+      <view class="setting-section">
+        <view class="section-title">匹配设置</view>
+        <view class="setting-card">
+          <view class="setting-item">
+            <view class="setting-info">
+              <view class="setting-name">优先推送</view>
+              <view class="setting-desc">下单后优先推送给优质陪玩</view>
+            </view>
+            <view class="switch" :class="{ active: settings.priorityPush }" @click="toggleSetting('priorityPush')"></view>
+          </view>
+          <view class="setting-item">
+            <view class="setting-info">
+              <view class="setting-name">智能推荐</view>
+              <view class="setting-desc">根据偏好智能匹配最佳陪玩</view>
+            </view>
+            <view class="switch" :class="{ active: settings.smartRecommend }" @click="toggleSetting('smartRecommend')"></view>
+          </view>
+          <view class="setting-item">
+            <view class="setting-info">
+              <view class="setting-name">自动接单</view>
+              <view class="setting-desc">优先匹配的订单自动确认</view>
+            </view>
+            <view class="switch" :class="{ active: settings.autoAccept }" @click="toggleSetting('autoAccept')"></view>
+          </view>
+          <view class="setting-item">
+            <view class="setting-info">
+              <view class="setting-name">同城优先</view>
+              <view class="setting-desc">优先匹配同城陪玩</view>
+            </view>
+            <view class="switch" :class="{ active: settings.sameCity }" @click="toggleSetting('sameCity')"></view>
+          </view>
+        </view>
+      </view>
 
-      <div class="stats-section">
-        <div class="section-title">数据统计</div>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon">⚡</div>
-            <div class="stat-value">{{ totalPriorityOrders }}</div>
-            <div class="stat-label">优先订单</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">⏱️</div>
-            <div class="stat-value">{{ avgResponseTime }}s</div>
-            <div class="stat-label">平均响应</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">✅</div>
-            <div class="stat-value">{{ matchSuccessRate }}%</div>
-            <div class="stat-label">匹配成功率</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">🏆</div>
-            <div class="stat-value">{{ totalMatched }}</div>
-            <div class="stat-label">累计匹配</div>
-          </div>
-        </div>
-      </div>
+      <view class="stats-section">
+        <view class="section-title">数据统计</view>
+        <view class="stats-grid">
+          <view class="stat-card">
+            <view class="stat-icon">⚡</view>
+            <view class="stat-value">{{ totalPriorityOrders }}</view>
+            <view class="stat-label">优先订单</view>
+          </view>
+          <view class="stat-card">
+            <view class="stat-icon">⏱️</view>
+            <view class="stat-value">{{ avgResponseTime }}s</view>
+            <view class="stat-label">平均响应</view>
+          </view>
+          <view class="stat-card">
+            <view class="stat-icon">✅</view>
+            <view class="stat-value">{{ matchSuccessRate }}%</view>
+            <view class="stat-label">匹配成功率</view>
+          </view>
+          <view class="stat-card">
+            <view class="stat-icon">🏆</view>
+            <view class="stat-value">{{ totalMatched }}</view>
+            <view class="stat-label">累计匹配</view>
+          </view>
+        </view>
+      </view>
 
-      <div class="vip-compare-section">
-        <div class="section-title">VIP等级对比</div>
-        <div class="compare-card">
-          <div class="compare-item" :class="{ active: currentVipLevel >= 1 }">
-            <div class="compare-left">
-              <span class="compare-level">VIP1</span>
-              <span class="compare-desc">优先推送，加快匹配</span>
-            </div>
-            <span class="compare-check">{{ currentVipLevel >= 1 ? '✓' : '' }}</span>
-          </div>
-          <div class="compare-item" :class="{ active: currentVipLevel >= 2 }">
-            <div class="compare-left">
-              <span class="compare-level">VIP2</span>
-              <span class="compare-desc">智能推荐，精准匹配</span>
-            </div>
-            <span class="compare-check">{{ currentVipLevel >= 2 ? '✓' : '' }}</span>
-          </div>
-          <div class="compare-item" :class="{ active: currentVipLevel >= 3 }">
-            <div class="compare-left">
-              <span class="compare-level">VIP3</span>
-              <span class="compare-desc">自动接单，无需等待</span>
-            </div>
-            <span class="compare-check">{{ currentVipLevel >= 3 ? '✓' : '' }}</span>
-          </div>
-          <div class="compare-item" :class="{ active: currentVipLevel >= 4 }">
-            <div class="compare-left">
-              <span class="compare-level">VIP4</span>
-              <span class="compare-desc">同城优先 + 专属客服</span>
-            </div>
-            <span class="compare-check">{{ currentVipLevel >= 4 ? '✓' : '' }}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+      <view class="vip-compare-section">
+        <view class="section-title">VIP等级对比</view>
+        <view class="compare-card">
+          <view class="compare-item" :class="{ active: currentVipLevel >= 1 }">
+            <view class="compare-left">
+              <text class="compare-level">VIP1</text>
+              <text class="compare-desc">优先推送，加快匹配</text>
+            </view>
+            <text class="compare-check">{{ currentVipLevel >= 1 ? '✓' : '' }}</text>
+          </view>
+          <view class="compare-item" :class="{ active: currentVipLevel >= 2 }">
+            <view class="compare-left">
+              <text class="compare-level">VIP2</text>
+              <text class="compare-desc">智能推荐，精准匹配</text>
+            </view>
+            <text class="compare-check">{{ currentVipLevel >= 2 ? '✓' : '' }}</text>
+          </view>
+          <view class="compare-item" :class="{ active: currentVipLevel >= 3 }">
+            <view class="compare-left">
+              <text class="compare-level">VIP3</text>
+              <text class="compare-desc">自动接单，无需等待</text>
+            </view>
+            <text class="compare-check">{{ currentVipLevel >= 3 ? '✓' : '' }}</text>
+          </view>
+          <view class="compare-item" :class="{ active: currentVipLevel >= 4 }">
+            <view class="compare-left">
+              <text class="compare-level">VIP4</text>
+              <text class="compare-desc">同城优先 + 专属客服</text>
+            </view>
+            <text class="compare-check">{{ currentVipLevel >= 4 ? '✓' : '' }}</text>
+          </view>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
@@ -139,6 +139,7 @@ import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import userPrefService from '../services/userPrefService'
 import { toast } from '../composables/useToast'
+import storage from '../common/storage'
 
 const router = useRouter()
 
@@ -161,7 +162,7 @@ const settings = reactive({
 
 const loadSettings = () => {
   try {
-    const saved = localStorage.getItem('priorityMatchingSettings')
+    const saved = storage.getItem('priorityMatchingSettings')
     if (saved) {
       const parsed = JSON.parse(saved)
       Object.assign(settings, parsed)
@@ -170,7 +171,7 @@ const loadSettings = () => {
 }
 
 const saveSettings = () => {
-  localStorage.setItem('priorityMatchingSettings', JSON.stringify(settings))
+  storage.setItem('priorityMatchingSettings', JSON.stringify(settings))
   // 优先匹配是 Lv.30 权益，服务端拒绝时必须让用户看到原因
   userPrefService.save({ priorityMatchingSettings: { ...settings } })
     .catch((e) => { if (e?.status === 422) toast.show(e.message) })

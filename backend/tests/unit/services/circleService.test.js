@@ -23,7 +23,8 @@ jest.mock('../../../src/services/levelService', () => ({ addExp: jest.fn() }));
 
 const bcrypt = require('bcryptjs');
 const circleService = require('../../../src/services/circleService');
-const { Post, PostLike, PostComment, PostUnlock, User } = require('../../../src/models');
+const { Post, PostLike, PostComment, PostUnlock, User, UserFollow } = require('../../../src/models');
+const { Op } = require('sequelize');
 const mediaAssetService = require('../../../src/services/mediaAssetService');
 const levelService = require('../../../src/services/levelService');
 const sequelize = require('../../../src/config/mysql');
@@ -75,6 +76,16 @@ describe('Service - CircleService', () => {
       expect(data.private_price).toBe(50);
     });
 
+    it('maps friends-only / private visibility to distinct flags', async () => {
+      Post.create.mockResolvedValue({ id: 5 });
+      await circleService.createPost(2, 'friends', [], '', [], '', 1);
+      expect(Post.create.mock.calls[0][0].is_private).toBe(3);
+
+      Post.create.mockResolvedValue({ id: 6 });
+      await circleService.createPost(2, 'private', [], '', [], '', 2);
+      expect(Post.create.mock.calls[1][0].is_private).toBe(4);
+    });
+
     it('swallows media registration failures', async () => {
       Post.create.mockResolvedValue({ id: 4 });
       mediaAssetService.registerBatch.mockRejectedValue(new Error('cos down'));
@@ -88,6 +99,12 @@ describe('Service - CircleService', () => {
       await expect(circleService.repostPost(2, 1)).rejects.toThrow('原帖不存在或已删除');
 
       Post.findByPk.mockResolvedValue({ id: 1, is_private: 1 });
+      await expect(circleService.repostPost(2, 1)).rejects.toThrow('不能转发私密帖子');
+
+      // 仅关注 / 私密 同样不可转发
+      Post.findByPk.mockResolvedValue({ id: 1, is_private: 3 });
+      await expect(circleService.repostPost(2, 1)).rejects.toThrow('不能转发私密帖子');
+      Post.findByPk.mockResolvedValue({ id: 1, is_private: 4 });
       await expect(circleService.repostPost(2, 1)).rejects.toThrow('不能转发私密帖子');
     });
 
@@ -142,6 +159,26 @@ describe('Service - CircleService', () => {
     });
   });
 
+  it('getPosts applies visibility filter for logged-in and anonymous viewers', async () => {
+    Post.findAndCountAll.mockResolvedValue({ count: 0, rows: [] });
+    UserFollow.findAll.mockResolvedValue([{ following_id: 3 }]);
+
+    await circleService.getPosts(2, null, 1, 10);
+    const where = Post.findAndCountAll.mock.calls[0][0].where;
+    expect(Array.isArray(where[Op.or])).toBe(true);
+    expect(where[Op.or].some(item => item.is_private === 0)).toBe(true);
+    expect(where[Op.or].some(item =>
+      item.is_private === 3 && Array.isArray(item.user_id[Op.in]) && item.user_id[Op.in].includes(3)
+    )).toBe(true);
+    expect(where[Op.or].some(item =>
+      item.user_id === 2 && Array.isArray(item.is_private[Op.in]) && item.is_private[Op.in].includes(4)
+    )).toBe(true);
+
+    await circleService.getPosts(null, null, 1, 10);
+    const anonymousWhere = Post.findAndCountAll.mock.calls[1][0].where;
+    expect(anonymousWhere[Op.or]).toEqual([{ is_private: 0 }]);
+  });
+
   describe('searchPosts', () => {
     it('returns empty for blank keywords', async () => {
       expect(await circleService.searchPosts(2, '   ', 1, 10)).toEqual({ total: 0, list: [] });
@@ -191,6 +228,30 @@ describe('Service - CircleService', () => {
       expect(result.images).toEqual([]);
       expect(result.isLiked).toBe(true);
     });
+
+    it('locks friends-only posts for non-followers and opens for followers', async () => {
+      Post.findByPk.mockResolvedValue({ id: 1, user_id: 3, is_private: 3 });
+      UserFollow.findOne.mockResolvedValue(null);
+      expect(await circleService.getPostDetail(2, 1)).toEqual({
+        postId: 1, isPrivate: true, privateType: 3, privatePrice: 0, locked: true
+      });
+
+      UserFollow.findOne.mockResolvedValue({ id: 10 });
+      User.findByPk.mockResolvedValue({ id: 3, nickname: 'n' });
+      PostLike.findOne.mockResolvedValue(null);
+      const opened = await circleService.getPostDetail(2, 1);
+      expect(opened.locked).toBe(false);
+      expect(opened.nickname).toBe('n');
+    });
+
+    it('locks private posts for everyone except the author (even with unlock record)', async () => {
+      Post.findByPk.mockResolvedValue({ id: 1, user_id: 3, is_private: 4 });
+      PostUnlock.findOne.mockResolvedValue({ id: 1 });
+      expect(await circleService.getPostDetail(2, 1)).toEqual({
+        postId: 1, isPrivate: true, privateType: 4, privatePrice: 0, locked: true
+      });
+      expect(PostUnlock.findOne).not.toHaveBeenCalled();
+    });
   });
 
   describe('unlockPost', () => {
@@ -208,6 +269,13 @@ describe('Service - CircleService', () => {
       Post.findByPk.mockResolvedValue({ id: 1, is_private: 1, private_password: 'different' });
       PostUnlock.findOne.mockResolvedValue(null);
       await expect(circleService.unlockPost(2, 1, 1, 'p')).rejects.toThrow('密码错误');
+    });
+
+    it('rejects friends-only / private posts as non-unlockable', async () => {
+      Post.findByPk.mockResolvedValue({ id: 1, is_private: 3 });
+      await expect(circleService.unlockPost(2, 1, 1, 'p')).rejects.toThrow('该动态不支持解锁');
+      Post.findByPk.mockResolvedValue({ id: 1, is_private: 4 });
+      await expect(circleService.unlockPost(2, 1, 1, 'p')).rejects.toThrow('该动态不支持解锁');
     });
 
     it('unlocks a password post', async () => {
@@ -306,6 +374,7 @@ describe('Service - CircleService', () => {
   });
 
   it('getComments maps replies', async () => {
+    Post.findByPk.mockResolvedValue({ id: 1, user_id: 9, is_private: 0 });
     PostComment.findAndCountAll.mockResolvedValue({
       count: 1,
       rows: [{ id: 1, user_id: 2, content: 'c', reply_id: 1, reply_user_id: 3, create_time: 1 }]
@@ -313,7 +382,7 @@ describe('Service - CircleService', () => {
     User.findByPk
       .mockResolvedValueOnce({ id: 2, nickname: 'a', avatar: 'x' })
       .mockResolvedValueOnce({ id: 3, nickname: 'b' });
-    const result = await circleService.getComments(1, 1, 10);
+    const result = await circleService.getComments(2, 1, 1, 10);
     expect(result.list[0].replyUser).toEqual({ userId: 3, nickname: 'b' });
 
     PostComment.findAndCountAll.mockResolvedValue({
@@ -321,8 +390,14 @@ describe('Service - CircleService', () => {
       rows: [{ id: 2, user_id: 2, content: 'c', reply_id: 0, reply_user_id: 0, create_time: 1 }]
     });
     User.findByPk.mockResolvedValue(null);
-    const noReply = await circleService.getComments(1, 1, 10);
+    const noReply = await circleService.getComments(2, 1, 1, 10);
     expect(noReply.list[0].replyUser).toBe(null);
+  });
+
+  it('getComments rejects posts the viewer cannot see', async () => {
+    Post.findByPk.mockResolvedValue({ id: 1, user_id: 9, is_private: 4 });
+    await expect(circleService.getComments(2, 1, 1, 10)).rejects.toThrow('无权查看该动态评论');
+    expect(PostComment.findAndCountAll).not.toHaveBeenCalled();
   });
 
   it('getTags returns an empty list', async () => {

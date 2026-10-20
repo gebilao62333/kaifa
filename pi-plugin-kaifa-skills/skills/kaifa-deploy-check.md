@@ -24,7 +24,7 @@ tags: ["自习"]
 
 ### 1. 拓扑（先对齐事实）
 
-`docker-compose.yml` = nginx + backend + mysql + mongo + redis（另有 certbot / coturn 可选 profile）；nginx 挂载 `frontend/dist`、`admin-frontend/dist`、`backend/public/uploads`，反代到 backend。
+`docker-compose.yml` = nginx + backend + mysql + mongo + redis（另有 certbot / coturn 可选 profile）；nginx 挂载 `app/dist/build/h5`（2026-10-21 旧站 frontend/ 删除后改挂）、`admin-frontend/dist`、`backend/public/uploads`，反代到 backend。
 
 - compose 从**根目录 `.env`** 取值，`MYSQL_PASSWORD`、`MONGO_ROOT_PASSWORD` 用 `${VAR:?}` 强制要求——缺了直接拒绝启动，这是设计而非 bug。
 - `backend` 用 `env_file: .env`（根）注入，另有 `NODE_ENV=production`、`LOG_TO_CONSOLE=true`、`LOGS_PATH=/var/log/eudazi`。
@@ -32,7 +32,7 @@ tags: ["自习"]
 
 ### 2. 发布前（本机/构建机）
 
-1. 前端产物必须先构建：`cd frontend; npm run build`、`cd admin-frontend; npm run build`。compose 是只读挂载 `dist/`，nginx 不会帮你构建，挂到空目录就是白屏。
+1. 前端产物必须先构建：`cd app; npx --yes pnpm@10.15.0 build:h5`（产物 `app/dist/build/h5`）、`cd admin-frontend; npm run build`。compose 是只读挂载产物目录，nginx 不会帮你构建，挂到空目录就是白屏。
 2. `docker compose config` 校验 env 插值与语法（不改任何东西）——本机无 docker 时，改为逐项核对 `docker-compose*.yml` 的 `${VAR:?}` 键是否都在 `.env` 里存在。
 3. `docker compose build backend`（`Dockerfile`；本地开发用 `Dockerfile.dev` / `docker-compose.dev.yml`）。
 4. 备份：`cd backend; npm run backup`（`scripts/backup.js`）。迁移只有 `up`、没有回滚脚本，备份是唯一退路。
@@ -68,7 +68,7 @@ cd backend; node scripts/deploy-selfcheck.js --base http://127.0.0.1:3000 --admi
 ```powershell
 cd backend; npx jest tests/unit/consistency
 cd backend; npx jest tests/unit/config/trustProxy.test.js tests/unit/config/envHygiene.test.js tests/unit/utils/startupConfigGuard.test.js
-cd frontend; npm run build
+cd app; npx --yes pnpm@10.15.0 build:h5
 cd admin-frontend; npm run build
 ```
 

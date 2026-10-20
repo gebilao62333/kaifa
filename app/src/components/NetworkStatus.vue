@@ -1,11 +1,11 @@
 <template>
   <Teleport to="body">
     <Transition name="fade">
-      <div v-if="showBanner" :class="['network-banner', bannerClass]">
-        <span class="banner-icon">{{ icon }}</span>
-        <span class="banner-text">{{ message }}</span>
+      <view v-if="showBanner" :class="['network-banner', bannerClass]">
+        <text class="banner-icon">{{ icon }}</text>
+        <text class="banner-text">{{ message }}</text>
         <button class="retry-btn" v-if="!isOnline" @click="handleRetry">重试</button>
-      </div>
+      </view>
     </Transition>
   </Teleport>
 </template>

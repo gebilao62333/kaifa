@@ -1,57 +1,110 @@
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
+import { isApp } from '../common/platform'
 
 const CAMERA_PERMISSION_KEY = 'camera_permission_status'
 const MICROPHONE_PERMISSION_KEY = 'microphone_permission_status'
 
-const cameraPermissionStatus = ref(localStorage.getItem(CAMERA_PERMISSION_KEY) || 'prompt')
-const microphonePermissionStatus = ref(localStorage.getItem(MICROPHONE_PERMISSION_KEY) || 'prompt')
-
-const checkCameraPermission = async () => {
-  if (!navigator.permissions || !navigator.permissions.query) {
-    return 'unknown'
-  }
-  
+// App 端 localStorage 不一定可用（部分 WebView/隐私设置），模块加载阶段就要兜住读写
+const readStoredStatus = (key) => {
   try {
-    const result = await navigator.permissions.query({ name: 'camera' })
-    cameraPermissionStatus.value = result.state
-    localStorage.setItem(CAMERA_PERMISSION_KEY, result.state)
-    
-    result.addEventListener('change', () => {
-      cameraPermissionStatus.value = result.state
-      localStorage.setItem(CAMERA_PERMISSION_KEY, result.state)
-    })
-    
-    return result.state
-  } catch (error) {
-    console.warn('无法检查相机权限状态:', error)
-    return 'unknown'
+    if (typeof uni !== 'undefined' && typeof uni.getStorageSync === 'function') {
+      const value = uni.getStorageSync(key)
+      if (value) return value
+    }
+  } catch (e) { /* uni 存储不可用时回落到 localStorage */ }
+  try {
+    return localStorage.getItem(key) || 'prompt'
+  } catch (e) {
+    return 'prompt'
   }
 }
 
-const checkMicrophonePermission = async () => {
-  if (!navigator.permissions || !navigator.permissions.query) {
-    return 'unknown'
-  }
-  
+const writeStoredStatus = (key, value) => {
   try {
-    const result = await navigator.permissions.query({ name: 'microphone' })
-    microphonePermissionStatus.value = result.state
-    localStorage.setItem(MICROPHONE_PERMISSION_KEY, result.state)
-    
-    result.addEventListener('change', () => {
-      microphonePermissionStatus.value = result.state
-      localStorage.setItem(MICROPHONE_PERMISSION_KEY, result.state)
+    if (typeof uni !== 'undefined' && typeof uni.setStorageSync === 'function') {
+      uni.setStorageSync(key, value)
+      return
+    }
+  } catch (e) { /* uni 存储不可用时回落到 localStorage */ }
+  try {
+    localStorage.setItem(key, value)
+  } catch (e) { /* 存储不可用时只保留内存态 */ }
+}
+
+const cameraPermissionStatus = ref(readStoredStatus(CAMERA_PERMISSION_KEY))
+const microphonePermissionStatus = ref(readStoredStatus(MICROPHONE_PERMISSION_KEY))
+
+const UNI_SCOPES = { camera: 'scope.camera', microphone: 'scope.record' }
+
+const toPermissionResult = (status, label) => {
+  if (status === 'granted') return { granted: true, error: null, message: `${label}权限已获取` }
+  if (status === 'denied') return { granted: false, error: 'denied', message: `${label}权限已被拒绝，请在系统设置中开启` }
+  if (status === 'not_supported') return { granted: false, error: 'not_supported', message: `当前环境不支持${label}权限申请` }
+  return { granted: false, error: 'failed', message: `无法获取${label}权限，请稍后重试` }
+}
+
+// uni.getSetting 是回调式 API：Promise 化并把失败收口为「拿不到授权状态」，不向上抛错
+const getUniAuthSetting = () => new Promise((resolve) => {
+  if (typeof uni === 'undefined' || typeof uni.getSetting !== 'function') { resolve(null); return }
+  try {
+    uni.getSetting({
+      success: (res) => resolve((res && res.authSetting) || {}),
+      fail: () => resolve(null)
     })
-    
-    return result.state
-  } catch (error) {
-    console.warn('无法检查麦克风权限状态:', error)
-    return 'unknown'
+  } catch (e) {
+    resolve(null)
   }
+})
+
+const authorizeUniScope = (scope) => new Promise((resolve) => {
+  if (typeof uni === 'undefined' || typeof uni.authorize !== 'function') { resolve('not_supported'); return }
+  try {
+    uni.authorize({
+      scope,
+      success: () => resolve('granted'),
+      // 用户曾拒绝时 uni.authorize 不再弹系统授权框，直接按 denied 处理，交给页面引导去设置
+      fail: (err) => resolve(/deny|denied|auth|拒绝/i.test(String((err && (err.errMsg || err.message)) || '')) ? 'denied' : 'failed')
+    })
+  } catch (e) {
+    resolve('failed')
+  }
+})
+
+const requestAppPermission = async (type) => {
+  const label = type === 'camera' ? '相机' : '麦克风'
+  const scope = UNI_SCOPES[type]
+  const statusRef = type === 'camera' ? cameraPermissionStatus : microphonePermissionStatus
+  const storageKey = type === 'camera' ? CAMERA_PERMISSION_KEY : MICROPHONE_PERMISSION_KEY
+
+  if (typeof uni === 'undefined' || typeof uni.getSetting !== 'function' || typeof uni.authorize !== 'function') {
+    return toPermissionResult('not_supported', label)
+  }
+
+  const authSetting = await getUniAuthSetting()
+  if (authSetting && authSetting[scope] === true) {
+    statusRef.value = 'granted'
+    writeStoredStatus(storageKey, 'granted')
+    return toPermissionResult('granted', label)
+  }
+  if (authSetting && authSetting[scope] === false) {
+    statusRef.value = 'denied'
+    writeStoredStatus(storageKey, 'denied')
+    return toPermissionResult('denied', label)
+  }
+
+  const authorized = await authorizeUniScope(scope)
+  if (authorized === 'granted' || authorized === 'denied') {
+    statusRef.value = authorized
+    writeStoredStatus(storageKey, authorized)
+  }
+  return toPermissionResult(authorized, label)
 }
 
 const requestCameraPermission = async () => {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+  // App 原生端没有 navigator.mediaDevices/getUserMedia，改用 uni 的授权 API
+  if (isApp) return requestAppPermission('camera')
+
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     return {
       granted: false,
       error: 'not_supported',
@@ -102,7 +155,10 @@ const requestCameraPermission = async () => {
 }
 
 const requestMicrophonePermission = async () => {
-  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+  // App 原生端没有 navigator.mediaDevices/getUserMedia，改用 uni 的授权 API
+  if (isApp) return requestAppPermission('microphone')
+
+  if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     return {
       granted: false,
       error: 'not_supported',
@@ -152,7 +208,39 @@ const requestMicrophonePermission = async () => {
   }
 }
 
+// 只查询当前授权状态、不触发系统弹窗：App 用 uni.getSetting，H5 用浏览器 Permission API，均不抛错
+const queryUniAuthStatus = async (scope) => {
+  const authSetting = await getUniAuthSetting()
+  if (!authSetting) return 'not_supported'
+  if (authSetting[scope] === true) return 'granted'
+  if (authSetting[scope] === false) return 'denied'
+  return 'prompt'
+}
+
+const checkCameraPermission = async () => {
+  if (isApp) return queryUniAuthStatus(UNI_SCOPES.camera)
+  try {
+    if (typeof navigator !== 'undefined' && navigator.permissions && typeof navigator.permissions.query === 'function') {
+      const result = await navigator.permissions.query({ name: 'camera' })
+      return (result && result.state) || cameraPermissionStatus.value
+    }
+  } catch (e) { /* 浏览器不支持 camera 查询名时回落本地记录 */ }
+  return cameraPermissionStatus.value
+}
+
+const checkMicrophonePermission = async () => {
+  if (isApp) return queryUniAuthStatus(UNI_SCOPES.microphone)
+  try {
+    if (typeof navigator !== 'undefined' && navigator.permissions && typeof navigator.permissions.query === 'function') {
+      const result = await navigator.permissions.query({ name: 'microphone' })
+      return (result && result.state) || microphonePermissionStatus.value
+    }
+  } catch (e) { /* 浏览器不支持 microphone 查询名时回落本地记录 */ }
+  return microphonePermissionStatus.value
+}
+
 const getBrowserInfo = () => {
+  if (typeof navigator === 'undefined') return 'other'
   if (navigator.userAgentData && navigator.userAgentData.brands) {
     const brands = navigator.userAgentData.brands
     if (brands.some(b => b.brand.includes('Chrome') && !b.brand.includes('Chromium'))) {
@@ -189,10 +277,19 @@ const getBrowserInfo = () => {
 }
 
 const getPermissionGuideSteps = (permissionType) => {
-  const browser = getBrowserInfo()
-  
   const permissionName = permissionType === 'camera' ? '相机' : '麦克风'
   const icon = permissionType === 'camera' ? '📷' : '🎤'
+
+  // App 端没有浏览器地址栏/网站设置，引导去系统应用权限页
+  if (isApp) {
+    return [
+      { step: 1, icon: '⚙️', text: '打开手机「设置」→「应用管理」' },
+      { step: 2, icon, text: `找到本应用，进入「权限管理」开启${permissionName}权限` },
+      { step: 3, icon: '🔄', text: '返回应用重新操作' }
+    ]
+  }
+
+  const browser = getBrowserInfo()
   
   if (browser === 'chrome' || browser === 'edge') {
     return [
@@ -225,8 +322,6 @@ const getPermissionGuideSteps = (permissionType) => {
 
 export function usePermissions() {
   return {
-    cameraPermissionStatus: computed(() => cameraPermissionStatus.value),
-    microphonePermissionStatus: computed(() => microphonePermissionStatus.value),
     checkCameraPermission,
     checkMicrophonePermission,
     requestCameraPermission,

@@ -1,48 +1,51 @@
 <template>
-  <div class="call-page">
-    <div class="call-header">
-      <span class="caller-info">{{ callerName }}</span>
-      <span class="call-status">{{ callStatus }}</span>
-      <span class="call-mode" v-if="callMode">{{ callMode === 'webrtc' ? 'WebRTC' : 'TRTC' }}</span>
-      <div class="call-rate-info" v-if="videoPrice > 0">
-        <span class="rate-badge">{{ videoPrice }} 金币/分钟</span>
-      </div>
-    </div>
+  <view class="call-page">
+    <view class="call-header">
+      <text class="caller-info">{{ callerName }}</text>
+      <text class="call-status">{{ callStatus }}</text>
+      <text class="call-mode" v-if="callMode">{{ callMode === 'webrtc' ? (nativeCall ? '原生 WebRTC' : 'WebRTC') : 'TRTC' }}</text>
+      <view class="call-rate-info" v-if="videoPrice > 0">
+        <text class="rate-badge">{{ videoPrice }} 金币/分钟</text>
+      </view>
+    </view>
     
-    <div class="video-container">
-      <div class="remote-video">
+    <view class="video-container">
+      <view class="remote-video">
         <video ref="remoteVideoRef" autoplay playsinline></video>
-        <div class="video-placeholder" v-if="!remoteStream && !trtcActive">
-          <div class="avatar-circle">
+        <view class="video-placeholder" v-if="!remoteStream && !trtcActive && (!nativeCall || !isConnected)">
+          <view class="avatar-circle">
             {{ callerName.charAt(0) }}
-          </div>
-          <span class="placeholder-text">{{ callerName }}</span>
-        </div>
-      </div>
+          </view>
+          <text class="placeholder-text">{{ callerName }}</text>
+        </view>
+      </view>
       
-      <div class="local-video" v-if="localStream">
+      <view class="local-video" v-if="localStream">
         <video ref="localVideoRef" autoplay playsinline muted></video>
-        <span class="local-label">我</span>
-      </div>
+        <text class="local-label">我</text>
+      </view>
       
-      <div class="call-overlay" v-if="isConnected">
-        <span class="overlay-timer">{{ formattedDuration }}</span>
-        <span class="overlay-cost" v-if="videoPrice > 0">{{ totalCost }} 金币</span>
-      </div>
-    </div>
+      <view class="call-overlay" v-if="isConnected">
+        <text class="overlay-timer">{{ formattedDuration }}</text>
+        <text class="overlay-cost" v-if="videoPrice > 0">{{ totalCost }} 金币</text>
+      </view>
+    </view>
     
-    <div class="call-actions">
+    <view class="call-actions">
       <button class="action-btn audio-btn" :class="{ active: audioEnabled }" @click="toggleAudio">
-        <span>{{ audioEnabled ? '🔊' : '🔇' }}</span>
+        <text>{{ audioEnabled ? '🔊' : '🔇' }}</text>
       </button>
       <button class="action-btn video-btn" :class="{ active: videoEnabled }" @click="toggleVideo">
-        <span>{{ videoEnabled ? '📹' : '🚫' }}</span>
+        <text>{{ videoEnabled ? '📹' : '🚫' }}</text>
+      </button>
+      <button v-if="nativeCall" class="action-btn switch-btn" @click="switchCamera">
+        <text>🔄</text>
       </button>
       <button class="action-btn hangup-btn" @click="hangup">
-        <span>📞</span>
+        <text>📞</text>
       </button>
-    </div>
-  </div>
+    </view>
+  </view>
 </template>
 
 <script setup>
@@ -52,9 +55,12 @@ import { callService } from '../services/callService';
 import { webrtcCallService } from '../services/webrtcCallService';
 import { socketService } from '../services/socketService';
 import { trtcRoomService } from '../services/trtcRoomService';
+import { isNativeCallAvailable } from '../services/nativeCallAdapter';
 
 const route = useRoute();
 const router = useRouter();
+// App 原生通道：画面由原生 SurfaceView 渲染，页面不再拿 MediaStream
+const nativeCall = isNativeCallAvailable();
 
 // 安全返回：直接进入 / 刷新 / 从分享链接打开时没有站内历史，
 // router.back() 会退到 about:blank（空白页），因此先判断站内历史再决定回退还是回首页。
@@ -116,12 +122,14 @@ const initCall = async () => {
   // 设置 WebRTC 回调
   webrtcCallService.setCallbacks({
     onRemoteStream: (stream) => {
+      if (nativeCall) return;
       remoteStream.value = stream;
       if (remoteVideoRef.value) {
         remoteVideoRef.value.srcObject = stream;
       }
     },
     onLocalStream: (stream) => {
+      if (nativeCall) return;
       localStream.value = stream;
     },
     onCallStateChange: (state) => {
@@ -164,7 +172,7 @@ const initCall = async () => {
       callMode.value = useWebRTC ? 'webrtc' : 'trtc';
 
       if (useWebRTC) {
-        localStream.value = webrtcCallService.localStream;
+        if (!nativeCall) localStream.value = webrtcCallService.localStream;
       } else {
         // TRTC 通道：房间号由来电方通过 ?room= 带入
         await trtcRoomService.join({ callType: 2, roomId: route.query.room });
@@ -179,12 +187,17 @@ const initCall = async () => {
       }
 
     } else {
-      const result = await callService.startCall(callerId.value, 2);
+      const result = await callService.startCall(
+        callerId.value,
+        2,
+        route.query.companion === '1',
+        Number(route.query.orderId) || 0
+      );
       callMode.value = result.mode;
       callId.value = result.callId;
 
       if (result.mode === 'webrtc') {
-        localStream.value = webrtcCallService.localStream;
+        if (!nativeCall) localStream.value = webrtcCallService.localStream;
       } else {
         await trtcRoomService.join({ callType: 2, roomId: result.trtcRoomId });
         trtcRoomService.setRemoteView(remoteVideoRef.value);
@@ -236,6 +249,10 @@ const toggleVideo = () => {
       });
     }
   }
+};
+
+const switchCamera = () => {
+  callService.switchCamera();
 };
 
 const hangup = async () => {
@@ -473,6 +490,14 @@ onUnmounted(() => {
 
 .video-btn.active {
   background: rgba(102,126,234,0.8);
+}
+
+.switch-btn {
+  background: rgba(255,255,255,0.15);
+}
+
+.switch-btn:hover {
+  background: rgba(255,255,255,0.25);
 }
 
 .hangup-btn {

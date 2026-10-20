@@ -1,131 +1,158 @@
 <template>
   <PageLayout>
     <template #nav>
-      <div class="user-info">
-        <div class="avatar-frame" :style="avatarFrameStyle">
-          <img class="avatar" :src="userInfo.avatar" alt="头像" @click="goEditProfile" />
-        </div>
-        <div class="info">
-          <div class="name-row">
-            <span class="nickname">{{ userInfo.nickName }}</span>
-            <span class="level-tag" v-if="userInfo.level">Lv.{{ userInfo.level }}</span>
-            <span class="vip-tag" v-if="userInfo.vip">VIP{{ userInfo.vipLevel }}</span>
-            <span class="badge-tag" v-if="selectedBadge" :style="selectedBadge.style">
-              <span class="badge-icon">{{ selectedBadge.icon }}</span>
+      <view class="user-info">
+        <view class="avatar-frame" :style="avatarFrameStyle">
+          <image mode="aspectFill" class="avatar" :src="userInfo.avatar" alt="头像" @click="goEditProfile" />
+        </view>
+        <view class="info">
+          <view class="name-row">
+            <text class="nickname">{{ userInfo.nickName }}</text>
+            <text class="level-tag" v-if="userInfo.level">Lv.{{ userInfo.level }}</text>
+            <text class="vip-tag" v-if="userInfo.vip">VIP{{ userInfo.vipLevel }}</text>
+            <text class="badge-tag" v-if="selectedBadge" :style="selectedBadge.style">
+              <text class="badge-icon">{{ selectedBadge.icon }}</text>
               {{ selectedBadge.label }}
-            </span>
-          </div>
-          <span class="user-id">ID: {{ userInfo.userId }}</span>
-        </div>
-        <span class="edit-btn" @click="goEditProfile">
-          <span class="edit-icon">✏️</span>
+            </text>
+          </view>
+          <text class="user-id">ID: {{ userInfo.userId }}</text>
+        </view>
+        <text class="edit-btn" @click="goEditProfile">
+          <text class="edit-icon">✏️</text>
           资料编辑
-        </span>
-      </div>
+        </text>
+      </view>
     </template>
 
-    <div class="content-container">
-      <div class="stats-section">
-        <div class="stat-item" @click="goFollows">
-          <span class="stat-num">{{ userInfo.followCount }}</span>
-          <span class="stat-label">关注</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item" @click="goFans">
-          <span class="stat-num">{{ userInfo.fansCount }}</span>
-          <span class="stat-label">粉丝</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item" @click="goLikes">
-          <span class="stat-num">{{ userInfo.likeCount }}</span>
-          <span class="stat-label">获赞</span>
-        </div>
-        <div class="stat-divider"></div>
-        <div class="stat-item" @click="goVisitors">
-          <span class="stat-num">{{ userInfo.visitorCount }}</span>
-          <span class="stat-label">访客</span>
-        </div>
-      </div>
+    <view class="content-container">
+      <view class="stats-section">
+        <view class="stat-item" @click="goFollows">
+          <text class="stat-num">{{ userInfo.followCount }}</text>
+          <text class="stat-label">关注</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item" @click="goFans">
+          <text class="stat-num">{{ userInfo.fansCount }}</text>
+          <text class="stat-label">粉丝</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item" @click="goLikes">
+          <text class="stat-num">{{ userInfo.likeCount }}</text>
+          <text class="stat-label">获赞</text>
+        </view>
+        <view class="stat-divider"></view>
+        <view class="stat-item" @click="goVisitors">
+          <text class="stat-num">{{ userInfo.visitorCount }}</text>
+          <text class="stat-label">访客</text>
+        </view>
+      </view>
 
-      <div class="menu-section">
-        <div class="menu-grid">
-          <div class="menu-item" @click="goWallet">
-            <span class="menu-icon">💰</span>
-            <span class="menu-text">我的钱包</span>
-            <span class="menu-arrow">›</span>
-          </div>
-          <div class="menu-item" @click="goMyOrder">
-            <span class="menu-icon">📋</span>
-            <span class="menu-text">我的订单</span>
-            <span class="menu-arrow">›</span>
-          </div>
-          <div class="menu-item" @click="goMyService">
-            <span class="menu-icon">⭐</span>
-            <span class="menu-text">我的服务</span>
-            <span class="menu-arrow">›</span>
-          </div>
-          <div class="menu-item" @click="goApplyCompanion">
-            <span class="menu-icon">🎯</span>
-            <span class="menu-text">申请服务</span>
-            <span class="menu-arrow">›</span>
-          </div>
-          <div class="menu-item" @click="goMyPosts">
-            <span class="menu-icon">📝</span>
-            <span class="menu-text">我的动态</span>
-            <span class="menu-arrow">›</span>
-          </div>
-          <div class="menu-item" @click="goMyAlbum">
-            <span class="menu-icon">📷</span>
-            <span class="menu-text">我的相册</span>
-            <span class="menu-arrow">›</span>
-          </div>
-          <div class="menu-item" @click="goMyReserve">
-            <span class="menu-icon">📅</span>
-            <span class="menu-text">我的预约</span>
-            <span class="menu-arrow">›</span>
-          </div>
-          <div class="menu-item" @click="goMyReports">
-            <span class="menu-icon">🚨</span>
-            <span class="menu-text">我的举报</span>
-            <span class="menu-arrow">›</span>
-          </div>
-          <div class="menu-item" @click="goVip">
-            <span class="menu-icon">👑</span>
-            <span class="menu-text">VIP会员</span>
-            <span class="vip-badge" v-if="!userInfo.vip">开通</span>
-            <span class="menu-arrow">›</span>
-          </div>
-          <div class="menu-item" @click="goSettings">
-            <span class="menu-icon">⚙️</span>
-            <span class="menu-text">设置</span>
-            <span class="menu-arrow">›</span>
-          </div>
-        </div>
-      </div>
+      <view class="menu-section">
+        <view class="menu-grid">
+          <view class="menu-item" @click="goWallet">
+            <text class="menu-icon">💰</text>
+            <text class="menu-text">我的钱包</text>
+            <text class="menu-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="goMyOrder">
+            <text class="menu-icon">📋</text>
+            <text class="menu-text">我的订单</text>
+            <text class="menu-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="goMyService">
+            <text class="menu-icon">⭐</text>
+            <text class="menu-text">我的服务</text>
+            <text class="menu-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="goApplyCompanion">
+            <text class="menu-icon">🎯</text>
+            <text class="menu-text">申请服务</text>
+            <text class="menu-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="goMyPosts">
+            <text class="menu-icon">📝</text>
+            <text class="menu-text">我的动态</text>
+            <text class="menu-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="goMyAlbum">
+            <text class="menu-icon">📷</text>
+            <text class="menu-text">我的相册</text>
+            <text class="menu-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="goMyReserve">
+            <text class="menu-icon">📅</text>
+            <text class="menu-text">我的预约</text>
+            <text class="menu-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="goMyReports">
+            <text class="menu-icon">🚨</text>
+            <text class="menu-text">我的举报</text>
+            <text class="menu-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="goVip">
+            <text class="menu-icon">👑</text>
+            <text class="menu-text">VIP会员</text>
+            <text class="vip-badge" v-if="!userInfo.vip">开通</text>
+            <text class="menu-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="goRecords">
+            <text class="menu-icon">📚</text>
+            <text class="menu-text">我的记录</text>
+            <text class="menu-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="goAiChat">
+            <text class="menu-icon">🤖</text>
+            <text class="menu-text">AI陪聊</text>
+            <text class="menu-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="goTagManager">
+            <text class="menu-icon">🏷️</text>
+            <text class="menu-text">标签管理</text>
+            <text class="menu-arrow">›</text>
+          </view>
+          <view class="menu-item" @click="goSettings">
+            <text class="menu-icon">⚙️</text>
+            <text class="menu-text">设置</text>
+            <text class="menu-arrow">›</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="service-section">
-        <div class="service-item" @click="goCustomerService">
-          <span class="service-icon">🎧</span>
-          <div class="service-info">
-            <div class="service-name">在线客服</div>
-            <div class="service-desc">为您解答各类问题</div>
-          </div>
-          <span class="service-arrow">›</span>
-        </div>
-      </div>
-    </div>
+      <view class="service-section">
+        <view class="service-item" @click="goCustomerService">
+          <text class="service-icon">🎧</text>
+          <view class="service-info">
+            <view class="service-name">在线客服</view>
+            <view class="service-desc">为您解答各类问题</view>
+          </view>
+          <text class="service-arrow">›</text>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onHide, onPageScroll, onShow, onUnload } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
+import {
+  readScrollTop,
+  restoreScrollTop,
+  restoreTabState,
+  saveScrollTop,
+  saveTabState,
+  setTabStateOwner
+} from '../common/tabState'
 import PageLayout from '../components/PageLayout.vue'
 import { useUserStore } from '../store/user-info'
+import authService from '../services/authService'
 import { DEFAULT_AVATAR } from '@/common/constants'
 
 const router = useRouter()
 const userStore = useUserStore()
+
+const stats = ref({})
 
 const userInfo = computed(() => ({
   userId: userStore.profile?.userId || 100001,
@@ -135,10 +162,10 @@ const userInfo = computed(() => ({
   vip: userStore.profile?.vip || 0,
   vipLevel: userStore.profile?.vipLevel || 0,
   balance: userStore.profile?.balance || 0,
-  followCount: userStore.profile?.followCount || 0,
-  fansCount: userStore.profile?.fansCount || 0,
-  likeCount: userStore.profile?.likeCount || 0,
-  visitorCount: 0,
+  followCount: stats.value.followCount ?? userStore.profile?.followCount ?? 0,
+  fansCount: stats.value.fansCount ?? userStore.profile?.fansCount ?? 0,
+  likeCount: stats.value.likeCount ?? userStore.profile?.likeCount ?? 0,
+  visitorCount: stats.value.visitorCount ?? 0,
   todayIncome: 0,
   todayExpense: 0,
   totalWithdraw: 0
@@ -147,6 +174,41 @@ const userInfo = computed(() => ({
 const isCompanion = ref(false)
 const selectedBadge = ref(null)
 const avatarFrameStyle = ref({})
+
+const TAB_STATE_PATH = '/mine'
+const tabOwnerId = () => userStore.profile?.userId || ''
+
+// 主 Tab 用 reLaunch 切页会重建本页：优先恢复上次离开时的统计/装扮，避免骨架屏 + 滚动归零。
+// 快照超过 30s 视为过期，恢复后仍静默刷新一次统计（见 tabState.TAB_STATE_FRESH_MS）。
+const tabRestore = restoreTabState(TAB_STATE_PATH, tabOwnerId(), (snapshot) => {
+  if (snapshot.stats && typeof snapshot.stats === 'object') stats.value = snapshot.stats
+  if (snapshot.selectedBadge) selectedBadge.value = snapshot.selectedBadge
+  if (snapshot.avatarFrameStyle && typeof snapshot.avatarFrameStyle === 'object') {
+    avatarFrameStyle.value = snapshot.avatarFrameStyle
+  }
+  if (typeof snapshot.isCompanion === 'boolean') isCompanion.value = snapshot.isCompanion
+})
+const restoredScrollTop = tabRestore.restored ? readScrollTop(TAB_STATE_PATH) : 0
+let pageScrollTop = restoredScrollTop
+onPageScroll(({ scrollTop }) => {
+  pageScrollTop = Number(scrollTop) || 0
+})
+
+// onHide 在 reLaunch 销毁前触发，onUnload 兜底；两者都触发时只保存一次
+let tabStateSaved = false
+const saveTabSnapshot = () => {
+  if (tabStateSaved) return
+  tabStateSaved = true
+  saveTabState(TAB_STATE_PATH, {
+    stats: stats.value,
+    selectedBadge: selectedBadge.value,
+    avatarFrameStyle: avatarFrameStyle.value,
+    isCompanion: isCompanion.value
+  })
+  saveScrollTop(TAB_STATE_PATH, pageScrollTop)
+}
+onHide(saveTabSnapshot)
+onUnload(saveTabSnapshot)
 
 const loadVipItems = () => {
   try {
@@ -248,6 +310,18 @@ const goVip = () => {
   router.push('/vip-center')
 }
 
+const goRecords = () => {
+  router.push('/records-center')
+}
+
+const goAiChat = () => {
+  router.push('/ai-chat')
+}
+
+const goTagManager = () => {
+  router.push('/tag-manager')
+}
+
 const goSettings = () => {
   router.push('/settings')
 }
@@ -256,8 +330,49 @@ const goCustomerService = () => {
   router.push('/customer-service')
 }
 
-onMounted(() => {
+const loadStats = async () => {
+  try {
+    const res = await authService.getUserStats()
+    const data = res?.data || res || {}
+    stats.value = {
+      followCount: Number(data.followCount) || 0,
+      fansCount: Number(data.fansCount) || 0,
+      likeCount: Number(data.likeCount) || 0,
+      visitorCount: Number(data.visitorCount) || 0
+    }
+  } catch (error) {
+    console.error('加载个人统计失败:', error)
+  }
+}
+
+// 返回个人中心时静默刷新统计与本地装扮（关注/粉丝等可能在其它页面变化）
+const refreshOnShow = () => {
   loadVipItems()
+  loadStats()
+}
+
+onMounted(() => {
+  if (tabRestore.restored) {
+    // 统计/装扮已由快照渲染，等挂载后再恢复滚动位置（restoreScrollTop 内部会补两次重试）
+    restoreScrollTop(restoredScrollTop)
+    // 快照统计为空对象（上次加载失败）时不锁死空态：仍静默拉一次
+    if (tabRestore.needRefresh || !stats.value || Object.keys(stats.value).length === 0) refreshOnShow()
+    return
+  }
+  loadVipItems()
+  loadStats()
+})
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  // 账号（含登出）变化时清空全部 Tab 缓存，避免跨账号恢复旧列表
+  setTabStateOwner(tabOwnerId())
+  tabStateSaved = false
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
 })
 </script>
 

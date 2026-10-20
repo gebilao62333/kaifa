@@ -1,140 +1,143 @@
 <template>
-  <div class="apply-body">
-    <div class="form-item">
+  <view class="apply-body">
+    <view class="form-item">
       <label class="form-label">所在城市</label>
-      <div class="form-select" @click="emit('openPicker', 'city')">
+      <view class="form-select" @click="emit('openPicker', 'city')">
         {{ getCityLabel(modelValue.city) || '请选择' }}
-        <span class="select-arrow">›</span>
-      </div>
-    </div>
+        <text class="select-arrow">›</text>
+      </view>
+    </view>
 
-    <div class="form-item">
+    <view class="form-item">
       <label class="form-label">技能等级</label>
-      <div class="form-select" @click="emit('openPicker', 'level')">
+      <view class="form-select" @click="emit('openPicker', 'level')">
         {{ getLevelLabel(modelValue.level) || '请选择' }}
-        <span class="select-arrow">›</span>
-      </div>
-    </div>
+        <text class="select-arrow">›</text>
+      </view>
+    </view>
 
-    <div class="form-item">
+    <view class="form-item">
       <label class="form-label">上传图片（禁止盗用他人图片，发现将封号）</label>
       <input type="file" ref="cameraInput" accept="image/*" capture="environment" style="display: none" @change="onImageChange" />
       <input type="file" ref="galleryInput" accept="image/*" style="display: none" @change="onImageChange" />
-      <div class="upload-area" @click="showImageSourceMenu">
-        <img v-if="modelValue.imageUrl" :src="modelValue.imageUrl" class="upload-preview" />
+      <view class="upload-area" @click="showImageSourceMenu">
+        <image mode="aspectFit" v-if="modelValue.imageUrl" :src="modelValue.imageUrl" class="upload-preview" />
         <template v-else>
-          <div class="upload-icon">📷</div>
-          <div class="upload-text">请上传与你技能等级相符的截图</div>
+          <view class="upload-icon">📷</view>
+          <view class="upload-text">请上传与你技能等级相符的截图</view>
         </template>
-      </div>
-      <div class="image-source-menu" v-if="showSourceMenu">
-        <div class="menu-mask" @click="showSourceMenu = false"></div>
-        <div class="menu-content">
-          <div class="menu-item" @click="selectCamera">
-            <span class="menu-icon">📷</span>
-            <span>拍照</span>
-          </div>
-          <div class="menu-item" @click="selectGallery">
-            <span class="menu-icon">🖼️</span>
-            <span>从相册选择</span>
-          </div>
-          <div class="menu-item cancel" @click="showSourceMenu = false">
-            <span>取消</span>
-          </div>
-        </div>
-      </div>
-    </div>
+      </view>
+      <view class="image-source-menu" v-if="showSourceMenu">
+        <view class="menu-mask" @click="showSourceMenu = false"></view>
+        <view class="menu-content">
+          <view class="menu-item" @click="selectCamera">
+            <text class="menu-icon">📷</text>
+            <text>拍照</text>
+          </view>
+          <view class="menu-item" @click="selectGallery">
+            <text class="menu-icon">🖼️</text>
+            <text>从相册选择</text>
+          </view>
+          <view class="menu-item cancel" @click="showSourceMenu = false">
+            <text>取消</text>
+          </view>
+        </view>
+      </view>
+    </view>
 
-    <div class="form-item">
-      <div class="form-label-row">
+    <view class="form-item">
+      <view class="form-label-row">
         <label class="form-label required">技能介绍</label>
-        <span class="label-hint">（一句话介绍自己有助于展示）</span>
-        <span class="select-btn" @click="emit('openPicker', 'skill')">选择常用 ›</span>
-      </div>
+        <text class="label-hint">（一句话介绍自己有助于展示）</text>
+        <text class="select-btn" @click="emit('openPicker', 'skill')">选择常用 ›</text>
+      </view>
       <textarea class="form-textarea" v-model="modelValue.skillIntro" placeholder="声音特点/擅长位置/KD,技术特点/娱乐/技术陪/聊天/唱歌等"></textarea>
-    </div>
+    </view>
 
-    <div class="form-item">
+    <view class="form-item">
       <label class="form-label">接单大区</label>
-      <div class="form-select" @click="emit('openPicker', 'zone')">
+      <view class="form-select" @click="emit('openPicker', 'zone')">
         {{ getZoneLabel(modelValue.zone) || '请选择' }}
-        <span class="select-arrow">›</span>
-      </div>
-    </div>
+        <text class="select-arrow">›</text>
+      </view>
+    </view>
 
-    <div class="form-item">
+    <view class="form-item">
       <label class="form-label">擅长位置</label>
-      <div class="form-select" @click="emit('openPicker', 'position')">
+      <view class="form-select" @click="emit('openPicker', 'position')">
         {{ getPositionLabel(modelValue.position) || '请选择' }}
-        <span class="select-arrow">›</span>
-      </div>
-    </div>
+        <text class="select-arrow">›</text>
+      </view>
+    </view>
 
-    <div class="form-item">
+    <view class="form-item">
       <label class="form-label">陪玩类型</label>
-      <div class="form-select" @click="emit('openPicker', 'playType')">
+      <view class="form-select" @click="emit('openPicker', 'playType')">
         {{ getPlayTypeLabel(modelValue.playType) || '请选择' }}
-        <span class="select-arrow">›</span>
-      </div>
-    </div>
+        <text class="select-arrow">›</text>
+      </view>
+    </view>
 
-    <div class="form-item">
+    <view class="form-item">
       <label class="form-label">设置价格(币/段)</label>
-      <div class="form-input-wrap">
+      <view class="form-input-wrap">
         <input type="number" class="form-input" v-model="modelValue.price" placeholder="输入你的价格" />
-      </div>
-    </div>
+      </view>
+    </view>
 
-    <div class="form-item">
+    <view class="form-item">
       <label class="form-label">语音介绍</label>
-      <div class="audio-container">
-        <div v-show="!modelValue.audioUrl" :class="['record-area', { recording: isRecording }]" @click="emit('toggleRecording')">
-          <div class="record-icon">🎤</div>
-          <div class="record-text">{{ isRecording ? '录音中...' : '点击录音' }}</div>
-          <div class="record-hint">{{ isRecording ? recordDuration + '秒' : '录制一段自我介绍' }}</div>
-          <div class="record-wave" v-show="isRecording">
-            <span></span><span></span><span></span><span></span><span></span>
-          </div>
-        </div>
-        <div v-show="modelValue.audioUrl" class="audio-preview">
-          <audio :src="modelValue.audioUrl" controls class="audio-player"></audio>
+      <view class="audio-container">
+        <view v-show="!modelValue.audioUrl" :class="['record-area', { recording: isRecording }]" @click="emit('toggleRecording')">
+          <view class="record-icon">🎤</view>
+          <view class="record-text">{{ isRecording ? '录音中...' : '点击录音' }}</view>
+          <view class="record-hint">{{ isRecording ? recordDuration + '秒' : '录制一段自我介绍' }}</view>
+          <view class="record-wave" v-show="isRecording">
+            <text></text><text></text><text></text><text></text><text></text>
+          </view>
+        </view>
+        <view v-show="modelValue.audioUrl" class="audio-preview">
+          <audio v-if="!isApp" :src="modelValue.audioUrl" controls class="audio-player"></audio>
+          <view v-else class="audio-player app-audio-player" @click="emit('toggleAudioPlay')">
+            {{ audioPlaying ? '⏸️ 播放中' : '🔊 点击试听' }}
+          </view>
           <button class="delete-audio-btn" @click="emit('deleteAudio')">删除重录</button>
-        </div>
-      </div>
-    </div>
+        </view>
+      </view>
+    </view>
 
-    <div class="form-actions">
+    <view class="form-actions">
       <button class="submit-btn" @click="emit('submit')">提交审核</button>
-    </div>
-  </div>
+    </view>
+  </view>
   
-  <div class="permission-guide-container">
-    <div class="permission-guide-overlay" v-if="showPermissionGuide">
-      <div class="permission-guide-modal">
-        <div class="guide-header">
-          <span class="guide-icon">{{ permissionError.type === 'camera' ? '📷' : '🎤' }}</span>
+  <view class="permission-guide-container">
+    <view class="permission-guide-overlay" v-if="showPermissionGuide">
+      <view class="permission-guide-modal">
+        <view class="guide-header">
+          <text class="guide-icon">{{ permissionError.type === 'camera' ? '📷' : '🎤' }}</text>
           <h3 class="guide-title">{{ permissionError.type === 'camera' ? '相机权限' : '麦克风权限' }}</h3>
-        </div>
+        </view>
         
-        <div class="guide-content">
-          <p class="guide-message">{{ permissionError.message }}</p>
+        <view class="guide-content">
+          <view class="guide-message">{{ permissionError.message }}</view>
           
-          <div class="guide-steps" v-if="permissionError.errorType === 'denied'">
-            <div class="steps-title">如何开启权限：</div>
-            <div 
+          <view class="guide-steps" v-if="permissionError.errorType === 'denied'">
+            <view class="steps-title">如何开启权限：</view>
+            <view 
               v-for="(step, index) in getPermissionGuideSteps(permissionError.type)" 
               :key="index" 
               class="step-item"
             >
-              <span class="step-number">{{ step.step }}</span>
-              <span class="step-icon">{{ step.icon }}</span>
-              <span class="step-text">{{ step.text }}</span>
-            </div>
-          </div>
+              <text class="step-number">{{ step.step }}</text>
+              <text class="step-icon">{{ step.icon }}</text>
+              <text class="step-text">{{ step.text }}</text>
+            </view>
+          </view>
           
-          <div class="guide-alternative">
-            <div class="alternative-title">或者您也可以：</div>
-            <div class="alternative-actions">
+          <view class="guide-alternative">
+            <view class="alternative-title">或者您也可以：</view>
+            <view class="alternative-actions">
               <button 
                 class="alternative-btn"
                 @click="handlePermissionAlternative"
@@ -147,30 +150,36 @@
               >
                 不使用{{ permissionError.type === 'camera' ? '相机' : '麦克风' }}继续
               </button>
-            </div>
-          </div>
-        </div>
+            </view>
+          </view>
+        </view>
         
-        <div class="guide-footer">
+        <view class="guide-footer">
           <button class="close-btn" @click="showPermissionGuide = false">关闭</button>
-        </div>
-      </div>
-    </div>
-  </div>
+        </view>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { usePermissions } from '../composables/usePermissions'
 import regionService from '../services/regionService'
+import { uploadFile } from '../services/uploadService'
+import { chooseImages } from '../services/mediaPicker'
+import { isApp } from '../common/platform'
+import { toast } from '../composables/useToast'
 
-defineProps({
+const props = defineProps({
   modelValue: { type: Object, required: true },
   isRecording: { type: Boolean, default: false },
-  recordDuration: { type: Number, default: 0 }
+  recordDuration: { type: Number, default: 0 },
+  // App 端 <audio> 不能稳定播放本地临时文件，由父组件用 innerAudioContext 播放
+  audioPlaying: { type: Boolean, default: false }
 })
 
-const emit = defineEmits(['openPicker', 'imageUpload', 'toggleRecording', 'deleteAudio', 'submit'])
+const emit = defineEmits(['openPicker', 'imageUpload', 'toggleRecording', 'deleteAudio', 'toggleAudioPlay', 'submit'])
 
 const { 
   requestCameraPermission, 
@@ -179,6 +188,7 @@ const {
 
 const cameraInput = ref(null)
 const galleryInput = ref(null)
+const imageUploading = ref(false)
 const showSourceMenu = ref(false)
 const showPermissionGuide = ref(false)
 const permissionError = ref({ type: 'camera', errorType: 'denied', message: '' })
@@ -270,12 +280,54 @@ const onImageChange = (e) => {
   emit('imageUpload', e)
 }
 
+// 点上传区：H5 弹出自定义来源菜单；App 没有可靠的文件 input，直接走 mediaPicker（拍照/相册）
 const showImageSourceMenu = () => {
+  if (isApp) { pickImageFromApp(); return }
   showSourceMenu.value = true
+}
+
+const pickImageFromApp = async () => {
+  try {
+    const { supported, files } = await chooseImages(1)
+    if (supported && files.length) await applyImageFile(files[0])
+  } catch (err) {
+    toast.error(err.message || '选择图片失败')
+  }
+}
+
+// App 端没有可读的 File，无法沿用父组件的 FileReader 预览：
+// 先用 uni 临时路径占位预览，再直传拿到真实 URL 回填表单（父组件提交时只需跳过 blob:/data:）
+const applyImageFile = async (file) => {
+  showSourceMenu.value = false
+  if (!file || imageUploading.value) return
+  if (file.size > 5 * 1024 * 1024) {
+    toast.error('图片大小不能超过5MB')
+    return
+  }
+  const prev = props.modelValue.imageUrl
+  props.modelValue.imageUrl = file.path
+  imageUploading.value = true
+  try {
+    const res = await uploadFile(file, 'image')
+    if (res?.code === 200 && res.data?.url) {
+      props.modelValue.imageUrl = res.data.url
+    } else {
+      props.modelValue.imageUrl = prev
+      toast.error(res?.message || '图片上传失败')
+    }
+  } catch (err) {
+    props.modelValue.imageUrl = prev
+    toast.error(err.message || '图片上传失败')
+  } finally {
+    imageUploading.value = false
+  }
 }
 
 const selectCamera = async () => {
   showSourceMenu.value = false
+
+  // App 端没有可靠的相机权限弹窗和 <input capture>，统一交给 mediaPicker
+  if (isApp) { pickImageFromApp(); return }
   
   const result = await requestCameraPermission()
   
@@ -293,6 +345,7 @@ const selectCamera = async () => {
 
 const selectGallery = () => {
   showSourceMenu.value = false
+  if (isApp) { pickImageFromApp(); return }
   galleryInput.value?.click()
 }
 
@@ -463,7 +516,7 @@ const handlePermissionContinue = () => {
   will-change: transform;
 }
 
-.record-wave span {
+.record-wave text {
   width: 4px;
   height: 24px;
   background: white;
@@ -472,10 +525,10 @@ const handlePermissionContinue = () => {
   transform-origin: center bottom;
 }
 
-.record-wave span:nth-child(2) { animation-delay: 0.1s; }
-.record-wave span:nth-child(3) { animation-delay: 0.2s; }
-.record-wave span:nth-child(4) { animation-delay: 0.3s; }
-.record-wave span:nth-child(5) { animation-delay: 0.4s; }
+.record-wave text:nth-child(2) { animation-delay: 0.1s; }
+.record-wave text:nth-child(3) { animation-delay: 0.2s; }
+.record-wave text:nth-child(4) { animation-delay: 0.3s; }
+.record-wave text:nth-child(5) { animation-delay: 0.4s; }
 
 @keyframes wave {
   0%, 100% { transform: scaleY(0.4); }
@@ -493,6 +546,19 @@ const handlePermissionContinue = () => {
 
 .audio-player {
   width: 100%;
+.audio-player {
+  width: 100%;
+}
+
+/* App 端试听按钮：uni 没有可直接播放本地临时文件的 <audio>，走 innerAudioContext */
+.app-audio-player {
+  padding: 10px;
+  text-align: center;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #f5576c;
 }
 
 .delete-audio-btn {

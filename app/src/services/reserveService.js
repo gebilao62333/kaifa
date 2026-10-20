@@ -3,10 +3,12 @@ import { validateParams } from '../common/common'
 
 const reserveService = {
   async getSlots(params = {}) {
-    const { companionId, date } = params
+    const { companionId, date, includeDisabled } = params
     const data = {}
     if (companionId) data.companionId = companionId
     if (date) data.date = date
+    // C-2：时段管理需要看到已关闭（status=2）的时段，否则关掉后就再也无法开启
+    if (includeDisabled) data.includeDisabled = 1
     return request('/api/reserve/slots', 'GET', data)
   },
 
@@ -17,11 +19,12 @@ const reserveService = {
     return request('/api/reserve/slots/batch', 'POST', { slots })
   },
 
-  async toggleSlot(slotId, enabled) {
+  // C-8：后端按「当前状态取反」处理，enabled 从不读取；这里不再上送该字段，避免语义空转
+  async toggleSlot(slotId) {
     validateParams({ slotId }, {
       slotId: { required: true, label: '时间段ID', type: 'number' }
     })
-    return request('/api/reserve/slots/toggle', 'POST', { slotId, enabled })
+    return request('/api/reserve/slots/toggle', 'POST', { slotId })
   },
 
   // 后端契约：{ companionId, gameId, date, time }
@@ -64,9 +67,11 @@ const reserveService = {
   },
 
   async getReserveList(params = {}) {
-    const { status, page = 1, pageSize = 20 } = params
+    const { status, role, page = 1, pageSize = 20 } = params
     const data = { page, pageSize }
     if (status !== undefined) data.status = status
+    // C-2：user=我发起的（默认），companion=我收到的；后端按 role 切换 where
+    if (role) data.role = role
     return request('/api/reserve/list', 'GET', data)
   },
 

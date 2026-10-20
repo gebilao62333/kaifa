@@ -1,110 +1,110 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">隐身访问</span>
-      <span class="placeholder"></span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">隐身访问</text>
+      <text class="placeholder"></text>
     </template>
 
-    <div class="content">
-      <div class="intro-card">
-        <div class="intro-icon">👻</div>
-        <div class="intro-text">
-          <div class="intro-title">隐身模式</div>
-          <div class="intro-desc">开启后，您可以悄悄浏览其他用户的主页和动态，对方不会收到访客通知</div>
-        </div>
-      </div>
+    <view class="content">
+      <view class="intro-card">
+        <view class="intro-icon">👻</view>
+        <view class="intro-text">
+          <view class="intro-title">隐身模式</view>
+          <view class="intro-desc">开启后，您可以悄悄浏览其他用户的主页和动态，对方不会收到访客通知</view>
+        </view>
+      </view>
 
-      <div class="setting-section">
-        <div class="setting-item">
-          <div class="setting-info">
-            <div class="setting-name">隐身访问</div>
-            <div class="setting-desc">开启后浏览他人主页不留下访客记录</div>
-          </div>
-          <div class="switch" :class="{ active: settings.stealth }" @click="toggleSetting('stealth')"></div>
-        </div>
-        <div class="setting-item" :class="{ disabled: !settings.stealth }">
-          <div class="setting-info">
-            <div class="setting-name">隐藏在线状态</div>
-            <div class="setting-desc">在线时对其他用户显示为离线</div>
-          </div>
-          <div class="switch" :class="{ active: settings.hideOnline }" @click="toggleSetting('hideOnline')"></div>
-        </div>
-        <div class="setting-item" :class="{ disabled: !settings.stealth }">
-          <div class="setting-info">
-            <div class="setting-name">隐身浏览动态</div>
-            <div class="setting-desc">浏览动态时不会出现在访客列表</div>
-          </div>
-          <div class="switch" :class="{ active: settings.stealthBrowse }" @click="toggleSetting('stealthBrowse')"></div>
-        </div>
-        <div class="setting-item" :class="{ disabled: !settings.stealth }">
-          <div class="setting-info">
-            <div class="setting-name">屏蔽通知提醒</div>
-            <div class="setting-desc">隐身期间屏蔽所有访客相关通知</div>
-          </div>
-          <div class="switch" :class="{ active: settings.muteNotify }" @click="toggleSetting('muteNotify')"></div>
-        </div>
-      </div>
+      <view class="setting-section">
+        <view class="setting-item">
+          <view class="setting-info">
+            <view class="setting-name">隐身访问</view>
+            <view class="setting-desc">开启后浏览他人主页不留下访客记录</view>
+          </view>
+          <view class="switch" :class="{ active: settings.stealth }" @click="toggleSetting('stealth')"></view>
+        </view>
+        <view class="setting-item" :class="{ disabled: !settings.stealth }">
+          <view class="setting-info">
+            <view class="setting-name">隐藏在线状态</view>
+            <view class="setting-desc">在线时对其他用户显示为离线</view>
+          </view>
+          <view class="switch" :class="{ active: settings.hideOnline }" @click="toggleSetting('hideOnline')"></view>
+        </view>
+        <view class="setting-item" :class="{ disabled: !settings.stealth }">
+          <view class="setting-info">
+            <view class="setting-name">隐身浏览动态</view>
+            <view class="setting-desc">浏览动态时不会出现在访客列表</view>
+          </view>
+          <view class="switch" :class="{ active: settings.stealthBrowse }" @click="toggleSetting('stealthBrowse')"></view>
+        </view>
+        <view class="setting-item" :class="{ disabled: !settings.stealth }">
+          <view class="setting-info">
+            <view class="setting-name">屏蔽通知提醒</view>
+            <view class="setting-desc">隐身期间屏蔽所有访客相关通知</view>
+          </view>
+          <view class="switch" :class="{ active: settings.muteNotify }" @click="toggleSetting('muteNotify')"></view>
+        </view>
+      </view>
 
-      <div class="info-card">
-        <div class="info-title">隐身说明</div>
-        <div class="info-list">
-          <div class="info-item">
-            <span class="info-icon">✅</span>
-            <span class="info-text">访客列表不会出现您的记录</span>
-          </div>
-          <div class="info-item">
-            <span class="info-icon">✅</span>
-            <span class="info-text">动态浏览量仍会计入</span>
-          </div>
-          <div class="info-item">
-            <span class="info-icon">❌</span>
-            <span class="info-text">私信和评论仍然可见</span>
-          </div>
-          <div class="info-item">
-            <span class="info-icon">❌</span>
-            <span class="info-text">对方主动搜索仍可找到您</span>
-          </div>
-        </div>
-      </div>
+      <view class="info-card">
+        <view class="info-title">隐身说明</view>
+        <view class="info-list">
+          <view class="info-item">
+            <text class="info-icon">✅</text>
+            <text class="info-text">访客列表不会出现您的记录</text>
+          </view>
+          <view class="info-item">
+            <text class="info-icon">✅</text>
+            <text class="info-text">动态浏览量仍会计入</text>
+          </view>
+          <view class="info-item">
+            <text class="info-icon">❌</text>
+            <text class="info-text">私信和评论仍然可见</text>
+          </view>
+          <view class="info-item">
+            <text class="info-icon">❌</text>
+            <text class="info-text">对方主动搜索仍可找到您</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="vip-level-card">
-        <div class="vip-level-title">VIP等级要求</div>
-        <div class="vip-level-list">
-          <div class="vip-level-item" :class="{ achieved: currentVipLevel >= 1 }">
-            <div class="vip-level-left">
-              <span class="vip-level-icon">👻</span>
-              <span class="vip-level-name">隐身访问</span>
-            </div>
-            <span class="vip-level-tag">VIP1</span>
-          </div>
-          <div class="vip-level-item" :class="{ achieved: currentVipLevel >= 2 }">
-            <div class="vip-level-left">
-              <span class="vip-level-icon">🌙</span>
-              <span class="vip-level-name">隐藏在线状态</span>
-            </div>
-            <span class="vip-level-tag">VIP2</span>
-          </div>
-          <div class="vip-level-item" :class="{ achieved: currentVipLevel >= 3 }">
-            <div class="vip-level-left">
-              <span class="vip-level-icon">🕶️</span>
-              <span class="vip-level-name">隐身浏览动态</span>
-            </div>
-            <span class="vip-level-tag">VIP3</span>
-          </div>
-          <div class="vip-level-item" :class="{ achieved: currentVipLevel >= 4 }">
-            <div class="vip-level-left">
-              <span class="vip-level-icon">🔇</span>
-              <span class="vip-level-name">屏蔽通知提醒</span>
-            </div>
-            <span class="vip-level-tag">VIP4</span>
-          </div>
-        </div>
-        <div class="vip-level-hint" v-if="currentVipLevel < 4">
+      <view class="vip-level-card">
+        <view class="vip-level-title">VIP等级要求</view>
+        <view class="vip-level-list">
+          <view class="vip-level-item" :class="{ achieved: currentVipLevel >= 1 }">
+            <view class="vip-level-left">
+              <text class="vip-level-icon">👻</text>
+              <text class="vip-level-name">隐身访问</text>
+            </view>
+            <text class="vip-level-tag">VIP1</text>
+          </view>
+          <view class="vip-level-item" :class="{ achieved: currentVipLevel >= 2 }">
+            <view class="vip-level-left">
+              <text class="vip-level-icon">🌙</text>
+              <text class="vip-level-name">隐藏在线状态</text>
+            </view>
+            <text class="vip-level-tag">VIP2</text>
+          </view>
+          <view class="vip-level-item" :class="{ achieved: currentVipLevel >= 3 }">
+            <view class="vip-level-left">
+              <text class="vip-level-icon">🕶️</text>
+              <text class="vip-level-name">隐身浏览动态</text>
+            </view>
+            <text class="vip-level-tag">VIP3</text>
+          </view>
+          <view class="vip-level-item" :class="{ achieved: currentVipLevel >= 4 }">
+            <view class="vip-level-left">
+              <text class="vip-level-icon">🔇</text>
+              <text class="vip-level-name">屏蔽通知提醒</text>
+            </view>
+            <text class="vip-level-tag">VIP4</text>
+          </view>
+        </view>
+        <view class="vip-level-hint" v-if="currentVipLevel < 4">
           当前 VIP{{ currentVipLevel }}，升级至 VIP{{ currentVipLevel + 1 }} 解锁更多隐身功能
-        </div>
-      </div>
-    </div>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
@@ -114,6 +114,7 @@ import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import userPrefService from '../services/userPrefService'
 import { toast } from '../composables/useToast'
+import storage from '../common/storage'
 
 const router = useRouter()
 
@@ -128,7 +129,7 @@ const settings = reactive({
 
 const loadSettings = () => {
   try {
-    const saved = localStorage.getItem('stealthSettings')
+    const saved = storage.getItem('stealthSettings')
     if (saved) {
       const parsed = JSON.parse(saved)
       Object.assign(settings, parsed)
@@ -137,7 +138,7 @@ const loadSettings = () => {
 }
 
 const saveSettings = () => {
-  localStorage.setItem('stealthSettings', JSON.stringify(settings))
+  storage.setItem('stealthSettings', JSON.stringify(settings))
   // 等级门槛等服务端拒绝原因要让用户看到，网络类错误保持静默
   userPrefService.save({ stealthSettings: { ...settings } })
     .catch((e) => { if (e?.status === 422) toast.show(e.message) })

@@ -1,77 +1,78 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">在线客服</span>
-      <span class="placeholder"></span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">在线客服</text>
+      <text class="placeholder"></text>
     </template>
 
-    <div class="content">
-      <div class="greeting-card">
-        <div class="greeting-icon">👋</div>
-        <div class="greeting-text">您好，请问有什么可以帮您的？</div>
-      </div>
+    <view class="content">
+      <view class="greeting-card">
+        <view class="greeting-icon">👋</view>
+        <view class="greeting-text">您好，请问有什么可以帮您的？</view>
+      </view>
 
-      <div class="agent-section">
-        <div class="section-title">客服人员</div>
-        <div class="agent-list">
-          <div class="agent-item" v-for="agent in agentList" :key="agent.id" @click="startChat(agent)">
-            <div class="agent-avatar-wrapper">
-              <img class="agent-avatar" :src="agent.avatar" :alt="agent.name" />
-              <span class="agent-status" :class="{ online: agent.online }"></span>
-            </div>
-            <div class="agent-info">
-              <div class="agent-name-row">
-                <span class="agent-name">{{ agent.name }}</span>
-                <span class="agent-role" :class="agent.role">{{ agent.role === 'senior' ? '资深客服' : '客服' }}</span>
-              </div>
-              <div class="agent-desc">{{ agent.online ? '在线 · 随时为您服务' : '离线 · 可留言' }}</div>
-            </div>
-            <span class="agent-status-text" :class="{ online: agent.online }">{{ agent.online ? '在线' : '离线' }}</span>
-          </div>
-        </div>
-      </div>
+      <view class="agent-section">
+        <view class="section-title">客服人员</view>
+        <view class="agent-list">
+          <view class="agent-item" v-for="agent in agentList" :key="agent.id" @click="startChat(agent)">
+            <view class="agent-avatar-wrapper">
+              <image mode="aspectFill" class="agent-avatar" :src="agent.avatar" :alt="agent.name" />
+              <text class="agent-status" :class="{ online: agent.online }"></text>
+            </view>
+            <view class="agent-info">
+              <view class="agent-name-row">
+                <text class="agent-name">{{ agent.name }}</text>
+                <text class="agent-role" :class="agent.role">{{ agent.role === 'senior' ? '资深客服' : '客服' }}</text>
+              </view>
+              <view class="agent-desc">{{ agent.online ? '在线 · 随时为您服务' : '离线 · 可留言' }}</view>
+            </view>
+            <text class="agent-status-text" :class="{ online: agent.online }">{{ agent.online ? '在线' : '离线' }}</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="contact-section">
-        <div class="section-title">其他渠道</div>
-        <div class="contact-list">
-          <div class="contact-item" @click="callPhone">
-            <div class="contact-icon-wrapper phone">
-              <span class="contact-icon">📞</span>
-            </div>
-            <div class="contact-info">
-              <div class="contact-name">客服热线</div>
-              <div class="contact-desc">400-888-8888</div>
-            </div>
-            <span class="contact-arrow">›</span>
-          </div>
-        </div>
-      </div>
+      <view class="contact-section">
+        <view class="section-title">其他渠道</view>
+        <view class="contact-list">
+          <view class="contact-item" @click="callPhone">
+            <view class="contact-icon-wrapper phone">
+              <text class="contact-icon">📞</text>
+            </view>
+            <view class="contact-info">
+              <view class="contact-name">客服热线</view>
+              <view class="contact-desc">400-888-8888</view>
+            </view>
+            <text class="contact-arrow">›</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="faq-section">
-        <div class="section-title">常见问题</div>
-        <div class="faq-list">
-          <div class="faq-item" v-for="(item, index) in faqList" :key="index" @click="toggleFaq(index)">
-            <div class="faq-header">
-              <span class="faq-question">{{ item.question }}</span>
-              <span class="faq-arrow" :class="{ expanded: item.expanded }">›</span>
-            </div>
-            <div class="faq-body" v-show="item.expanded">
-              <div class="faq-answer">{{ item.answer }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <view class="faq-section">
+        <view class="section-title">常见问题</view>
+        <view class="faq-list">
+          <view class="faq-item" v-for="(item, index) in faqList" :key="index" @click="toggleFaq(index)">
+            <view class="faq-header">
+              <text class="faq-question">{{ item.question }}</text>
+              <text class="faq-arrow" :class="{ expanded: item.expanded }">›</text>
+            </view>
+            <view class="faq-body" v-show="item.expanded">
+              <view class="faq-answer">{{ item.answer }}</view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
 import { DEFAULT_AVATAR } from '../common/constants'
+import homeService from '../services/homeService'
 
 const router = useRouter()
 
@@ -121,7 +122,7 @@ const agentList = ref([
 const faqList = ref([
   {
     question: '如何充值金币？',
-    answer: '进入"我的"页面，点击"我的余额"进入钱包，选择充值金额即可完成充值。支持微信支付、支付宝等多种支付方式。',
+    answer: '进入"我的"页面，点击"我的余额"进入钱包，选择充值金额即可完成充值。充值支持微信扫码支付与卡密充值。',
     expanded: false
   },
   {
@@ -203,6 +204,18 @@ const callPhone = () => {
   color: white;
   line-height: 1.5;
 }
+
+.agent-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 20px;
+  background: #fff;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+.agent-empty-icon { font-size: 28px; }
+.agent-empty-text { font-size: 13px; color: #999; text-align: center; }
 
 .agent-section {
   margin-bottom: 16px;

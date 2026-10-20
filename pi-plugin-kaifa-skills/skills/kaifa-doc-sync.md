@@ -21,16 +21,33 @@ tags: ["自习"]
 | 文档 | 什么时候必须改 |
 |---|---|
 | `backend/后端API接口文档.md` | 新增/修改/删除任何接口；请求或响应字段、错误码、鉴权要求变化 |
-| `backend/后端开发文档.md` | 目录结构、分层约定、启动/迁移流程变化 |
+| `backend/后端开发文档.md` | 目录结构、分层约定、启动/迁移流程、端到端交互流程变化 |
 | `backend/数据库设计文档.md` | 新表、新字段、索引、枚举值变化（含迁移语义） |
 | `backend/部署文档.md` / `Sealos部署核对清单.md` | 环境变量、镜像、端口、nginx、上线步骤变化 |
-| `后端功能拆解开发指导.md` | 功能开发范围/完成度变化 |
+| `app/README.md`（用户端架构/目录/边界）；`frontend/前端技术文档.md`、`frontend/前端交互功能清单.md` 已于 2026-10-21 随旧站删除（备份 `.e2e-run/legacy-frontend-backup-2026-10-21/`，仅作历史参考） | uni-app 用户端架构、服务层/WS 事件/错误码/测试规范、页面级交互；**页面/服务/组件计数以 `app/` 源码为准** |
 | `前端功能差异清单.md` | 用户端/管理端功能有无、完成度变化（§11.5 是逐项修复台账） |
 | `前端功能联调测试清单.md` + `前端功能联调测试报告.md` | 联调范围或结论变化（报告写"实测结果"，不是计划） |
 | `未完成事项清单.md` | 新发现的缺口，或某项从"未完成"转"已完成"（不要直接删条目） |
 | `人工与外部依赖验证清单.md` | 出现只能人工/外网验证的项（短信、微信支付、TURN、COS、真机） |
 | `通话通道改造说明.md` / `密卡充值验证与遗留项说明.md` | 对应专项模块的变更与遗留项 |
 | `eu搭子-业务闭环交互导图.html` / `前端功能导图-用户端App.md` | 业务闭环/流程变化（低频，改动大时才动） |
+| `app/README.md` / `app/PACKAGING.md` / `app/DEPLOY-H5.md` | uni-app 迁移版目录与边界、HBuilderX 打包、H5 产物切换 |
+| `deploy/sealos/README.md` / `deploy/sealos/DEPLOYED-<日期>.md` | Sealos 从零搭建步骤、实际部署事实（地址/镜像 tag/表数/已知限制） |
+| `pi-plugin-kaifa-skills/skills/*.md` | 工程约定/技能变化（改完需重新 PluginPack 出 dist） |
+
+## 已归档文档（2026-10-20 文档整治，勿再当真空源）
+
+以下文档已移入 `.dsh/trash-2026-10-20T14-19-21-679Z/doc-cleanup/`（保留仓库内相对路径，可原样还原），独有内容已并入右侧真源；后续只维护真源，历史文档里对它们的引用保留（对应归档件），不必追改：
+
+| 已归档 | 内容去向 |
+|---|---|
+| `backend/后端交互功能梳理.md` | `backend/后端开发文档.md`（端到端交互流程 + 代码核对发现附录）、`backend/后端API接口文档.md` §17 |
+| `backend/后端功能拆解开发指导.md` | `backend/后端开发文档.md` §4.2/§6.4、`backend/数据库设计文档.md` §6 |
+| `backend/后端交互问题修复方案.md` | `未完成事项清单.md`（仍开放项） |
+| `backend/真实数据功能测试报告.md` | `backend/部署文档.md`（真实库结构漂移根因） |
+| `frontend/`（整目录，含其文档） | 已于 2026-10-21 删除；备份 `.e2e-run/legacy-frontend-backup-2026-10-21/`（含前端技术文档/交互功能清单），历史引用以此为准 |
+| `上线迁移与核对清单-2026-10-20.md` | `Sealos部署核对清单.md`、`deploy/sealos/DEPLOYED-2026-10-20.md` |
+| `app/automation/` 下 9 份过程稿 + `app/automation/README.md` | `app/README.md`、`app/automation/STATUS.md`、`app/automation/REMAINING-WORK.md`、`app/scripts/README.md` |
 
 ### 2. 做法
 

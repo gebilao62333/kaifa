@@ -63,6 +63,15 @@ const response = {
     });
   },
   
+  // 状态冲突（重复评价、订单状态不允许当前操作等）——与参数非法(400)区分开
+  conflict: (res, message = '当前状态不允许此操作') => {
+    setJsonUtf8(res);
+    return res.status(409).json({
+      code: 409,
+      message
+    });
+  },
+
   unprocessableEntity: (res, message = '业务逻辑错误', errors = {}) => {
     setJsonUtf8(res);
     return res.status(422).json({

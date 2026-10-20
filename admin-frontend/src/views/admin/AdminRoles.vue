@@ -65,7 +65,9 @@ const showModal = ref(false)
 const isEdit = ref(false)
 const isSuper = ref(false)
 const form = ref({ id: '', name: '', username: '', password: '', description: '', permissions: [] })
-const allPermissions = [
+// 权限键的真源在后端 utils/permissions.js（GET /api/admin-manage/permissions）。
+// 此处保留一份内置兜底列表，仅用于接口不可用时仍能编辑角色；正常情况下以接口返回覆盖。
+const DEFAULT_PERMISSION_OPTIONS = [
   { key: 'dashboard:read', label: '查看控制台' },
   { key: 'user:read', label: '查看用户' }, { key: 'user:write', label: '管理用户' },
   { key: 'order:read', label: '查看订单' }, { key: 'order:write', label: '管理订单' },
@@ -87,6 +89,18 @@ const allPermissions = [
   { key: 'settings:read', label: '查看系统设置' }, { key: 'settings:write', label: '修改系统设置' },
   { key: 'api:read', label: '查看接口管理' }
 ]
+const allPermissions = ref([...DEFAULT_PERMISSION_OPTIONS])
+
+// 用后端权限真源渲染勾选项，避免 AdminRoles.vue 与 utils/permissions.js 漂移
+const loadPermissions = async () => {
+  try {
+    const res = await fetch(`${getHost()}/api/admin-manage/permissions`, { headers: getHeaders() })
+    const result = await res.json()
+    const list = result && result.data && result.data.permissions
+    if (Array.isArray(list) && list.length) allPermissions.value = list
+  } catch (e) { /* 接口不可用时沿用内置兜底列表 */ }
+}
+
 const loadList = async () => {
   loading.value = true
   try {
@@ -108,7 +122,7 @@ const parsePerms = (p) => {
   }
   return []
 }
-const permLabel = (key) => { if (key === 'all') return '全部权限'; const f = allPermissions.find(p => p.key === key); return f ? f.label : key }
+const permLabel = (key) => { if (key === 'all') return '全部权限'; const f = allPermissions.value.find(p => p.key === key); return f ? f.label : key }
 const save = async () => {
   try {
     const url = isEdit.value ? `${getHost()}/api/admin-manage/roles/${form.value.id}` : `${getHost()}/api/admin-manage/roles`
@@ -122,7 +136,7 @@ const save = async () => {
   } catch (e) { toast.error('保存失败: ' + (e.message || '网络错误')) }
 }
 const remove = async (r) => { if (!confirm(`确定删除角色 ${r.name}?`)) return; try { await fetch(`${getHost()}/api/admin-manage/roles/${r.id}`, { method: 'DELETE', headers: { Authorization: getHeaders().Authorization } }); toast.success('角色已删除'); loadList() } catch (e) { toast.error('删除失败: ' + (e.message || '网络错误')) } }
-onMounted(loadList)
+onMounted(() => { loadPermissions(); loadList() })
 </script>
 
 <style scoped>

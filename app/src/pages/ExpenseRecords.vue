@@ -1,36 +1,36 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">支出明细</span>
-      <span class="total expense">今日 -{{ formatAmount(todayExpense) }} 金币</span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">支出明细</text>
+      <text class="total expense">今日 -{{ formatAmount(todayExpense) }} 金币</text>
     </template>
 
-  <div class="summary-card">
-    <div class="summary-item">
-      <span class="summary-label">支出总额</span>
-      <span class="summary-value expense">-{{ formatAmount(totalExpense) }} 金币</span>
-    </div>
-      <div class="summary-divider"></div>
-      <div class="summary-item">
-        <span class="summary-label">支出笔数</span>
-        <span class="summary-value">{{ records.length }} 笔</span>
-      </div>
-    </div>
+  <view class="summary-card">
+    <view class="summary-item">
+      <text class="summary-label">支出总额</text>
+      <text class="summary-value expense">-{{ formatAmount(totalExpense) }} 金币</text>
+    </view>
+      <view class="summary-divider"></view>
+      <view class="summary-item">
+        <text class="summary-label">支出笔数</text>
+        <text class="summary-value">{{ records.length }} 笔</text>
+      </view>
+    </view>
 
-    <div class="records-list">
-      <div class="record-card" v-for="item in records" :key="item.id">
-        <div class="record-icon-wrap" :style="{ background: item.bgColor }">
-          <span class="record-icon">{{ item.icon }}</span>
-        </div>
-        <div class="record-info">
-          <span class="record-title">{{ item.title }}</span>
-          <span class="record-desc">{{ item.desc }}</span>
-          <span class="record-time">{{ item.time }}</span>
-        </div>
-        <span class="record-amount expense">-{{ formatAmount(item.amount) }} 金币</span>
-      </div>
-    </div>
+    <view class="records-list">
+      <view class="record-card" v-for="item in records" :key="item.id">
+        <view class="record-icon-wrap" :style="{ background: item.bgColor }">
+          <text class="record-icon">{{ item.icon }}</text>
+        </view>
+        <view class="record-info">
+          <text class="record-title">{{ item.title }}</text>
+          <text class="record-desc">{{ item.desc }}</text>
+          <text class="record-time">{{ item.time }}</text>
+        </view>
+        <text class="record-amount expense">-{{ formatAmount(item.amount) }} 金币</text>
+      </view>
+    </view>
 
     <EmptyState v-if="records.length === 0" icon="💸" text="暂无支出记录" />
   </PageLayout>
@@ -38,6 +38,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -74,6 +75,20 @@ onMounted(async () => {
     return
   }
   await fetchRecords()
+})
+
+// 返回支出明细页时静默刷新；未登录时保持原跳转逻辑
+const refreshOnShow = () => {
+  if (isLoggedIn()) fetchRecords()
+}
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
 })
 
 const goBack = () => {

@@ -1,6 +1,25 @@
 # eu搭子 - 后端 API 接口文档
 
-> 版本: v6.35.0
+> 版本: v6.45.0
+> 版本: v6.48.0
+> v6.48.0 变更（2026-10-20）: **微信支付扫码链路（NATIVE）+ 未配置语义**。①`POST /api/pay/wx-order` 新增可选 `tradeType`（`NATIVE` 默认 / `JSAPI` 需 `openid`），响应新增 `tradeType/codeUrl`；NATIVE 走微信统一下单 `trade_type=NATIVE` 并回传真实 `code_url` 供前端渲染二维码；②未配置微信商户参数时返回 **503**，与业务错误 422 区分；③客户端不再需要伪造回执：入账仍只认 `/wx-notify`（微信服务端）或 `/wx-callback`（服务端反查）——客户端的 `/wx-callback` 调用已从支付页移除；④支付宝渠道后端未实现，充值页隐藏该入口。
+> 版本: v6.47.0
+> v6.47.0 变更（2026-10-20）: **动态可见范围语义补齐 + 预约时段管理补参**。①`POST /api/circle/create` 的 `visibility` 上限由 3 放宽到 **4**：0 公开 / 1 仅关注 / 2 私密 / 3 密码查看 / 4 付费查看（落库 `xn_post.is_private`：0/3/4/1/2，1/2 沿用历史值）；②`GET /api/circle/posts`、`GET /api/circle/search/posts` 按可见范围过滤（公开 + 自己 + 已关注作者的仅关注；私密仅作者）；`GET /api/circle/post/:id` 对无权查看的仅关注/私密返回锁定占位（`privateType=3/4`）；`POST /api/circle/repost` 仅允许公开动态；③`GET /api/circle/comments` 对无权查看的动态返回 **403**；④`GET /api/reserve/slots` 新增 `includeDisabled=1`，管理端可同时拿到已关闭（status=2）时段，用户端不传时仍只返回可约（status=0）。
+> 版本: v6.46.0
+> v6.46.0 变更（2026-10-20）: **文档整治——合并《后端交互功能梳理》《后端功能拆解开发指导》独有内容；仅 §17 事件表变化，REST 契约零变更**。①§17.2/§17.3 按代码实况校正：删除从未实现的 room_message/join_room/leave_room 及服务端回执 room_message_ack/join_room_success/leave_room_success；补入 v6.35 已实现的 message:read 与 v6.38 公告全服事件 notice_created/notice_updated/notice_deleted；②message:read 的 destroyAt 由服务端夹取到 (now, now+300]，非法值置 0（销毁事实仍以 read_at/destroy_at 列 + 清理器为准）；③本轮不改任何 REST 路径/请求体/响应体/状态码，前端无需发版。原两份文档独有内容已并入《后端开发文档》6.7 与附录 A，原文 2026-10-20 起归档。
+> v6.45.0 变更（2026-10-20）: **兼容端点盘点与废弃标注（行为零变更）**——管理端 9 组旧兼容别名、`POST /api/admin-manage/login`、`POST /api/pay/pay/create` 在代码注释与新增 **22.21 兼容保留端点**表中标记 deprecated，写明替代端点与删除条件；本轮无路径/请求体/响应体变化。
+> v6.44.0 变更（2026-10-20）: **管理端权限接口改为返回权限键真源**。`GET /api/admin-manage/permissions` 的 `data` 由「19 个模块 id 数组」改为 `{ modules, permissions }`：`modules` 保持旧结构（兼容侧边栏），`permissions` 返回 `utils/permissions.js` 的 `ALL_PERMISSIONS`（`模块:动作` 键 + 中文 label），管理端角色编辑器改为消费该字段，不再维护第二份硬编码键表。无其它接口变更。
+> v6.43.0 变更（2026-10-20）: **新增「已登录修改密码」接口 + 管理端权限 403 可区分**。①`POST /api/user/change-password`（`authMiddleware`）：校验旧密码，新密码 6~32 位；改库前先吊销该账号全部会话（与 2.10 重置密码同口径），响应 `data.devicesRevoked`；②`requirePermission` 的 403 响应新增 `error: "PERMISSION_DENIED"` 字段——管理端据此区分「权限不足」与「账号/令牌失效」，前者不再清本地登录态；③其余接口路径/请求体/响应不变。
+> v6.42.0 变更（2026-10-20，B-7）: **手机号加密存储 + 盲索引**（登录/注册/找回等接口契约不变，仅落库与查询方式变化）：①`xn_user.mobile` 改为 AES-256-GCM 密文，新增 `mobile_hash` 唯一盲索引（迁移 `20261020000003_encrypt_mobile.js`，第 15 步）；②`POST /api/user/login`、`login-mobile`、`register`、`reset-password` 行为不变——服务端内部改用 `mobile_hash` 等值查询；③**管理端 `GET /api/admin/users?phone=` 由模糊匹配改为精确匹配**（密文无法 LIKE，需传完整 11 位手机号），响应里的 `phone` 仍是解密后的明文；④C 端用户信息接口本就不返回手机号，无变化。`
+> 版本: v6.41.0
+> v6.41.0 变更（2026-10-20，B-13 尾项）: **通话与圈子写接口入参统一校验**（契约加严，路径/成功响应不变，非法入参统一 400）：①`POST /api/trtc/{start,cancel,reject,accept,end,room/create,room/enter,room/leave,billing/start,billing/end}`：`calleeId`/`callId`/`roomId`/`billingId` 为 1~INT_MAX 整数（数字字符串会被归一），`callType` 1~3、`orderId` 允许 0；②`POST /api/circle/{create,unlock,delete,like,comment,share,repost}`：`postId` 必填、评论 `content` 1~1000、`visibility` 0~3、`price` ≥0、`password`≤64；数组字段（images/videos/tagIds）仍由控制器归一。至此 `chat/games/reserve/trtc/circle` 写接口全部在路由层收口。
+> v6.40.0 变更（2026-10-20，B-13）: **聊天/陪玩/预约写接口入参统一校验**（契约加严，路径/成功响应不变，非法入参由各控制器零散判空改为路由层统一 400）：①`POST /api/chat/send` 要求 `targetUserId`(int≥1)、`content`(1~2000)，`type` 0~10、`mediaUrl`≤512、`duration` 0~3600；`/revoke` `messageId` 必填、`/mark-read` `targetUserId` 必填；②`POST /api/games/{push,grab,start,complete,cancel,apply,evaluate,appeal,toggle-service}`：ID 类必填且 1~INT_MAX，`num` 1~100、`price`/(0,1e8]、`rating` 1~5、`role` ∈ {user,companion}、文本长度限制；③`POST /api/reserve/{create,confirm,reject,cancel,complete,slots/toggle,slots/batch}`：`companionId`/`reserveId`/`slotId` 必填，`date`/`time` ≤20 字符、`gameId` 允许 0（未选游戏）、`reason`≤500。**未覆盖**：`/api/trtc/*` 与 `/api/circle/*` 写接口（下一批）。
+> v6.39.0 变更（2026-10-20，B-10/B-12）: **卡密密码加密存储 + 管理端列表分页校验**。①B-10：`xn_card.card_password` 改为 AES-256-GCM 密文落库（迁移 `20261020000001_encrypt_card_password.js`，宽列 50→255 + 存量加密，`runMigrations` 第 13 步），**接口契约不变**——`GET /api/admin/cards` 与发卡响应仍返回可用明文（服务端解密后下发），`POST /api/pay/validate-card|use-card` 行为不变；②B-12：管理端全部列表 GET 统一挂 `validateQuery`，`page` 1~100000、`pageSize` 1~100（超界 400）。
+> v6.38.0 变更（2026-10-20，B-3/B-4）: **公告落库 + 全服实时推送**——①新增迁移 `20261020000000_add_notice.js`（`xn_notice`，已接线 `runMigrations` 第 12 步）；②`GET /api/notice/list` 改为读库，响应由 `{ list }` 变为 `{ list, pagination }`，只返回已发布且在 `[start_time,end_time]` 有效期内的公告（表未迁移时降级空列表，不 500）；③新增后台 `GET/POST /api/admin/notices`、`GET/PUT/DELETE /api/admin/notices/:id`（权限沿用 `splash:read`/`splash:write`）；④新增 socket 全服事件 `notice_created`/`notice_updated`/`notice_deleted`（服务端 `broadcastToAll` 触发，广播失败不影响落库）。`
+> 版本: v6.37.0
+> v6.37.0 变更（2026-10-20，B-2）: **新增后台实名审核接口**——`GET /api/admin/real-names`（分页/状态/关键词）、`GET /api/admin/real-names/:id`（含证件照）、`PUT /api/admin/real-names/:id/review`（approve/reject）。审核通过把 `real_name_status` 1/3 → 2 并在**同一次**状态迁移中发放实名经验（`EXP_SOURCES.real_name_verified=100` × VIP 倍率），条件更新保证并发只发一次；已认证再次审核 409。C 端 `POST /api/user/real-name` 现在对已认证账号返回 400「已完成实名认证，无需重复提交」。`
+> 版本: v6.36.0
+> v6.36.0 变更（2026-10-20）: **管理端 refresh 令牌闭环 + 3 处契约加严**。①新增 `POST /api/admin/refresh-token`（B-5），`POST /api/admin/login` 现在同时下发 `refreshToken`/`expiresIn`；②`GET /api/gift/redpacket/history`（B-11）新增 `page/pageSize`，响应由数组改为 `{ list, pagination }`；③`POST /api/games/evaluate`（B-14）业务错误分流为 409/400，不再一律 500；④`GET /api/games/orders`（B-15）列表项新增 `pingjiaStatus`/`rated`/`star`；⑤socket `revoke_message`（B-16）改为「已落库撤回」才转发。
 > v6.35.0 变更: 已读自动销毁服务端化 + 聊天消息级举报——**新增字段与 1 个举报类型，路径/请求体不变**。①`POST /api/chat/mark-read` 响应新增 `destroyAt`，服务端在标记已读时按**发送方**的 `privacy.autoDestroy`（20/30/60 秒）写入 `read_at`/`destroy_at`；②`GET /api/chat/messages` 每条消息新增 `readAt`/`destroyAt`，到期后不再返回该消息（读侧兜底，清理器 60 秒内落库 `is_del=1` 并清内容/回收媒体）；③socket `message:read` 负载新增 `destroyAt`（服务端夹取到 now+300 内，仅 UI 提示）；④`POST /api/report` 支持 `targetType=4`（聊天消息）：举报后**冻结该消息的自动撤回/销毁期限**，保证管理员可核查
 > v6.34.0 变更: 时间自动撤回服务端化——**新增 1 个响应字段，路径/请求体不变**。①`POST /api/chat/send` 响应新增 `expireAt`（到期撤回时间戳，0=不自动撤回）；②`GET /api/chat/messages` 每条消息新增 `expireAt`，已到期（含清理器未扫到）的消息按已撤回下发（`isRevoked: true`、`content` 空串、`mediaUrl` 为 `null`）；③socket `private_message` / `private_message_ack` 负载新增 `expireAt`；④撤回期限来自用户偏好 `xn_user_pref.data.privacy.autoRecall`（秒，上限 300），由 `POST /api/user/pref` 写入
 > v6.33.0 变更: 撤回语义收口（手动撤回刷新丢失 + 原文残留）——**接口契约不变，语义加严**。①`POST /api/chat/revoke`：通过校验后除置 `is_revoked=1` 外**清空 `content`**，媒体消息同时清空 `vod_url` 并删除媒资登记；②`GET /api/chat/messages`：`is_revoked=1` 的消息不再下发原文与媒体地址（`content` 为空串、`mediaUrl` 为 `null`）；③撤回拦截类型由 `3/4` 更正为 `6/7`（礼物/红包），视频（3）与位置（4）恢复可撤回；④订正 3.2 消息类型表。
@@ -310,10 +329,19 @@
 - **说明（v6.14.0，修复 H-5）**: 此前全站没有登出接口，`authMiddleware` 里的 Redis 黑名单**只有读取侧、没有任何写入点**——「退出登录」只是前端清 `localStorage`，令牌在剩余有效期（access 默认 `7d`、refresh `30d`）内依然可以直接打接口，被盗令牌不会因为用户登出而失效。现在登出会真正写吊销状态：
   - 本次请求使用的 access 令牌 → 拉黑 `auth:blacklist:<sha256(令牌)>`（键里放摘要不放原文，避免原始 JWT 出现在 `MONITOR`/`KEYS`/RDB 备份里；TTL 取令牌剩余寿命，到期自动清理）；
   - `body.refreshToken` → **只有**验签通过、`type=refresh` 且 `userId` 与当前登录者一致才拉黑（否则这个口子会变成「替别人登出」的定向 DoS）；
-  - `body.logoutAllDevices` → 改走水位线 `auth:revoke-user:<userId>`，把该账号此刻之前签发的全部令牌一次作废。C 端 SPA 不保存登录时下发的 `refreshToken`，只拉黑 access 会留下一枚 30 天内仍可换新令牌的孤儿凭据，所以**用户端登出即全端下线，不是单设备语义**。
+  - `body.logoutAllDevices` → 改走水位线 `auth:revoke-user:<userId>`，把该账号此刻之前签发的全部令牌一次作废。C 端虽然保存 `refreshToken` 并在 401 时静默续期（B-6），登出仍走水位线——只拉黑 access 会留下一枚 30 天内仍可换新令牌的孤儿凭据，所以**用户端登出即全端下线，不是单设备语义**。
 - **响应**: `{ "code": 200, "message": "已登出", "data": { "clientShouldClearToken": true, "serverRevoked": true } }`
 - **错误码**: 401 令牌无效/已失效；503 生产环境下吊销状态无法确认（Redis 不可用或写不进），此时**不假装已登出**；非生产 fail-open 返回 200 且 `serverRevoked: false`
 - **前端配合**: `frontend/src/store/user-info.js` 的 `logout()` **先发起本接口再清本地态**（`request()` 在同步阶段就读 `localStorage` 拼 `Authorization`，顺序反了会发成一个未认证请求），5 秒超时 + 静默中止，服务端失败不阻塞退出
+
+### 2.19 修改密码（已登录）
+
+- **接口**: `POST /api/user/change-password`
+- **认证**: 需要（`authMiddleware`）
+- **请求体**: `{ "oldPassword": "旧密码", "newPassword": "新密码" }`（新密码 6~32 位，且不能与旧密码相同）
+- **会话吊销（v6.43.0，补 H-5 口子）**: 旧密码校验通过后、写库**之前**，先吊销该账号全部令牌（水位线 `auth:revoke-user:<userId>`），与 2.10 重置密码同口径；生产环境吊销状态无法确认时返回 **503 且不改库**，避免「密码已改、旧令牌仍有效」的中间态
+- **响应**: `{ "code": 200, "message": "密码修改成功，请重新登录", "data": { "devicesRevoked": true } }`
+- **错误**: 缺参 / 旧密码错误 → **400**；新密码长度不合法或与旧密码相同 → **422**；吊销不可确认（生产 fail-closed）→ **503**
 
 ### 2.14 获取等级经验信息
 
@@ -630,7 +658,9 @@
 
 - **接口**: `POST /api/pay/wx-order`
 - **认证**: 需要
-- **请求体**: `{ "packageId": 1 }`；`packageId` 必填整数（v6.23.0 起边界层校验）
+- **请求体**: `{ "packageId": 1, "tradeType": "NATIVE", "openid": "" }`；`packageId` 必填整数（v6.23.0 起边界层校验）；`tradeType` 可选：`NATIVE`（默认，扫码支付，返回 `code_url`）/ `JSAPI`（微信内网页支付，必须同时传 `openid`，当前公众号网页授权未接入）。
+- **响应（v6.48）**: `data` = `{ orderId, orderNo, amount, tradeType, codeUrl, jsApiParams }`；`NATIVE` 时 `codeUrl` 为微信支付链接（前端渲染二维码），`jsApiParams` 为 `null`；`JSAPI` 时反之。
+- **未配置（v6.48）**: 未配置 `WECHAT_APPID/MCHID/API_KEY` 时返回 **503**「微信支付未配置，请使用卡密充值」，不再伪装成业务 422；业务失败（套餐不存在等）仍 422。
 
 ### 5.4 微信支付回调
 
@@ -728,7 +758,7 @@
 3. 支付宝：`config.alipay` 三项无代码使用，也没有下单/回调路由，因此除本地联调开关外支付宝充值无法入账（前端 `PaymentGateway.vue` 走 alipay 分支时会稳定收到 403 提示）。
 4. 本轮新增/改写的 jest 用例：`services/payServiceSettle` +12 例、`services/wechatPayNotify` +11 例、`controllers/pay` +8 例改写 4 例，共 31 例；**本机 PATH 无 node/npm，全部未执行**。
 - 生成（`POST /api/admin/cards`）：卡号 `DK` + 14 位、密码 12 位，字符集 `ABCDEFGHJKLMNPQRSTUVWXYZ23456789`（32 字符，去掉易混淆的 I/O）；密钥 25 位数字。三者逐字符取 `crypto.randomInt`，**不再用 `Math.random`**，卡号也不再以 `Date.now()` 开头；落库前一条 `Op.or` 查询同时查重卡号与密钥。
-- **遗留**：`card_password` 仍明文落库（`GET /api/admin/cards` 要把密码展示给发卡方），本次只做恒定时间比较，未加密存储；历史卡密的三件套由旧 `Math.random` 生成，熵偏低且卡号可预测，建议作废未售存量后重新发卡。
+- **B-10（2026-10-20）已收口**：`card_password` 改为静态加密落库（宽列 + 存量明文就地加密，迁移 `20261020000001` 已接自动迁移第 13 步）；管理端列表/发卡响应与核销比较前解密，**对外契约不变**。历史卡密三件套由旧 `Math.random` 生成、熵偏低的问题属存量资产处置（建议作废未售存量后重新发卡），不会因本项改变。
 
 ---
 
@@ -825,8 +855,9 @@
 ### 7.5 获取评论
 
 - **接口**: `GET /api/circle/comments`
-- **认证**: 不需要
-- **参数**: `?postId=123`
+- **认证**: 可选登录（`optionalAuth`）
+- **参数**: `?postId=123&page=1&pageSize=20`
+- **权限（v6.47）**: 公开动态匿名可读；密码/付费动态需已解锁，仅关注需已关注作者，私密仅作者本人——无权查看返回 **403**「无权查看该动态评论」
 
 ### 7.6 创建帖子
 
@@ -837,10 +868,15 @@
 {
   "content": "今天玩王者太开心了！",
   "images": ["url1", "url2"],
-  "tags": ["游戏"],
+  "videos": [],
+  "tagIds": [1],
+  "location": "上海",
+  "visibility": 0,
+  "password": "",
   "price": 0
 }
 ```
+- **可见范围（v6.47）**: `visibility` 取值 **0 公开 / 1 仅关注 / 2 私密 / 3 密码查看 / 4 付费查看**（路由校验 0~4；落库 `is_private` 为 0/3/4/1/2，1/2 沿用历史值）。仅关注/私密不支持解锁与转发；密码/付费分别使用 `password`/`price`。
 - **等级门槛（v6.5）**: `images` 过滤空值后仍有元素时，校验 `post_images` 权益（Lv.15），不足返回 `422`；**纯文字动态不受限**。
 - **经验（v6.5）**: 创建成功后给作者 +20 经验（`post_created`，按 VIP 倍率入账）。该写入包在 `try/catch` 内并只记日志，经验失败不会让发帖失败。
 
@@ -903,7 +939,8 @@
 
 - **接口**: `GET /api/reserve/slots`
 - **认证**: 需要
-- **参数**: `?companionId=123&date=2026-05-22`
+- **参数**: `?companionId=123&date=2026-05-22&gameId=1`
+- **includeDisabled（v6.47）**: 传 `1` 时同时返回已关闭（`status=2`）时段供陪玩师端管理；不传/其他值只返回可约（`status=0`）时段。已成交（`status=1`）永远不返回。
 
 ### 8.2 批量创建时间段
 
@@ -1270,11 +1307,23 @@
 | `/api/search/posts` | GET | 需要 | 搜索帖子（`?keyword=xxx&page=1&pageSize=10`） |
 | `/api/search/games` | GET | 需要 | 搜索游戏/陪玩师（`?keyword=xxx`） |
 
-### 16.11 公告模块 (`/api/notice`)
+### 16.11 公告模块 (`/api/notice`)（v6.38.0，B-3/B-4）
 
 | 接口 | 方法 | 认证 | 说明 |
 |------|------|------|------|
-| `/api/notice/list` | GET | 不需要 | 公告列表 |
+| `/api/notice/list` | GET | 不需要 | 公告列表。查询参数 `page`/`pageSize`（1~100）；返回 `{ list: [{ id, title, content, type, status, pinned, startTime, endTime, createTime, updateTime }], pagination }`。只返回 `status=1` 且 `start_time<=now<=end_time`（0 表示不限）的记录，`pinned DESC, create_time DESC`；表未迁移/DB 短暂不可用时降级为空列表 |
+
+后台维护接口见 22.2b；socket 全服事件 `notice_created`/`notice_updated`（负载 `{ notice }`）与 `notice_deleted`（负载 `{ id }`）。
+
+### 22.2b 公告管理 `/api/admin/notices`（v6.38.0，B-3/B-4）
+
+| 接口 | 方法 | 权限 | 说明 |
+|------|------|------|------|
+| `/api/admin/notices` | GET | splash:read | 列表。`status`（0/1）、`keyword`（标题模糊）、`page`、`pageSize` |
+| `/api/admin/notices/:id` | GET | splash:read | 详情 |
+| `/api/admin/notices` | POST | splash:write | 新增。必填 `title`/`content`；可选 `type`(notice/activity/system)、`status`(0/1)、`pinned`(0/1)、`startTime`/`endTime`（秒级时间戳，0=不限）。status=1 时广播 `notice_created` |
+| `/api/admin/notices/:id` | PUT | splash:write | 部分更新（未传字段保留原值）。发布中广播 `notice_updated`，下线广播 `notice_deleted` |
+| `/api/admin/notices/:id` | DELETE | splash:write | 删除并广播 `notice_deleted` |
 
 ### 16.12 意见反馈模块 (`/api/feedback`)
 
@@ -1293,14 +1342,11 @@
 - **认证**: 通过握手 `auth.token` 参数传递 JWT（无效/匿名连接将被拒绝）。H-4 起只接受 `type=access` 的用户访问令牌，refresh 或管理员令牌握手一律 `UNAUTHORIZED`。
 - **重连**: 客户端指数退避自动重连；服务端通过 `@socket.io/redis-adapter` 支持多实例横向扩展
 
-### 17.2 客户端事件（19 个）
+### 17.2 客户端事件（17 个）
 
 | 事件 | 说明 | 数据 |
 |------|------|------|
 | `private_message` | 发送私聊消息（落库 `xn_chat_log`） | `{ toId, content, type, mediaUrl, duration }` |
-| `room_message` | 房间消息（仅实时广播，不落库） | `{ roomId, content, type, mediaUrl, duration }` |
-| `join_room` | 加入房间 | `{ roomId }` |
-| `leave_room` | 离开房间 | `{ roomId }` |
 | `call_invite` | 发起通话邀请 | `{ toId, callType, trtcRoomId, callId, useWebRTC }` |
 | `call_cancel` | 取消通话邀请 | `{ toId }` |
 | `call_reject` | 拒绝通话 | `{ toId }` |
@@ -1310,7 +1356,8 @@
 | `webrtc_answer` | WebRTC Answer | `{ toId, sdp }` |
 | `webrtc_ice_candidate` | WebRTC ICE候选 | `{ toId, candidate }` |
 | `typing` | 打字状态推送 | `{ toId }` |
-| `revoke_message` | 消息撤回（对端收到 `message_revoked`） | `{ toId, messageId }` |
+| `message:read` | 已读回执（v6.35）：通知对方把自己发出的气泡置为已读 | `{ fromUserId, destroyAt }`（`fromUserId`=对方 ID；`destroyAt` 仅 UI 倒计时，服务端夹取到 `(now, now+300]`，非法值置 0） |
+| `revoke_message` | 消息撤回（对端收到 `message_revoked`；B-16 起要求消息已落库撤回、由本人发出且收件人为 `toId`，否则静默丢弃） | `{ toId, messageId }` |
 | `p2p_fetch_request` | P2P 取流请求（请求方 → 拥有方） | `{ toId, requestId, url, type }` |
 | `p2p_fetch_response` | P2P 取流响应（拥有方 → 请求方） | `{ toId, requestId, payload, fallbackUrl }` |
 | `p2p_offer` | P2P DataChannel Offer | `{ toId, requestId, offer, url, type }` |
@@ -1323,11 +1370,8 @@
 |------|------|------|
 | `private_message` | 接收私聊消息 | `{ id, fromId, toId, fromName, fromAvatar, content, type, mediaUrl, duration, sendTime, isRevoked }` |
 | `private_message_ack` | 消息送达回执 | `{ id, sendTime }` |
-| `room_message` | 接收房间消息 | `{ id, roomId, fromId, fromName, fromAvatar, content, type, mediaUrl, duration, sendTime }` |
-| `room_message_ack` | 房间消息回执 | `{ id, sendTime }` |
-| `join_room_success` | 加入房间成功 | `{ roomId }` |
-| `leave_room_success` | 离开房间成功 | `{ roomId }` |
 | `typing` | 对方正在输入 | `{ fromId, fromName }` |
+| `message:read` | 已读回执转发（v6.35）：`fromUserId` 为「读消息的人」，接收方据此把自己发出的气泡置为已读 | `{ fromUserId, destroyAt }`（`destroyAt` 已由服务端夹取） |
 | `message_revoked` | 消息被撤回 | `{ messageId, fromId }` |
 | `call_invite` | 来电邀请 | `{ fromId, fromName, fromAvatar, callType, trtcRoomId, callId, useWebRTC }` |
 | `call_cancel` | 对方取消通话 | `{ fromId }` |
@@ -1342,8 +1386,13 @@
 | `p2p_offer` | P2P Offer 转发 | `{ fromId, requestId, offer, url, type }` |
 | `p2p_answer` | P2P Answer 转发 | `{ fromId, requestId, answer }` |
 | `p2p_ice_candidate` | P2P ICE候选转发 | `{ fromId, requestId, candidate }` |
+| `notice_created` | 公告发布全服广播（v6.38，管理员发布公告时经 `broadcastToAll` 全服 emit） | `{ notice }` |
+| `notice_updated` | 公告更新全服广播（v6.38；更新后已发布才广播，下线改发 deleted） | `{ notice }` |
+| `notice_deleted` | 公告下线/删除全服广播（v6.38） | `{ id }` |
 
 > 另有通用 `error` 事件（`{ message }`）用于操作失败回执。
+>
+> **2026-10-20 校正（文档整治）**：`room_message`/`join_room`/`leave_room` 及对应服务端回执在 `src/socket/index.js` 中**从未实现**（房间能力只有 `user:<id>` 定向房间，无 `room:<roomId>` 的 join/广播实现），已从两张表移除；新增行均有代码依据——`message:read` 见 `socket/index.js`（v6.35），`notice_*` 见 `controllers/admin.js` 的 `createNotice`/`updateNotice`/`deleteNotice`（v6.38，经 `socket/index.js` 的 `broadcastToAll` 全服 emit）。
 
 ---
 
@@ -1490,6 +1539,8 @@ npm run test:coverage
 
 > 包含 `/api/admin`（资源管理）与 `/api/admin-manage`（管理员账号/角色）两个前缀。除 `/api/admin/login` 与 `/api/admin-manage/login` 外，所有端点均需 `adminAuth`（管理员登录）+ `requirePermission('<资源>:<读|写>')` 权限校验，下表统一省略认证列说明。
 >
+> 分页口径（v6.39.0，B-12）：所有列表 GET 统一校验 `page`（1~100000）与 `pageSize`（1~100），非整数/越界返回 400；各接口的业务过滤字段（`status`/`keyword`/`role` 等）仍按模块语义分别校验。
+>
 > **H-4 认证口径**：`adminAuth` 只接受 `type=admin` 的管理员令牌，或 `ADMIN_TOKEN` 配置的固定应急令牌（`x-admin-token` 或 `Authorization: Bearer` 两个候选位都可传）；用户端 `access`、`refresh` 以及管理员自己的 `admin_refresh` 令牌在此一律 403「无管理员权限」。v6.20.0（M-2）起，通过 `type=admin` 校验的令牌还会按 `adminScope` **实时回读** `xn_admin`/`xn_admin_role` 主体（删号 → 401、禁用 → 403、权限/角色取库内当前值），`ADMIN_TOKEN` 固定令牌走 `id=0` 超管口径、不进回读，详见 22.1「会话终止」。
 
 ### 22.1 管理员登录
@@ -1497,8 +1548,8 @@ npm run test:coverage
 - **接口**: `POST /api/admin/login`（另有同义入口 `POST /api/admin-manage/login`，见 22.19）
 - **认证**: 不需要
 - **请求体**: `{ "username": "xxx", "password": "xxx" }`
-- **响应**: `{ "code": 200, "message": "登录成功", "data": { "token": "xxx", "user": { "id": 1, "username": "admin", "nickname": "超级管理员", "role": "admin", "role_id": 2, "permissions": ["all"], "avatar": "" } } }`
-  - 返回的是 `data.user` 对象，**没有** `adminId`/`username` 平铺字段（此前文档写法与代码不符，v6.12 校正）；`/api/admin/login` 只发 `token`，`refreshToken` 仅 `/api/admin-manage/login` 有。
+- **响应**: `{ "code": 200, "message": "登录成功", "data": { "token": "xxx", "refreshToken": "xxx", "expiresIn": "12h", "user": { "id": 1, "username": "admin", "nickname": "超级管理员", "role": "admin", "role_id": 2, "permissions": ["all"], "avatar": "" } } }`
+  - 返回的是 `data.user` 对象，**没有** `adminId`/`username` 平铺字段（此前文档写法与代码不符，v6.12 校正）。**v6.36.0（B-5）起 `/api/admin/login` 与 `/api/admin-manage/login` 一样同时下发 `refreshToken` 与 `expiresIn`**；先前「/api/admin/login 只发 token」的口径作废。应急账号（`adminScope=emergency`）不下发 refresh（无可回读主体、不可吊销）。
 - **令牌时效（v6.20.0，M-2）**: 访问令牌默认 **12 小时**，由新配置项 `ADMIN_JWT_EXPIRES_IN` 控制（支持 `s/m/h/d`，如 `'2h'`、`'1d'`），不再与用户端共用 `JWT_EXPIRES_IN`（后者默认 7 天）。令牌 payload 含 `adminScope`（`account`/`role`/`emergency`，标明 `id` 指向 `xn_admin`、`xn_admin_role` 还是应急账号），`adminAuth` 据此实时回读——**升级后无 `adminScope` 的存量令牌一律 401，需重新登录一次**。
 - **口令口径**: 数据库账号（`xn_admin`，`status=1` 才可登录）→ 角色账号（`xn_admin_role` 自带用户名/密码时）→ 环境变量应急账号（必须 `ADMIN_EMERGENCY_LOGIN=true` 且配了 `ADMIN_USERNAME`/`ADMIN_PASSWORD`，否则不生效）。三者都不过才回 401。
 - **防爆破（安全扫描 H-3，v6.12）**：两道叠加
@@ -1506,8 +1557,17 @@ npm run test:coverage
   2. **单账号**：`services/adminLoginGuard.js`，Redis 键 `admin:login:fail:<归一化账号>`，连续失败 `ADMIN_LOGIN_MAX_FAILS`（默认 5）次即锁 15 分钟；账号名先 `trim().toLowerCase()` 归一，避免大小写变体绕开计数。**不存在的用户名同样计数**，否则「会不会被锁」就成了账号存在性 oracle。成功登录即清计数。
 - **错误码**: 400 用户名或密码为空（**不计失败**，防止任何人用空请求锁死他人账号）；401 用户名或密码错误（计一次失败，文案统一不区分账号是否存在）；403 账号已被禁用（仅 `/admin-manage/login`，不计次）；429 该账号已锁定，`data.retryAfterSec` 为剩余秒数；503 Redis 不可用、无法确认锁定状态时**保守拒绝**（口令校验不因缓存抖动降级）；500 其它意外故障。
 - **管理端前端**：`admin-frontend/src/common/common.js` 的 `request()` 此前把 429/503 一律吞成「请求失败 (429)」，本轮改为透传后端 `message`，管理员能直接看到「请 N 分钟后再试」。
+- **刷新令牌（v6.36.0，修复 B-5）**：`POST /api/admin/refresh-token`，认证不需要，请求体 `{ "refreshToken": "xxx" }`，响应同登录（新 `token`/`refreshToken`/`expiresIn`/`user`）。服务端只认 `type=admin_refresh`；先查吊销（Redis 不可确认时生产 fail-closed 503），再按 `adminScope` 回读 `xn_admin`/`xn_admin_role` 实时主体（禁用/删除即 401）并重算权限；**轮换**：签发新对之前把旧 refresh 拉黑，无法确认作废时生产不签发新令牌。`adminScope=emergency`/`legacy` 一律 401 强制重登。
 - **登出（v6.14.0，修复 H-5）**：`POST /api/admin/logout`（需 `adminAuth`；`/api/admin-manage/logout` 是同一实现的另一个入口）。吊销的是**本次请求实际通过校验的那一枚令牌**——`adminAuth` 支持 `Authorization: Bearer` 与 `x-admin-token` 两种传递方式，所以中间件把命中的原文留在 `req.adminToken` 上，登出不能靠猜。可选 `body.refreshToken` 仅在 `type=admin_refresh` 且 `id` 归属当前管理员时才拉黑。响应 `{ code:200, data:{ clientShouldClearToken:true, revocable:true, serverRevoked:true } }`；用 `ADMIN_TOKEN` 环境变量应急令牌登录时走 `revocable:false` 分支（固定字符串无 `exp`、无签名，吊销名单管不到它，只能清前端本地态）。生产环境吊销写不进时返回 503 且不假装已登出，非生产 fail-open 并回 `serverRevoked:false`。
 - **会话终止（v6.14.0 修复 H-5；v6.20.0 起叠加 M-2 实时回读）**：历史上 `adminAuth` 只验令牌、不回查 `xn_admin`，权限与状态都是登录快照，「改口令 / 禁用 / 删除管理员」踢不掉已到手的令牌，现在是两道防线叠加：①**吊销水位线（H-5）**——`PUT /api/admin-manage/admins/:id/password`、禁用 `PUT .../:id`（`status≠1`）、`DELETE .../:id` 三处在改库**之前**写 `auth:revoke-admin:<id>`（`iat` 早于水位线的令牌一律拒绝），响应带 `data.sessionsRevoked`。顺序不能反：生产确认不了吊销就不改库（503），避免「密码已换、旧令牌照常能用」或「查无此人但仍可操作」。②**实时回读（v6.20.0，M-2）**——`adminAuth` 每次请求按 `adminScope` 回读主体：管理员被删除 → 401「令牌已失效」，被禁用 → 403「账号已被禁用」，`permissions`/`role_id` 以数据库当前值为准——**改权限/换角色/禁用下一个请求立即生效，无需重新登录**。分工：改口令后旧令牌的收口仍**只**靠①（回读不校验口令版本，`password` 接口的吊销不能省）；删号/禁用为①+②双保险（非生产吊销 fail-open 失败时，②仍会拦下）。改权限/角色**不**吊销令牌（避免管理员改自己权限时把自己踢下线），改库即生效。
+
+### 22.1b 实名审核 `/api/admin/real-names`（v6.37.0，B-2）
+
+| 接口 | 方法 | 权限 | 说明 |
+|------|------|------|------|
+| `/api/admin/real-names` | GET | user:read | 列表。查询参数 `status`（0~3，缺省=1+3 待处理）、`keyword`（用户ID精确/昵称模糊）、`page`、`pageSize`（1~100）。返回 `{ list, pagination }`，列表中的姓名/证件号已脱敏，**不含**证件照 |
+| `/api/admin/real-names/:id` | GET | user:read | 详情。在列表字段基础上返回解密后的 `front`/`back` 证件照 URL（供审核比对） |
+| `/api/admin/real-names/:id/review` | PUT | user:write | 审核。请求体 `{ "action": "approve" \| "reject" }`。approve：`real_name_status` 1/3 → 2，并通过 `levelService.addExp(用户, 'real_name_verified')` 发放 100 基础经验（× VIP 倍率），响应 `{ userId, status: 2, expGranted, exp: { added, lv, exp, leveledUp } }`；reject：状态置 3，不发放经验。错误：400 动作非法、404 用户不存在、**409** 已认证（不会重复加经验）/状态不可审核（并发条件更新未命中） |
 
 ### 22.2 用户管理 `/api/admin/users`
 
@@ -1732,7 +1792,7 @@ npm run test:coverage
 | `/api/admin-manage/roles` | POST | admin:write | 创建角色。v6.19（M-1）：非超管提交的 `permissions` 须 ⊆ 自身（403「无权授予超出自身权限范围的权限: <列表>」） |
 | `/api/admin-manage/roles/:id` | PUT | admin:write | 更新角色。v6.19（M-1）：非超管不能修改超管角色（`id=1`/`is_super`）或权限超出自身的角色（403「无权修改该角色：超出自身权限范围」），改 `permissions` 同样不超自身 |
 | `/api/admin-manage/roles/:id` | DELETE | admin:write | 删除角色。v6.19（M-1）：非超管不能删除超管角色或权限超出自身的角色（403「无权删除该角色：超出自身权限范围」） |
-| `/api/admin-manage/permissions` | GET | admin:write | 权限列表 |
+| `/api/admin-manage/permissions` | GET | admin:write | 权限列表。v6.44.0：`data` 为 `{ modules, permissions }`——`modules` 是 19 个模块 id（旧结构兼容），`permissions` 是 `utils/permissions.js` 的权限键真源（`[{ key: "user:read", label: "查看用户" }, ...]`），管理端 `AdminRoles.vue` 用它渲染勾选项 |
 
 **写接口授权边界（v6.19，安全扫描 M-1，适用于 22.19 与 22.20 的七个写接口）**
 
@@ -1745,6 +1805,23 @@ npm run test:coverage
 - **遗留**：改 `permissions`/`role_id` 仍不吊销在用令牌，但 v6.20（M-2）起 `adminAuth` 每请求实时回读，改库后**下一个请求即生效、无需被改者重新登录**（M-1 当时的「快照需重登」口径已被 M-2 覆盖）；`ADMIN_EMERGENCY_LOGIN` 应急账号不走 `xn_admin` 表、权限恒 `['all']`，不受本边界约束（刻意保留）；无「平级多超管」运维入口。
 
 ---
+
+### 22.21 兼容保留端点（deprecated，勿用于新调用）
+
+> 2026-10-20 盘点：以下端点**保留兼容、不删除、不改行为**；仓内 `admin-frontend/` 已无调用方，仅仓外旧后台/旧脚本可能使用。新代码一律调用替代端点。删除条件：确认无仓外客户端后整体移除，并同步删除本表与代码注释（`routes/admin.js` 兼容块、`routes/adminManage.js`、`routes/pay.js`）。
+
+| 兼容端点（deprecated） | 替代端点 | 备注 |
+|---|---|---|
+| `POST /api/admin-manage/login` | `POST /api/admin/login` | 两个后台登录入口共用失败锁定计数；响应封装不同，新调用用规范入口 |
+| `GET /api/admin/statistics` | `GET /api/admin/dashboard` | 同一 handler 的旧路径别名 |
+| `POST /api/admin/update-user-status` | `PUT /api/admin/users/:id/status` | body.userId 映射到 path id |
+| `GET /api/admin/user-detail` | `GET /api/admin/users/:id` | query.userId 映射到 path id |
+| `POST /api/admin/review-withdraw` | `POST /api/admin/withdraws/:id/approve` / `:id/reject` | 旧 body.status 分流 |
+| `POST /api/admin/handle-report` | `POST /api/admin/reports/:id/handle` | body.reportId 映射到 path id |
+| `PUT /api/admin/reports/:id` | `POST /api/admin/reports/:id/handle` | 旧更新语义，与 handle 共用 handler |
+| `GET/DELETE /api/admin/recharges[/:id]` | `GET/DELETE /api/admin/recharge-records[/:id]` | 仅路径别名 |
+| `POST /api/admin/companion-applications/:id/approve\|reject` | `PUT /api/admin/companion-applications/:id/approve\|reject` | 旧 POST → 新 PUT |
+| `POST /api/pay/pay/create` | `POST /api/pay/create-order` | 与 createOrder 逻辑等价，仅成功文案不同 |
 
 ## 23. 项目管理模块 (`/api/project`)
 

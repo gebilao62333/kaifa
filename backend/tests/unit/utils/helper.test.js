@@ -1,10 +1,4 @@
 const helper = require('../../../src/utils/helper');
-const { v4: uuidv4 } = require('uuid');
-
-jest.mock('uuid', () => ({
-  v4: jest.fn()
-}));
-
 describe('Utils - Helper Functions', () => {
   describe('generateOrderNo', () => {
     it('should generate order number with correct format', () => {
@@ -46,53 +40,11 @@ describe('Utils - Helper Functions', () => {
     });
   });
 
-  describe('generateUUID', () => {
-    it('should call uuidv4 and return the result', () => {
-      const mockUUID = '123e4567-e89b-12d3-a456-426614174000';
-      uuidv4.mockReturnValue(mockUUID);
-      
-      const result = helper.generateUUID();
-      expect(uuidv4).toHaveBeenCalled();
-      expect(result).toEqual(mockUUID);
-    });
-  });
-
-  describe('generateShortId', () => {
-    it('should generate short id with correct format', () => {
-      const result = helper.generateShortId();
-      expect(typeof result).toBe('string');
-      expect(result.length).toBeGreaterThan(5);
-    });
-
-    it('should generate unique short ids', () => {
-      const id1 = helper.generateShortId();
-      const id2 = helper.generateShortId();
-      expect(id1).not.toEqual(id2);
-    });
-  });
-
-  describe('formatTime', () => {
-    it('should format timestamp to readable time', () => {
-      const timestamp = 1715424000;
-      const result = helper.formatTime(timestamp);
-      expect(typeof result).toBe('string');
-      expect(result).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
-    });
-  });
-
   describe('getTimestamp', () => {
     it('should return current timestamp in seconds', () => {
       const result = helper.getTimestamp();
       expect(typeof result).toBe('number');
       expect(Math.floor(Date.now() / 1000) - result).toBeLessThan(2);
-    });
-  });
-
-  describe('getDateStr', () => {
-    it('should return date string in YYYY-MM-DD format', () => {
-      const timestamp = 1715424000;
-      const result = helper.getDateStr(timestamp);
-      expect(result).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
   });
 

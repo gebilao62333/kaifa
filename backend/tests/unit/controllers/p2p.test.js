@@ -1,12 +1,17 @@
 jest.mock('../../../src/socket', () => ({
   isUserOnline: jest.fn()
 }));
+jest.mock('../../../src/utils/privacyPrefs', () => ({
+  getPrivacyPrefs: jest.fn(),
+  getStealthSettings: jest.fn()
+}));
 jest.mock('../../../src/models', () => ({
   ChatLog: { findOne: jest.fn() },
   ChatSession: { findOne: jest.fn() }
 }));
 
 const { isUserOnline } = require('../../../src/socket');
+const { getPrivacyPrefs, getStealthSettings } = require('../../../src/utils/privacyPrefs');
 const { ChatLog, ChatSession } = require('../../../src/models');
 const p2pController = require('../../../src/controllers/p2pController');
 
@@ -25,6 +30,28 @@ describe('Controller - P2P', () => {
     // 默认「无会话、无聊天记录」→ 与本人无社交关系
     ChatSession.findOne.mockResolvedValue(null);
     ChatLog.findOne.mockResolvedValue(null);
+    getPrivacyPrefs.mockResolvedValue({ showOnline: true });
+    getStealthSettings.mockResolvedValue({ stealth: false, hideOnline: false, stealthBrowse: false });
+  });
+
+  it('hideOnline=true（VIP 隐身）：他人探测返回离线', async () => {
+    isUserOnline.mockResolvedValue(true);
+    ChatSession.findOne.mockResolvedValue({ id: 1 });
+    getStealthSettings.mockResolvedValue({ stealth: false, hideOnline: true, stealthBrowse: false });
+    const res = mockRes();
+    await p2pController.peerOnline(mockReq({ userId: 1, query: { peerId: '12' } }), res);
+    expect(getStealthSettings).toHaveBeenCalledWith(12);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ data: { online: false } }));
+  });
+
+  it('showOnline=false：他人探测一律返回离线', async () => {
+    isUserOnline.mockResolvedValue(true);
+    ChatSession.findOne.mockResolvedValue({ id: 1 });
+    getPrivacyPrefs.mockResolvedValue({ showOnline: false });
+    const res = mockRes();
+    await p2pController.peerOnline(mockReq({ userId: 1, query: { peerId: '12' } }), res);
+    expect(getPrivacyPrefs).toHaveBeenCalledWith(12);
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ data: { online: false } }));
   });
 
   it('rejects invalid peerId', async () => {

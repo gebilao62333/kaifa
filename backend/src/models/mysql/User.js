@@ -178,6 +178,7 @@ const User = sequelize.define('xn_user', {
   },
   indexes: [
     { fields: ['mobile'] },
+    { unique: true, fields: ['mobile_hash'] },
     { fields: ['open_id'] },
     { fields: ['lv'] },
     { fields: ['create_time'] }

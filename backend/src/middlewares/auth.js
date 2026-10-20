@@ -113,8 +113,12 @@ const optionalAuth = async (req, res, next) => {
     }
 
     const user = await User.findByPk(decoded.userId);
-    
-    if (user) {
+
+    // 审计 S-1：与 authMiddleware 的封禁口径对齐——被封禁（status !== 1）的账号
+    // 即使持有效 access 令牌，在可选认证入口也只按匿名处理，不再挂 req.user/req.userId。
+    // 公开页仍可匿名浏览（这里不返回 403，避免把整站公开可读性绑在账号状态上），
+    // 但「登录态」不再成立，依赖 req.userId 的个性化逻辑不会再把封禁用户当在线用户。
+    if (user && user.status === 1) {
       req.user = user;
       req.userId = user.id;
     }

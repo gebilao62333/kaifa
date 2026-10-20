@@ -1,56 +1,56 @@
 <template>
-  <div class="gift-list-overlay" v-if="visible" @click.self="close">
-    <div class="gift-list-panel">
-      <div class="panel-header">
-        <span class="panel-title">🎁 发送礼物</span>
-        <span class="panel-close" @click="close">✕</span>
-      </div>
+  <view class="gift-list-overlay" v-if="visible" @click.self="close">
+    <view class="gift-list-panel">
+      <view class="panel-header">
+        <text class="panel-title">🎁 发送礼物</text>
+        <text class="panel-close" @click="close">✕</text>
+      </view>
 
-      <div class="gift-tabs">
-        <span
+      <view class="gift-tabs">
+        <text
           v-for="tab in tabs"
           :key="tab.id"
           :class="['tab-item', { active: activeTab === tab.id }]"
           @click="activeTab = tab.id"
         >
           {{ tab.name }}
-        </span>
-      </div>
+        </text>
+      </view>
 
-      <div class="gift-grid">
-        <div
+      <view class="gift-grid">
+        <view
           v-for="gift in currentGifts"
           :key="gift.id"
           :class="['gift-item', { selected: selectedGift?.id === gift.id, luxury: gift.giftType === 1 }]"
           @click="selectGift(gift)"
         >
-          <div class="gift-icon">
-            <img v-if="gift.icon" :src="gift.icon" class="gift-img" alt="">
-            <span v-else>🎁</span>
-            <span class="gift-badge" v-if="gift.giftType === 1">豪华</span>
-            <span class="gift-badge vip-badge" v-else-if="gift.isVip">VIP</span>
-          </div>
-          <div class="gift-name">{{ gift.name }}</div>
-          <div class="gift-price">
-            <span class="coin-icon">🪙</span>
-            <span class="price-value">{{ gift.price }}</span>
-          </div>
-        </div>
-      </div>
+          <view class="gift-icon">
+            <image v-if="gift.icon" mode="aspectFit" class="gift-img" :src="gift.icon" />
+            <text v-else>🎁</text>
+            <text class="gift-badge" v-if="gift.giftType === 1">豪华</text>
+            <text class="gift-badge vip-badge" v-else-if="gift.isVip">VIP</text>
+          </view>
+          <view class="gift-name">{{ gift.name }}</view>
+          <view class="gift-price">
+            <text class="coin-icon">🪙</text>
+            <text class="price-value">{{ gift.price }}</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="panel-footer">
-        <div class="balance-info">
-          <span class="balance-label">我的金币</span>
-          <span class="balance-value">{{ userBalance }}</span>
-        </div>
-        <div class="gift-count" v-if="selectedGift">
-          <span class="count-label">x</span>
-          <div class="count-control">
-            <span class="count-btn" @click="decreaseCount">-</span>
-            <span class="count-value">{{ giftCount }}</span>
-            <span class="count-btn" @click="increaseCount">+</span>
-          </div>
-        </div>
+      <view class="panel-footer">
+        <view class="balance-info">
+          <text class="balance-label">我的金币</text>
+          <text class="balance-value">{{ userBalance }}</text>
+        </view>
+        <view class="gift-count" v-if="selectedGift">
+          <text class="count-label">x</text>
+          <view class="count-control">
+            <text class="count-btn" @click="decreaseCount">-</text>
+            <text class="count-value">{{ giftCount }}</text>
+            <text class="count-btn" @click="increaseCount">+</text>
+          </view>
+        </view>
         <button
           class="send-btn"
           :disabled="!selectedGift"
@@ -58,28 +58,29 @@
         >
           发送礼物
         </button>
-      </div>
+      </view>
 
-      <div class="gift-animation" v-if="showAnimation">
-        <div class="animation-content">
-          <img
+      <view class="gift-animation" v-if="showAnimation">
+        <view class="animation-content">
+          <image mode="aspectFit"
             v-if="animatingGift?.icon && /^https?:/.test(animatingGift.icon)"
             class="animation-icon-img"
             :src="animatingGift.icon"
             alt=""
           />
-          <span v-else class="animation-icon">{{ animatingGift?.icon }}</span>
-          <span class="animation-name">{{ animatingGift?.name }}</span>
-          <span class="animation-count">x{{ animatingCount }}</span>
-        </div>
-      </div>
-    </div>
-  </div>
+          <text v-else class="animation-icon">{{ animatingGift?.icon }}</text>
+          <text class="animation-name">{{ animatingGift?.name }}</text>
+          <text class="animation-count">x{{ animatingCount }}</text>
+        </view>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import giftService from '../../services/giftService'
+import { toast } from '../../composables/useToast'
 
 const props = defineProps({
   visible: {
@@ -194,7 +195,7 @@ const sendGift = () => {
   if (!selectedGift.value) return
 
   if (totalPrice.value > props.userBalance) {
-    alert('金币不足，请先充值')
+    toast.error('金币不足，请先充值')
     return
   }
 

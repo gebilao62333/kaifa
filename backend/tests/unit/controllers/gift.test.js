@@ -142,11 +142,19 @@ describe('Controller - Gift', () => {
     expect(res.status).toHaveBeenCalledWith(422);
   });
 
-  it('getRedPacketHistory uses default type', async () => {
-    giftService.getRedPacketHistory.mockResolvedValue([]);
+  it('getRedPacketHistory uses default type and pagination', async () => {
+    giftService.getRedPacketHistory.mockResolvedValue({ list: [], pagination: { page: 1, pageSize: 20, total: 0, totalPages: 0 } });
     const res = mockRes();
     await giftController.getRedPacketHistory(mockReq({ query: {} }), res);
-    expect(giftService.getRedPacketHistory).toHaveBeenCalledWith(100001, 'all');
+    expect(giftService.getRedPacketHistory).toHaveBeenCalledWith(100001, 'all', 1, 20);
+    expect(res.status).toHaveBeenCalledWith(200);
+  });
+
+  it('getRedPacketHistory passes page/pageSize through', async () => {
+    giftService.getRedPacketHistory.mockResolvedValue({ list: [], pagination: {} });
+    const res = mockRes();
+    await giftController.getRedPacketHistory(mockReq({ query: { type: 'received', page: '3', pageSize: '10' } }), res);
+    expect(giftService.getRedPacketHistory).toHaveBeenCalledWith(100001, 'received', '3', '10');
     expect(res.status).toHaveBeenCalledWith(200);
   });
 });

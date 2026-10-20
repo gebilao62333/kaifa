@@ -1,79 +1,79 @@
 <template>
-  <div class="chat-users-page">
-    <div class="header">
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="title">交友</span>
-      <span style="width: 40px;"></span>
-    </div>
+  <view class="chat-users-page">
+    <view class="header">
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="title">交友</text>
+      <text style="width: 40px;"></text>
+    </view>
 
-    <div class="category-tabs">
-      <div
+    <view class="category-tabs">
+      <view
         v-for="tab in categoryTabs"
         :key="tab.key"
         :class="['tab-item', { active: activeTab === tab.key }]"
         @click="switchTab(tab.key)"
       >
-        <span class="tab-icon">{{ tab.icon }}</span>
-        <span class="tab-label">{{ tab.label }}</span>
-      </div>
-    </div>
+        <text class="tab-icon">{{ tab.icon }}</text>
+        <text class="tab-label">{{ tab.label }}</text>
+      </view>
+    </view>
 
-    <div class="user-list">
-      <div class="empty-state" v-if="loading">
-        <div class="empty-icon">⏳</div>
-        <div class="empty-text">加载中...</div>
-      </div>
+    <view class="user-list">
+      <view class="empty-state" v-if="loading">
+        <view class="empty-icon">⏳</view>
+        <view class="empty-text">加载中...</view>
+      </view>
 
-      <div class="empty-state" v-else-if="loadError">
-        <div class="empty-icon">⚠️</div>
-        <div class="empty-text">{{ loadError }}</div>
+      <view class="empty-state" v-else-if="loadError">
+        <view class="empty-icon">⚠️</view>
+        <view class="empty-text">{{ loadError }}</view>
         <button class="retry-btn" @click="loadUsers">重新加载</button>
-      </div>
+      </view>
 
-      <div
+      <view
         v-for="(user, index) in (loading || loadError ? [] : filteredUsers)"
         :key="user.userId"
         :class="['user-item', { 'no-border': index === filteredUsers.length - 1 }]"
         @click="goUserProfile(user)"
       >
-        <div class="avatar-wrap">
-          <img class="avatar" :src="user.avatar" alt="" />
-          <div class="online-dot" v-if="user.online"></div>
-        </div>
-        <div class="user-info">
-          <div class="name-row">
-            <span class="nickname">{{ user.nickName }}</span>
-            <span class="gender-tag" :class="user.gender">{{ user.gender === 'male' ? '♂' : '♀' }}</span>
-            <span class="level-tag">Lv.{{ user.level }}</span>
-            <span class="vip-tag" v-if="user.isVip">VIP</span>
-          </div>
-          <div class="tags-row">
-            <span v-for="tag in user.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</span>
-          </div>
-          <div class="meta-row">
-            <span class="status-text" :class="{ online: user.online }">
+        <view class="avatar-wrap">
+          <image mode="aspectFill" class="avatar" :src="user.avatar" alt="" />
+          <view class="online-dot" v-if="user.online"></view>
+        </view>
+        <view class="user-info">
+          <view class="name-row">
+            <text class="nickname">{{ user.nickName }}</text>
+            <text class="gender-tag" :class="user.gender">{{ user.gender === 'male' ? '♂' : '♀' }}</text>
+            <text class="level-tag">Lv.{{ user.level }}</text>
+            <text class="vip-tag" v-if="user.isVip">VIP</text>
+          </view>
+          <view class="tags-row">
+            <text v-for="tag in user.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</text>
+          </view>
+          <view class="meta-row">
+            <text class="status-text" :class="{ online: user.online }">
               {{ user.online ? '在线' : '离线' }}
-            </span>
-            <span class="region-text" v-if="user.region">{{ user.region }}</span>
-          </div>
-        </div>
+            </text>
+            <text class="region-text" v-if="user.region">{{ user.region }}</text>
+          </view>
+        </view>
         <button class="chat-btn" @click.stop="startChat(user)">聊天</button>
-      </div>
+      </view>
 
-      <div class="empty-state" v-if="!loading && !loadError && filteredUsers.length === 0">
-        <div class="empty-icon">👥</div>
-        <div class="empty-text">暂无用户</div>
-      </div>
-    </div>
-  </div>
+      <view class="empty-state" v-if="!loading && !loadError && filteredUsers.length === 0">
+        <view class="empty-icon">👥</view>
+        <view class="empty-text">暂无用户</view>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import { useUserStore } from '../store/user-info'
 import homeService from '../services/homeService'
-import { toast } from '../composables/useToast'
 import { STORAGE_KEYS, DEFAULT_AVATAR } from '../common/constants'
 
 const router = useRouter()
@@ -110,9 +110,11 @@ const filteredUsers = computed(() => {
 
 const loadError = ref('')
 
-const loadUsers = async () => {
-  loading.value = true
-  loadError.value = ''
+const loadUsers = async (silent = false) => {
+  // 模板 @click="loadUsers" 会把点击事件当首参传入，这里只认显式 true
+  silent = silent === true
+  if (!silent) loading.value = true
+  if (!silent) loadError.value = ''
 
   const userStore = useUserStore()
   const rawToken = localStorage.getItem(STORAGE_KEYS.TOKEN)
@@ -129,6 +131,7 @@ const loadUsers = async () => {
     const result = await homeService.getRecommendCompanions({ page: 1, pageSize: 50 })
 
     if (result && result.code === 200 && result.data) {
+      loadError.value = ''
       const list = result.data.list || result.data || []
       allUsers.value = (Array.isArray(list) ? list : []).map(user => {
         const level = Number(user.level) || 1
@@ -146,16 +149,19 @@ const loadUsers = async () => {
           region: user.region || user.city || ''
         }
       })
-    } else {
+    } else if (!silent || allUsers.value.length === 0) {
       allUsers.value = []
       loadError.value = (result && result.message) || '加载用户列表失败'
     }
   } catch (error) {
-    allUsers.value = []
-    loadError.value = error?.message || '网络异常，请稍后重试'
+    // 静默刷新（返回本页）失败时保留旧列表；列表本就为空则仍展示错误态
+    if (!silent || allUsers.value.length === 0) {
+      allUsers.value = []
+      loadError.value = error?.message || '网络异常，请稍后重试'
+    }
     console.warn('加载用户列表失败:', error?.message)
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
 }
 
@@ -175,8 +181,22 @@ const goBack = () => {
   router.back()
 }
 
+// 返回用户列表页时静默刷新，不闪 loading、不重复首载
+const refreshOnShow = () => {
+  loadUsers(true)
+}
+
 onMounted(() => {
   loadUsers()
+})
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
 })
 </script>
 

@@ -6,7 +6,15 @@ const { authMiddleware, smsLimiter, loginLimiter } = require('../middlewares');
 router.post('/login', loginLimiter, userController.login);
 router.post('/register', loginLimiter, userController.register);
 router.post('/reset-password', loginLimiter, userController.resetPassword);
+// 已登录用户修改密码（旧密码校验；改密后全端令牌作废，需重新登录）
+router.post('/change-password', authMiddleware, userController.changePassword);
 router.get('/get', authMiddleware, userController.getUserInfo);
+// 个人中心/主页统计（?userId= 可看他人公开计数）
+router.get('/stats', authMiddleware, userController.getUserStats);
+// U-22：黑名单
+router.post('/block', authMiddleware, userController.blockUser);
+router.post('/unblock', authMiddleware, userController.unblockUser);
+router.get('/blocks', authMiddleware, userController.getBlockedUsers);
 router.post('/update', authMiddleware, userController.updateUserInfo);
 router.post('/follow', authMiddleware, userController.follow);
 router.get('/fans', authMiddleware, userController.getFans);

@@ -1,33 +1,33 @@
 <template>
   <Teleport to="body">
     <Transition name="slide-up">
-      <div class="incoming-call-overlay" v-if="visible">
-        <div class="incoming-call-card">
-          <div class="caller-avatar">
+      <view class="incoming-call-overlay" v-if="visible">
+        <view class="incoming-call-card">
+          <view class="caller-avatar">
             {{ callerInfo.nickname?.charAt(0) || '?' }}
-          </div>
-          <div class="caller-name">{{ callerInfo.nickname || '未知用户' }}</div>
-          <div class="call-type">
+          </view>
+          <view class="caller-name">{{ callerInfo.nickname || '未知用户' }}</view>
+          <view class="call-type">
             {{ callerInfo.callType === 2 ? '📹 视频通话' : '📞 语音通话' }}
-          </div>
-          <div class="call-tip">邀请你进行{{ callerInfo.callType === 2 ? '视频' : '语音' }}通话</div>
+          </view>
+          <view class="call-tip">邀请你进行{{ callerInfo.callType === 2 ? '视频' : '语音' }}通话</view>
 
-          <div class="action-buttons">
-            <div class="action-btn reject-btn" @click="handleReject">
-              <span class="btn-icon">📵</span>
-              <span class="btn-text">拒绝</span>
-            </div>
-            <div class="action-btn accept-btn" @click="handleAccept">
-              <span class="btn-icon">📞</span>
-              <span class="btn-text">接听</span>
-            </div>
-          </div>
+          <view class="action-buttons">
+            <view class="action-btn reject-btn" @click="handleReject">
+              <text class="btn-icon">📵</text>
+              <text class="btn-text">拒绝</text>
+            </view>
+            <view class="action-btn accept-btn" @click="handleAccept">
+              <text class="btn-icon">📞</text>
+              <text class="btn-text">接听</text>
+            </view>
+          </view>
 
-          <div class="call-timer" v-if="ringing">
+          <view class="call-timer" v-if="ringing">
             响铃中 {{ ringDuration }}s
-          </div>
-        </div>
-      </div>
+          </view>
+        </view>
+      </view>
     </Transition>
   </Teleport>
 </template>
@@ -37,6 +37,7 @@ import { ref, watch, onUnmounted } from 'vue'
 import { useRouter } from '@/common/route'
 import { callService } from '../services/callService'
 import { socketService } from '../services/socketService'
+import storage from '../common/storage'
 
 const router = useRouter()
 const visible = ref(false)
@@ -110,7 +111,8 @@ const handleAccept = async () => {
     //  - incoming=1 → 页面走被叫分支，不会被当成主叫再发起一通新通话
     //  - mode       → 页面与 acceptCall 中的通道判断保持一致
     const mode = callerInfo.value.useWebRTC ? 'webrtc' : 'trtc'
-    try { localStorage.setItem('_pendingCallMode', mode) } catch (e) { /* 存储不可用时忽略 */ }
+// 走统一存储适配器：App 端双写 uni.storage，通话页冷启动/原生侧也能读到
+    storage.setItem('_pendingCallMode', mode)
     const target = callerInfo.value.callType === 2 ? 'video' : 'audio'
     const room = callerInfo.value.trtcRoomId ? `&room=${encodeURIComponent(callerInfo.value.trtcRoomId)}` : ''
     router.push(`/call/${callerInfo.value.callerId}/${target}?incoming=1&mode=${mode}${room}`)

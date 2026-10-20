@@ -1,87 +1,87 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">实名认证</span>
-      <span class="placeholder"></span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">实名认证</text>
+      <text class="placeholder"></text>
     </template>
 
-    <div class="content" v-if="showForm">
-      <div class="tips-card">
-        <div class="tips-icon">ℹ️</div>
-        <div class="tips-text">
-          <div class="tips-title">为什么需要实名认证？</div>
-          <div class="tips-desc">保障用户权益，确保服务安全</div>
-        </div>
-      </div>
+    <view class="content" v-if="showForm">
+      <view class="tips-card">
+        <view class="tips-icon">ℹ️</view>
+        <view class="tips-text">
+          <view class="tips-title">为什么需要实名认证？</view>
+          <view class="tips-desc">保障用户权益，确保服务安全</view>
+        </view>
+      </view>
 
-      <div class="form-card">
-        <div class="form-item">
-          <div class="form-label">真实姓名</div>
+      <view class="form-card">
+        <view class="form-item">
+          <view class="form-label">真实姓名</view>
           <input type="text" class="form-input" v-model="realName" placeholder="请输入真实姓名" />
-        </div>
+        </view>
 
-        <div class="form-item">
-          <div class="form-label">身份证号</div>
+        <view class="form-item">
+          <view class="form-label">身份证号</view>
           <input type="text" class="form-input" v-model="idCard" placeholder="请输入身份证号码" maxlength="18" />
-        </div>
+        </view>
 
-        <div class="form-item">
-          <div class="form-label">身份证正面</div>
-          <div class="upload-area" @click="uploadFront">
-            <div class="upload-icon" v-if="!frontImg">📷</div>
-            <img class="upload-preview" v-else :src="frontImg" alt="" />
-            <div class="upload-text" v-if="!frontImg">点击上传身份证正面</div>
-          </div>
-        </div>
+        <view class="form-item">
+          <view class="form-label">身份证正面</view>
+          <view class="upload-area" @click="uploadFront">
+            <view class="upload-icon" v-if="!frontImg">📷</view>
+            <image mode="aspectFill" class="upload-preview" v-else :src="frontImg" alt="" />
+            <view class="upload-text" v-if="!frontImg">点击上传身份证正面</view>
+          </view>
+        </view>
 
-        <div class="form-item">
-          <div class="form-label">身份证反面</div>
-          <div class="upload-area" @click="uploadBack">
-            <div class="upload-icon" v-if="!backImg">📷</div>
-            <img class="upload-preview" v-else :src="backImg" alt="" />
-            <div class="upload-text" v-if="!backImg">点击上传身份证反面</div>
-          </div>
-        </div>
+        <view class="form-item">
+          <view class="form-label">身份证反面</view>
+          <view class="upload-area" @click="uploadBack">
+            <view class="upload-icon" v-if="!backImg">📷</view>
+            <image mode="aspectFill" class="upload-preview" v-else :src="backImg" alt="" />
+            <view class="upload-text" v-if="!backImg">点击上传身份证反面</view>
+          </view>
+        </view>
 
-        <div class="agreement">
+        <view class="agreement">
           <input type="checkbox" id="agree" v-model="agreed" />
           <label for="agree">我已阅读并同意《用户认证协议》</label>
-        </div>
+        </view>
 
         <button class="submit-btn" @click="submitForm">提交认证</button>
-      </div>
-    </div>
+      </view>
+    </view>
 
-    <div class="content" v-else>
-      <div class="success-card">
-        <div class="success-icon">{{ statusMeta.icon }}</div>
-        <div class="success-title">{{ statusMeta.title }}</div>
-        <div class="success-desc">{{ statusMeta.desc }}</div>
-      </div>
+    <view class="content" v-else>
+      <view class="success-card">
+        <view class="success-icon">{{ statusMeta.icon }}</view>
+        <view class="success-title">{{ statusMeta.title }}</view>
+        <view class="success-desc">{{ statusMeta.desc }}</view>
+      </view>
 
-      <div class="info-card">
-        <div class="info-item">
-          <div class="info-label">真实姓名</div>
-          <div class="info-value">{{ maskedName || '—' }}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">身份证号</div>
-          <div class="info-value">{{ maskedIdCard || '—' }}</div>
-        </div>
-        <div class="info-item">
-          <div class="info-label">提交时间</div>
-          <div class="info-value">{{ verifyTime ? formatTime(verifyTime, 'YYYY-MM-DD') : '—' }}</div>
-        </div>
-      </div>
+      <view class="info-card">
+        <view class="info-item">
+          <view class="info-label">真实姓名</view>
+          <view class="info-value">{{ maskedName || '—' }}</view>
+        </view>
+        <view class="info-item">
+          <view class="info-label">身份证号</view>
+          <view class="info-value">{{ maskedIdCard || '—' }}</view>
+        </view>
+        <view class="info-item">
+          <view class="info-label">提交时间</view>
+          <view class="info-value">{{ verifyTime ? formatTime(verifyTime, 'YYYY-MM-DD') : '—' }}</view>
+        </view>
+      </view>
 
-      <div class="status-badge" :class="{ pending: status === 1, rejected: status === 3 }">
-        <span class="status-dot"></span>
+      <view class="status-badge" :class="{ pending: status === 1, rejected: status === 3 }">
+        <text class="status-dot"></text>
         {{ statusMeta.badge }}
-      </div>
+      </view>
 
       <button class="submit-btn resubmit-btn" v-if="status === 3" @click="status = 0">重新提交认证</button>
-    </div>
+    </view>
 
     <input type="file" ref="fileInput" accept="image/*" style="display: none" @change="handleFileChange" />
   </PageLayout>
@@ -93,6 +93,8 @@ import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import authService from '../services/authService'
 import { uploadFile } from '../services/uploadService'
+import { chooseImages } from '../services/mediaPicker'
+import { isApp } from '../common/platform'
 import { toast } from '../composables/useToast'
 import { formatTime } from '../common/common'
 
@@ -122,35 +124,54 @@ const agreed = ref(false)
 const currentUpload = ref('')
 
 const fileInput = ref(null)
+// App 端选到的是 mediaPicker 的临时文件（只有 path），需在提交时交给 uploadFile 走 uni.uploadFile
+const frontFile = ref(null)
+const backFile = ref(null)
 
 const goBack = () => {
   router.back()
 }
 
-const uploadFront = () => {
-  currentUpload.value = 'front'
-  fileInput.value?.click()
+const selectIdCard = async (side) => {
+  currentUpload.value = side
+  // App 端没有可点击的 <input type=file>，统一走 mediaPicker（相册/相机）
+  if (!isApp) { fileInput.value?.click(); return }
+  try {
+    const { supported, files } = await chooseImages(1)
+    if (supported && files.length) applyIdCardFile(files[0])
+  } catch (err) {
+    toast.error(err.message || '选择图片失败')
+  }
 }
 
-const uploadBack = () => {
-  currentUpload.value = 'back'
-  fileInput.value?.click()
+const uploadFront = () => selectIdCard('front')
+
+const uploadBack = () => selectIdCard('back')
+
+// H5 与 App 共用：H5 仍用 FileReader 转 dataURL 预览（提交时再转 File），
+// App 直接用临时路径预览并记录文件对象，提交时走 uni.uploadFile。
+const applyIdCardFile = (file) => {
+  if (!file) return
+  const side = currentUpload.value
+  const urlRef = side === 'back' ? backImg : frontImg
+  const fileRef = side === 'back' ? backFile : frontFile
+  if (isApp) {
+    urlRef.value = file.path
+    fileRef.value = file
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    urlRef.value = event.target?.result || ''
+  }
+  reader.readAsDataURL(file)
 }
 
 const handleFileChange = (e) => {
   const files = e.target.files
-  if (files && files.length > 0) {
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      const url = event.target?.result || ''
-      if (currentUpload.value === 'front') {
-        frontImg.value = url
-      } else if (currentUpload.value === 'back') {
-        backImg.value = url
-      }
-    }
-    reader.readAsDataURL(files[0])
-  }
+  const file = files && files[0]
+  e.target.value = ''
+  if (file) applyIdCardFile(file)
 }
 
 const dataUrlToFile = (dataUrl, name) => {
@@ -185,14 +206,23 @@ const submitForm = async () => {
   submitting.value = true
 
   try {
-    // 正反面照片先直传 COS 换真实 URL，再提交认证
+    // 正反面照片先直传 COS 换真实 URL，再提交认证：
+    // App 上传 mediaPicker 选到的临时文件，H5 保持原有 dataURL → File 流程
     let frontUrl = frontImg.value
     let backUrl = backImg.value
-    if (frontUrl.startsWith('data:')) {
+    if (frontFile.value) {
+      const r = await uploadFile(frontFile.value, 'image')
+      frontUrl = r.data.url
+      frontFile.value = null
+    } else if (frontUrl.startsWith('data:')) {
       const r = await uploadFile(dataUrlToFile(frontUrl, `idcard_front_${Date.now()}.jpg`), 'image')
       frontUrl = r.data.url
     }
-    if (backUrl.startsWith('data:')) {
+    if (backFile.value) {
+      const r = await uploadFile(backFile.value, 'image')
+      backUrl = r.data.url
+      backFile.value = null
+    } else if (backUrl.startsWith('data:')) {
       const r = await uploadFile(dataUrlToFile(backUrl, `idcard_back_${Date.now()}.jpg`), 'image')
       backUrl = r.data.url
     }

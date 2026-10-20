@@ -1,4 +1,4 @@
-// 本迁移按设计不接入启动自动迁移，需手动单独执行；
+// 本迁移已接入启动自动迁移，但受 AUTO_MIGRATE_WIDEN_COLUMNS 开关控制（生产默认跳过，避免启动时重建大表）；
 // 单独执行时无人预先加载 .env，必须在此显式加载，否则会回落到默认的 127.0.0.1:3306。
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 
@@ -13,9 +13,10 @@ const sequelize = require('../config/mysql');
  *  - xn_user.real_name_front VARCHAR(255) → VARCHAR(512)
  *  - xn_user.real_name_back  VARCHAR(255) → VARCHAR(512)
  *
- * ⚠️ 未接入启动自动迁移（ALTER 会触发表重建，生产大表需自行选择维护窗口）。
+ * ⚠️ 接线后仍受开关控制：非生产默认执行；生产默认跳过（ALTER 会触发表重建，需维护窗口）。
+ *    生产需要时显式设置 AUTO_MIGRATE_WIDEN_COLUMNS=true，或手动执行：
+ *    node src/migrations/20261004000002_widen_pii_columns.js
  *    ⚠️ 务必在配置 PII_ENCRYPTION_KEY 之前执行本迁移，否则加密写入会因「数据过长」失败。
- *    需要时手动执行：node src/migrations/20261004000002_widen_pii_columns.js
  */
 
 const TARGETS = [

@@ -1,8 +1,8 @@
 <template>
   <PageLayout>
     <template #nav>
-      <div class="search-input-wrap">
-        <span class="search-icon">🔍</span>
+      <view class="search-input-wrap">
+        <text class="search-icon">🔍</text>
         <input
           ref="inputRef"
           v-model="searchKeyword"
@@ -12,132 +12,132 @@
           @input="onSearch"
           @keyup.enter="doSearch"
         />
-        <span v-if="searchKeyword" class="clear-icon" @click="clearSearch">✕</span>
-      </div>
-      <span class="cancel-btn" @click="goBack">取消</span>
+        <text v-if="searchKeyword" class="clear-icon" @click="clearSearch">✕</text>
+      </view>
+      <text class="cancel-btn" @click="goBack">取消</text>
     </template>
 
-    <div v-if="!searchKeyword" class="search-content">
-      <div v-if="searchHistory.length > 0" class="history-section">
-        <div class="section-header">
-          <span class="section-title">搜索历史</span>
-          <span class="clear-history" @click="clearHistory">清空</span>
-        </div>
-        <div class="history-list">
-          <span
+    <view v-if="!searchKeyword" class="search-content">
+      <view v-if="searchHistory.length > 0" class="history-section">
+        <view class="section-header">
+          <text class="section-title">搜索历史</text>
+          <text class="clear-history" @click="clearHistory">清空</text>
+        </view>
+        <view class="history-list">
+          <text
             v-for="(item, index) in searchHistory"
             :key="index"
             class="history-item"
             @click="searchFromHistory(item)"
           >
             {{ item }}
-          </span>
-        </div>
-      </div>
+          </text>
+        </view>
+      </view>
 
-      <div class="hot-section">
-        <div class="section-header">
-          <span class="section-title">热门搜索</span>
-        </div>
-        <div class="hot-list">
-          <div
+      <view class="hot-section">
+        <view class="section-header">
+          <text class="section-title">热门搜索</text>
+        </view>
+        <view class="hot-list">
+          <view
             v-for="(item, index) in hotList"
             :key="index"
             class="hot-item"
             @click="searchKeyword = item.keyword"
           >
-            <span class="hot-rank" :class="{ top: index < 3 }">{{ index + 1 }}</span>
-            <span class="hot-keyword">{{ item.keyword }}</span>
-            <span class="hot-tag" v-if="item.tag">{{ item.tag }}</span>
-          </div>
-        </div>
-      </div>
+            <text class="hot-rank" :class="{ top: index < 3 }">{{ index + 1 }}</text>
+            <text class="hot-keyword">{{ item.keyword }}</text>
+            <text class="hot-tag" v-if="item.tag">{{ item.tag }}</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="category-section">
-        <div class="section-title">分类浏览</div>
-        <div class="category-grid">
-          <div class="category-item" @click="goCategory('game')">
-            <span class="category-icon">🎮</span>
-            <span class="category-name">游戏</span>
-          </div>
-          <div class="category-item" @click="goCategory('user')">
-            <span class="category-icon">👤</span>
-            <span class="category-name">用户</span>
-          </div>
-          <div class="category-item" @click="goCategory('post')">
-            <span class="category-icon">📝</span>
-            <span class="category-name">帖子</span>
-          </div>
-        </div>
-      </div>
-    </div>
+      <view class="category-section">
+        <view class="section-title">分类浏览</view>
+        <view class="category-grid">
+          <view class="category-item" @click="goCategory('game')">
+            <text class="category-icon">🎮</text>
+            <text class="category-name">游戏</text>
+          </view>
+          <view class="category-item" @click="goCategory('user')">
+            <text class="category-icon">👤</text>
+            <text class="category-name">用户</text>
+          </view>
+          <view class="category-item" @click="goCategory('post')">
+            <text class="category-icon">📝</text>
+            <text class="category-name">帖子</text>
+          </view>
+        </view>
+      </view>
+    </view>
 
-    <div v-else class="search-result">
-      <div v-if="loading" class="loading">
-        <span>搜索中...</span>
-      </div>
+    <view v-else class="search-result">
+      <view v-if="loading" class="loading">
+        <text>搜索中...</text>
+      </view>
 
-      <div v-else-if="searchResults.users.length === 0 && searchResults.posts.length === 0 && searchResults.games.length === 0" class="empty">
-        <span class="empty-icon">🔍</span>
-        <span class="empty-text">未找到相关结果</span>
-      </div>
+      <view v-else-if="searchResults.users.length === 0 && searchResults.posts.length === 0 && searchResults.games.length === 0" class="empty">
+        <text class="empty-icon">🔍</text>
+        <text class="empty-text">未找到相关结果</text>
+      </view>
 
-      <div v-else class="result-list">
-        <div v-if="searchResults.users.length > 0" class="result-section">
-          <div class="result-header">
-            <span class="result-title">用户</span>
-            <span class="result-more" @click="viewMore('user')">查看更多 ›</span>
-          </div>
-          <div class="user-list">
-            <div v-for="user in searchResults.users" :key="user.userId" class="user-item" @click="goUserProfile(user.userId)">
-              <img class="user-avatar" :src="user.avatar" alt="" />
-              <div class="user-info">
-                <div class="user-name">{{ user.nickName }}</div>
-                <div class="user-level" v-if="user.level">Lv.{{ user.level }}</div>
-              </div>
-              <div class="follow-btn" :class="{ following: user.isFollow }" @click.stop="toggleFollow(user)">
+      <view v-else class="result-list">
+        <view v-if="searchResults.users.length > 0" class="result-section">
+          <view class="result-header">
+            <text class="result-title">用户</text>
+            <text class="result-more" @click="viewMore('user')">查看更多 ›</text>
+          </view>
+          <view class="user-list">
+            <view v-for="user in searchResults.users" :key="user.userId" class="user-item" @click="goUserProfile(user.userId)">
+              <image mode="scaleToFill" class="user-avatar" :src="user.avatar" alt="" />
+              <view class="user-info">
+                <view class="user-name">{{ user.nickName }}</view>
+                <view class="user-level" v-if="user.level">Lv.{{ user.level }}</view>
+              </view>
+              <view class="follow-btn" :class="{ following: user.isFollow }" @click.stop="toggleFollow(user)">
                 {{ user.isFollow ? '已关注' : '关注' }}
-              </div>
-            </div>
-          </div>
-        </div>
+              </view>
+            </view>
+          </view>
+        </view>
 
-        <div v-if="searchResults.posts.length > 0" class="result-section">
-          <div class="result-header">
-            <span class="result-title">帖子</span>
-            <span class="result-more" @click="viewMore('post')">查看更多 ›</span>
-          </div>
-          <div class="post-list">
-            <div v-for="post in searchResults.posts" :key="post.postId" class="post-item" @click="goPostDetail(post.postId)">
-              <div class="post-content">{{ post.content }}</div>
-              <div v-if="post.images && post.images.length > 0" class="post-images">
-                <img v-for="(img, idx) in post.images.slice(0, 3)" :key="idx" :src="img" alt="" />
-              </div>
-              <div class="post-meta">
-                <span class="post-author">{{ post.nickName }}</span>
-                <span class="post-time">{{ formatTime(post.createTime) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <view v-if="searchResults.posts.length > 0" class="result-section">
+          <view class="result-header">
+            <text class="result-title">帖子</text>
+            <text class="result-more" @click="viewMore('post')">查看更多 ›</text>
+          </view>
+          <view class="post-list">
+            <view v-for="post in searchResults.posts" :key="post.postId" class="post-item" @click="goPostDetail(post.postId)">
+              <view class="post-content">{{ post.content }}</view>
+              <view v-if="post.images && post.images.length > 0" class="post-images">
+                <image class="post-img-thumb" mode="aspectFill" v-for="(img, idx) in post.images.slice(0, 3)" :key="idx" :src="img" />
+              </view>
+              <view class="post-meta">
+                <text class="post-author">{{ post.nickName }}</text>
+                <text class="post-time">{{ formatTime(post.createTime) }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
 
-        <div v-if="searchResults.games.length > 0" class="result-section">
-          <div class="result-header">
-            <span class="result-title">游戏</span>
-            <span class="result-more" @click="viewMore('game')">查看更多 ›</span>
-          </div>
-          <div class="game-list">
-            <div v-for="game in searchResults.games" :key="game.gameId" class="game-item" @click="goGameDetail(game.gameId)">
-              <img class="game-icon" :src="game.icon" alt="" />
-              <div class="game-info">
-                <div class="game-name">{{ game.name }}</div>
-                <div class="game-count">{{ game.playerCount }}人在玩</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+        <view v-if="searchResults.games.length > 0" class="result-section">
+          <view class="result-header">
+            <text class="result-title">游戏</text>
+            <text class="result-more" @click="viewMore('game')">查看更多 ›</text>
+          </view>
+          <view class="game-list">
+            <view v-for="game in searchResults.games" :key="game.gameId" class="game-item" @click="goGameDetail(game.gameId)">
+              <image mode="scaleToFill" class="game-icon" :src="game.icon" alt="" />
+              <view class="game-info">
+                <view class="game-name">{{ game.name }}</view>
+                <view class="game-count">{{ game.playerCount }}人在玩</view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
@@ -150,6 +150,7 @@ import searchService from '@/services/searchService'
 import authService from '@/services/authService'
 import { toast } from '@/composables/useToast'
 import PageLayout from '../components/PageLayout.vue'
+import storage from '../common/storage'
 
 const router = useRouter()
 const inputRef = ref(null)
@@ -182,9 +183,15 @@ const searchResults = reactive({
 })
 
 onMounted(async () => {
-  const history = localStorage.getItem('searchHistory')
+  const history = storage.getItem('searchHistory')
   if (history) {
-    searchHistory.value = JSON.parse(history)
+    try {
+      const parsed = JSON.parse(history)
+      searchHistory.value = Array.isArray(parsed) ? parsed : []
+    } catch (e) {
+      // 本机历史损坏时按空列表处理，不阻断搜索页启动
+      searchHistory.value = []
+    }
   }
   focusInput()
   try {
@@ -256,12 +263,12 @@ const saveToHistory = (keyword) => {
   history.unshift(keyword)
   history = history.slice(0, 10)
   searchHistory.value = history
-  localStorage.setItem('searchHistory', JSON.stringify(history))
+  storage.setItem('searchHistory', JSON.stringify(history))
 }
 
 const clearHistory = () => {
   searchHistory.value = []
-  localStorage.removeItem('searchHistory')
+  storage.removeItem('searchHistory')
 }
 
 const searchFromHistory = (keyword) => {
@@ -287,7 +294,8 @@ const goCategory = (type) => {
   } else if (type === 'user') {
     router.push('/companion-list?type=all')
   } else {
-    toast.info('帖子列表开发中')
+    // 帖子分类浏览直接用广场信息流（服务端已按可见范围过滤）
+    router.push('/square')
   }
 }
 
@@ -324,7 +332,7 @@ const viewMore = (type) => {
   } else if (type === 'user') {
     router.push('/companion-list?type=all')
   } else {
-    toast.info('帖子列表开发中')
+    router.push('/square')
   }
 }
 
@@ -622,7 +630,7 @@ const formatTime = (timestamp) => {
   margin-bottom: 8px;
 }
 
-.post-images img {
+.post-images .post-img-thumb {
   width: 80px;
   height: 80px;
   border-radius: 8px;

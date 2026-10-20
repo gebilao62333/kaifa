@@ -16,6 +16,7 @@
     "test:coverage": "jest --coverage",
     "test:verbose": "jest --verbose",
     "migrate": "node src/migrations/runMigrations.js",
+    "seed:test": "node scripts/seed-test-data.js",
     "backup": "node scripts/backup.js",
     "lint": "eslint src/"
   },

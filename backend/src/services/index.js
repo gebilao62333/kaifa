@@ -25,6 +25,8 @@ const settingsService = require('./settingsService');
 const levelService = require('./levelService');
 // 审计 H-6：装扮目录/价格/所有权收归服务端
 const skinService = require('./skinService');
+// 《未完成事项清单》B-3：平台公告落库
+const noticeService = require('./noticeService');
 
 module.exports = {
   authService,
@@ -51,5 +53,6 @@ module.exports = {
   walletService,
   feedbackService,
   settingsService,
-  levelService
+  levelService,
+  noticeService
 };

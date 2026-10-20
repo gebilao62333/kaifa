@@ -1,61 +1,61 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">身份标识</span>
-      <span class="placeholder"></span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">身份标识</text>
+      <text class="placeholder"></text>
     </template>
 
-    <div class="content">
-      <div class="preview-card">
-        <div class="preview-label">预览效果</div>
-        <div class="preview-body">
-          <img class="preview-avatar" :src="userAvatar" alt="" />
-          <div class="preview-info">
-            <div class="preview-name-row">
-              <span class="preview-name">{{ userName }}</span>
-              <span class="preview-level">Lv.15</span>
-              <span class="preview-badge" :style="selectedBadge.style">{{ selectedBadge.label }}</span>
-            </div>
-            <div class="preview-desc">昵称旁显示的标识效果</div>
-          </div>
-        </div>
-      </div>
+    <view class="content">
+      <view class="preview-card">
+        <view class="preview-label">预览效果</view>
+        <view class="preview-body">
+          <image mode="aspectFill" class="preview-avatar" :src="userAvatar" alt="" />
+          <view class="preview-info">
+            <view class="preview-name-row">
+              <text class="preview-name">{{ userName }}</text>
+              <text class="preview-level">Lv.15</text>
+              <text class="preview-badge" :style="selectedBadge.style">{{ selectedBadge.label }}</text>
+            </view>
+            <view class="preview-desc">昵称旁显示的标识效果</view>
+          </view>
+        </view>
+      </view>
 
-      <div class="current-badge">
-        <div class="badge-label">当前使用</div>
-        <div class="badge-display">
-          <span class="badge-tag" :style="selectedBadge.style">
-            <span class="badge-tag-icon">{{ selectedBadge.icon }}</span>
+      <view class="current-badge">
+        <view class="badge-label">当前使用</view>
+        <view class="badge-display">
+          <text class="badge-tag" :style="selectedBadge.style">
+            <text class="badge-tag-icon">{{ selectedBadge.icon }}</text>
             {{ selectedBadge.label }}
-          </span>
-          <span class="badge-hint">点击下方标识可切换</span>
-        </div>
-      </div>
+          </text>
+          <text class="badge-hint">点击下方标识可切换</text>
+        </view>
+      </view>
 
-      <div class="badge-section" v-for="group in badgeGroups" :key="group.name">
-        <div class="section-title">{{ group.name }}</div>
-        <div class="badge-grid">
-          <div
+      <view class="badge-section" v-for="group in badgeGroups" :key="group.name">
+        <view class="section-title">{{ group.name }}</view>
+        <view class="badge-grid">
+          <view
             class="badge-item"
             v-for="badge in group.list"
             :key="badge.id"
             :class="{ active: selectedId === badge.id, locked: badge.locked }"
             @click="selectBadge(badge)"
           >
-            <div class="badge-preview">
-              <span class="badge-tag" :style="badge.style">
-                <span class="badge-tag-icon">{{ badge.icon }}</span>
+            <view class="badge-preview">
+              <text class="badge-tag" :style="badge.style">
+                <text class="badge-tag-icon">{{ badge.icon }}</text>
                 {{ badge.label }}
-              </span>
-            </div>
-            <div class="badge-name">{{ badge.name }}</div>
-            <div class="badge-condition" v-if="badge.locked">{{ badge.condition }}</div>
-            <div class="badge-check" v-if="!badge.locked && selectedId === badge.id">✓</div>
-          </div>
-        </div>
-      </div>
-    </div>
+              </text>
+            </view>
+            <view class="badge-name">{{ badge.name }}</view>
+            <view class="badge-condition" v-if="badge.locked">{{ badge.condition }}</view>
+            <view class="badge-check" v-if="!badge.locked && selectedId === badge.id">✓</view>
+          </view>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
@@ -66,6 +66,7 @@ import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
 import { DEFAULT_AVATAR } from '@/common/constants'
 import userPrefService from '../services/userPrefService'
+import storage from '../common/storage'
 
 const router = useRouter()
 
@@ -132,7 +133,7 @@ const selectBadge = (badge) => {
   selectedBadge.icon = badge.icon
   selectedBadge.style = badge.style
   const payload = { id: badge.id, label: badge.label, icon: badge.icon, style: badge.style }
-  localStorage.setItem('selectedBadge', JSON.stringify(payload))
+  storage.setItem('selectedBadge', JSON.stringify(payload))
   // 同步到服务端偏好（身份标识是 Lv.20 权益，被拒时给出服务端原因）
   userPrefService.save({ selectedBadge: payload })
     .catch((e) => { if (e?.status === 422) toast.show(e.message) })

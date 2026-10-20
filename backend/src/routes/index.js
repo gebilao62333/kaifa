@@ -37,6 +37,7 @@ const setupRoutes = (app) => {
     { path: './download', name: '下载', prefix: '/api/download' },
     { path: './search', name: '搜索', prefix: '/api/search' },
     { path: './notice', name: '公告', prefix: '/api/notice' },
+    { path: './notification', name: '互动通知', prefix: '/api/notification' },
     { path: './feedback', name: '意见反馈', prefix: '/api/feedback' },
     
     { path: './trtc', name: '音视频', prefix: '/api/trtc' },

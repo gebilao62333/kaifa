@@ -48,13 +48,15 @@ const homeService = {
     return request('/api/config/home', 'GET')
   },
 
+  // 在线客服真实账号（服务端从 CUSTOMER_SERVICE_USER_IDS 读取；未配置时 configured=false）
+  async getSupport() {
+    return request('/api/config/support', 'GET')
+  },
+
   async getHotSearch() {
     return request('/api/search/hot', 'GET')
   },
 
-  async getNotice() {
-    return request('/api/notice/list', 'GET')
-  },
 
   async getSplashList() {
     return request('/api/splash/active', 'GET')

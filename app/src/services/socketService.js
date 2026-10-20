@@ -5,11 +5,28 @@ import { socketUrl as configSocketUrl } from '../common/config'
 import { STORAGE_KEYS } from '../common/constants'
 import { isApp } from '../common/platform'
 
+// 401 时才判断是否已停在登录页：H5 看 window.location；App 端没有 window.location，
+// 用页面栈末页路由判断，避免在登录页反复跳转
+function isLoginPage() {
+  try {
+    if (isApp) {
+      const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
+      const current = Array.isArray(pages) && pages.length ? pages[pages.length - 1] : null
+      const route = String((current && (current.route || current.__route__)) || '')
+      return /(^|\/)login$/i.test(route)
+    }
+    return typeof window !== 'undefined' && !!window.location && window.location.pathname === '/login'
+  } catch (e) {
+    return false
+  }
+}
 class SocketService {
   constructor() {
     this.socket = null
     this.connected = ref(false)
     this.listeners = new Map()
+    // 内置 call_* 监听只注册一次；业务监听由各调用方通过 on() 进入注册表
+    this.defaultListenersBound = false
   }
 
   // 每次（重）连都从本地存储读取最新 token，避免重连时沿用旧的闭包值（F-07）
@@ -31,6 +48,12 @@ class SocketService {
   connect(url = configSocketUrl) {
     if (this.socket?.connected) {
       if (import.meta.env.DEV) console.log('[Socket] 已经连接')
+      return this.socket
+    }
+
+    // 复用「握手进行中」的实例：登录动作与页面初始化可能几乎同时调用 connect，
+    // 只判 connected 会在握手窗口内重复 io()，产生两条连接（事件重复、登出残留一条）。
+    if (this.socket && this.socket.active) {
       return this.socket
     }
 
@@ -86,7 +109,7 @@ class SocketService {
           try {
             localStorage.removeItem(STORAGE_KEYS.TOKEN)
           } catch (e) { /* storage 不可用时忽略 */ }
-          if (window.location.pathname !== '/login') {
+          if (!isLoginPage()) {
             goLogin()
           }
         }
@@ -97,7 +120,16 @@ class SocketService {
         this.connected.value = false
       })
 
-      this.setupDefaultListeners()
+      // 断线重连/登出后再登录会重建 socket 实例：注册表里的监听（聊天/公告/来电等）
+      // 必须重新挂到新实例上，否则登录后实时事件只存在于旧 socket 上。
+      for (const [event, callbacks] of this.listeners) {
+        callbacks.forEach((cb) => this.socket.on(event, cb))
+      }
+
+      if (!this.defaultListenersBound) {
+        this.defaultListenersBound = true
+        this.setupDefaultListeners()
+      }
 
       return this.socket
     } catch (error) {
@@ -128,7 +160,10 @@ class SocketService {
     if (!this.listeners.has(event)) {
       this.listeners.set(event, [])
     }
-    this.listeners.get(event).push(callback)
+    const callbacks = this.listeners.get(event)
+    // 去重：同一回调重复注册会让未读/提示重复触发；重连重挂也依赖这里保证不叠加。
+    if (callbacks.includes(callback)) return
+    callbacks.push(callback)
     this.socket?.on(event, callback)
   }
 

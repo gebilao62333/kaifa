@@ -24,6 +24,8 @@ const rechargeSchema = {
 router.get('/packages', payController.getPackages);
 router.post('/create-order', authMiddleware, validate(packageIdSchema), payController.createOrder);
 router.post('/wx-order', authMiddleware, validate(packageIdSchema), payController.createWxOrder);
+// 支付宝 SDK 预留入口：未配置商户参数时返回 503，不生成订单
+router.post('/alipay-order', authMiddleware, validate(packageIdSchema), payController.createAlipayOrder);
 router.post('/wx-notify', payController.wxNotify);
 router.get('/wx-query', authMiddleware, payController.queryWxOrder);
 router.post('/wx-close', authMiddleware, payController.closeWxOrder);
@@ -46,6 +48,7 @@ router.get('/wallet/balance', authMiddleware, payController.getWalletBalance);
 // 等于"任何登录用户 POST 一次即可无限给自己充值"。改为管理端接口 + 权限校验。
 router.post('/wallet/recharge', adminAuth, requirePermission('recharge:write'), validate(rechargeSchema), payController.rechargeWallet);
 router.get('/payment/history', authMiddleware, payController.getPaymentHistory);
+// @deprecated → POST /api/pay/create-order（兼容别名；createPayment 与 createOrder 逻辑等价，仅成功文案不同）
 router.post('/pay/create', authMiddleware, validate(packageIdSchema), payController.createPayment);
 
 // 2026-10-03 已删除 POST /api/pay/pay/notify —— 无签名校验，任何人都能伪造支付成功给自己充值。

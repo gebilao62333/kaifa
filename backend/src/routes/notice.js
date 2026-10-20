@@ -2,39 +2,25 @@ const express = require('express');
 const router = express.Router();
 const response = require('../utils/response');
 const logger = require('../utils/logger');
+const { parseQuery } = require('../utils/helper');
+const noticeService = require('../services/noticeService');
 
 // 公告 / 通知列表（公开）
-// ⚠️ 占位数据：当前返回硬编码示例公告，尚未落库。如需运营可配，应接入 xn_notice 表及管理端 CRUD。
-router.get('/list', (req, res) => {
+// 《未完成事项清单》B-3：数据源改为 xn_notice（status=1 且处于有效期内），
+// 后台通过 /api/admin/notices 增删改查，写操作后由 admin 控制器做 socket 全服广播（B-4）。
+// 降级口径：表尚未迁移（或数据库短暂不可用）时返回空列表而不是 500——公告是可选展示内容，
+// 不能因为运营配置缺失把公开首页打成 5xx；具体错误只进日志。
+router.get('/list', async (req, res) => {
+  const { page, pageSize } = parseQuery({ page: req.query.page, pageSize: req.query.pageSize });
   try {
-    const now = Math.floor(Date.now() / 1000);
-    const list = [
-      {
-        id: 1,
-        title: '暑期陪玩狂欢活动',
-        content: '活动期间首单立减，邀请好友还可获得返现奖励，快来参与吧！',
-        type: 'activity',
-        createTime: now - 86400
-      },
-      {
-        id: 2,
-        title: 'VIP 特权正式上线',
-        content: '开通 VIP 即可享受专属标识、折扣优惠与优先匹配等特权。',
-        type: 'notice',
-        createTime: now - 172800
-      },
-      {
-        id: 3,
-        title: '用户协议与隐私政策更新',
-        content: '我们已更新最新版用户协议与隐私政策，继续使用即代表您已阅读并同意。',
-        type: 'notice',
-        createTime: now - 259200
-      }
-    ];
-    response.success(res, { list });
+    const result = await noticeService.listActive({ page, pageSize });
+    response.success(res, result);
   } catch (error) {
     logger.error('获取公告列表错误:', error);
-    response.error(res, error.message);
+    response.success(res, {
+      list: [],
+      pagination: { page, pageSize, total: 0, totalPages: 0 }
+    });
   }
 });
 

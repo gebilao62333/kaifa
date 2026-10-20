@@ -1,53 +1,56 @@
 <template>
-  <div class="audio-call-page">
-    <div class="call-header">
-      <span class="caller-info">{{ callerName }}</span>
-      <span class="call-status">{{ callStatus }}</span>
-      <span class="call-mode" v-if="callMode">{{ callMode === 'webrtc' ? 'WebRTC' : 'TRTC' }}</span>
-    </div>
+  <view class="audio-call-page">
+    <view class="call-header">
+      <text class="caller-info">{{ callerName }}</text>
+      <text class="call-status">{{ callStatus }}</text>
+      <text class="call-mode" v-if="callMode">{{ callMode === 'webrtc' ? (nativeCall ? '原生 WebRTC' : 'WebRTC') : 'TRTC' }}</text>
+    </view>
     
-    <div class="call-visual">
-      <div class="avatar-large">
+    <view class="call-visual">
+      <view class="avatar-large">
         {{ callerName.charAt(0) }}
-      </div>
-      <div class="call-rate" v-if="voicePrice > 0">
-        <span class="rate-label">{{ voicePrice }} 金币/分钟</span>
-      </div>
-      <div class="call-timer" v-if="isConnected">
-        <span class="timer-text">{{ formattedDuration }}</span>
-        <span class="cost-text" v-if="voicePrice > 0">费用：{{ totalCost }} 金币</span>
-      </div>
-      <div class="audio-wave" v-if="isConnected">
-        <span v-for="i in 8" :key="i" class="wave-bar" :style="{ animationDelay: `${i * 0.15}s` }"></span>
-      </div>
+      </view>
+      <view class="call-rate" v-if="voicePrice > 0">
+        <text class="rate-label">{{ voicePrice }} 金币/分钟</text>
+      </view>
+      <view class="call-timer" v-if="isConnected">
+        <text class="timer-text">{{ formattedDuration }}</text>
+        <text class="cost-text" v-if="voicePrice > 0">费用：{{ totalCost }} 金币</text>
+      </view>
+      <view class="audio-wave" v-if="isConnected">
+        <text v-for="i in 8" :key="i" class="wave-bar" :style="{ animationDelay: `${i * 0.15}s` }"></text>
+      </view>
       <!-- WebRTC 远程音频流 -->
       <audio ref="remoteAudioRef" autoplay playsinline></audio>
-    </div>
+    </view>
     
-    <div class="call-actions">
+    <view class="call-actions">
       <button class="action-btn audio-btn" :class="{ active: audioEnabled }" @click="toggleAudio">
-        <span>{{ audioEnabled ? '🔊' : '🔇' }}</span>
+        <text>{{ audioEnabled ? '🔊' : '🔇' }}</text>
       </button>
       <button class="action-btn speaker-btn" :class="{ active: speakerEnabled }" @click="toggleSpeaker">
-        <span>{{ speakerEnabled ? '🔈' : '🎧' }}</span>
+        <text>{{ speakerEnabled ? '🔈' : '🎧' }}</text>
       </button>
       <button class="action-btn hangup-btn" @click="hangup">
-        <span>📞</span>
+        <text>📞</text>
       </button>
-    </div>
-  </div>
+    </view>
+  </view>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRoute, useRouter } from '@/common/route';
 import { callService } from '../services/callService';
 import { webrtcCallService } from '../services/webrtcCallService';
 import { socketService } from '../services/socketService';
 import { trtcRoomService } from '../services/trtcRoomService';
+import { isNativeCallAvailable } from '../services/nativeCallAdapter';
 
 const route = useRoute();
 const router = useRouter();
+// App 原生通道：音频由原生 WebRTC 播放，页面不再绑定 MediaStream
+const nativeCall = isNativeCallAvailable();
 
 // 安全返回：直接进入 / 刷新 / 从分享链接打开时没有站内历史，
 // router.back() 会退到 about:blank（空白页），因此先判断站内历史再决定回退还是回首页。
@@ -98,11 +101,13 @@ const initCall = async () => {
   // 设置 WebRTC 回调
   webrtcCallService.setCallbacks({
     onRemoteStream: (stream) => {
+      if (nativeCall) return;
       if (remoteAudioRef.value) {
         remoteAudioRef.value.srcObject = stream;
       }
     },
     onLocalStream: (stream) => {
+      if (nativeCall) return;
       localStream.value = stream;
     },
     onCallStateChange: (state) => {
@@ -147,7 +152,7 @@ const initCall = async () => {
 
       // 复用已建立的本地流，避免再次 getUserMedia 产生第二条流（那条流没有接进 PeerConnection）
       if (useWebRTC) {
-        localStream.value = webrtcCallService.localStream;
+        if (!nativeCall) localStream.value = webrtcCallService.localStream;
       } else {
         // TRTC 通道：采集/推流/播放全部交给官方 SDK（房间号由来电方通过 ?room= 带入）
         await trtcRoomService.join({ callType: 1, roomId: route.query.room });
@@ -161,12 +166,17 @@ const initCall = async () => {
 
     } else {
       // 主叫方：使用 callService 发起
-      const result = await callService.startCall(callerId.value, 1);
+      const result = await callService.startCall(
+        callerId.value,
+        1,
+        route.query.companion === '1',
+        Number(route.query.orderId) || 0
+      );
       callMode.value = result.mode;
       callId.value = result.callId;
 
       if (result.mode === 'webrtc') {
-        localStream.value = webrtcCallService.localStream;
+        if (!nativeCall) localStream.value = webrtcCallService.localStream;
       } else {
         await trtcRoomService.join({ callType: 1, roomId: result.trtcRoomId });
       }
@@ -208,7 +218,8 @@ const toggleAudio = () => {
 
 const toggleSpeaker = () => {
   speakerEnabled.value = !speakerEnabled.value;
-  // WebRTC 模式下不需要额外处理，浏览器自动使用扬声器
+  // 原生通道显式切换扬声器/听筒；H5 由系统音频路由决定，callService 内部自动降级
+  callService.toggleSpeaker(speakerEnabled.value);
 };
 
 const hangup = async () => {

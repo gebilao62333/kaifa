@@ -1,90 +1,92 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">申请服务</span>
-      <span class="placeholder"></span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">申请服务</text>
+      <text class="placeholder"></text>
     </template>
 
-    <div class="service-tabs">
+    <view class="service-tabs">
       <button 
         :class="['tab-btn', { active: activeTab === 'online' }]" 
         @click="activeTab = 'online'"
       >
-        <span class="tab-icon">💻</span>
-        <span class="tab-text">线上陪玩</span>
+        <text class="tab-icon">💻</text>
+        <text class="tab-text">线上陪玩</text>
       </button>
       <button 
         :class="['tab-btn', { active: activeTab === 'offline' }]" 
         @click="activeTab = 'offline'"
       >
-        <span class="tab-icon">🏃</span>
-        <span class="tab-text">线下陪伴</span>
+        <text class="tab-icon">🏃</text>
+        <text class="tab-text">线下陪伴</text>
       </button>
-    </div>
+    </view>
 
-    <div class="selection-tip">
-      <div class="selection-text">请阅读协议后再选择服务</div>
-      <div class="agreement-container">
-        <div class="agreement-item">
+    <view class="selection-tip">
+      <view class="selection-text">请阅读协议后再选择服务</view>
+      <view class="agreement-container">
+        <view class="agreement-item">
           <input type="checkbox" class="agreement-checkbox" v-model="currentAgreement.agreeRegister" :id="activeTab + '-register-agreement'" />
           <label :for="activeTab + '-register-agreement'" class="agreement-label">
             同意
-            <span class="agreement-link">用户注册协议</span>
+            <text class="agreement-link">用户注册协议</text>
           </label>
-        </div>
-        <div class="agreement-item">
+        </view>
+        <view class="agreement-item">
           <input type="checkbox" class="agreement-checkbox" v-model="currentAgreement.agreePrivacy" :id="activeTab + '-privacy-agreement'" />
           <label :for="activeTab + '-privacy-agreement'" class="agreement-label">
-            <span class="agreement-link">隐私保护政策</span>
+            <text class="agreement-link">隐私保护政策</text>
           </label>
-        </div>
-        <div class="agreement-item">
+        </view>
+        <view class="agreement-item">
           <input type="checkbox" class="agreement-checkbox" v-model="currentAgreement.agreeMinor" :id="activeTab + '-minor-agreement'" />
           <label :for="activeTab + '-minor-agreement'" class="agreement-label">
-            <span class="agreement-link">未成年人保护</span>
+            <text class="agreement-link">未成年人保护</text>
           </label>
-        </div>
-      </div>
-    </div>
+        </view>
+      </view>
+    </view>
 
-    <div class="service-content" v-show="activeTab === 'online'">
+    <view class="service-content" v-show="activeTab === 'online'">
       <OnlineCompanion v-model="selectedOnlineIds" @change="onOnlineServicesChange" :class="{ 'disabled-content': !isAgreementAccepted }" />
-      <div class="agreement-overlay" v-if="!isAgreementAccepted"></div>
-      <div class="offline-actions" v-if="selectedOnlineIds.length > 0 && isAgreementAccepted">
+      <view class="agreement-overlay" v-if="!isAgreementAccepted"></view>
+      <view class="offline-actions" v-if="selectedOnlineIds.length > 0 && isAgreementAccepted">
         <button class="confirm-btn" @click="openOnlineApplyModal">
           申请认证 (已选 {{ selectedOnlineIds.length }} 项)
         </button>
-      </div>
-    </div>
+      </view>
+    </view>
 
-    <div class="service-content" v-show="activeTab === 'offline'">
+    <view class="service-content" v-show="activeTab === 'offline'">
       <OfflineCompanion v-model="selectedOfflineIds" @change="onOfflineServicesChange" :class="{ 'disabled-content': !isAgreementAccepted }" />
-      <div class="agreement-overlay" v-if="!isAgreementAccepted"></div>
-      <div class="offline-actions" v-if="selectedOfflineIds.length > 0 && isAgreementAccepted">
+      <view class="agreement-overlay" v-if="!isAgreementAccepted"></view>
+      <view class="offline-actions" v-if="selectedOfflineIds.length > 0 && isAgreementAccepted">
         <button class="confirm-btn" @click="openOfflineApplyModal">
           申请认证 (已选 {{ selectedOfflineIds.length }} 项)
         </button>
-      </div>
-    </div>
+      </view>
+    </view>
 
-    <div class="modal-overlay" v-if="showCompanionModal" @click="closeCompanionModal">
-      <div class="modal-content apply-modal" @click.stop>
-        <div class="modal-header">
-          <span class="modal-close" @click="closeCompanionModal">✕</span>
-          <span class="modal-title">申请认证</span>
-          <span style="width: 30px;"></span>
-        </div>
-        <div class="modal-body apply-body">
+    <view class="modal-overlay" v-if="showCompanionModal" @click="closeCompanionModal">
+      <view class="modal-content apply-modal" @click.stop>
+        <view class="modal-header">
+          <text class="modal-close" @click="closeCompanionModal">✕</text>
+          <text class="modal-title">申请认证</text>
+          <text style="width: 30px;"></text>
+        </view>
+        <view class="modal-body apply-body">
           <OnlineApplyForm
             v-if="selectedService?.category === 'online'"
             v-model="formData"
             :is-recording="isRecording"
             :record-duration="recordDuration"
+            :audio-playing="audioPlaying"
             @open-picker="openPicker"
             @image-upload="handleImageUpload"
             @toggle-recording="toggleRecording"
             @delete-audio="deleteAudio"
+            @toggle-audio-play="toggleAudioPreview"
             @submit="submitForm"
           />
           <OfflineApplyForm
@@ -92,143 +94,145 @@
             v-model="formData"
             :is-recording="isRecording"
             :record-duration="recordDuration"
+            :audio-playing="audioPlaying"
             @open-picker="openPicker"
             @image-upload="handleImageUpload"
             @toggle-recording="toggleRecording"
             @delete-audio="deleteAudio"
+            @toggle-audio-play="toggleAudioPreview"
             @submit="submitForm"
           />
-        </div>
-      </div>
-    </div>
+        </view>
+      </view>
+    </view>
 
-    <div class="modal-overlay" v-if="showCityPicker || showLevelPicker || showSkillPicker || showZonePicker || showPositionPicker || showTypePicker" @click="closeAllPickers">
-      <div class="modal-content picker-modal" @click.stop>
-        <div class="modal-header">
-          <span class="modal-close" @click="closeAllPickers">✕</span>
-          <span class="modal-title">{{ pickerTitle }}</span>
-          <span style="width: 30px;"></span>
-        </div>
-        <div class="modal-body picker-body">
-          <div class="picker-list">
-            <div 
+    <view class="modal-overlay" v-if="showCityPicker || showLevelPicker || showSkillPicker || showZonePicker || showPositionPicker || showTypePicker" @click="closeAllPickers">
+      <view class="modal-content picker-modal" @click.stop>
+        <view class="modal-header">
+          <text class="modal-close" @click="closeAllPickers">✕</text>
+          <text class="modal-title">{{ pickerTitle }}</text>
+          <text style="width: 30px;"></text>
+        </view>
+        <view class="modal-body picker-body">
+          <view class="picker-list">
+            <view 
               v-for="item in pickerOptions" 
               :key="item.value" 
               :class="['picker-item', { active: getPickerValue() === item.value }]"
               @click="selectPickerItem(item)"
             >
               {{ item.label }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
 
-    <div class="modal-overlay" v-if="showDetailModal" @click="closeDetailModal">
-      <div class="modal-content detail-modal" @click.stop>
-        <div class="modal-header">
-          <span class="modal-close" @click="closeDetailModal">✕</span>
-          <span class="modal-title">陪玩师详情</span>
-          <span style="width: 30px;"></span>
-        </div>
-        <div class="modal-body detail-body" v-if="selectedCompanion">
-          <div class="detail-header">
-            <div class="detail-avatar-wrap">
-              <img :src="selectedCompanion.avatar" class="detail-avatar" />
-              <span v-if="selectedCompanion.isOnline" class="online-dot"></span>
-            </div>
-            <div class="detail-info">
-              <div class="detail-name">
+    <view class="modal-overlay" v-if="showDetailModal" @click="closeDetailModal">
+      <view class="modal-content detail-modal" @click.stop>
+        <view class="modal-header">
+          <text class="modal-close" @click="closeDetailModal">✕</text>
+          <text class="modal-title">陪玩师详情</text>
+          <text style="width: 30px;"></text>
+        </view>
+        <view class="modal-body detail-body" v-if="selectedCompanion">
+          <view class="detail-header">
+            <view class="detail-avatar-wrap">
+              <image mode="aspectFill" :src="selectedCompanion.avatar" class="detail-avatar" />
+              <text v-if="selectedCompanion.isOnline" class="online-dot"></text>
+            </view>
+            <view class="detail-info">
+              <view class="detail-name">
                 {{ selectedCompanion.nickName }}
-                <span v-if="selectedCompanion.vip" class="vip-badge">VIP</span>
-              </div>
-              <div class="detail-meta">
-                <span>Lv.{{ selectedCompanion.level }}</span>
-                <span>{{ selectedCompanion.gameName }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="stats-row">
-            <div class="stat">
-              <div class="stat-value">{{ selectedCompanion.rating }}</div>
-              <div class="stat-label">评分</div>
-            </div>
-            <div class="stat">
-              <div class="stat-value">{{ selectedCompanion.orders }}</div>
-              <div class="stat-label">接单数</div>
-            </div>
-            <div class="stat">
-              <div class="stat-value">{{ selectedCompanion.isOnline ? '在线' : '离线' }}</div>
-              <div class="stat-label">状态</div>
-            </div>
-          </div>
-          <div class="detail-section">
-            <div class="section-title">服务标签</div>
-            <div class="tags-wrap">
-              <span v-for="tag in selectedCompanion.tags" :key="tag" class="tag">{{ tag }}</span>
-            </div>
-          </div>
-          <div class="detail-section">
-            <div class="section-title">价格</div>
-            <div class="price-wrap">
-              <span class="price-symbol">¥</span>
-              <span class="price-value">{{ selectedCompanion.price }}</span>
-              <span class="price-unit">/{{ selectedService?.category === 'online' ? '小时' : '次' }}</span>
-            </div>
-          </div>
-          <div class="action-buttons">
+                <text v-if="selectedCompanion.vip" class="vip-badge">VIP</text>
+              </view>
+              <view class="detail-meta">
+                <text>Lv.{{ selectedCompanion.level }}</text>
+                <text>{{ selectedCompanion.gameName }}</text>
+              </view>
+            </view>
+          </view>
+          <view class="stats-row">
+            <view class="stat">
+              <view class="stat-value">{{ selectedCompanion.rating }}</view>
+              <view class="stat-label">评分</view>
+            </view>
+            <view class="stat">
+              <view class="stat-value">{{ selectedCompanion.orders }}</view>
+              <view class="stat-label">接单数</view>
+            </view>
+            <view class="stat">
+              <view class="stat-value">{{ selectedCompanion.isOnline ? '在线' : '离线' }}</view>
+              <view class="stat-label">状态</view>
+            </view>
+          </view>
+          <view class="detail-section">
+            <view class="section-title">服务标签</view>
+            <view class="tags-wrap">
+              <text v-for="tag in selectedCompanion.tags" :key="tag" class="tag">{{ tag }}</text>
+            </view>
+          </view>
+          <view class="detail-section">
+            <view class="section-title">价格</view>
+            <view class="price-wrap">
+              <text class="price-symbol">¥</text>
+              <text class="price-value">{{ selectedCompanion.price }}</text>
+              <text class="price-unit">/{{ selectedService?.category === 'online' ? '小时' : '次' }}</text>
+            </view>
+          </view>
+          <view class="action-buttons">
             <button class="action-btn" @click="sendMessage(selectedCompanion)">💬 聊天</button>
             <button class="action-btn primary" @click="confirmBook(selectedCompanion)">立即预约</button>
-          </div>
-        </div>
-      </div>
-    </div>
+          </view>
+        </view>
+      </view>
+    </view>
 
-    <div class="toast-overlay" v-if="showToast">{{ toastMessage }}</div>
+    <view class="toast-overlay" v-if="showToast">{{ toastMessage }}</view>
     
-    <div class="permission-guide-container">
-      <div class="permission-guide-overlay" v-if="showPermissionGuide">
-        <div class="permission-guide-modal">
-          <div class="guide-header">
-            <span class="guide-icon">🎤</span>
+    <view class="permission-guide-container">
+      <view class="permission-guide-overlay" v-if="showPermissionGuide">
+        <view class="permission-guide-modal">
+          <view class="guide-header">
+            <text class="guide-icon">🎤</text>
             <h3 class="guide-title">麦克风权限</h3>
-          </div>
+          </view>
           
-          <div class="guide-content">
-            <p class="guide-message">{{ permissionError.message }}</p>
+          <view class="guide-content">
+            <view class="guide-message">{{ permissionError.message }}</view>
             
-            <div class="guide-steps" v-if="permissionError.errorType === 'denied'">
-              <div class="steps-title">如何开启权限：</div>
-              <div 
+            <view class="guide-steps" v-if="permissionError.errorType === 'denied'">
+              <view class="steps-title">如何开启权限：</view>
+              <view 
                 v-for="(step, index) in getPermissionGuideSteps('microphone')" 
                 :key="index" 
                 class="step-item"
               >
-                <span class="step-number">{{ step.step }}</span>
-                <span class="step-icon">{{ step.icon }}</span>
-                <span class="step-text">{{ step.text }}</span>
-              </div>
-            </div>
+                <text class="step-number">{{ step.step }}</text>
+                <text class="step-icon">{{ step.icon }}</text>
+                <text class="step-text">{{ step.text }}</text>
+              </view>
+            </view>
             
-            <div class="guide-alternative">
-              <div class="alternative-title">或者您也可以：</div>
-              <div class="alternative-actions">
+            <view class="guide-alternative">
+              <view class="alternative-title">或者您也可以：</view>
+              <view class="alternative-actions">
                 <button 
                   class="continue-btn"
                   @click="showPermissionGuide = false"
                 >
                   不使用麦克风继续
                 </button>
-              </div>
-            </div>
-          </div>
+              </view>
+            </view>
+          </view>
           
-          <div class="guide-footer">
+          <view class="guide-footer">
             <button class="close-btn" @click="showPermissionGuide = false">关闭</button>
-          </div>
-        </div>
-      </div>
-    </div>
+          </view>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
@@ -243,6 +247,8 @@ import PageLayout from '../components/PageLayout.vue'
 import regionService from '../services/regionService'
 import gamesService from '../services/gamesService'
 import { uploadFile } from '../services/uploadService'
+import { isApp } from '../common/platform'
+import audioRecorder from '../services/audioRecorder'
 
 const { 
   requestMicrophonePermission,
@@ -309,6 +315,11 @@ const recordDuration = ref(0)
 const mediaRecorder = ref(null)
 const audioChunks = ref([])
 let recordTimer = null
+
+// App 端原生录音的本地临时文件：试听与上传都直接用它；H5 仍是 blob -> File 转换
+const appVoiceFile = ref(null)
+const audioPlaying = ref(false)
+let appAudioPlayer = null
 
 const showCityPicker = ref(false)
 const showLevelPicker = ref(false)
@@ -464,7 +475,7 @@ const submitForm = async () => {
     return
   }
 
-  const gameId = selectedService.value?.id
+  const gameId = selectedService.value?.gameId || selectedService.value?.id
   if (!gameId) {
     showToastMsg('请选择要申请的游戏')
     return
@@ -487,7 +498,19 @@ const submitForm = async () => {
       imageUrl = r.data.url
     }
     let voiceIntro = formData.value.audioUrl || ''
-    if (voiceIntro && voiceIntro.startsWith('blob:')) {
+    if (isApp) {
+      // App 端 audioUrl 是 uni 录音产出的本地临时路径，直接交给 uploadFile 的
+      // App 分支（取 file.path）；缺少对应临时文件时不要把本地路径提交给后端
+      if (appVoiceFile.value && voiceIntro) {
+        const r = await uploadFile(appVoiceFile.value, 'audio')
+        voiceIntro = r.data.url
+        // 回写真实 URL：此后重试提交不会再把本地临时路径当音频，也不会重复上传
+        formData.value.audioUrl = voiceIntro
+        appVoiceFile.value = null
+      } else if (voiceIntro && !/^https?:/i.test(voiceIntro)) {
+        voiceIntro = ''
+      }
+    } else if (voiceIntro && voiceIntro.startsWith('blob:')) {
       const f = await urlToFile(voiceIntro, `voice_${Date.now()}.webm`)
       const r = await uploadFile(f, 'audio')
       voiceIntro = r.data.url
@@ -577,6 +600,28 @@ const toggleRecording = async () => {
 }
 
 const startRecording = async () => {
+  if (isApp) {
+    // App 端没有 getUserMedia/MediaRecorder，且 usePermissions 的权限探测是浏览器实现，
+    // 直接交给 audioRecorder，由原生录音器负责权限弹窗与失败回调
+    const res = await audioRecorder.startRecord()
+    if (!res.supported) {
+      showToastMsg('当前环境不支持录音')
+      return
+    }
+    if (!res.started) {
+      showToastMsg(res.denied ? '麦克风权限被拒绝，请在系统设置中开启录音权限' : (res.message || '录音启动失败'))
+      return
+    }
+    isRecording.value = true
+    recordDuration.value = 0
+    recordTimer = setInterval(() => {
+      recordDuration.value++
+      if (recordDuration.value >= 60) {
+        stopRecording()
+      }
+    }, 1000)
+    return
+  }
   const result = await requestMicrophonePermission()
   
   if (!result.granted) {
@@ -668,6 +713,22 @@ const startRecording = async () => {
 }
 
 const stopRecording = () => {
+  if (isApp) {
+    if (recordTimer) {
+      clearInterval(recordTimer)
+      recordTimer = null
+    }
+    if (!isRecording.value) return
+    isRecording.value = false
+    // 原生 stop 是异步回调：拿到临时文件后写回 audioUrl 供试听，提交时再上传
+    audioRecorder.stopRecord().then((file) => {
+      if (!file) return
+      appVoiceFile.value = file
+      formData.value.audioUrl = file.path
+      recordDuration.value = file.duration
+    }).catch(() => { /* stopRecord 内部已兜底 resolve null */ })
+    return
+  }
   if (mediaRecorder.value && mediaRecorder.value.state !== 'inactive') {
     try {
       mediaRecorder.value.stop()
@@ -682,7 +743,57 @@ const stopRecording = () => {
   isRecording.value = false
 }
 
+// App 端试听：uni.createInnerAudioContext 播放本地临时文件；H5 由子组件 <audio controls> 负责
+const stopAudioPreview = () => {
+  if (appAudioPlayer) {
+    try {
+      if (typeof appAudioPlayer.stop === 'function') appAudioPlayer.stop()
+    } catch (e) { /* 忽略 */ }
+    try {
+      if (typeof appAudioPlayer.destroy === 'function') appAudioPlayer.destroy()
+    } catch (e) { /* 忽略 */ }
+    appAudioPlayer = null
+  }
+  audioPlaying.value = false
+}
+const toggleAudioPreview = () => {
+  if (!isApp) return
+  const url = formData.value.audioUrl
+  if (!url) return
+  if (audioPlaying.value) {
+    stopAudioPreview()
+    return
+  }
+  if (typeof uni === 'undefined' || typeof uni.createInnerAudioContext !== 'function') {
+    showToastMsg('语音播放失败')
+    return
+  }
+  stopAudioPreview()
+  const player = uni.createInnerAudioContext()
+  appAudioPlayer = player
+  player.src = url
+  player.onEnded(() => {
+    if (appAudioPlayer !== player) return
+    appAudioPlayer = null
+    audioPlaying.value = false
+  })
+  player.onError(() => {
+    if (appAudioPlayer !== player) return
+    stopAudioPreview()
+    showToastMsg('语音播放失败')
+  })
+  audioPlaying.value = true
+  try {
+    player.play()
+  } catch (e) {
+    stopAudioPreview()
+    showToastMsg('语音播放失败')
+  }
+}
+
 const deleteAudio = () => {
+  stopAudioPreview()
+  appVoiceFile.value = null
   const audioUrl = formData.value.audioUrl
   formData.value.audioUrl = ''
   if (audioUrl && audioUrl.startsWith('blob:')) {
@@ -735,8 +846,17 @@ const goBack = () => {
 
 const closeCompanionModal = () => {
   if (isRecording.value) {
-    stopRecording()
+    if (isApp) {
+      // 关闭弹窗即丢弃本次录音，避免残留原生录音器占麦
+      isRecording.value = false
+      if (recordTimer) { clearInterval(recordTimer); recordTimer = null }
+      audioRecorder.cancelRecord()
+    } else {
+      stopRecording()
+    }
   }
+  stopAudioPreview()
+  appVoiceFile.value = null
   const audioUrl = formData.value.audioUrl
   formData.value.audioUrl = ''
   showCompanionModal.value = false
@@ -774,8 +894,14 @@ const showToastMessage = (message) => {
 onUnmounted(() => {
   // 清理录音相关资源
   if (isRecording.value) {
-    stopRecording()
+    if (isApp) {
+      // 切页时丢弃未提交的录音，原生录音器必须显式取消
+      audioRecorder.cancelRecord()
+    } else {
+      stopRecording()
+    }
   }
+  stopAudioPreview()
   if (recordTimer) {
     clearInterval(recordTimer)
     recordTimer = null

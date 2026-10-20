@@ -18,8 +18,10 @@ jest.mock('../../../src/models', () => {
 jest.mock('../../../src/config/mysql', () => ({ literal: jest.fn((s) => s), transaction: jest.fn() }));
 jest.mock('../../../src/services/settingsService', () => ({ getCommissionRate: jest.fn() }));
 jest.mock('../../../src/services/levelService', () => ({ addExp: jest.fn() }));
+jest.mock('../../../src/utils/privacyPrefs', () => ({ getPrivacyPrefsForUsers: jest.fn(), getPriorityUserIds: jest.fn() }));
 
 const levelService = require('../../../src/services/levelService');
+const { getPrivacyPrefsForUsers, getPriorityUserIds } = require('../../../src/utils/privacyPrefs');
 
 const gamesService = require('../../../src/services/gamesService');
 const { Game, CompanionProfile, GameOrder, User } = require('../../../src/models');
@@ -33,12 +35,30 @@ describe('Service - GamesService', () => {
     jest.clearAllMocks();
     User.sequelize.transaction.mockResolvedValue(txn());
     getCommissionRate.mockResolvedValue(0.7);
+    getPrivacyPrefsForUsers.mockResolvedValue({});
+    getPriorityUserIds.mockResolvedValue(new Set());
   });
 
   it('getCategories maps active games', async () => {
     Game.findAll.mockResolvedValue([{ id: 1, name: '王者', image: 'i', image_bg: 'b' }]);
     const list = await gamesService.getCategories();
     expect(list[0]).toEqual({ gameId: 1, gameName: '王者', image: 'i', backgroundImage: 'b' });
+  });
+
+  it('getCompanions applies serviceType filter and sort order', async () => {
+    CompanionProfile.findAndCountAll.mockResolvedValue({ count: 0, rows: [] });
+    await gamesService.getCompanions(1, 1, 10, { serviceType: 'offline', sort: 'new' });
+    const query = CompanionProfile.findAndCountAll.mock.calls[0][0];
+    expect(query.where).toEqual({ status: 2, game_id: 1, service_type: 'offline' });
+    expect(query.order[0][0]).toBe('create_time');
+  });
+
+  it('getOfflineServices 统一挂到真实「线下服务」gameId', async () => {
+    Game.findOne.mockResolvedValue({ id: 88, name: '线下服务' });
+    const list = await gamesService.getOfflineServices();
+    expect(list).toHaveLength(8);
+    expect(list.every(item => item.gameId === 88)).toBe(true);
+    expect(list[0].serviceId).toBe(201);
   });
 
   describe('getCompanions', () => {
@@ -360,6 +380,14 @@ describe('Service - GamesService', () => {
       await expect(gamesService.applyAsCompanion(2, 1, 30, 'a')).rejects.toThrow('您已经是认证陪玩师');
     });
 
+    it('edit=true 允许修改已认证服务且保留认证状态', async () => {
+      const update = jest.fn().mockResolvedValue(true);
+      CompanionProfile.findOne.mockResolvedValue({ status: 2, update, service_type: 'online' });
+
+      await expect(gamesService.applyAsCompanion(2, 1, 30, 'a', { edit: true })).resolves.toBe(true);
+      expect(update.mock.calls[0][0].status).toBe(2);
+    });
+
     it('updates an existing rejected application', async () => {
       const update = jest.fn().mockResolvedValue(true);
       CompanionProfile.findOne.mockResolvedValue({ status: 0, update });
@@ -419,6 +447,21 @@ describe('Service - GamesService', () => {
     const result = await gamesService.searchCompanions('a', 1, 1, 10);
     expect(result.list[0].nickname).toBe('n');
     expect(CompanionProfile.findAndCountAll.mock.calls[0][0].where[require('sequelize').Op.or]).toBeDefined();
+  });
+
+  it('searchCompanions 过滤 allowSearch=false 的陪玩师，并修正 total', async () => {
+    CompanionProfile.findAndCountAll.mockResolvedValue({
+      count: 2,
+      rows: [
+        { user_id: 2, game_id: 1, price: '30', tags: 'a', user: { nickname: 'n' } },
+        { user_id: 3, game_id: 1, price: '40', tags: 'b', user: { nickname: 'm' } }
+      ]
+    });
+    getPrivacyPrefsForUsers.mockResolvedValue({ 2: { allowSearch: true }, 3: { allowSearch: false } });
+    const result = await gamesService.searchCompanions('a', 1, 1, 10);
+    expect(result.list.map(item => item.userId)).toEqual([2]);
+    expect(result.total).toBe(1);
+    expect(getPrivacyPrefsForUsers).toHaveBeenCalledWith([2, 3]);
   });
 
   it('getCompanionDetail throws when missing', async () => {

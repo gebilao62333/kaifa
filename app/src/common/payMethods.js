@@ -48,7 +48,3 @@ export const getWithdrawMethods = (bankDesc = '支持各大银行') => [
   { ...payMethods.wechat, name: '微信零钱', desc: '实时到账' },
   { ...payMethods.card, desc: bankDesc }
 ]
-
-export const getOrderPayMethods = () => [
-  payMethods.coin
-]

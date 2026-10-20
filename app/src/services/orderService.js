@@ -1,10 +1,13 @@
 import { request } from '../common/common'
 
 const orderService = {
+  // role 是后端契约字段（不是 type）：user=我买到的（按 user_id 过滤），
+  // companion=我接的单（按 target_user_id 过滤）。此前误传 type，后端读不到 role，
+  // 永远退化成 role=user，导致陪玩师侧订单列表恒为空、订单停在「已接单」无法开始服务。
   async getOrders(params = {}) {
-    const { status, type = 'all', page = 1, pageSize = 20 } = params
-    const data = { type, page, pageSize }
-    if (status !== undefined) data.status = status
+    const { role = 'user', status, page = 1, pageSize = 20 } = params
+    const data = { role, page, pageSize }
+    if (status !== undefined && status !== null && status !== '') data.status = status
     return request('/api/games/orders', 'GET', data)
   },
 

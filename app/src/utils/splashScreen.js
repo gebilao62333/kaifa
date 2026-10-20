@@ -1,4 +1,5 @@
 import homeService from '../services/homeService'
+import storage from '../common/storage'
 
 const STORAGE_PREFIX = 'splash_shown:'
 
@@ -15,7 +16,7 @@ const bucketOf = (frequency, now) => {
 
 const readBucket = (id) => {
   try {
-    return localStorage.getItem(STORAGE_PREFIX + id)
+    return storage.getItem(STORAGE_PREFIX + id)
   } catch (e) {
     return null
   }
@@ -23,7 +24,7 @@ const readBucket = (id) => {
 
 const writeBucket = (id, bucket) => {
   try {
-    localStorage.setItem(STORAGE_PREFIX + id, bucket)
+    storage.setItem(STORAGE_PREFIX + id, bucket)
   } catch (e) {
     /* 存储不可用时忽略，弹窗仍可展示 */
   }

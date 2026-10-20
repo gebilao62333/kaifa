@@ -1,26 +1,26 @@
 <template>
-  <div>
-    <div class="game-grid">
-      <div 
+  <view>
+    <view class="game-grid">
+      <view 
         class="game-card" 
         v-for="game in onlineGames" 
         :key="game.id" 
         :class="{ 'game-card-active': selectedIds.includes(game.id) }"
         @click="handleSelect(game)"
       >
-        <div class="game-icon-wrap" :style="{ background: game.bgColor }">
-          <span class="game-icon">{{ game.icon }}</span>
-        </div>
-        <div class="game-info">
-          <span class="game-name">{{ game.name }}</span>
-        </div>
-        <div v-if="selectedIds.includes(game.id)" class="selected-check">✓</div>
-      </div>
-    </div>
-    <div class="selection-hint" v-if="selectedIds.length > 0">
+        <view class="game-icon-wrap" :style="{ background: game.bgColor }">
+          <text class="game-icon">{{ game.icon }}</text>
+        </view>
+        <view class="game-info">
+          <text class="game-name">{{ game.name }}</text>
+        </view>
+        <view v-if="selectedIds.includes(game.id)" class="selected-check">✓</view>
+      </view>
+    </view>
+    <view class="selection-hint" v-if="selectedIds.length > 0">
       已选择 {{ selectedIds.length }} 项服务
-    </div>
-  </div>
+    </view>
+  </view>
 </template>
 
 <script setup>

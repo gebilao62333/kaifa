@@ -5,6 +5,8 @@ const { authMiddleware } = require('../middlewares');
 const upload = require('../config/upload');
 
 router.get('/photos', authMiddleware, albumController.getPhotos);
+// U-13：他人主页公开相册
+router.get('/user/:userId', authMiddleware, albumController.getUserPhotos);
 router.post('/upload', authMiddleware, albumController.uploadPhoto);
 router.post('/delete', authMiddleware, albumController.deletePhoto);
 router.post('/like', authMiddleware, albumController.likePhoto);

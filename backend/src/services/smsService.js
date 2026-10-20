@@ -67,6 +67,13 @@ const sendSMS = async (mobile, scene = 'login') => {
   
   // 验证码不得写入日志（日志会被采集/展示给运维）；非生产环境也只打印掩码
   logger.info(`[SMS] ${scene} 验证码已发送至 ${maskMobile(mobile)}`);
+
+  // 测试/演示环境：短信通道未配置时，把本次随机验证码回传给调用方（前端会自动填入验证码输入框）。
+  // 默认关闭；SMS_TEST_PHONES 非空时只允许白名单手机号，留空表示全部手机号（仅限内测，存在账号接管风险）。
+  if (config.sms.testMode && (config.sms.testPhones.length === 0 || config.sms.testPhones.includes(mobile))) {
+    logger.warn(`[SMS] 测试模式：${scene} 验证码直接回传（${config.sms.testPhones.length ? '白名单' : '全量手机号'}）`);
+    return { success: true, code };
+  }
   
   if (config.nodeEnv === 'production' && config.sms.appId) {
     return await sendViaTencentCloud(mobile, code);

@@ -1,0 +1,30 @@
+// 最早执行：静默外部脚本/WebView 注入脚本产生的噪音错误，避免污染控制台。
+// 独立文件而不是内联脚本：生产 nginx 的 CSP 是 script-src 'self'，内联脚本会被浏览器拒绝执行。
+(function () {
+  var SUPPRESS_PATTERNS = ['Script error.', 'getBoundingClientRect', 'Cannot read properties of null'];
+  var shouldSuppress = function (msg) {
+    if (!msg) return false;
+    for (var i = 0; i < SUPPRESS_PATTERNS.length; i++) {
+      if (msg.indexOf(SUPPRESS_PATTERNS[i]) !== -1) return true;
+    }
+    return false;
+  };
+  window.addEventListener('error', function (e) {
+    if (shouldSuppress(e.message || (e.error && e.error.message))) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }, true);
+  window.addEventListener('unhandledrejection', function (e) {
+    var msg = (e.reason && (e.reason.message || String(e.reason))) || '';
+    if (shouldSuppress(msg)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }, true);
+  var _origOnerror = window.onerror;
+  window.onerror = function (msg, src, line, col, err) {
+    if (shouldSuppress(msg || (err && err.message))) return true;
+    if (typeof _origOnerror === 'function') return _origOnerror.apply(this, arguments);
+  };
+})();

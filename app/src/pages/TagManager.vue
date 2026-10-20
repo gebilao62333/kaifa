@@ -1,49 +1,50 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">标签管理</span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">标签管理</text>
     </template>
 
-    <div class="category-tabs">
-      <div
+    <view class="category-tabs">
+      <view
         v-for="tab in categoryTabs"
         :key="tab.key"
         :class="['tab-item', { active: activeTab === tab.key }]"
         @click="switchTab(tab.key)"
       >
         {{ tab.label }}
-      </div>
-    </div>
+      </view>
+    </view>
 
-    <div class="tag-list">
-      <div v-for="tag in filteredTags" :key="tag.id" class="tag-item">
-        <div class="tag-info">
-          <span class="tag-name">{{ tag.name }}</span>
-          <span class="tag-category">{{ getCategoryName(tag.category) }}</span>
-          <span class="tag-desc" v-if="tag.description">{{ tag.description }}</span>
-        </div>
-      </div>
+    <view class="tag-list">
+      <view v-for="tag in filteredTags" :key="tag.id" class="tag-item">
+        <view class="tag-info">
+          <text class="tag-name">{{ tag.name }}</text>
+          <text class="tag-category">{{ getCategoryName(tag.category) }}</text>
+          <text class="tag-desc" v-if="tag.description">{{ tag.description }}</text>
+        </view>
+      </view>
 
-      <div class="loading-state" v-if="loading">
-        <div class="loading-text">加载中...</div>
-      </div>
+      <view class="loading-state" v-if="loading">
+        <view class="loading-text">加载中...</view>
+      </view>
 
-      <div class="empty-state" v-if="!loading && filteredTags.length === 0">
-        <div class="empty-icon">🏷️</div>
-        <div class="empty-text">暂无标签</div>
-        <div class="empty-hint">标签库由平台统一维护</div>
-      </div>
-    </div>
+      <view class="empty-state" v-if="!loading && filteredTags.length === 0">
+        <view class="empty-icon">🏷️</view>
+        <view class="empty-text">暂无标签</view>
+        <view class="empty-hint">标签库由平台统一维护</view>
+      </view>
+    </view>
 
-    <div class="bottom-tip" v-if="!loading && filteredTags.length > 0">
+    <view class="bottom-tip" v-if="!loading && filteredTags.length > 0">
       共 {{ filteredTags.length }} 个标签 · 标签库由平台统一维护
-    </div>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import { tagService } from '../services/tagService'
 import PageLayout from '../components/PageLayout.vue'
@@ -78,8 +79,9 @@ const filteredTags = computed(() => {
   return allTags.value.filter(tag => tag.category === activeTab.value)
 })
 
-const loadTags = async () => {
-  loading.value = true
+// silent：返回本页刷新时不切整页 loading，避免列表被「加载中」覆盖闪烁
+const loadTags = async (silent = false) => {
+  if (!silent) loading.value = true
   try {
     const res = await tagService.getTags()
     if (res.data && res.data.list) {
@@ -90,7 +92,7 @@ const loadTags = async () => {
   } catch (error) {
     console.error('加载标签失败:', error)
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
 }
 
@@ -105,6 +107,21 @@ const switchTab = (key) => {
 const goBack = () => {
   router.back()
 }
+
+// 标签库由管理端维护，返回本页时静默同步最新标签
+const refreshOnShow = () => {
+  loadTags(true)
+}
+
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
+})
 
 onMounted(() => {
   loadTags()

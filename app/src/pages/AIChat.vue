@@ -1,43 +1,43 @@
 <template>
-  <div class="ai-chat-page">
-    <div class="header">
-      <span class="back-btn" @click="goBack">←</span>
-      <div class="header-info">
-        <span class="title">{{ chatUser.name }}</span>
-        <span class="status" :class="{ online: chatUser.online_status === 1 }">
+  <view class="ai-chat-page">
+    <view class="header">
+      <text class="back-btn" @click="goBack">←</text>
+      <view class="header-info">
+        <text class="title">{{ chatUser.name }}</text>
+        <text class="status" :class="{ online: chatUser.online_status === 1 }">
           {{ chatUser.online_status === 1 ? '在线' : '离线' }}
-        </span>
-      </div>
-      <span class="more-btn" @click="showMore">⋮</span>
-    </div>
+        </text>
+      </view>
+      <text class="more-btn" @click="showMore">⋮</text>
+    </view>
 
-    <div class="offline-tip" v-if="!isOnline">
-      <span>对方当前离线，暂时无法回复，请稍后再来</span>
-    </div>
+    <view class="offline-tip" v-if="!isOnline">
+      <text>对方当前离线，暂时无法回复，请稍后再来</text>
+    </view>
 
-    <div class="messages-area" ref="messagesArea">
-      <div class="message-list">
-        <div
+    <view class="messages-area" ref="messagesArea">
+      <view class="message-list">
+        <view
           v-for="(msg, index) in messages"
           :key="index"
           :class="['message-item', msg.isSelf ? 'self' : 'other']"
         >
-          <img v-if="!msg.isSelf" class="avatar" :src="chatUser.avatar || defaultAvatar" alt="" />
-          <div class="message-content">
-            <div class="message-bubble">
-              <span v-if="msg.isLoading" class="loading-dots">...</span>
-              <span v-else>{{ msg.content }}</span>
-            </div>
-            <div class="message-time" v-if="msg.time">{{ formatTime(msg.time) }}</div>
-          </div>
-          <img v-if="msg.isSelf" class="avatar" :src="myAvatar" alt="" />
-        </div>
-      </div>
-    </div>
+          <image mode="aspectFill" v-if="!msg.isSelf" class="avatar" :src="chatUser.avatar || defaultAvatar" alt="" />
+          <view class="message-content">
+            <view class="message-bubble">
+              <text v-if="msg.isLoading" class="loading-dots">...</text>
+              <text v-else>{{ msg.content }}</text>
+            </view>
+            <view class="message-time" v-if="msg.time">{{ formatTime(msg.time) }}</view>
+          </view>
+          <image mode="aspectFill" v-if="msg.isSelf" class="avatar" :src="myAvatar" alt="" />
+        </view>
+      </view>
+    </view>
 
-    <div class="input-area">
-      <div class="quick-replies" v-if="quickReplies.length > 0 && messages.length === 0">
-        <span
+    <view class="input-area">
+      <view class="quick-replies" v-if="quickReplies.length > 0 && messages.length === 0">
+        <text
           v-for="reply in quickReplies"
           :key="reply"
           class="quick-reply"
@@ -45,9 +45,9 @@
           @click="sendQuickReply(reply)"
         >
           {{ reply }}
-        </span>
-      </div>
-      <div class="input-row">
+        </text>
+      </view>
+      <view class="input-row">
         <input
           v-model="inputText"
           class="text-input"
@@ -58,22 +58,22 @@
         <button class="send-btn" @click="sendMessage" :disabled="!inputText.trim() || sending || !isOnline">
           发送
         </button>
-      </div>
-    </div>
+      </view>
+    </view>
 
-    <div class="more-menu" v-if="showMenu" @click="showMenu = false">
-      <div class="menu-content" @click.stop>
-        <div class="menu-item" @click="clearContext">
-          <span class="menu-icon">🗑️</span>
-          <span>清除上下文</span>
-        </div>
-        <div class="menu-item" @click="refreshChat">
-          <span class="menu-icon">🔄</span>
-          <span>重新开始</span>
-        </div>
-      </div>
-    </div>
-  </div>
+    <view class="more-menu" v-if="showMenu" @click="showMenu = false">
+      <view class="menu-content" @click.stop>
+        <view class="menu-item" @click="clearContext">
+          <text class="menu-icon">🗑️</text>
+          <text>清除上下文</text>
+        </view>
+        <view class="menu-item" @click="refreshChat">
+          <text class="menu-icon">🔄</text>
+          <text>重新开始</text>
+        </view>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup>

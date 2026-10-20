@@ -1,94 +1,96 @@
 <template>
   <PageLayout>
     <template #nav>
-      <div class="search-box">
-        <span class="search-icon">🔍</span>
-        <span class="search-text">搜索游戏或陪玩师</span>
-      </div>
+      <view class="search-box">
+        <text class="search-icon">🔍</text>
+        <text class="search-text">搜索游戏或陪玩师</text>
+      </view>
     </template>
 
-    <div class="category-section">
-      <div class="category-list">
-        <div 
+    <view class="category-section">
+      <view class="category-list">
+        <view 
           class="category-item" 
           v-for="(cat, idx) in categories" 
           :key="idx"
           :class="{ active: activeCategory === idx }"
           @click="selectCategory(idx)">
-          <div class="category-icon">{{ cat.icon }}</div>
-          <span class="category-name">{{ cat.name }}</span>
-        </div>
-      </div>
-    </div>
+          <view class="category-icon">{{ cat.icon }}</view>
+          <text class="category-name">{{ cat.name }}</text>
+        </view>
+      </view>
+    </view>
 
-    <div class="filter-section">
-      <div class="filter-tabs">
-        <div 
+    <view class="filter-section">
+      <view class="filter-tabs">
+        <view 
           class="filter-tab" 
           :class="{ active: activeFilter === 'all' }"
           @click="activeFilter = 'all'">
           全部
-        </div>
-        <div 
+        </view>
+        <view 
           class="filter-tab" 
           :class="{ active: activeFilter === 'hot' }"
           @click="activeFilter = 'hot'">
           热门
-        </div>
-        <div 
+        </view>
+        <view 
           class="filter-tab" 
           :class="{ active: activeFilter === 'new' }"
           @click="activeFilter = 'new'">
           新人
-        </div>
-      </div>
-    </div>
+        </view>
+      </view>
+    </view>
 
-    <div class="companion-list">
-      <div 
+    <view class="companion-list">
+      <view 
         class="companion-card" 
         v-for="(item, idx) in companionList" 
         :key="idx"
         @click="goCompanionDetail(item)">
-        <img class="companion-avatar" :src="item.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200'" alt="" />
-        <div class="online-dot" v-if="item.isOnline"></div>
-        <div class="companion-info">
-          <div class="name-row">
-            <span class="nickname">{{ item.nickname }}</span>
-            <span class="level" v-if="item.level">Lv.{{ item.level }}</span>
-            <span class="vip-tag" v-if="item.vip">VIP</span>
-          </div>
-          <div class="tags">
-            <span class="tag" v-for="(tag, tIdx) in (item.tags || []).slice(0, 3)" :key="tIdx">{{ tag }}</span>
-          </div>
-          <div class="stats-row">
-            <span class="stat">❤️ {{ item.likes }}</span>
-            <span class="stat">🎮 {{ item.orders }}</span>
-            <span class="price">{{ item.price }} 金币/小时</span>
-          </div>
-        </div>
-        <div class="follow-btn" v-if="!item.isFollowed" @click.stop="followCompanion(item)">+ 关注</div>
-      </div>
+        <image mode="aspectFill" class="companion-avatar" :src="item.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200'" alt="" />
+        <view class="online-dot" v-if="item.isOnline"></view>
+        <view class="companion-info">
+          <view class="name-row">
+            <text class="nickname">{{ item.nickname }}</text>
+            <text class="level" v-if="item.level">Lv.{{ item.level }}</text>
+            <text class="vip-tag" v-if="item.vip">VIP</text>
+          </view>
+          <view class="tags">
+            <text class="tag" v-for="(tag, tIdx) in (item.tags || []).slice(0, 3)" :key="tIdx">{{ tag }}</text>
+          </view>
+          <view class="stats-row">
+            <text class="stat">❤️ {{ item.fansCount }}</text>
+            <text class="stat">🎮 {{ item.totalOrders }}</text>
+            <text class="price">{{ item.servicePrice }} 金币/小时</text>
+          </view>
+        </view>
+        <view class="follow-btn" v-if="!item.isFollowed" @click.stop="followCompanion(item)">+ 关注</view>
+      </view>
 
-      <div class="loading-more" v-if="loading">
-        <span>加载中...</span>
-      </div>
-      <div class="no-more" v-if="!hasMore && companionList.length">
-        <span>没有更多了</span>
-      </div>
-    </div>
+      <view class="loading-more" v-if="loading">
+        <text>加载中...</text>
+      </view>
+      <view class="no-more" v-if="!hasMore && companionList.length">
+        <text>没有更多了</text>
+      </view>
+    </view>
 
-    <div class="bottom-placeholder"></div>
+    <view class="bottom-placeholder"></view>
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { onPageScroll, onReachBottom, onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import { toast } from '../composables/useToast'
 import PageLayout from '../components/PageLayout.vue'
 import gamesService from '../services/gamesService'
 import authService from '../services/authService'
+import { isApp } from '../common/platform'
 
 const router = useRouter()
 
@@ -113,8 +115,8 @@ const loadCategories = async () => {
       categories.value = [
         { id: 0, name: '全部', icon: '🎮' },
         ...list.map((item, idx) => ({
-          id: item.id,
-          name: item.name,
+          id: item.gameId || item.id,
+          name: item.gameName || item.name || '',
           icon: categoryIcons[(idx + 1) % categoryIcons.length]
         }))
       ]
@@ -145,10 +147,11 @@ const loadCategories = async () => {
   }
 }
 
-const loadCompanionList = async (append = false) => {
+const loadCompanionList = async (append = false, silent = false) => {
   if (loading.value) return
-  
-  loading.value = true
+
+  // silent=true：onShow 静默刷新，不闪 loading（H5 首载/切换分类仍走原逻辑）
+  if (!silent) loading.value = true
   try {
     const cat = categories.value[activeCategory.value]
     const params = {
@@ -161,8 +164,21 @@ const loadCompanionList = async (append = false) => {
     }
 
     const res = await gamesService.getCompanions(params)
-    const rawList = (res && res.data !== undefined) ? res.data : res
-    const list = (Array.isArray(rawList) ? rawList : (rawList && Array.isArray(rawList.list) ? rawList.list : [])).filter(Boolean)
+    // P2-7：后端返回 { total, list }，列表项字段可能缺失；对齐旧站 GameIndex.vue 的映射（旧站 frontend/ 已删除，备份见 .e2e-run/legacy-frontend-backup-2026-10-21/），
+    // 补齐默认值避免卡片昵称/等级/粉丝数等字段渲染成空白。
+    const payload = (res && res.data !== undefined) ? res.data : res
+    const rows = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.list) ? payload.list : [])
+    const list = rows.filter(Boolean).map(item => ({
+      ...item,
+      nickname: item.nickname || item.nickName || '',
+      avatar: item.avatar || '',
+      level: item.level || 1,
+      tags: Array.isArray(item.tags) ? item.tags : [],
+      fansCount: Number(item.fansCount) || 0,
+      totalOrders: Number(item.totalOrders) || 0,
+      servicePrice: Number(item.servicePrice) || 0,
+      rating: Number(item.rating) || 0
+    }))
 
     if (append) {
       companionList.value = [...companionList.value, ...list]
@@ -177,7 +193,9 @@ const loadCompanionList = async (append = false) => {
     if (!append) companionList.value = []
     hasMore.value = false
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
+    // 列表高度变化后重新测量页面总高度，App 端下一次滚动才能正确触发触底加载
+    if (isApp) setTimeout(measurePageScrollHeight, 200)
   }
 }
 
@@ -194,11 +212,18 @@ const loadMore = () => {
   loadCompanionList(true)
 }
 
+// 全部/热门/新人切换需要重新拉取（后端按 sort 排序），此前只改本地状态不重载
+watch(activeFilter, () => {
+  currentPage.value = 1
+  loadCompanionList()
+})
+
 const goCompanionDetail = (item) => {
-  if (item.id) {
-    router.push({ name: 'UserProfile', params: { id: item.id } })
+  const uid = Number(item.userId || item.id)
+  if (uid) {
+    router.push({ name: 'UserProfile', params: { id: uid } })
   } else {
-    toast.info('陪玩师详情功能开发中...')
+    toast.info('陪玩师资料不完整')
   }
 }
 
@@ -224,19 +249,52 @@ const handleScroll = () => {
   }
 }
 
-watch(activeFilter, () => {
-  currentPage.value = 1
-  loadCompanionList()
+// App 端页面由原生容器滚动、拿不到 document 高度：用 onPageScroll + 选择器查到的页面总高度
+// 还原「触底加载」，onReachBottom 兜底；H5 继续走 window 监听，行为不变
+let pageScrollHeight = 0
+const measurePageScrollHeight = () => {
+  try {
+    uni.createSelectorQuery().selectViewport().scrollOffset((res) => {
+      if (res && res.scrollHeight) pageScrollHeight = res.scrollHeight
+    }).exec()
+  } catch (e) { /* 查询失败时交给 onReachBottom 兜底 */ }
+}
+
+onPageScroll(({ scrollTop }) => {
+  if (!isApp || !pageScrollHeight) return
+  let windowHeight = 0
+  try { windowHeight = uni.getSystemInfoSync().windowHeight || 0 } catch (e) {}
+  if (scrollTop + windowHeight >= pageScrollHeight - 200) loadMore()
+})
+
+onReachBottom(() => {
+  // 只在页面高度查询不可用（pageScrollHeight 为 0）时兜底；
+  // 查询成功时滚动判定已覆盖触底，避免两个入口重复拉同一份数据
+  if (isApp && !pageScrollHeight) loadMore()
 })
 
 onMounted(() => {
   loadCategories()
   loadCompanionList()
-  window.addEventListener('scroll', handleScroll)
+  if (!isApp) {
+    window.addEventListener('scroll', handleScroll)
+    return
+  }
+  measurePageScrollHeight()
 })
 
 onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll)
+  if (!isApp) window.removeEventListener('scroll', handleScroll)
+})
+
+// 首次 onShow 跳过（onMounted 已首载）；从详情页返回时静默刷新列表
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  loadCompanionList(false, true)
 })
 </script>
 

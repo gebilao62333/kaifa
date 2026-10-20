@@ -39,8 +39,15 @@ describe('Controller - Reserve', () => {
     reserveService.getAvailableSlots.mockResolvedValue([]);
     const res = mockRes();
     await reserveController.getSlots(mockReq({ query: { companionId: '2', date: '2026-01-01', gameId: '3' } }), res);
-    expect(reserveService.getAvailableSlots).toHaveBeenCalledWith(2, '2026-01-01', 3);
+    expect(reserveService.getAvailableSlots).toHaveBeenCalledWith(2, '2026-01-01', 3, false);
     expect(res.status).toHaveBeenCalledWith(200);
+  });
+
+  it('getSlots passes includeDisabled=true through to the service', async () => {
+    reserveService.getAvailableSlots.mockResolvedValue([]);
+    const res = mockRes();
+    await reserveController.getSlots(mockReq({ query: { companionId: '2', date: '2026-01-01', includeDisabled: '1' } }), res);
+    expect(reserveService.getAvailableSlots).toHaveBeenCalledWith(2, '2026-01-01', null, true);
   });
 
   it('getSlots maps error to 500', async () => {

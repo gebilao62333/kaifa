@@ -87,12 +87,29 @@ describe('Controller - Pay', () => {
     await payController.createWxOrder(mockReq({ body: {} }), bad);
     expect(bad.status).toHaveBeenCalledWith(400);
 
-    wechatPayService.createUnifiedOrder.mockResolvedValue({ prepayId: 'p', orderId: 1, orderNo: 'O1', amount: 100 });
+    wechatPayService.createUnifiedOrder.mockResolvedValue({
+      prepayId: 'p', orderId: 1, orderNo: 'O1', amount: 100, tradeType: 'JSAPI'
+    });
     wechatPayService.getJsApiSign.mockReturnValue({ paySign: 's' });
     const ok = mockRes();
     await payController.createWxOrder(mockReq({ body: { packageId: '3' } }), ok);
-    expect(wechatPayService.createUnifiedOrder).toHaveBeenCalledWith(100001, 3);
+    expect(wechatPayService.createUnifiedOrder).toHaveBeenCalledWith(100001, 3, {
+      tradeType: undefined,
+      openid: undefined
+    });
     expect(ok.status).toHaveBeenCalledWith(200);
+  });
+
+  it('createWxOrder returns NATIVE codeUrl for scan pay', async () => {
+    wechatPayService.createUnifiedOrder.mockResolvedValue({
+      orderId: 2, orderNo: 'O2', amount: 100, tradeType: 'NATIVE', codeUrl: 'weixin://wxpay/bizpayurl?pr=abc'
+    });
+    const res = mockRes();
+    await payController.createWxOrder(mockReq({ body: { packageId: 4, tradeType: 'NATIVE' } }), res);
+    expect(res.status).toHaveBeenCalledWith(200);
+    const payload = res.json.mock.calls[0][0];
+    expect(payload.data.codeUrl).toBe('weixin://wxpay/bizpayurl?pr=abc');
+    expect(payload.data.jsApiParams).toBe(null);
   });
 
   it('createWxOrder maps error to 422', async () => {

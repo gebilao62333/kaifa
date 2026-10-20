@@ -1,5 +1,6 @@
 const { Post, PostLike, PostComment, PostUnlock, User, UserFollow } = require('../models');
 const mediaAssetService = require('./mediaAssetService');
+const notificationCenterService = require('./notificationCenterService');
 const levelService = require('./levelService');
 const { getTimestamp, parseQuery } = require('../utils/helper');
 const logger = require('../utils/logger');
@@ -32,6 +33,83 @@ const normalizeVideos = (raw) => {
   return String(raw);
 };
 
+// ===== 动态可见范围（前后端唯一口径）=====
+// C 端 visibility：0 公开 / 1 仅关注 / 2 私密 / 3 密码查看 / 4 付费查看
+// 落库 xn_post.is_private：0 公开 / 1 密码 / 2 付费 / 3 仅关注 / 4 私密
+// 1/2 沿用历史值，3/4 为新增语义（Post.is_private 是 TINYINT，追加值不需要改表结构）。
+const VISIBILITY = Object.freeze({ PUBLIC: 0, FRIENDS: 1, PRIVATE: 2, PASSWORD: 3, PAY: 4 });
+const PRIVATE_FLAG = Object.freeze({ PUBLIC: 0, PASSWORD: 1, PAY: 2, FRIENDS: 3, PRIVATE: 4 });
+
+const toPrivateFlag = (visibility) => {
+  switch (Number(visibility)) {
+    case VISIBILITY.FRIENDS: return PRIVATE_FLAG.FRIENDS;
+    case VISIBILITY.PRIVATE: return PRIVATE_FLAG.PRIVATE;
+    case VISIBILITY.PASSWORD: return PRIVATE_FLAG.PASSWORD;
+    case VISIBILITY.PAY: return PRIVATE_FLAG.PAY;
+    default: return PRIVATE_FLAG.PUBLIC;
+  }
+};
+
+const isFollowing = async (followerId, followingId) => {
+  if (!followerId || !followingId) return false;
+  try {
+    const row = await UserFollow.findOne({
+      where: { follower_id: followerId, following_id: followingId }
+    });
+    return !!row;
+  } catch (e) {
+    return false;
+  }
+};
+
+// 列表/搜索可见范围：公开动态 + 自己的仅关注/私密动态 + 已关注作者的仅关注动态
+const buildVisibilityWhere = async (viewerId) => {
+  const or = [{ is_private: PRIVATE_FLAG.PUBLIC }];
+  if (viewerId) {
+    or.push({
+      user_id: viewerId,
+      is_private: { [Op.in]: [PRIVATE_FLAG.FRIENDS, PRIVATE_FLAG.PRIVATE] }
+    });
+    let rows = [];
+    try {
+      rows = await UserFollow.findAll({
+        where: { follower_id: viewerId },
+        attributes: ['following_id'],
+        raw: true
+      });
+    } catch (e) {
+      rows = [];
+    }
+    const followingIds = (rows || []).map(row => row.following_id).filter(Boolean);
+    if (followingIds.length > 0) {
+      or.push({
+        is_private: PRIVATE_FLAG.FRIENDS,
+        user_id: { [Op.in]: followingIds }
+      });
+    }
+  }
+  return { [Op.or]: or };
+};
+
+// 评论等附属资源：密码/付费帖需已解锁；仅关注/私密按作者与关注关系判断
+const canViewPost = async (post, viewerId) => {
+  if (!post) return false;
+  const privateFlag = Number(post.is_private) || PRIVATE_FLAG.PUBLIC;
+  if (privateFlag === PRIVATE_FLAG.PUBLIC) return true;
+  if (viewerId && String(post.user_id) === String(viewerId)) return true;
+  if (privateFlag === PRIVATE_FLAG.FRIENDS) {
+    return isFollowing(viewerId, post.user_id);
+  }
+  if (privateFlag === PRIVATE_FLAG.PASSWORD || privateFlag === PRIVATE_FLAG.PAY) {
+    if (!viewerId) return false;
+    const unlock = await PostUnlock.findOne({
+      where: { post_id: post.id, user_id: viewerId }
+    });
+    return !!unlock;
+  }
+  return false;
+};
+
 const createPost = async (userId, content, images, videos, tagIds, location, visibility, password, price) => {
   // 仅写入模型实际存在的列；visibility 映射为 is_private/private_password/private_price
   const post = await Post.create({
@@ -40,7 +118,7 @@ const createPost = async (userId, content, images, videos, tagIds, location, vis
     images: Array.isArray(images) ? images.filter(Boolean).join(',') : (images || ''),
     videos: normalizeVideos(videos),
     tag_id: tagIds && tagIds.length > 0 ? tagIds[0] : 0,
-    is_private: visibility === 3 ? 1 : (visibility === 4 ? 2 : 0),
+    is_private: toPrivateFlag(visibility),
     // 审计 M8：私密帖密码原先用 MD5（可被彩虹表/暴力破解），改为 bcrypt
     private_password: (visibility === 3 && password)
       ? await bcrypt.hash(String(password), 10)
@@ -78,7 +156,8 @@ const createPost = async (userId, content, images, videos, tagIds, location, vis
 const repostPost = async (userId, repostId, comment = '') => {  // 找原帖
   const original = await Post.findByPk(repostId);
   if (!original) throw new Error('原帖不存在或已删除');
-  if (original.is_private === 1) throw new Error('不能转发私密帖子');
+  // 仅公开动态可转发：密码/付费/仅关注/私密一律拦截，避免把私密内容扩散出去
+  if (Number(original.is_private) !== PRIVATE_FLAG.PUBLIC) throw new Error('不能转发私密帖子');
 
   // 创建转发帖子
   const post = await Post.create({
@@ -100,7 +179,7 @@ const getPosts = async (userId, tagId, page, pageSize) => {
   
   const where = {
     status: 1,
-    is_private: 0
+    ...(await buildVisibilityWhere(userId))
   };
   
   if (tagId) {
@@ -179,7 +258,7 @@ const searchPosts = async (userId, keyword, page, pageSize) => {
   const { count, rows } = await Post.findAndCountAll({
     where: {
       status: 1,
-      is_private: 0,
+      ...(await buildVisibilityWhere(userId)),
       content: { [Op.like]: `%${kw}%` }
     },
     offset,
@@ -213,22 +292,48 @@ const getPostDetail = async (userId, postId) => {
     throw new Error('帖子不存在');
   }
   
-  if (post.is_private === 1 || post.is_private === 2) {
-    if (post.user_id !== userId) {
+  const privateFlag = Number(post.is_private) || PRIVATE_FLAG.PUBLIC;
+
+  // 密码/付费：未解锁只返回锁定占位（可解锁）
+  if (privateFlag === PRIVATE_FLAG.PASSWORD || privateFlag === PRIVATE_FLAG.PAY) {
+    if (String(post.user_id) !== String(userId)) {
       const unlock = await PostUnlock.findOne({
         where: { post_id: postId, user_id: userId }
       });
-      
       if (!unlock) {
         return {
           postId: post.id,
           isPrivate: true,
-          privateType: post.is_private,
+          privateType: privateFlag,
           privatePrice: post.private_price,
           locked: true
         };
       }
     }
+  }
+
+  // 仅关注：非作者且未关注作者时只返回锁定占位（不支持解锁）
+  if (privateFlag === PRIVATE_FLAG.FRIENDS) {
+    if (String(post.user_id) !== String(userId) && !(await isFollowing(userId, post.user_id))) {
+      return {
+        postId: post.id,
+        isPrivate: true,
+        privateType: PRIVATE_FLAG.FRIENDS,
+        privatePrice: 0,
+        locked: true
+      };
+    }
+  }
+
+  // 私密：仅作者本人可见
+  if (privateFlag === PRIVATE_FLAG.PRIVATE && String(post.user_id) !== String(userId)) {
+    return {
+      postId: post.id,
+      isPrivate: true,
+      privateType: PRIVATE_FLAG.PRIVATE,
+      privatePrice: 0,
+      locked: true
+    };
   }
   
   const author = await User.findByPk(post.user_id);
@@ -264,8 +369,12 @@ const unlockPost = async (userId, postId, unlockType, password) => {
     throw new Error('帖子不存在');
   }
   
-  if (post.is_private === 0) {
+  if (Number(post.is_private) === PRIVATE_FLAG.PUBLIC) {
     throw new Error('帖子不需要解锁');
+  }
+
+  if (Number(post.is_private) === PRIVATE_FLAG.FRIENDS || Number(post.is_private) === PRIVATE_FLAG.PRIVATE) {
+    throw new Error('该动态不支持解锁');
   }
   
   const existing = await PostUnlock.findOne({
@@ -355,6 +464,9 @@ const getMyPosts = async (userId, page, pageSize) => {
     videos: post.videos || '',
     likes: post.thumb_num,
     comments: post.comment_num,
+    shares: post.share_num,
+    // 0/未设置按已发布处理；2 为未通过，其余（1）为已发布
+    status: Number(post.status) === 2 ? 'rejected' : (Number(post.status) === 0 ? 'review' : 'published'),
     createTime: post.create_time
   }));
   
@@ -388,6 +500,19 @@ const likePost = async (userId, postId) => {
   });
   
   await post.increment('thumb_num');
+  // U-12：给作者写一条点赞互动通知（自己赞自己不通知）
+  if (Number(post.user_id) !== Number(userId)) {
+    try {
+      const liker = await User.findByPk(userId);
+      await notificationCenterService.create(
+        post.user_id,
+        'like',
+        '收到赞',
+        `${liker?.nickname || '有人'} 赞了你的动态`,
+        { postId: Number(postId) }
+      );
+    } catch (e) { /* 通知失败不影响点赞 */ }
+  }
   
   return { isLiked: true };
 };
@@ -409,13 +534,40 @@ const commentPost = async (userId, postId, content, replyId) => {
   });
   
   await post.increment('comment_num');
+  // U-12：评论通知作者；回复时额外通知被回复人
+  try {
+    const commenter = await User.findByPk(userId);
+    const name = commenter?.nickname || '有人';
+    if (Number(post.user_id) !== Number(userId)) {
+      await notificationCenterService.create(
+        post.user_id,
+        'comment',
+        '收到评论',
+        `${name} 评论了你的动态：${String(content).slice(0, 50)}`,
+        { postId: Number(postId), commentId: comment.id }
+      );
+    }
+    if (comment.reply_user_id && Number(comment.reply_user_id) !== Number(userId)) {
+      await notificationCenterService.create(
+        comment.reply_user_id,
+        'comment',
+        '收到回复',
+        `${name} 回复了你：${String(content).slice(0, 50)}`,
+        { postId: Number(postId), commentId: comment.id }
+      );
+    }
+  } catch (e) { /* 通知失败不影响评论 */ }
   
   return {
     commentId: comment.id
   };
 };
 
-const getComments = async (postId, page, pageSize) => {
+const getComments = async (userId, postId, page, pageSize) => {
+  const post = await Post.findByPk(postId);
+  if (!post) throw new Error('帖子不存在');
+  if (!(await canViewPost(post, userId))) throw new Error('无权查看该动态评论');
+
   const { offset, limit } = parseQuery({ page, pageSize });
   
   const { count, rows } = await PostComment.findAndCountAll({

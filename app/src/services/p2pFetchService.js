@@ -1,6 +1,7 @@
 import socketService from './socketService'
 import { RTC_CONFIGURATION } from '../common/webrtcConfig'
-import { STORAGE_KEYS } from '../common/constants'
+import { request } from '../common/common'
+import { isApp } from '../common/platform'
 
 // P2P 热内容取回流：请求方通过 WebRTC DataChannel 让"资源拥有方"回传小文件
 // （头像/缩略图等），从而省去请求方直接跨域/跨服务器拉取，减轻带宽压力。
@@ -19,6 +20,9 @@ const MAX_P2P_BLOB_SIZE = 100 * 1024 * 1024
 let responderStarted = false
 export function setupP2PFetchResponder() {
   if (responderStarted) return
+  // App 端数据通道由原生 WebRTC 插件接管（当前未开放 DataChannel），
+  // 这里不挂浏览器 RTCPeerConnection 监听，让请求方直接走签名 URL 回退。
+  if (isApp) return
   responderStarted = true
 
   socketService.on('p2p_fetch_request', async (data) => {
@@ -115,6 +119,8 @@ export function setupP2PFetchResponder() {
 
 // 请求方：向拥有方请求小文件，返回 Blob 或回退 URL
 export async function p2pFetch({ peerId, url, type = 'image', timeout = 8000 }) {
+  // App 原生通道暂未实现 DataChannel 取数，直接回退常规签名 URL
+  if (isApp) return { ok: false, fallbackUrl: url }
   const online = await checkPeerOnline(peerId)
   if (!online) {
     return { ok: false, fallbackUrl: url } // 对方不在线，走常规签名URL
@@ -225,21 +231,17 @@ export async function upgradeViaP2P({ peerId, url, timeout = 1500, onBlob }) {
 }
 
 async function checkPeerOnline(peerId) {
-  // fetch 无超时可能长期挂起并耗尽连接池，这里用 AbortController 兜底（F-08）
-  const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), PEER_ONLINE_TIMEOUT)
+  // 走统一请求层：自动补 VITE_API_ORIGIN（App 绝对域名）、token、超时与 401 处理。
+  // 超时时 request 返回 null（silentAbort），按「不在线」回退签名 URL。
   try {
-    const token = localStorage.getItem(STORAGE_KEYS.TOKEN)
-    const res = await fetch(`/api/p2p/peer-online?peerId=${encodeURIComponent(peerId)}`, {
-      headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-      signal: controller.signal
-    })
-    const data = await res.json()
-    return data?.code === 200 && data?.data?.online
+    const res = await request(
+      `/api/p2p/peer-online?peerId=${encodeURIComponent(peerId)}`,
+      'GET', {}, {}, PEER_ONLINE_TIMEOUT, { silentAbort: true }
+    )
+    const data = (res && res.data) || res
+    return !!(data && data.online)
   } catch (e) {
     return false
-  } finally {
-    clearTimeout(timer)
   }
 }
 

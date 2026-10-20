@@ -11,6 +11,8 @@ jest.mock('../../../src/config', () => {
     nodeEnv: 'test',
     jwt: { expiresIn: '7d', refreshExpiresIn: '30d', adminExpiresIn: '12h', secret: 's' },
     admin: { emergencyLogin: false },
+    // B-10：卡密密码走 pii.encryptField；测试环境不配密钥 → 原样落库（与历史断言一致）
+    pii: { encryptionKey: '' },
     paths: { logs: path.join(os.tmpdir(), 'dsh-admin-test-logs') }
   };
 });
@@ -67,13 +69,17 @@ jest.mock('../../../src/services/adminLoginGuard', () => ({
 }));
 
 // 审计 H-5：封号后顺带作废该用户的全部会话（尽力而为，失败不阻塞封号）
+// 审计 B-5：refresh 兑换入口额外用到 checkRevocation / revokeToken / revocationFailMode
 jest.mock('../../../src/services/tokenRevocation', () => ({
-  revokeAllUserTokens: jest.fn()
+  revokeAllUserTokens: jest.fn(),
+  revokeToken: jest.fn(),
+  checkRevocation: jest.fn(),
+  revocationFailMode: jest.fn(() => 'open')
 }));
 
 const bcrypt = require('bcryptjs');
 const config = require('../../../src/config');
-const { signToken, TOKEN_TYPES } = require('../../../src/config/jwt');
+const { signToken, verifyToken, TOKEN_TYPES } = require('../../../src/config/jwt');
 const sequelize = require('../../../src/config/mysql');
 const virtualUserService = require('../../../src/services/virtualUserService');
 const adminLoginGuard = require('../../../src/services/adminLoginGuard');
@@ -485,6 +491,104 @@ describe('Controller - Admin (admin.js)', () => {
     const err = mockRes();
     await adminController.getVirtualUserDetail(mockReq({ params: { id: '1' } }), err);
     expect(err.status).toHaveBeenCalledWith(404);
+  });
+
+  // ============ 审计 B-5：管理端 refresh 令牌兑换 ============
+  describe('refreshAdminToken', () => {
+    const okRevocation = () => {
+      tokenRevocation.checkRevocation.mockResolvedValue({ verifiable: true, revoked: false });
+      tokenRevocation.revokeToken.mockResolvedValue({ ok: true, verifiable: true });
+      tokenRevocation.revocationFailMode.mockReturnValue('open');
+    };
+
+    it('缺少 refreshToken 返回 400', async () => {
+      const res = mockRes();
+      await adminController.refreshAdminToken(mockReq({ body: {} }), res);
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('无效/过期的 refresh 返回 401', async () => {
+      verifyToken.mockReturnValue(null);
+      const res = mockRes();
+      await adminController.refreshAdminToken(mockReq({ body: { refreshToken: 'bad' } }), res);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    it('已吊销的 refresh 返回 401', async () => {
+      verifyToken.mockReturnValue({ id: 1, type: TOKEN_TYPES.ADMIN_REFRESH, adminScope: 'account' });
+      tokenRevocation.checkRevocation.mockResolvedValue({ verifiable: true, revoked: true });
+      tokenRevocation.revocationFailMode.mockReturnValue('open');
+      const res = mockRes();
+      await adminController.refreshAdminToken(mockReq({ body: { refreshToken: 'r' } }), res);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    it('吊销状态无法确认且 fail-closed 时返回 503（不发放新令牌）', async () => {
+      verifyToken.mockReturnValue({ id: 1, type: TOKEN_TYPES.ADMIN_REFRESH, adminScope: 'account' });
+      tokenRevocation.checkRevocation.mockResolvedValue({ verifiable: false, revoked: false });
+      tokenRevocation.revocationFailMode.mockReturnValue('closed');
+      const res = mockRes();
+      await adminController.refreshAdminToken(mockReq({ body: { refreshToken: 'r' } }), res);
+      expect(res.status).toHaveBeenCalledWith(503);
+      expect(signToken).not.toHaveBeenCalled();
+    });
+
+    it('账号已被禁用时拒绝（回读实时主体）', async () => {
+      verifyToken.mockReturnValue({ id: 1, type: TOKEN_TYPES.ADMIN_REFRESH, adminScope: 'account' });
+      okRevocation();
+      Admin.findByPk.mockResolvedValue({ id: 1, username: 'a', status: 0 });
+      const res = mockRes();
+      await adminController.refreshAdminToken(mockReq({ body: { refreshToken: 'r' } }), res);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    it('正常账号：签发新 access+refresh 并轮换旧 refresh', async () => {
+      verifyToken.mockReturnValue({ id: 1, type: TOKEN_TYPES.ADMIN_REFRESH, adminScope: 'account' });
+      okRevocation();
+      Admin.findByPk.mockResolvedValue({
+        id: 1, username: 'admin', status: 1, role_id: 2, nickname: 'n', avatar: 'a'
+      });
+      AdminRole.findByPk.mockResolvedValue({ id: 2, is_super: 1, permissions: '[]' });
+      const res = mockRes();
+      await adminController.refreshAdminToken(mockReq({ body: { refreshToken: 'r' } }), res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(signToken).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, role: 'admin', adminScope: 'account' }),
+        config.jwt.adminExpiresIn,
+        TOKEN_TYPES.ADMIN
+      );
+      expect(signToken).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 1, role: 'admin', adminScope: 'account' }),
+        config.jwt.refreshExpiresIn,
+        TOKEN_TYPES.ADMIN_REFRESH
+      );
+      expect(tokenRevocation.revokeToken).toHaveBeenCalledWith('r');
+    });
+
+    it('角色账号刷新同样回读实时角色', async () => {
+      verifyToken.mockReturnValue({ id: 7, type: TOKEN_TYPES.ADMIN_REFRESH, adminScope: 'role' });
+      okRevocation();
+      Admin.findByPk.mockResolvedValue(null);
+      AdminRole.findByPk.mockResolvedValue({ id: 7, username: 'role', status: 1, name: 'r', permissions: '[]' });
+      signToken.mockClear();
+      const res = mockRes();
+      await adminController.refreshAdminToken(mockReq({ body: { refreshToken: 'r' } }), res);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(signToken).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 7, adminScope: 'role' }),
+        config.jwt.adminExpiresIn,
+        TOKEN_TYPES.ADMIN
+      );
+    });
+
+    it('legacy / emergency 令牌没有可回读主体，强制重登', async () => {
+      verifyToken.mockReturnValue({ id: 0, type: TOKEN_TYPES.ADMIN_REFRESH, adminScope: 'emergency' });
+      okRevocation();
+      const res = mockRes();
+      await adminController.refreshAdminToken(mockReq({ body: { refreshToken: 'r' } }), res);
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
   });
 
   // ============ 创建接口 ============

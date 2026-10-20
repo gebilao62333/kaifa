@@ -1,106 +1,108 @@
 <template>
-  <div class="skin-shop-page">
-    <div class="header">
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="title">装扮商城</span>
-      <span class="balance-display">
-        <span class="balance-icon">💰</span>
-        <span class="balance-value">{{ userBalance }}</span>
-      </span>
-    </div>
+  <view class="skin-shop-page">
+    <view class="header">
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="title">装扮商城</text>
+      <text class="balance-display">
+        <text class="balance-icon">💰</text>
+        <text class="balance-value">{{ userBalance }}</text>
+      </text>
+    </view>
 
-    <div class="tabs">
-      <div class="tab-item" :class="{ active: activeTab === 'frame' }" @click="activeTab = 'frame'">头像框</div>
-      <div class="tab-item" :class="{ active: activeTab === 'badge' }" @click="activeTab = 'badge'">身份标识</div>
-      <div class="tab-item" :class="{ active: activeTab === 'bubble' }" @click="activeTab = 'bubble'">聊天气泡</div>
-      <div class="tab-item" :class="{ active: activeTab === 'theme' }" @click="activeTab = 'theme'">主题皮肤</div>
-    </div>
+    <view class="tabs">
+      <view class="tab-item" :class="{ active: activeTab === 'frame' }" @click="activeTab = 'frame'">头像框</view>
+      <view class="tab-item" :class="{ active: activeTab === 'badge' }" @click="activeTab = 'badge'">身份标识</view>
+      <view class="tab-item" :class="{ active: activeTab === 'bubble' }" @click="activeTab = 'bubble'">聊天气泡</view>
+      <view class="tab-item" :class="{ active: activeTab === 'theme' }" @click="activeTab = 'theme'">主题皮肤</view>
+    </view>
 
-    <div class="content">
-      <div class="skin-grid" v-if="activeTab === 'frame'">
-        <div class="skin-card" v-for="item in frameList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item)">
-          <div class="skin-preview" :style="item.style">
-            <img class="skin-avatar" :src="demoAvatar" alt="" />
-          </div>
-          <div class="skin-name">{{ item.name }}</div>
-          <div class="skin-tag" v-if="item.using">使用中</div>
-          <div class="skin-tag owned-tag" v-else-if="item.owned">已拥有</div>
-          <div class="skin-price" v-else-if="!item.vipOnly">
-            <span class="price-icon">💰</span>
-            <span>{{ item.price }}</span>
-          </div>
-          <div class="skin-price vip-price" v-else>
-            <span>VIP{{ item.vipLevel }}+</span>
-          </div>
-        </div>
-      </div>
+    <view class="content">
+      <view class="skin-grid" v-if="activeTab === 'frame'">
+        <view class="skin-card" v-for="item in frameList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item)">
+          <view class="skin-preview" :style="item.style">
+            <image mode="aspectFill" class="skin-avatar" :src="demoAvatar" alt="" />
+          </view>
+          <view class="skin-name">{{ item.name }}</view>
+          <view class="skin-tag" v-if="item.using">使用中</view>
+          <view class="skin-tag owned-tag" v-else-if="item.owned">已拥有</view>
+          <view class="skin-price" v-else-if="!item.vipOnly">
+            <text class="price-icon">💰</text>
+            <text>{{ item.price }}</text>
+          </view>
+          <view class="skin-price vip-price" v-else>
+            <text>VIP{{ item.vipLevel }}+</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="skin-grid" v-if="activeTab === 'badge'">
-        <div class="skin-card" v-for="item in badgeList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item)">
-          <div class="badge-preview" :style="item.style">
-            <span class="badge-preview-icon">{{ item.icon }}</span>
-            <span class="badge-preview-label">{{ item.label }}</span>
-          </div>
-          <div class="skin-name">{{ item.name }}</div>
-          <div class="skin-tag" v-if="item.using">使用中</div>
-          <div class="skin-tag owned-tag" v-else-if="item.owned">已拥有</div>
-          <div class="skin-price" v-else-if="!item.vipOnly">
-            <span class="price-icon">💰</span>
-            <span>{{ item.price }}</span>
-          </div>
-          <div class="skin-price vip-price" v-else>
-            <span>VIP{{ item.vipLevel }}+</span>
-          </div>
-        </div>
-      </div>
+      <view class="skin-grid" v-if="activeTab === 'badge'">
+        <view class="skin-card" v-for="item in badgeList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item)">
+          <view class="badge-preview" :style="item.style">
+            <text class="badge-preview-icon">{{ item.icon }}</text>
+            <text class="badge-preview-label">{{ item.label }}</text>
+          </view>
+          <view class="skin-name">{{ item.name }}</view>
+          <view class="skin-tag" v-if="item.using">使用中</view>
+          <view class="skin-tag owned-tag" v-else-if="item.owned">已拥有</view>
+          <view class="skin-price" v-else-if="!item.vipOnly">
+            <text class="price-icon">💰</text>
+            <text>{{ item.price }}</text>
+          </view>
+          <view class="skin-price vip-price" v-else>
+            <text>VIP{{ item.vipLevel }}+</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="skin-grid" v-if="activeTab === 'bubble'">
-        <div class="skin-card" v-for="item in bubbleList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item)">
-          <div class="bubble-preview" :style="item.style">
-            <span class="bubble-text">{{ item.preview }}</span>
-          </div>
-          <div class="skin-name">{{ item.name }}</div>
-          <div class="skin-tag" v-if="item.using">使用中</div>
-          <div class="skin-tag owned-tag" v-else-if="item.owned">已拥有</div>
-          <div class="skin-price" v-else-if="!item.vipOnly">
-            <span class="price-icon">💰</span>
-            <span>{{ item.price }}</span>
-          </div>
-          <div class="skin-price vip-price" v-else>
-            <span>VIP{{ item.vipLevel }}+</span>
-          </div>
-        </div>
-      </div>
+      <view class="skin-grid" v-if="activeTab === 'bubble'">
+        <view class="skin-card" v-for="item in bubbleList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item)">
+          <view class="bubble-preview" :style="item.style">
+            <text class="bubble-text">{{ item.preview }}</text>
+          </view>
+          <view class="skin-name">{{ item.name }}</view>
+          <view class="skin-tag" v-if="item.using">使用中</view>
+          <view class="skin-tag owned-tag" v-else-if="item.owned">已拥有</view>
+          <view class="skin-price" v-else-if="!item.vipOnly">
+            <text class="price-icon">💰</text>
+            <text>{{ item.price }}</text>
+          </view>
+          <view class="skin-price vip-price" v-else>
+            <text>VIP{{ item.vipLevel }}+</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="skin-grid" v-if="activeTab === 'theme'">
-        <div class="skin-card" v-for="item in themeList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item)">
-          <div class="theme-preview" :style="{ background: item.bg }">
-            <div class="theme-preview-item" :style="{ background: item.primary }"></div>
-            <div class="theme-preview-item sm" :style="{ background: item.secondary }"></div>
-          </div>
-          <div class="skin-name">{{ item.name }}</div>
-          <div class="skin-tag" v-if="item.using">使用中</div>
-          <div class="skin-tag owned-tag" v-else-if="item.owned">已拥有</div>
-          <div class="skin-price" v-else-if="!item.vipOnly">
-            <span class="price-icon">💰</span>
-            <span>{{ item.price }}</span>
-          </div>
-          <div class="skin-price vip-price" v-else>
-            <span>VIP{{ item.vipLevel }}+</span>
-          </div>
-        </div>
-      </div>
-    </div>
+      <view class="skin-grid" v-if="activeTab === 'theme'">
+        <view class="skin-card" v-for="item in themeList" :key="item.id" :class="{ owned: item.owned, using: item.using }" @click="actionItem(item)">
+          <view class="theme-preview" :style="{ background: item.bg }">
+            <view class="theme-preview-item" :style="{ background: item.primary }"></view>
+            <view class="theme-preview-item sm" :style="{ background: item.secondary }"></view>
+          </view>
+          <view class="skin-name">{{ item.name }}</view>
+          <view class="skin-tag" v-if="item.using">使用中</view>
+          <view class="skin-tag owned-tag" v-else-if="item.owned">已拥有</view>
+          <view class="skin-price" v-else-if="!item.vipOnly">
+            <text class="price-icon">💰</text>
+            <text>{{ item.price }}</text>
+          </view>
+          <view class="skin-price vip-price" v-else>
+            <text>VIP{{ item.vipLevel }}+</text>
+          </view>
+        </view>
+      </view>
+    </view>
 
-    <div class="toast" v-if="toast.show">{{ toast.message }}</div>
-  </div>
+    <view class="toast" v-if="toast.show">{{ toast.message }}</view>
+  </view>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import { DEFAULT_AVATAR } from '@/common/constants'
 import skinService from '../services/skinService'
+import { applyLegacySkinSelection } from '../utils/skinBridge'
 
 const router = useRouter()
 
@@ -137,6 +139,13 @@ const renderGroups = (payload) => {
     group.push({ ...item.assets, ...item })
   })
   Object.keys(groups).forEach((type) => { LISTS[type].value = groups[type] })
+  // C-3：进入商城时把服务端「使用中」同步成历史页面读的 localStorage 展示态，
+  // 避免在其它设备/会话买过的装扮，本机聊天页、我的、用户主页仍显示旧装扮。
+  Object.keys(LISTS).forEach((type) => {
+    LISTS[type].value.forEach((item) => {
+      if (item.using) applyLegacySkinSelection(item)
+    })
+  })
   if (payload.balance != null) userBalance.value = Number(payload.balance) || 0
 }
 
@@ -152,6 +161,21 @@ const loadSkins = async () => {
 }
 
 onMounted(loadSkins)
+
+// 从其它页面返回时以服务端为准重拉所有权/使用中状态与余额，避免展示旧快照
+const refreshOnShow = () => {
+  loadSkins()
+}
+
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
+})
 
 // 服务端是唯一事实来源：四类共用一个「使用中」位，成功后按回传刷新视图，
 // 下次进页面仍以 GET /api/user/skins 为准。
@@ -176,6 +200,8 @@ const actionItem = async (item) => {
       : await skinService.purchase(item.id)
     const payload = (res && res.data) || {}
     markUsed(payload.skin && payload.skin.id ? payload.skin.id : item.id)
+    // C-3：切换成功后同步历史页面的 localStorage 展示态（frame/badge）
+    applyLegacySkinSelection(item)
     if (payload.balance != null) userBalance.value = Number(payload.balance) || 0
     if (payload.charged > 0) showToast(`购买成功，已切换至「${item.name}」`)
     else if (!wasOwned) showToast(`已获得「${item.name}」`)
@@ -445,6 +471,20 @@ const goBack = () => {
   to {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
+  }
+}
+/* 旧版 App.vue 的 route-shell 会给所有非全屏页做 PC 居中；本页没有用 PageLayout，这里补上 */
+@media (min-width: 768px) {
+  .skin-shop-page {
+    max-width: var(--layout-max-width-pc, 650px);
+    margin: 0 auto;
+    position: relative;
+  }
+}
+
+@media (min-width: 1024px) {
+  .skin-shop-page {
+    max-width: var(--layout-max-width-pc-lg, 720px);
   }
 }
 </style>

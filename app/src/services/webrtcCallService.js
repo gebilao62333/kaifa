@@ -1,5 +1,7 @@
 import { socketService } from './socketService'
 import { getRtcConfiguration } from '../common/webrtcConfig'
+import { isNativeCallAvailable } from './nativeCallAdapter'
+import { nativeCallService } from './nativeCallService'
 
 // ICE 服务器（STUN + 可选 TURN）统一由 common/webrtcConfig 提供，
 // TURN 通过 VITE_TURN_URL / VITE_TURN_USERNAME / VITE_TURN_CREDENTIAL 注入。
@@ -293,7 +295,8 @@ class WebRTCCallService {
 
   // ===== 切换扬声器 =====
   toggleSpeaker(enabled) {
-    if (this.remoteStream) {
+    // App 原生端没有 document：扬声器切换交给原生通道/系统音量，这里跳过 DOM 枚举
+    if (this.remoteStream && typeof document !== 'undefined') {
       const audioEls = document.querySelectorAll('audio')
       audioEls.forEach(el => {
         if (el.srcObject === this.remoteStream) {
@@ -325,6 +328,8 @@ class WebRTCCallService {
   }
 }
 
-// 全局单例
-export const webrtcCallService = new WebRTCCallService()
+// 全局单例：
+// - App（VITE_USE_NATIVE_CALL=1 的自定义基座）→ 原生 Android WebRTC 插件
+// - H5 / 默认 App 构建 → 浏览器 RTCPeerConnection（保持原逻辑）
+export const webrtcCallService = isNativeCallAvailable() ? nativeCallService : new WebRTCCallService()
 export default webrtcCallService

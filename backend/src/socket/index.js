@@ -1,5 +1,5 @@
 const { verifyToken, TOKEN_TYPES } = require('../config/jwt');
-const { User, UserSession } = require('../models');
+const { User, UserSession, ChatLog } = require('../models');
 const chatService = require('../services/chatService');
 const tokenRevocation = require('../services/tokenRevocation');
 const p2pRelay = require('../utils/p2pRelay');
@@ -340,10 +340,28 @@ const initializeSocket = (socketIO) => {
       }
     });
     
+    // 审计 B-16：此前该事件不做任何归属校验，任意登录用户都能对任意 toId 发它，
+    // 服务端原样转发，对方 UI 就可能把某条消息显示成「已撤回」（落库事实仍以
+    // POST /api/chat/revoke 为准，属于 UI 欺骗）。现在只做「已发生的撤回」的通知：
+    // 消息必须存在、由本人发出、收件人就是 toId，且数据库里 is_revoked 已置 1，
+    // 否则静默丢弃；同时复用每连接事件限流。
     socket.on('revoke_message', async (data) => {
       try {
-        const { toId, messageId } = data;
-        
+        if (!allowEvent(socket)) return;
+
+        const toId = Number(data && data.toId);
+        const messageId = Number(data && data.messageId);
+        if (!Number.isInteger(toId) || toId <= 0) return;
+        if (!Number.isInteger(messageId) || messageId <= 0) return;
+
+        const message = await ChatLog.findByPk(messageId, {
+          attributes: ['id', 'fromid', 'toid', 'is_revoked']
+        });
+        if (!message) return;
+        if (Number(message.fromid) !== Number(socket.userId)) return;
+        if (Number(message.toid) !== toId) return;
+        if (Number(message.is_revoked) !== 1) return;
+
         io.to(`user:${toId}`).emit('message_revoked', {
           messageId,
           fromId: socket.userId
@@ -492,11 +510,22 @@ const sendToUser = (userId, event, data) => {
   }
 };
 
+// 《未完成事项清单》B-4：全服推送通道。
+// 此前 socket 只有 user:<id> 定向房间，没有「所有在线用户」的广播入口，
+// 管理员发布公告时在线用户必须等下次刷新才看得到。这里补一个显式广播口子：
+// 只在服务端主动调用（当前仅公告写接口），客户端事件名固定为 notice_created/notice_updated。
+const broadcastToAll = (event, data) => {
+  if (!io) return false;
+  io.emit(event, data);
+  return true;
+};
+
 const getIO = () => io;
 
 module.exports = {
   initializeSocket,
   sendToUser,
+  broadcastToAll,
   getIO,
   isUserOnline
 };

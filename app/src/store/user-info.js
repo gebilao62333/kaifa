@@ -2,7 +2,11 @@ import { defineStore } from 'pinia'
 import authService from '../services/authService'
 import { DEFAULT_AVATAR, STORAGE_KEYS } from '../common/constants'
 import { clearPersistedState } from '../plugins/persistedState'
+import storage from '../common/storage'
 import socketService from '../services/socketService'
+import { socketUrl as configSocketUrl } from '../common/config'
+import noticeService from '../services/noticeService'
+import { useChatStore } from './chat'
 
 // 数字规范化：对象/NaN/null/undefined 一律兜底为 0，字符串数字转为数字
 const toNumber = (value) => {
@@ -46,11 +50,21 @@ export const useUserStore = defineStore('user', {
   actions: {
     setToken(token) {
       this.token = token
+      // 双写 uni.storage 与 localStorage：H5 与 App（WebView + 原生插件）都能读到同一份 token
       if (token) {
-        localStorage.setItem(STORAGE_KEYS.TOKEN, token)
+        storage.setItem(STORAGE_KEYS.TOKEN, token)
       } else {
-        localStorage.removeItem(STORAGE_KEYS.TOKEN)
+        storage.removeItem(STORAGE_KEYS.TOKEN)
       }
+    },
+
+    // 审计 B-6：登录/续期响应同时保存 refresh token（供 common.js 401 静默续期消费）
+    setAuthTokens(data) {
+      if (!data) return
+      this.setToken(this.extractToken(data))
+      const refreshToken = data.refreshToken || data.refresh_token || ''
+      // 存储适配器内部已吞掉两侧 storage 不可用的异常
+      if (refreshToken) storage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
     },
 
     setProfile(profile) {
@@ -82,22 +96,41 @@ export const useUserStore = defineStore('user', {
       return data.accessToken || data.token || ''
     },
 
+    // P0（2026-10-20 用户端完整度审计）：登录成功后补建实时长连接。
+    // 此前只有 App 启动瞬间「已经登录」才会 connect，登录成功回调里没有补建，导致
+    // 重新登录后私聊/来电/typing/公告实时全部失效，必须刷新页面才恢复。
+    // 统一走 chat store：连接 socket + 注册消息/已读/撤回监听；socketService 内部
+    // 保存监听注册表，断线重连/重建 socket 时会自动重挂，无需重复绑定。
+    startRealtime() {
+      if (!this.token) return
+      try {
+        const socketUrl = import.meta.env.VITE_SOCKET_URL || configSocketUrl
+        useChatStore().initSocketConnection(socketUrl)
+        // 公告实时推送同样依赖 socket；bindRealtime 内部有幂等守卫，登录晚于启动时也能补挂。
+        noticeService.bindRealtime()
+        if (import.meta.env.DEV) console.log('[realtime] Socket 初始化完成')
+      } catch (error) {
+        console.warn('[realtime] Socket 初始化失败:', error)
+      }
+    },
+
     async login(credentials) {
       try {
         this.loading = true
         const result = await authService.login(credentials.phone, credentials.password)
         
         if (result.code === 200 && result.data) {
-          const token = this.extractToken(result.data)
-          this.setToken(token)
+          this.setAuthTokens(result.data)
           this.setUserInfo(result.data)
+          // P0：登录成功即建立实时连接（密码/验证码/第三方三种登录都走这里）
+          this.startRealtime()
           return { success: true, data: result.data }
         } else {
           return { success: false, message: result.message || '登录失败' }
         }
       } catch (error) {
         console.error('登录失败:', error)
-        const response = { success: false, message: error.message || '网络错误' }
+        const response = { success: false, message: error.message || '网络错误', retryAfterSec: Number(error.retryAfterSec) || 0 }
         // 只有真正携带「按字段错误」时才走字段定位分支；空对象（如登录接口统一后的
         // 通用 422）必须落回 message，否则 Login.vue 会因 fieldErrors 为空对象而不弹任何提示。
         if (error.fieldErrors && Object.keys(error.fieldErrors).length > 0) {
@@ -115,16 +148,17 @@ export const useUserStore = defineStore('user', {
         const result = await authService.loginMobile(phone, code)
         
         if (result.code === 200 && result.data) {
-          const token = this.extractToken(result.data)
-          this.setToken(token)
+          this.setAuthTokens(result.data)
           this.setUserInfo(result.data)
+          // P0：登录成功即建立实时连接（密码/验证码/第三方三种登录都走这里）
+          this.startRealtime()
           return { success: true, data: result.data }
         } else {
           return { success: false, message: result.message || '登录失败' }
         }
       } catch (error) {
         console.error('手机登录失败:', error)
-        return { success: false, message: error.message || '网络错误' }
+        return { success: false, message: error.message || '网络错误', retryAfterSec: Number(error.retryAfterSec) || 0 }
       } finally {
         this.loading = false
       }
@@ -136,16 +170,17 @@ export const useUserStore = defineStore('user', {
         const result = await authService.loginThird(provider, openId, userInfo)
         
         if (result.code === 200 && result.data) {
-          const token = this.extractToken(result.data)
-          this.setToken(token)
+          this.setAuthTokens(result.data)
           this.setUserInfo(result.data)
+          // P0：登录成功即建立实时连接（密码/验证码/第三方三种登录都走这里）
+          this.startRealtime()
           return { success: true, data: result.data }
         } else {
           return { success: false, message: result.message || '登录失败' }
         }
       } catch (error) {
         console.error('第三方登录失败:', error)
-        return { success: false, message: error.message || '网络错误' }
+        return { success: false, message: error.message || '网络错误', retryAfterSec: Number(error.retryAfterSec) || 0 }
       } finally {
         this.loading = false
       }
@@ -167,7 +202,7 @@ export const useUserStore = defineStore('user', {
         }
       } catch (error) {
         console.error('发送短信失败:', error)
-        return { success: false, message: error.message || '发送失败' }
+        return { success: false, message: error.message || '发送失败', retryAfterSec: Number(error.retryAfterSec) || 0 }
       }
     },
 
@@ -176,10 +211,12 @@ export const useUserStore = defineStore('user', {
         this.loading = true
         const result = await authService.register(phone, password, code)
         
+        // 后端注册返回 { userId, accessToken, refreshToken, nickname }，与登录同构；
+        // 此前按 { token, userInfo } 解构，导致注册成功后并未真正登录。
         if (result.code === 200 && result.data) {
-          const { token, userInfo } = result.data
-          this.setToken(token)
-          this.setUserInfo(userInfo)
+          this.setAuthTokens(result.data)
+          this.setUserInfo(result.data)
+          this.startRealtime()
           return { success: true, data: result.data }
         } else {
           return { success: false, message: result.message || '注册失败' }
@@ -308,12 +345,11 @@ export const useUserStore = defineStore('user', {
       this.ui = { statusBarHeight: 0, customBarHeight: 0 }
 
       // 清理本地登录态与敏感数据：token、用户资料、手机号、余额、历史遗留 userInfo
-      try {
-        localStorage.removeItem(STORAGE_KEYS.TOKEN)
-        localStorage.removeItem(STORAGE_KEYS.LEGACY_USER_INFO)
-      } catch (e) { /* storage 不可用时忽略 */ }
-      // 清空 pinia 持久化 key（pinia-app-state-* 与 legacy 基准 key）
-      clearPersistedState(localStorage)
+      storage.removeItem(STORAGE_KEYS.TOKEN)
+      storage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
+      storage.removeItem(STORAGE_KEYS.LEGACY_USER_INFO)
+      // 清空 pinia 持久化 key（uni.storage 与 localStorage 两侧的 pinia-app-state-* 与 legacy 基准 key）
+      clearPersistedState()
 
       // 断开长连接，避免登出后仍以旧身份保持在线
       try { socketService.disconnect() } catch (e) { /* ignore */ }
@@ -322,7 +358,7 @@ export const useUserStore = defineStore('user', {
     },
 
     initFromStorage() {
-      const rawToken = localStorage.getItem(STORAGE_KEYS.TOKEN)
+      const rawToken = storage.getItem(STORAGE_KEYS.TOKEN)
       if (rawToken && rawToken !== 'undefined' && rawToken !== 'null') {
         this.token = rawToken
         // 自愈：持久化恢复的 profile.balance/score 可能是历史遗留的对象/脏类型，强制修正为数字
@@ -333,8 +369,8 @@ export const useUserStore = defineStore('user', {
       } else {
         this.token = ''
         this.profile = null
-        try { localStorage.removeItem(STORAGE_KEYS.TOKEN) } catch (e) { /* ignore */ }
-        clearPersistedState(localStorage)
+        storage.removeItem(STORAGE_KEYS.TOKEN)
+        clearPersistedState()
       }
     },
 

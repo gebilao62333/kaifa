@@ -1,10 +1,10 @@
 <template>
-  <div class="empty-state">
-    <div class="empty-icon">{{ icon }}</div>
-    <p class="empty-text">{{ text }}</p>
-    <p v-if="hint" class="empty-hint">{{ hint }}</p>
+  <view class="empty-state">
+    <view class="empty-icon">{{ icon }}</view>
+    <view class="empty-text">{{ text }}</view>
+    <view v-if="hint" class="empty-hint">{{ hint }}</view>
     <button v-if="actionText" class="empty-action" @click="$emit('action')">{{ actionText }}</button>
-  </div>
+  </view>
 </template>
 
 <script setup>

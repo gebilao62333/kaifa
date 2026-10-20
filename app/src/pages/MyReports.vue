@@ -1,105 +1,106 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">我的举报</span>
-      <span class="placeholder"></span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">我的举报</text>
+      <text class="placeholder"></text>
     </template>
 
-    <div class="filter-tabs">
-      <span
+    <view class="filter-tabs">
+      <text
         v-for="tab in statusTabs"
         :key="String(tab.value)"
         :class="['filter-tab', { active: status === tab.value }]"
         @click="changeStatus(tab.value)"
       >
         {{ tab.label }}
-      </span>
-    </div>
+      </text>
+    </view>
 
-    <div class="list">
-      <div
+    <view class="list">
+      <view
         v-for="item in list"
         :key="item.reportId"
         class="report-card"
         @click="openDetail(item.reportId)"
       >
-        <div class="card-top">
-          <span class="target-type">{{ targetTypeText(item.targetType) }}</span>
-          <span class="status-tag" :class="'status-' + item.status">
+        <view class="card-top">
+          <text class="target-type">{{ targetTypeText(item.targetType) }}</text>
+          <text class="status-tag" :class="'status-' + item.status">
             {{ statusText(item.status) }}
-          </span>
-        </div>
-        <div class="card-reason">{{ item.reason }}</div>
-        <div class="card-meta">
-          <span>被举报人：{{ item.targetUserName || '—' }}</span>
-          <span>{{ formatTime(item.createTime) }}</span>
-        </div>
-        <div class="card-result" v-if="item.handleResult">
+          </text>
+        </view>
+        <view class="card-reason">{{ item.reason }}</view>
+        <view class="card-meta">
+          <text>被举报人：{{ item.targetUserName || '—' }}</text>
+          <text>{{ formatTime(item.createTime) }}</text>
+        </view>
+        <view class="card-result" v-if="item.handleResult">
           处理结果：{{ item.handleResult }}
-        </div>
-      </div>
+        </view>
+      </view>
 
       <EmptyState v-if="!loading && list.length === 0" text="暂无举报记录" />
 
-      <div class="list-footer" v-if="list.length">
-        <span v-if="loading" class="footer-text">加载中...</span>
-        <span v-else-if="hasMore" class="footer-text loading" @click="loadList(true)">加载更多</span>
-        <span v-else class="footer-text">没有更多了</span>
-      </div>
-    </div>
+      <view class="list-footer" v-if="list.length">
+        <text v-if="loading" class="footer-text">加载中...</text>
+        <text v-else-if="hasMore" class="footer-text loading" @click="loadList(true)">加载更多</text>
+        <text v-else class="footer-text">没有更多了</text>
+      </view>
+    </view>
 
-    <div v-if="detailVisible" class="detail-mask" @click.self="detailVisible = false">
-      <div class="detail-modal">
-        <div class="detail-header">
-          <span class="detail-title">举报详情</span>
-          <span class="detail-close" @click="detailVisible = false">✕</span>
-        </div>
-        <div class="detail-body" v-if="detail">
-          <div class="detail-row">
-            <span class="detail-label">举报类型</span>
-            <span>{{ targetTypeText(detail.targetType) }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">举报原因</span>
-            <span>{{ detail.reason }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">被举报人</span>
-            <span>{{ detail.targetUser?.nickname || '—' }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">处理状态</span>
-            <span>{{ statusText(detail.status) }}</span>
-          </div>
-          <div class="detail-row" v-if="detail.handleResult">
-            <span class="detail-label">处理结果</span>
-            <span>{{ detail.handleResult }}</span>
-          </div>
-          <div class="detail-row">
-            <span class="detail-label">提交时间</span>
-            <span>{{ formatTime(detail.createTime) }}</span>
-          </div>
-          <div class="detail-images" v-if="detail.images && detail.images.length">
-            <img
+    <view v-if="detailVisible" class="detail-mask" @click.self="detailVisible = false">
+      <view class="detail-modal">
+        <view class="detail-header">
+          <text class="detail-title">举报详情</text>
+          <text class="detail-close" @click="detailVisible = false">✕</text>
+        </view>
+        <view class="detail-body" v-if="detail">
+          <view class="detail-row">
+            <text class="detail-label">举报类型</text>
+            <text>{{ targetTypeText(detail.targetType) }}</text>
+          </view>
+          <view class="detail-row">
+            <text class="detail-label">举报原因</text>
+            <text>{{ detail.reason }}</text>
+          </view>
+          <view class="detail-row">
+            <text class="detail-label">被举报人</text>
+            <text>{{ detail.targetUser?.nickname || '—' }}</text>
+          </view>
+          <view class="detail-row">
+            <text class="detail-label">处理状态</text>
+            <text>{{ statusText(detail.status) }}</text>
+          </view>
+          <view class="detail-row" v-if="detail.handleResult">
+            <text class="detail-label">处理结果</text>
+            <text>{{ detail.handleResult }}</text>
+          </view>
+          <view class="detail-row">
+            <text class="detail-label">提交时间</text>
+            <text>{{ formatTime(detail.createTime) }}</text>
+          </view>
+          <view class="detail-images" v-if="detail.images && detail.images.length">
+            <image mode="aspectFill"
               v-for="(img, index) in detail.images"
               :key="index"
               class="detail-image"
               :src="img"
               alt="证据"
             />
-          </div>
-        </div>
-        <div class="detail-body" v-else>
-          <span class="detail-loading">加载中...</span>
-        </div>
-      </div>
-    </div>
+          </view>
+        </view>
+        <view class="detail-body" v-else>
+          <text class="detail-loading">加载中...</text>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -121,6 +122,8 @@ const list = ref([])
 const page = ref(1)
 const total = ref(0)
 const loading = ref(false)
+// 静默刷新单独占位，既避免与「加载更多」争用 loading 展示，也保持并发锁
+const refreshing = ref(false)
 const detailVisible = ref(false)
 const detail = ref(null)
 
@@ -136,9 +139,10 @@ const formatTime = (ts) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-const loadList = async (append = false) => {
-  if (loading.value) return
-  loading.value = true
+const loadList = async (append = false, silent = false) => {
+  if (loading.value || refreshing.value) return
+  if (silent) refreshing.value = true
+  else loading.value = true
   try {
     const params = { page: page.value, pageSize: PAGE_SIZE }
     if (status.value !== '') params.status = status.value
@@ -150,9 +154,10 @@ const loadList = async (append = false) => {
     hasMore.value = list.value.length < total.value
     if (rows.length) page.value += 1
   } catch (err) {
-    toast.error(err.message || '加载举报记录失败')
+    if (!silent) toast.error(err.message || '加载举报记录失败')
   } finally {
-    loading.value = false
+    if (silent) refreshing.value = false
+    else loading.value = false
   }
 }
 
@@ -178,8 +183,23 @@ const openDetail = async (reportId) => {
 
 const goBack = () => router.back()
 
+// 返回本页时从第一页静默刷新，不闪 loading、不重复首载
+const refreshOnShow = () => {
+  page.value = 1
+  loadList(false, true)
+}
+
 onMounted(() => {
   loadList()
+})
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
 })
 </script>
 

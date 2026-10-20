@@ -83,8 +83,6 @@ const uploadLocal = async (file, folder) => {
   };
 };
 
-const isCosAvailable = () => isCosConfigured();
-
 // ==================== 多存储 provider 注册表 ====================
 // STORAGE_PROVIDER 支持逗号分隔的优先级链（如 cos,qiniu,oss,local）：
 // 逐项检查配置是否完整，未配置或上传失败的自动跳到下一家，最终至少回落到本地存储。
@@ -208,15 +206,6 @@ const uploadWithFallback = async (file, folder) => {
     }
   }
   throw lastError || new Error('没有可用的存储 provider');
-};
-
-/** 按链删除：远端 provider 逐个尝试，最后回落到本地 */
-const removeWithFallback = async (key) => {
-  for (const provider of resolveProviderChain()) {
-    if (provider.name === 'local') continue;
-    try { if (await provider.remove(key)) return true; } catch (e) { logger.warn('[upload] ' + provider.name + ' 删除失败: ' + e.message); }
-  }
-  return removeLocal(key);
 };
 
 // 审计 I-25：按类型限制体积，与前端 uploadService.validateFile 保持一致

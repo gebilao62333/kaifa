@@ -12,10 +12,29 @@ const authService = {
     return request('/api/user/update', 'POST', data)
   },
 
+  // U-22：黑名单
+  async blockUser(targetUserId) {
+    return request('/api/user/block', 'POST', { targetUserId })
+  },
+
+  async unblockUser(targetUserId) {
+    return request('/api/user/unblock', 'POST', { targetUserId })
+  },
+
+  async getBlockedUsers() {
+    return request('/api/user/blocks', 'GET')
+  },
+
+  // 个人中心/主页统计：不传 userId 表示当前登录用户
+  async getUserStats(userId = '') {
+    const params = userId ? { userId } : {}
+    return request('/api/user/stats', 'GET', params, {}, 5000, { silentAbort: true })
+  },
+
   // 审计 H-5：服务端登出。必须在清本地令牌之前调用——request() 在同步阶段就用
   // localStorage 里的 token 拼好 Authorization，先清就会发成一个未认证请求。
-  // logoutAllDevices：C 端不保存后端下发的 refreshToken（也没有刷新链路），只拉黑 access
-  // 会留下一枚 30 天内仍可换新令牌的孤儿凭据，所以按「该账号此刻之前的令牌全部作废」处理。
+  // logoutAllDevices：C 端虽然保存 refreshToken 并在 401 时静默续期（B-6），但登出要用
+  // 水位线把该账号此刻之前的全部令牌（access + refresh）一次作废，单拉黑 access 会漏掉 refresh。
   // 5 秒超时 + 静默中止：登出失败不该把界面卡在「退出中」。
   async logout() {
     return request('/api/user/logout', 'POST', { logoutAllDevices: true }, {}, 5000, { silentAbort: true })
@@ -111,6 +130,27 @@ const authService = {
       }
     })
     return request('/api/user/register', 'POST', { phone, password, code })
+  },
+
+  // 已登录改密：旧密码由服务端校验，成功后服务端吊销该账号全部会话（需重新登录）。
+  // 与 resetPassword（忘记密码，短信验证码）是两条独立入口。
+  async changePassword(oldPassword, newPassword) {
+    validateParams({ oldPassword, newPassword }, {
+      oldPassword: {
+        required: true,
+        label: '旧密码',
+        type: 'string',
+        maxLength: 32
+      },
+      newPassword: {
+        required: true,
+        label: '新密码',
+        type: 'string',
+        minLength: 6,
+        maxLength: 32
+      }
+    })
+    return request('/api/user/change-password', 'POST', { oldPassword, newPassword })
   },
 
   async resetPassword(phone, password, code) {

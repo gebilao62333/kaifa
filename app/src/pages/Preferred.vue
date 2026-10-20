@@ -1,130 +1,141 @@
 <template>
   <PageLayout>
     <template #nav>
-      <div class="title">消息</div>
+      <view class="title">消息</view>
     </template>
 
-    <div class="content-container">
-      <div class="category-tabs">
-        <div 
+    <view class="content-container">
+      <view class="category-tabs">
+        <view 
           class="tab-item" 
           :class="{ active: activeTab === 'chat' }" 
           @click="switchTab('chat')">
-          <span>聊天</span>
-          <div class="badge" v-if="chatUnread > 0">{{ chatUnread > 99 ? '99+' : chatUnread }}</div>
-        </div>
-        <div 
+          <text>聊天</text>
+          <view class="badge" v-if="chatUnread > 0">{{ chatUnread > 99 ? '99+' : chatUnread }}</view>
+        </view>
+        <view 
           class="tab-item" 
           :class="{ active: activeTab === 'notice' }" 
           @click="switchTab('notice')">
-          <span>通知</span>
-          <div class="badge" v-if="noticeUnread > 0">{{ noticeUnread > 99 ? '99+' : noticeUnread }}</div>
-        </div>
-      </div>
+          <text>通知</text>
+          <view class="badge" v-if="noticeUnread > 0">{{ noticeUnread > 99 ? '99+' : noticeUnread }}</view>
+        </view>
+      </view>
 
-      <div class="content">
-        <div v-if="activeTab === 'chat'" class="chat-list">
-          <div class="chat-item" @click="goKefu">
-            <div class="avatar-wrap kefu">
-              <span>💬</span>
-            </div>
-            <div class="chat-info">
-              <div class="chat-name-row">
-                <span class="chat-name">在线客服</span>
-              </div>
-              <div class="chat-preview-row">
-                <span class="chat-preview">有什么可以帮您？</span>
-                <span class="chat-time">{{ kefuTime }}</span>
-              </div>
-            </div>
-          </div>
+      <view class="content">
+        <view v-if="activeTab === 'chat'" class="chat-list">
+          <view class="chat-item" @click="goKefu">
+            <view class="avatar-wrap kefu">
+              <text>💬</text>
+            </view>
+            <view class="chat-info">
+              <view class="chat-name-row">
+                <text class="chat-name">在线客服</text>
+              </view>
+              <view class="chat-preview-row">
+                <text class="chat-preview">有什么可以帮您？</text>
+                <text class="chat-time">{{ kefuTime }}</text>
+              </view>
+            </view>
+          </view>
 
-          <div 
+          <view 
             class="chat-item" 
             v-for="(item, index) in chatList" 
             :key="index" 
             @click="goChat(item)">
-            <div class="avatar-wrap">
-              <img 
+            <view class="avatar-wrap">
+              <image mode="aspectFill" 
                 v-if="item.avatar" 
                 class="avatar" 
                 :src="item.avatar" 
                 :alt="item.nickName"
                 @error="handleAvatarError($event, item)"
               />
-              <div v-else class="avatar-placeholder">
+              <view v-else class="avatar-placeholder">
                 {{ (item.nickName || '?').charAt(0) }}
-              </div>
-              <div class="online-dot" v-if="item.isOnline"></div>
-            </div>
-            <div class="chat-info">
-              <div class="chat-name-row">
-                <span class="chat-name">{{ item.nickName }}</span>
-              </div>
-              <div class="chat-preview-row">
-                <span class="chat-preview">{{ item.content }}</span>
-                <span class="chat-time">{{ formatTime(item.sendTime) }}</span>
-              </div>
-            </div>
-            <div class="unread-badge" v-if="item.unreadCount > 0">
+              </view>
+              <view class="online-dot" v-if="item.isOnline"></view>
+            </view>
+            <view class="chat-info">
+              <view class="chat-name-row">
+                <text class="chat-name">{{ item.nickName }}</text>
+              </view>
+              <view class="chat-preview-row">
+                <text class="chat-preview">{{ item.content }}</text>
+                <text class="chat-time">{{ formatTime(item.sendTime) }}</text>
+              </view>
+            </view>
+            <view class="unread-badge" v-if="item.unreadCount > 0">
               {{ item.unreadCount > 99 ? '99+' : item.unreadCount }}
-            </div>
-          </div>
+            </view>
+          </view>
 
-          <div v-if="loadingChat" class="loading-state">
-            <div class="loading-spinner"></div>
-            <div class="loading-text">加载中...</div>
-          </div>
-          <div class="empty-state" v-if="!loadingChat && chatList.length === 0">
-            <div class="empty-icon">💬</div>
-            <div class="empty-text">暂无聊天记录</div>
-          </div>
-        </div>
+          <view v-if="loadingChat" class="loading-state">
+            <view class="loading-spinner"></view>
+            <view class="loading-text">加载中...</view>
+          </view>
+          <view class="empty-state" v-if="!loadingChat && chatList.length === 0">
+            <view class="empty-icon">💬</view>
+            <view class="empty-text">暂无聊天记录</view>
+          </view>
+        </view>
 
-        <div v-if="activeTab === 'notice'" class="notice-list">
-          <div v-if="loadingNotice" class="loading-state">
-            <div class="loading-spinner"></div>
-            <div class="loading-text">加载中...</div>
-          </div>
-          <div class="notice-header-row" v-if="!loadingNotice && noticeList.length > 0">
-            <span class="notice-count">共 {{ noticeList.length }} 条通知</span>
-            <span class="mark-all-read" @click="markAllRead">全部已读</span>
-          </div>
-          <div 
+        <view v-if="activeTab === 'notice'" class="notice-list">
+          <view v-if="loadingNotice" class="loading-state">
+            <view class="loading-spinner"></view>
+            <view class="loading-text">加载中...</view>
+          </view>
+          <view class="notice-header-row" v-if="!loadingNotice && noticeList.length > 0">
+            <text class="notice-count">共 {{ noticeList.length }} 条通知</text>
+            <text class="mark-all-read" @click="markAllRead">全部已读</text>
+          </view>
+          <view 
             class="notice-item" 
             :class="{ unread: !item.isRead }"
             v-for="(item, index) in noticeList" 
             :key="index"
             @click="readNotice(item)">
-            <div class="notice-icon" :class="item.type">
-              <span>{{ getNoticeIcon(item.type) }}</span>
-            </div>
-            <div class="notice-info">
-              <span class="notice-title">{{ item.title }}</span>
-              <span class="notice-content">{{ item.content }}</span>
-              <span class="notice-time">{{ formatTime(item.createTime) }}</span>
-            </div>
-            <div class="notice-unread-badge" v-if="!item.isRead">1</div>
-          </div>
+            <view class="notice-icon" :class="item.type">
+              <text>{{ getNoticeIcon(item.type) }}</text>
+            </view>
+            <view class="notice-info">
+              <text class="notice-title">{{ item.title }}</text>
+              <text class="notice-content">{{ item.content }}</text>
+              <text class="notice-time">{{ formatTime(item.createTime) }}</text>
+            </view>
+            <view class="notice-unread-badge" v-if="!item.isRead">1</view>
+          </view>
 
-          <div class="empty-state" v-if="!loadingNotice && noticeList.length === 0">
-            <div class="empty-icon">🔔</div>
-            <div class="empty-text">暂无通知</div>
-          </div>
-        </div>
-      </div>
-    </div>
+          <view class="empty-state" v-if="!loadingNotice && noticeList.length === 0">
+            <view class="empty-icon">🔔</view>
+            <view class="empty-text">暂无通知</view>
+          </view>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { onHide, onPageScroll, onShow, onUnload } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
+import { useUserStore } from '../store/user-info'
+import {
+  readScrollTop,
+  restoreScrollTop,
+  restoreTabState,
+  saveScrollTop,
+  saveTabState,
+  setTabStateOwner
+} from '../common/tabState'
 import PageLayout from '../components/PageLayout.vue'
 import { useChatStore } from '../store/chat'
-import { notificationService } from '../services/notificationService'
+import { notificationCenterService } from '../services/notificationCenterService'
 import chatService from '../services/chatService'
 import { DEFAULT_AVATAR } from '../common/constants'
+import storage from '../common/storage'
 
 const router = useRouter()
 const chatStore = useChatStore()
@@ -139,6 +150,47 @@ const loadingChat = ref(true)
 const loadingNotice = ref(true)
 let noticeUnsubscribe = null
 
+const userStore = useUserStore()
+const TAB_STATE_PATH = '/preferred'
+const tabOwnerId = () => userStore.profile?.userId || ''
+
+// 主 Tab 用 reLaunch 切页会重建本页：优先恢复上次离开时的会话/通知列表与当前 Tab，
+// 避免骨架屏 + 滚动归零。快照超过 30s 视为过期，列表照常先渲染，但仍静默刷新一次。
+const tabRestore = restoreTabState(TAB_STATE_PATH, tabOwnerId(), (snapshot) => {
+  if (typeof snapshot.activeTab === 'string') activeTab.value = snapshot.activeTab
+  if (Array.isArray(snapshot.chatList)) chatList.value = snapshot.chatList
+  if (Array.isArray(snapshot.noticeList)) noticeList.value = snapshot.noticeList
+  if (typeof snapshot.chatUnread === 'number') chatUnread.value = snapshot.chatUnread
+  if (typeof snapshot.noticeUnread === 'number') noticeUnread.value = snapshot.noticeUnread
+  if (typeof snapshot.kefuTime === 'string') kefuTime.value = snapshot.kefuTime
+  // 有快照时列表可直接渲染，不能停留在首载 loading 态
+  loadingChat.value = false
+  loadingNotice.value = false
+})
+const restoredScrollTop = tabRestore.restored ? readScrollTop(TAB_STATE_PATH) : 0
+let pageScrollTop = restoredScrollTop
+onPageScroll(({ scrollTop }) => {
+  pageScrollTop = Number(scrollTop) || 0
+})
+
+// onHide 在 reLaunch 销毁前触发，onUnload 兜底；两者都触发时只保存一次
+let tabStateSaved = false
+const saveTabSnapshot = () => {
+  if (tabStateSaved) return
+  tabStateSaved = true
+  saveTabState(TAB_STATE_PATH, {
+    activeTab: activeTab.value,
+    chatList: chatList.value,
+    noticeList: noticeList.value,
+    chatUnread: chatUnread.value,
+    noticeUnread: noticeUnread.value,
+    kefuTime: kefuTime.value
+  })
+  saveScrollTop(TAB_STATE_PATH, pageScrollTop)
+}
+onHide(saveTabSnapshot)
+onUnload(saveTabSnapshot)
+
 // ============ 消息已读状态的本地持久化 ============
 // 消息页使用 mock 数据，refresh 时会重新初始化未读状态，导致刷新前用户已做的
 // "已读"操作被抹掉。这里把"已读会话/已读通知"的 id 集合持久化到 localStorage，
@@ -147,7 +199,7 @@ const MSG_STATE_KEY = 'preferred_message_state'
 
 const loadMsgState = () => {
   try {
-    const raw = localStorage.getItem(MSG_STATE_KEY)
+    const raw = storage.getItem(MSG_STATE_KEY)
     if (raw) {
       const parsed = JSON.parse(raw)
       return {
@@ -163,7 +215,7 @@ const loadMsgState = () => {
 
 const saveMsgState = (state) => {
   try {
-    localStorage.setItem(MSG_STATE_KEY, JSON.stringify(state))
+    storage.setItem(MSG_STATE_KEY, JSON.stringify(state))
   } catch (e) {
     console.warn('保存消息已读状态失败:', e)
   }
@@ -201,8 +253,8 @@ const formatTime = (timestamp) => {
   return `${date.getMonth() + 1}月${date.getDate()}日`
 }
 
-const loadChatList = async () => {
-  loadingChat.value = true
+const loadChatList = async (silent = false) => {
+  if (!silent) loadingChat.value = true
   try {
     const res = await chatService.getChatList(1, 50)
     const rows = res?.data?.list || res?.data || []
@@ -220,13 +272,8 @@ const loadChatList = async () => {
       }
     })
 
-    // 应用本地持久化的已读状态，使刷新后未读会话数与刷新前完全一致
-    chatList.value.forEach(item => {
-      if (msgState.readChatIds.includes(item.id)) {
-        item.unreadCount = 0
-      }
-    })
-
+    // U-22：不再用本地已读集合永久压制会话未读；
+    // 未读数以服务端 chat/list 与 socket unreadMap 为准，进入会话时由 mark-read 接口清零。
     // 合并 Socket unreadMap 未读数：取 mock 数据与 socket 中的较大值
     const unreadMap = chatStore.unreadMap || {}
     // 防御：持久化恢复的 unreadMap 可能含脏数据（对象/字符串），只保留有效数字计数
@@ -254,19 +301,22 @@ const loadChatList = async () => {
   } catch (error) {
     console.error('加载聊天列表失败:', error)
   } finally {
-    loadingChat.value = false
+    if (!silent) loadingChat.value = false
   }
 }
 
-const loadNoticeList = async () => {
-  loadingNotice.value = true
+const loadNoticeList = async (silent = false) => {
+  if (!silent) loadingNotice.value = true
   try {
-    noticeList.value = notificationService.getList().map(n => ({
+    // 通知中心消费服务端互动通知（Mongo notifications）
+    const res = await notificationCenterService.getList(1, 50)
+    const payload = res?.data || {}
+    noticeList.value = (payload.list || []).map(n => ({
       id: n.id,
-      type: n.type,
+      type: n.typeName || 'system',
       title: n.title,
       content: n.content,
-      createTime: n.createTime || Date.now(),
+      createTime: n.createTime ? (n.createTime < 1e12 ? n.createTime * 1000 : n.createTime) : Date.now(),
       isRead: !!n.isRead
     }))
 
@@ -282,7 +332,7 @@ const loadNoticeList = async () => {
   } catch (error) {
     console.error('加载通知列表失败:', error)
   } finally {
-    loadingNotice.value = false
+    if (!silent) loadingNotice.value = false
   }
 }
 
@@ -318,6 +368,7 @@ const goChat = (item) => {
 const readNotice = (item) => {
   if (item.isRead) return
   item.isRead = true
+  notificationCenterService.markRead(item.id).catch(() => {})
   // 持久化"已读通知"，刷新后仍记为已读
   markNoticeRead(item.id)
   noticeUnread.value = noticeList.value.filter(item => !item.isRead).length
@@ -325,6 +376,8 @@ const readNotice = (item) => {
 }
 
 const markAllRead = () => {
+  // 通知已读水位同步到服务端公告模块（跨设备/刷新后仍生效）
+  notificationCenterService.markAllRead().catch(() => {})
   noticeList.value.forEach(item => {
     item.isRead = true
     // 持久化所有通知为已读，刷新后保持一致
@@ -354,32 +407,43 @@ const handleAvatarError = (event, item) => {
   item.avatar = DEFAULT_AVATAR
 }
 
+// 返回消息页时静默刷新会话与通知，不闪 loading、不重复首载
+const refreshOnShow = () => {
+  loadChatList(true)
+  loadNoticeList(true)
+}
+
 onMounted(() => {
+  if (tabRestore.restored) {
+    // 列表已由快照渲染，等挂载后再恢复滚动位置（restoreScrollTop 内部会补两次重试）
+    restoreScrollTop(restoredScrollTop)
+    // 快照两个列表都为空（上次加载失败/无数据）时不锁死空态：仍静默拉一次
+    if (tabRestore.needRefresh || (chatList.value.length === 0 && noticeList.value.length === 0)) refreshOnShow()
+    return
+  }
   updateKefuTime()
   loadChatList()
   loadNoticeList()
   // 订阅本地通知总线，新增通知实时刷新列表与角标
-  noticeUnsubscribe = notificationService.subscribe(({ list }) => {
-    noticeList.value = (list || []).map(n => ({
-      id: n.id,
-      type: n.type,
-      title: n.title,
-      content: n.content,
-      createTime: n.createTime || Date.now(),
-      isRead: !!n.isRead
-    }))
-    noticeList.value.forEach(item => {
-      if (msgState.readNoticeIds.includes(item.id)) item.isRead = true
-    })
-    noticeUnread.value = noticeList.value.filter(item => !item.isRead).length
-    chatStore.setNoticeUnread(noticeUnread.value)
-  })
+  // 互动通知暂未接 socket 实时推送，进入页面时拉取一次
 })
 
 onUnmounted(() => {
   if (noticeUnsubscribe) {
     noticeUnsubscribe()
   }
+})
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  // 账号（含登出）变化时清空全部 Tab 缓存，避免跨账号恢复旧列表
+  setTabStateOwner(tabOwnerId())
+  tabStateSaved = false
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
 })
 </script>
 
@@ -423,14 +487,14 @@ onUnmounted(() => {
   transition: all 0.2s;
 }
 
-.tab-item span {
+.tab-item text {
   font-size: 16px;
   color: #666;
   /* 内容整体上移 10px */
   transform: translateY(-10px);
 }
 
-.tab-item.active span {
+.tab-item.active text {
   color: var(--color-primary);
   font-weight: 600;
 }

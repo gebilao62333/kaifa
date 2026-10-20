@@ -1,19 +1,19 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">我的粉丝</span>
-      <span class="count">{{ total }}人</span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">我的粉丝</text>
+      <text class="count">{{ total }}人</text>
     </template>
 
-    <div class="content">
-      <div class="user-list" v-if="fans.length > 0">
-        <div class="user-card" v-for="user in fans" :key="user.id" @click="viewProfile(user)">
-          <img class="user-avatar" :src="user.avatar" alt="" v-img-fallback="user.name" />
-          <div class="user-info">
-            <div class="user-name">{{ user.name }}</div>
-            <div class="user-desc">Lv.{{ user.level || 1 }}</div>
-          </div>
+    <view class="content">
+      <view class="user-list" v-if="fans.length > 0">
+        <view class="user-card" v-for="user in fans" :key="user.id" @click="viewProfile(user)">
+          <SafeImage class="user-avatar" :src="user.avatar" alt="" :fallback="user.name" mode="aspectFill" />
+          <view class="user-info">
+            <view class="user-name">{{ user.name }}</view>
+            <view class="user-desc">Lv.{{ user.level || 1 }}</view>
+          </view>
           <button
             class="follow-btn"
             :class="{ followed: user.isFollow }"
@@ -22,30 +22,32 @@
           >
             {{ user.isFollow ? '已关注' : '+ 关注' }}
           </button>
-        </div>
+        </view>
 
-        <div class="list-footer">
-          <span v-if="loading" class="footer-text">加载中...</span>
-          <span v-else-if="hasMore" class="footer-text more" @click="loadFans(true)">加载更多</span>
-          <span v-else class="footer-text">没有更多了</span>
-        </div>
-      </div>
+        <view class="list-footer">
+          <text v-if="loading" class="footer-text">加载中...</text>
+          <text v-else-if="hasMore" class="footer-text more" @click="loadFans(true)">加载更多</text>
+          <text v-else class="footer-text">没有更多了</text>
+        </view>
+      </view>
 
-      <div v-else-if="loading" class="loading-box">加载中...</div>
+      <view v-else-if="loading" class="loading-box">加载中...</view>
 
       <EmptyState v-else icon="👥" text="暂无粉丝" hint="努力提升自己，粉丝会越来越多哦" />
-    </div>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
 import authService from '../services/authService'
 import { DEFAULT_AVATAR } from '@/common/constants'
 import { toast } from '../composables/useToast'
+import SafeImage from '../components/SafeImage.vue'
 
 const router = useRouter()
 
@@ -55,6 +57,8 @@ const fans = ref([])
 const page = ref(1)
 const total = ref(0)
 const loading = ref(false)
+// 静默刷新单独占位，既避免与「加载更多」争用 loading 展示，也保持并发锁
+const refreshing = ref(false)
 const hasMore = ref(false)
 const busyId = ref(null)
 
@@ -66,9 +70,10 @@ const mapUser = (item) => ({
   isFollow: !!item.isFollow
 })
 
-const loadFans = async (append = false) => {
-  if (loading.value) return
-  loading.value = true
+const loadFans = async (append = false, silent = false) => {
+  if (loading.value || refreshing.value) return
+  if (silent) refreshing.value = true
+  else loading.value = true
   try {
     const res = await authService.getFans({ page: page.value, pageSize: PAGE_SIZE })
     const data = res.data || {}
@@ -78,9 +83,10 @@ const loadFans = async (append = false) => {
     hasMore.value = fans.value.length < total.value
     if (rows.length) page.value += 1
   } catch (err) {
-    toast.error(err.message || '加载粉丝列表失败')
+    if (!silent) toast.error(err.message || '加载粉丝列表失败')
   } finally {
-    loading.value = false
+    if (silent) refreshing.value = false
+    else loading.value = false
   }
 }
 
@@ -111,8 +117,23 @@ const goBack = () => {
   router.back()
 }
 
+// 返回本页时从第一页静默刷新，不闪 loading、不重复首载
+const refreshOnShow = () => {
+  page.value = 1
+  loadFans(false, true)
+}
+
 onMounted(() => {
   loadFans()
+})
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
 })
 </script>
 

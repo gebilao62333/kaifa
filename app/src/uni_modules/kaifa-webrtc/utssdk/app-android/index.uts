@@ -48,6 +48,10 @@ export function muteAudio(muted: boolean): void {
   KaifaWebRTC.muteAudio(muted)
 }
 
+export function muteVideo(muted: boolean): void {
+  KaifaWebRTC.muteVideo(muted)
+}
+
 export function switchCamera(): void {
   KaifaWebRTC.switchCamera()
 }
@@ -66,7 +70,17 @@ export function onEvent(callback: (event: CallEvent) => void): void {
     try {
       const data = JSON.parse(json) as any as CallEvent
       if (data == null) return
-      if (eventCallback != null) eventCallback!({ ...data, type: data.type || type })
+      // UTS 不允许把字符串当条件（truthy/falsy），事件名要显式判空
+      const eventType: string = data.type != null && data.type != '' ? data.type : type
+      if (eventCallback != null) {
+        eventCallback!({
+          type: eventType,
+          userId: data.userId,
+          sdp: data.sdp,
+          candidate: data.candidate,
+          state: data.state
+        })
+      }
     } catch (e) {
       // 忽略非法事件
     }
@@ -80,10 +94,12 @@ export function onEvent(callback: (event: CallEvent) => void): void {
 export function requestCallPermissions(): void {
   const activity = UTSAndroid.getUniActivity()
   if (activity == null) return
+  // 只把「不打就通不了话」的权限作为阻断条件；
+  // POST_NOTIFICATIONS（Android 13+）只影响前台服务通知展示，由系统设置单独处理，
+  // 混在这里会把「拒绝通知」误判成「拒绝通话」
   const permissions = [
     'android.permission.CAMERA',
-    'android.permission.RECORD_AUDIO',
-    'android.permission.POST_NOTIFICATIONS'
+    'android.permission.RECORD_AUDIO'
   ]
   UTSAndroid.requestSystemPermission(activity, permissions, (allRight: boolean, _granted: string[]) => {
     // 权限结果通过事件回传，由 JS 决定是否继续

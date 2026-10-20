@@ -1,12 +1,12 @@
 <template>
-  <div v-if="hasError" class="error-boundary">
-    <div class="error-content">
-      <div class="error-icon">⚠️</div>
-      <div class="error-title">页面加载出错</div>
-      <div class="error-message">{{ errorMessage }}</div>
+  <view v-if="hasError" class="error-boundary">
+    <view class="error-content">
+      <view class="error-icon">⚠️</view>
+      <view class="error-title">页面加载出错</view>
+      <view class="error-message">{{ errorMessage }}</view>
       <button class="retry-btn" @click="handleRetry">重新加载</button>
-    </div>
-  </div>
+    </view>
+  </view>
   <template v-else>
     <!-- key 变化时强制卸载并重建整个子树，替代整页刷新 -->
     <BoundaryContent :key="retryKey">

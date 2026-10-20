@@ -101,7 +101,7 @@ class CallService {
       console.warn('[call] 通道策略为 trtc，但 TRTC 不可用，已回退自建 WebRTC')
     }
 
-    return this._startWebRTCCall(calleeId, callType)
+    return this._startWebRTCCall(calleeId, callType, isCompanionCall, orderId)
   }
 
   async _startTRTCCall(calleeId, callType, isCompanionCall, orderId) {
@@ -125,7 +125,7 @@ class CallService {
     return { ...callResult, mode: 'trtc' }
   }
 
-  async _startWebRTCCall(calleeId, callType) {
+  async _startWebRTCCall(calleeId, callType, isCompanionCall = false, orderId = 0) {
     this.currentMode = 'webrtc'
     // 通过HTTP创建通话记录
     try {

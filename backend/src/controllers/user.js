@@ -5,9 +5,13 @@ const response = require('../utils/response');
 const logger = require('../utils/logger');
 const { isLevelGateError, handleLevelGate } = require('../utils/levelGate');
 const pii = require('../utils/pii');
+const { buildMobileWhere } = require('../utils/mobile');
+// C-9：allowVisit
+const { getPrivacyPrefs, getStealthSettings } = require('../utils/privacyPrefs');
 const tokenRevocation = require('../services/tokenRevocation');
 const { verifyToken, TOKEN_TYPES } = require('../config/jwt');
 const socialPrivacy = require('../utils/socialPrivacy');
+const blockService = require('../services/blockService');
 
 // 审计低危项：账号枚举。此前「用户不存在 / 密码错误 / 该用户未设置密码」分别返回
 // 不同文案并定位到不同字段，登录接口因此成了一个「手机号是否已注册」的枚举 oracle
@@ -88,7 +92,7 @@ const resetPassword = async (req, res) => {
     const { User } = require('../models');
     const bcrypt = require('bcryptjs');
 
-    const user = await User.findOne({ where: { mobile: phone } });
+    const user = await User.findOne({ where: buildMobileWhere(phone) });
     if (!user) {
       return response.notFound(res, '用户不存在');
     }
@@ -113,10 +117,46 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// 已登录用户自行修改密码（旧密码校验 + 改密后全端下线）。
+// 与 reset-password（忘记密码，短信验证码）是两条独立入口，不可互相替代。
+const changePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body || {};
+    if (!oldPassword || !newPassword) {
+      return response.badRequest(res, '旧密码和新密码不能为空');
+    }
+    const oldPwd = String(oldPassword);
+    const newPwd = String(newPassword);
+    if (newPwd.length < 6 || newPwd.length > 32) {
+      return response.unprocessableEntity(res, '新密码长度必须在6-32位之间');
+    }
+    if (oldPwd === newPwd) {
+      return response.unprocessableEntity(res, '新密码不能与旧密码相同');
+    }
+
+    const result = await authService.changePassword(req.userId, oldPwd, newPwd);
+    response.success(res, result, '密码修改成功，请重新登录');
+  } catch (error) {
+    if (error.message === '原密码错误' || error.message === '用户不存在或未设置密码') {
+      return response.badRequest(res, error.message);
+    }
+    if (error.message === 'REVOCATION_UNAVAILABLE') {
+      return response.serviceUnavailable(res, '认证服务暂时不可用，请稍后重试');
+    }
+    logger.error('修改密码错误:', error);
+    response.error(res, '密码修改失败');
+  }
+};
+
 const getUserInfo = async (req, res) => {
   try {
     const targetUserId = req.query.userId || req.userId;
     const userInfo = await authService.getUserInfo(req.userId, targetUserId);
+    // C-9：showLocation —— 仅对「他人」生效，本人查看自己仍返回真实城市
+    if (String(targetUserId) !== String(req.userId)) {
+      const prefs = await getPrivacyPrefs(Number(targetUserId));
+      if (!prefs.showLocation && userInfo) userInfo.city = '';
+    }
     response.success(res, userInfo);
   } catch (error) {
     logger.error('获取用户信息错误:', error);
@@ -401,6 +441,11 @@ const submitRealName = async (req, res) => {
     if (!user) {
       return response.error(res, '用户不存在');
     }
+    // 《未完成事项清单》B-2：已认证（status=2）不允许再提交，否则会把状态改回 1（审核中），
+    // 管理员再次「通过」就能重复触发实名经验发放；驳回后（3）仍可重新提交。
+    if (Number(user.real_name_status) === 2) {
+      return response.badRequest(res, '您已完成实名认证，无需重复提交');
+    }
     await user.update({
       // 审计 M-8：实名敏感字段静态加密后落库（密钥见 utils/pii.js；生产缺失密钥时启动即被拒绝）
       real_name: pii.encryptField(realName),
@@ -513,6 +558,68 @@ const getVisitors = async (req, res) => {
 };
 
 // 记录一次主页访问（同访问者去重，更新最近时间）
+// U-22：拉黑 / 解除拉黑 / 黑名单列表
+const blockUser = async (req, res) => {
+  try {
+    const targetUserId = parseInt(req.body.targetUserId || req.body.userId);
+    if (!targetUserId) return response.badRequest(res, '目标用户ID不能为空');
+    await blockService.block(req.userId, targetUserId);
+    response.success(res, {}, '已拉黑');
+  } catch (error) {
+    logger.error('拉黑用户错误:', error);
+    response.unprocessableEntity(res, error.message);
+  }
+};
+
+const unblockUser = async (req, res) => {
+  try {
+    const targetUserId = parseInt(req.body.targetUserId || req.body.userId);
+    if (!targetUserId) return response.badRequest(res, '目标用户ID不能为空');
+    await blockService.unblock(req.userId, targetUserId);
+    response.success(res, {}, '已解除拉黑');
+  } catch (error) {
+    logger.error('解除拉黑错误:', error);
+    response.unprocessableEntity(res, error.message);
+  }
+};
+
+const getBlockedUsers = async (req, res) => {
+  try {
+    const list = await blockService.listBlocked(req.userId);
+    response.success(res, { list, total: list.length });
+  } catch (error) {
+    logger.error('获取黑名单错误:', error);
+    response.error(res, '获取黑名单失败');
+  }
+};
+
+// 个人主页/个人中心统计：关注、粉丝、获赞、访客
+// userId 可选（查看他人主页也展示公开计数），不传则取当前登录用户
+const getUserStats = async (req, res) => {
+  try {
+    const targetId = req.query.userId ? parseInt(req.query.userId) : req.userId;
+    if (!targetId) {
+      return response.badRequest(res, '用户ID不能为空');
+    }
+    const [followCount, fansCount, likes, visitorCount] = await Promise.all([
+      UserFollow.count({ where: { follower_id: targetId } }),
+      UserFollow.count({ where: { following_id: targetId } }),
+      Post.sum('thumb_num', { where: { user_id: targetId } }),
+      UserVisit.count({ where: { user_id: targetId } })
+    ]);
+    response.success(res, {
+      userId: targetId,
+      followCount: Number(followCount) || 0,
+      fansCount: Number(fansCount) || 0,
+      likeCount: Number(likes) || 0,
+      visitorCount: Number(visitorCount) || 0
+    });
+  } catch (error) {
+    logger.error('获取用户统计错误:', error);
+    response.error(res, '获取用户统计失败');
+  }
+};
+
 const recordVisit = async (req, res) => {
   try {
     const { targetUserId } = req.body;
@@ -521,6 +628,16 @@ const recordVisit = async (req, res) => {
     }
     const targetId = parseInt(targetUserId);
     if (targetId === req.userId) {
+      return response.success(res, {}, 'ok');
+    }
+    // C-9：allowVisit —— 对方关闭「允许访客记录」时静默跳过写入，仍回 ok 不暴露设置
+    const prefs = await getPrivacyPrefs(targetId);
+    if (!prefs.allowVisit) {
+      return response.success(res, {}, 'ok');
+    }
+    // U-20：访客开启「隐身访问/无痕浏览」时不写访问记录
+    const stealth = await getStealthSettings(req.userId);
+    if (stealth.stealth || stealth.stealthBrowse) {
       return response.success(res, {}, 'ok');
     }
     const now = Math.floor(Date.now() / 1000);
@@ -722,7 +839,12 @@ module.exports = {
   login,
   register,
   resetPassword,
+  changePassword,
   getUserInfo,
+  getUserStats,
+  blockUser,
+  unblockUser,
+  getBlockedUsers,
   updateUserInfo,
   sendSms,
   loginMobile,

@@ -1,63 +1,64 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">充值中心</span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">充值中心</text>
     </template>
 
-    <div class="balance-card">
-      <div class="label">我的钱包</div>
-      <div class="amount">{{ formatAmount(balance) }}</div>
-      <div class="unit">金币</div>
-    </div>
+    <view class="balance-card">
+      <view class="label">我的钱包</view>
+      <view class="amount">{{ formatAmount(balance) }}</view>
+      <view class="unit">金币</view>
+    </view>
 
-    <div class="section-title">充值金额</div>
-    <div class="amount-grid">
-      <div
+    <view class="section-title">充值金额</view>
+    <view class="amount-grid">
+      <view
         v-for="item in options"
         :key="item.id"
         :class="['amount-item', { active: selectedId === item.id }]"
         @click="selectedId = item.id"
       >
-        <div class="amount">{{ item.coins }} 金币</div>
-        <div class="price">¥{{ item.price }}</div>
-        <div v-if="item.tag" class="tag">{{ item.tag }}</div>
-        <div v-if="item.bonus" class="bonus">赠 {{ item.bonus }} 金币</div>
-      </div>
-    </div>
+        <view class="amount">{{ item.coins }} 金币</view>
+        <view class="price">¥{{ item.price }}</view>
+        <view v-if="item.tag" class="tag">{{ item.tag }}</view>
+        <view v-if="item.bonus" class="bonus">赠 {{ item.bonus }} 金币</view>
+      </view>
+    </view>
 
-    <div class="section-title">支付方式</div>
-    <div class="payment-methods">
-      <div
+    <view class="section-title">支付方式</view>
+    <view class="payment-methods">
+      <view
         v-for="method in payMethodsList"
         :key="method.id"
-        :class="['payment-item', { active: payMethod === method.id }]"
-        @click="payMethod = method.id"
+        :class="['payment-item', { active: payMethod === method.id, disabled: method.disabled }]"
+        @click="selectMethod(method)"
       >
-        <span class="pay-icon" :style="{ background: method.bg }">{{ method.icon }}</span>
-        <div class="pay-info">
-          <span class="pay-name">{{ method.name }}</span>
-          <span class="pay-desc">{{ method.desc }}</span>
-        </div>
-        <span class="radio" :class="{ checked: payMethod === method.id }"></span>
-      </div>
-    </div>
+        <text class="pay-icon" :style="{ background: method.bg }">{{ method.icon }}</text>
+        <view class="pay-info">
+          <text class="pay-name">{{ method.name }}</text>
+          <text class="pay-desc">{{ method.desc }}</text>
+        </view>
+        <text class="radio" :class="{ checked: payMethod === method.id }"></text>
+      </view>
+    </view>
 
-    <div class="bottom-bar">
-      <div class="total">
-        <span class="label">支付金额</span>
-        <span class="price">¥{{ selectedPrice }}</span>
-        <span class="note" v-if="selectedBonus">（含赠币 {{ selectedBonus }}）</span>
-      </div>
+    <view class="bottom-bar">
+      <view class="total">
+        <text class="label">支付金额</text>
+        <text class="price">¥{{ selectedPrice }}</text>
+        <text class="note" v-if="selectedBonus">（含赠币 {{ selectedBonus }}）</text>
+      </view>
       <button class="recharge-btn" :disabled="submitting" @click="doRecharge">
         {{ submitting ? '处理中...' : '立即支付' }}
       </button>
-    </div>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import { getRechargeMethods } from '../common/payMethods'
 import PageLayout from '../components/PageLayout.vue'
@@ -69,17 +70,23 @@ const router = useRouter()
 const balance = ref(0)
 const options = ref([])
 const selectedId = ref(3)
-const payMethod = ref('alipay')
+const payMethod = ref('wechat')
 const submitting = ref(false)
 const loadingBalance = ref(false)
+// 是否成功拿到过服务端余额：拿到过之后刷新失败就保留当前值，
+// 不能用 localStorage 的旧兜底值覆盖（会让用户看到过期余额）
+const hasServerBalance = ref(false)
 
 const loadBalance = async () => {
   loadingBalance.value = true
   try {
     const res = await payService.getWalletBalance()
     balance.value = res.data?.balance || res.balance || 0
+    hasServerBalance.value = true
   } catch (err) {
     console.error('加载余额失败:', err)
+    // 本地兜底只服务「首次加载且从未拿到服务端余额」的场景
+    if (hasServerBalance.value) return
     try {
       const saved = localStorage.getItem('userInfo')
       if (saved) {
@@ -132,19 +139,36 @@ onMounted(() => {
   loadPackages()
 })
 
+// 从支付网关/卡密页返回时余额与套餐可能已变，静默刷新对账数据；
+// loadBalance 的 loading 标记未参与模板渲染，不会闪整页 loading
+const refreshOnShow = () => {
+  loadBalance()
+  loadPackages()
+}
+
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
+})
+
 const formatAmount = (num) => {
   return Number(num).toFixed(2)
 }
 
 const payMethodsList = computed(() => {
-  return getRechargeMethods().filter(m => m.id !== 'balance').map(m => {
-    if (m.id === 'card') {
-      return { ...m, name: '卡密充值', desc: '前往卡密充值页' }
-    }
+  // 微信/支付宝 SDK 入口均保留；支付宝当前仅预留 SDK 接口，选择时提示即将开放
+  return getRechargeMethods().filter(m => ['wechat', 'alipay', 'card'].includes(m.id)).map(m => {
+    if (m.id === 'card') return { ...m, name: '卡密充值', desc: '前往卡密充值页' }
+    if (m.id === 'alipay') return { ...m, desc: 'SDK 已预留，即将开放', disabled: true }
     return m
   })
-})
 
+})
 const selectedPrice = computed(() => {
   const selected = options.value.find(o => o.id === selectedId.value)
   return selected ? selected.price : 0
@@ -159,8 +183,21 @@ const goBack = () => {
   router.back()
 }
 
+const selectMethod = (method) => {
+  if (method.disabled) {
+    toast.info('支付宝 SDK 已预留，待配置商户参数后开放')
+    return
+  }
+  payMethod.value = method.id
+}
+
 const doRecharge = async () => {
   if (submitting.value) return
+
+  if (payMethod.value === 'alipay') {
+    toast.info('支付宝 SDK 已预留，待配置商户参数后开放')
+    return
+  }
 
   if (payMethod.value === 'card') {
     router.push('/card-recharge')
@@ -309,6 +346,11 @@ const doRecharge = async () => {
   border: 2px solid transparent;
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.payment-item.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .payment-item.active {

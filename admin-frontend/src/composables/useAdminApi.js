@@ -54,5 +54,3 @@ export function useAdminApi() {
   }
 }
 
-export const companionStatusMap = { 0: '未申请', 1: '审核中', 2: '已通过' }
-export const companionStatusClass = (s) => ({ 0: 'disabled', 1: 'pending', 2: 'approved' }[s] || 'disabled')

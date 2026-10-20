@@ -12,13 +12,25 @@ const getCategories = async (req, res) => {
   }
 };
 
+// U-18：线下服务目录（真实 gameId）
+const getOfflineServices = async (req, res) => {
+  try {
+    const result = await gamesService.getOfflineServices();
+    response.success(res, { list: result, total: result.length });
+  } catch (error) {
+    logger.error('获取线下服务错误:', error);
+    response.error(res, error.message);
+  }
+};
+
 const getCompanions = async (req, res) => {
   try {
-    const { gameId, page = 1, pageSize = 20 } = req.query;
+    const { gameId, page = 1, pageSize = 20, serviceType, sort } = req.query;
     const result = await gamesService.getCompanions(
       gameId ? parseInt(gameId) : null,
       parseInt(page),
-      parseInt(pageSize)
+      parseInt(pageSize),
+      { serviceType, sort }
     );
     response.success(res, result);
   } catch (error) {
@@ -137,7 +149,7 @@ const getOrders = async (req, res) => {
 
 const applyAsCompanion = async (req, res) => {
   try {
-    const { gameId, price, tags, description, icon, voiceIntro, voiceTime, serviceType } = req.body;
+    const { gameId, price, tags, description, icon, voiceIntro, voiceTime, serviceType, edit } = req.body;
     
     if (!gameId || !price) {
       return response.badRequest(res, '游戏ID和价格不能为空');
@@ -148,9 +160,16 @@ const applyAsCompanion = async (req, res) => {
       parseInt(gameId),
       parseFloat(price),
       tags,
-      { description, icon, voiceIntro, voiceTime, serviceType }
+      {
+        description,
+        icon,
+        voiceIntro,
+        voiceTime,
+        serviceType,
+        ...((edit === true || edit === 'true') ? { edit: true } : {})
+      }
     );
-    response.success(res, {}, '申请已提交，等待审核');
+    response.success(res, {}, (edit === true || edit === 'true') ? '服务信息已更新' : '申请已提交，等待审核');
   } catch (error) {
     logger.error('申请陪玩师错误:', error);
     response.unprocessableEntity(res, error.message);
@@ -213,10 +232,18 @@ const evaluateOrder = async (req, res) => {
     response.success(res, result, '评价成功');
   } catch (error) {
     logger.error('评价订单错误:', error);
+    // 审计 B-14：此前除 404/403 外的业务错误（「订单尚未完成」「该订单已评价」
+    // 「评分需在 1-5 之间」）全部落到 500，状态码语义不统一。这里按业务含义分流：
+    //   404 资源不存在 / 403 越权 / 409 状态冲突（未完成、已评价）/ 400 参数非法/
+    //   其余未知错误仍是 500，避免把真实故障伪装成业务错误。
     if (error.message === '订单不存在') {
       response.notFound(res, error.message);
     } else if (error.message === '无权评价他人订单') {
       response.forbidden(res, error.message);
+    } else if (error.message === '订单尚未完成' || error.message === '该订单已评价') {
+      response.conflict(res, error.message);
+    } else if (error.message === '评分需在 1-5 之间') {
+      response.badRequest(res, error.message);
     } else {
       response.error(res, error.message);
     }
@@ -316,6 +343,7 @@ const appealOrder = async (req, res) => {
 
 module.exports = {
   getCategories,
+  getOfflineServices,
   getCompanions,
   searchCompanions,
   createOrder,

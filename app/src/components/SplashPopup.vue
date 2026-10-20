@@ -1,15 +1,15 @@
 <template>
   <Teleport to="body">
     <Transition name="splash-fade">
-      <div v-if="splash" class="splash-overlay" data-no-swipe @click="close">
-        <div class="splash-body">
-          <div class="splash-card" :class="{ 'splash-card--link': !!splash.link }" @click.stop="activate">
-            <img class="splash-image" :src="imageSrc" :alt="splash.title || '活动弹窗'" @error="imageBroken = true" />
-            <p v-if="splash.title" class="splash-title">{{ splash.title }}</p>
-          </div>
+      <view v-if="splash" class="splash-overlay" data-no-swipe @click="close">
+        <view class="splash-body">
+          <view class="splash-card" :class="{ 'splash-card--link': !!splash.link }" @click.stop="activate">
+            <image mode="aspectFill" class="splash-image" :src="imageSrc" :alt="splash.title || '活动弹窗'" @error="imageBroken = true" />
+            <view v-if="splash.title" class="splash-title">{{ splash.title }}</view>
+          </view>
           <button class="splash-close" aria-label="关闭弹窗" @click.stop="close">✕</button>
-        </div>
-      </div>
+        </view>
+      </view>
     </Transition>
   </Teleport>
 </template>

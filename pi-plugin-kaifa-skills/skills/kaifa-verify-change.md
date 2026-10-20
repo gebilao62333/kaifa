@@ -1,7 +1,7 @@
 ---
 name: kaifa-verify-change
 description: "kaifa 改动验收：按改动面选最小充分验证集（backend jest、两个前端 vitest、eslint、vite build）并给出可复核证据。"
-whenToUse: "刚改完 backend/、frontend/、admin-frontend/ 的代码；需要跑测试、构建、自查；需要在给结论前提供已执行的证据。"
+whenToUse: "刚改完 backend/、app/（uni-app 用户端）、admin-frontend/ 的代码；需要跑测试、构建、自查；需要在给结论前提供已执行的证据。旧站 frontend/ 已于 2026-10-21 删除。"
 tags: ["自习"]
 ---
 
@@ -33,8 +33,8 @@ tags: ["自习"]
 |---|---|
 | `backend/src/**` | `npx jest <对应 tests 路径>`，再全量 `npm test` |
 | `backend/src/migrations/**` | 上述 + `npm run migrate` 连跑两次（验幂等），先 `npm run backup` |
-| `frontend/src/**` | `npx vitest run tests/<对应>`，再 `npm run test:unit` |
-| `frontend/src/views/**`、路由/懒加载 | 上面 + `npm run build`（动态 import 写错只在构建期暴露） |
+| `app/src/**` | `npx vitest run tests/<对应>`，再全量 `npx vitest run` |
+| `app/src/pages/**`、`pages.json`/`routes.js`、模板 | 上面 + `npx --yes pnpm@10.15.0 build:h5`（页面/模板/动态导入错误只在构建期暴露） |
 | `admin-frontend/src/**` | `npx vitest run` + `npm run build` |
 | 返回结构/错误文案 | `backend/tests/unit/consistency/*`（error-response-hygiene、docker-images、nginx-security-headers） |
 | `nginx/**`、`Dockerfile*`、`docker-compose*.yml` | `backend/tests/unit/consistency/nginx-security-headers.test.js`、`docker-images.test.js` |
@@ -48,10 +48,11 @@ cd backend; npx jest tests/unit/controllers/vip.test.js
 cd backend; npm test
 cd backend; npm test -- --coverage         # 闸门：branches 60 / functions 70 / lines 75 / statements 75
 cd backend; npm run lint
-cd frontend; npx vitest run tests/views/level-acceleration.test.js
-cd frontend; npm run test:unit; npm run build
+cd app; npx vitest run tests/views/level-acceleration.test.js
+cd app; npx vitest run                        # 全量基线：25 文件/251 例（2026-10-21）
+cd app; npx --yes pnpm@10.15.0 build:h5        # 必跑：页面/模板/动态导入错误只在构建期暴露
 cd admin-frontend; npx vitest run; npm run build
-cd admin-frontend; npm run lint            # 借 ../frontend/node_modules/eslint，必须在 admin-frontend 执行
+cd admin-frontend; npm run lint                # 在 admin-frontend 目录执行（本地 eslint）
 ```
 
 需要真实服务而非单测时（HTTP 探针、UI 截图、双端联调）→ 用 `kaifa-e2e-probe`。
@@ -79,9 +80,9 @@ cd admin-frontend; npm run lint            # 借 ../frontend/node_modules/eslint
 ```
 角色：测试执行员（只跑不改）。仓库 C:\Users\admin\Desktop\kaifa。
 环境：Windows PowerShell（用 ; 不用 &&），node v24 与 npm 11 可用，docker/git 不可用。
-任务：按改动面 <backend/src/x | frontend/src/x | admin-frontend/src/x> 跑最小充分集：
+任务：按改动面 <backend/src/x | app/src/x | admin-frontend/src/x> 跑最小充分集：
   cd backend; npx jest <对应用例>  → cd backend; npm test
-  cd frontend; npx vitest run <对应用例> → npm run test:unit → npm run build
+  cd app; npx vitest run <对应用例> → npx vitest run → npx --yes pnpm@10.15.0 build:h5
   cd admin-frontend; npx vitest run → npm run build
 硬约束：只报告退出码与关键输出尾部；失败贴首个失败断言原文，禁止转述成「可能是…」；不要修改任何文件；
 不要跑 watch 模式；未跑到的项必须显式列出原因。

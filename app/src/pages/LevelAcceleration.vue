@@ -1,88 +1,89 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">等级加速</span>
-      <span class="placeholder"></span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">等级加速</text>
+      <text class="placeholder"></text>
     </template>
 
-    <div class="content">
-      <div class="level-card">
-        <div class="level-badge">
-          <div class="level-icon">🚀</div>
-          <div class="level-number">Lv.{{ info.lv }}</div>
-          <div class="level-name">{{ levelName }}</div>
-        </div>
-        <div class="exp-section">
-          <div class="exp-header">
-            <span class="exp-label">经验值</span>
-            <span class="exp-value">{{ info.exp }} / {{ info.nextLevelExp }}</span>
-          </div>
-          <div class="exp-bar">
-            <div class="exp-progress" :style="{ width: info.percent + '%' }"></div>
-          </div>
-          <div class="exp-hint">距离升到 Lv.{{ info.lv + 1 }} 还差 {{ info.remainExp }} 经验</div>
-        </div>
+    <view class="content">
+      <view class="level-card">
+        <view class="level-badge">
+          <view class="level-icon">🚀</view>
+          <view class="level-number">Lv.{{ info.lv }}</view>
+          <view class="level-name">{{ levelName }}</view>
+        </view>
+        <view class="exp-section">
+          <view class="exp-header">
+            <text class="exp-label">经验值</text>
+            <text class="exp-value">{{ info.exp }} / {{ info.nextLevelExp }}</text>
+          </view>
+          <view class="exp-bar">
+            <view class="exp-progress" :style="{ width: info.percent + '%' }"></view>
+          </view>
+          <view class="exp-hint">距离升到 Lv.{{ info.lv + 1 }} 还差 {{ info.remainExp }} 经验</view>
+        </view>
         <button
           class="check-in-btn"
           :disabled="info.checkedInToday || checking"
           @click="onCheckIn"
         >{{ checkInLabel }}</button>
-      </div>
+      </view>
 
-      <div class="vip-boost-card">
-        <div class="boost-header">
-          <span class="boost-icon">⚡</span>
-          <span class="boost-title">VIP加速效果</span>
-        </div>
-        <div class="boost-list">
-          <div class="boost-item" v-for="b in boostList" :key="b.level">
-            <div class="boost-level">{{ b.label }}</div>
-            <div class="boost-bar-bg">
-              <div class="boost-bar" :class="b.active ? 'active' : ''" :style="{ width: b.active ? '100%' : '0%' }"></div>
-            </div>
-            <div class="boost-multiplier" :class="{ active: b.active }">{{ b.multiplier }}x</div>
-          </div>
-        </div>
-        <div class="boost-desc" v-if="info.vip">
+      <view class="vip-boost-card">
+        <view class="boost-header">
+          <text class="boost-icon">⚡</text>
+          <text class="boost-title">VIP加速效果</text>
+        </view>
+        <view class="boost-list">
+          <view class="boost-item" v-for="b in boostList" :key="b.level">
+            <view class="boost-level">{{ b.label }}</view>
+            <view class="boost-bar-bg">
+              <view class="boost-bar" :class="b.active ? 'active' : ''" :style="{ width: b.active ? '100%' : '0%' }"></view>
+            </view>
+            <view class="boost-multiplier" :class="{ active: b.active }">{{ b.multiplier }}x</view>
+          </view>
+        </view>
+        <view class="boost-desc" v-if="info.vip">
           当前为 VIP{{ info.vipLevel }}，获得 <strong>{{ info.boost }}x</strong> 经验加速
-        </div>
-        <div class="boost-desc" v-else>
+        </view>
+        <view class="boost-desc" v-else>
           开通VIP可享最高 <strong>{{ maxBoost }}x</strong> 经验加速
-        </div>
-      </div>
+        </view>
+      </view>
 
-      <div class="source-section">
-        <div class="section-title">经验怎么涨</div>
-        <div class="source-list">
-          <div class="source-item" v-for="s in expSourceList" :key="s.key">
-            <span class="source-name">{{ s.name }}</span>
-            <span class="source-value">+{{ s.points }}</span>
-          </div>
-        </div>
-        <div class="source-hint">实际到账 = 上表点数 × 当前倍率 {{ info.boost }}x</div>
-      </div>
+      <view class="source-section">
+        <view class="section-title">经验怎么涨</view>
+        <view class="source-list">
+          <view class="source-item" v-for="s in expSourceList" :key="s.key">
+            <text class="source-name">{{ s.name }}</text>
+            <text class="source-value">+{{ s.points }}</text>
+          </view>
+        </view>
+        <view class="source-hint">实际到账 = 上表点数 × 当前倍率 {{ info.boost }}x</view>
+      </view>
 
-      <div class="benefits-section">
-        <div class="section-title">等级权益</div>
-        <div class="benefits-list">
-          <div class="benefit-item" v-for="b in info.benefits" :key="b.key">
-            <div class="benefit-left">
-              <span class="benefit-level-tag" :class="{ unlocked: b.unlocked }">Lv.{{ b.level }}</span>
-              <span class="benefit-name">{{ b.name }}</span>
-            </div>
-            <span class="benefit-status" :class="{ unlocked: b.unlocked }">
+      <view class="benefits-section">
+        <view class="section-title">等级权益</view>
+        <view class="benefits-list">
+          <view class="benefit-item" v-for="b in info.benefits" :key="b.key">
+            <view class="benefit-left">
+              <text class="benefit-level-tag" :class="{ unlocked: b.unlocked }">Lv.{{ b.level }}</text>
+              <text class="benefit-name">{{ b.name }}</text>
+            </view>
+            <text class="benefit-status" :class="{ unlocked: b.unlocked }">
               {{ b.unlocked ? '已解锁' : '未解锁' }}
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
+            </text>
+          </view>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import { getLevelName } from '../common/common'
 import PageLayout from '../components/PageLayout.vue'
@@ -176,6 +177,21 @@ const goBack = () => {
 }
 
 onMounted(load)
+
+// 从订单/动态等页返回后经验值可能已增加，静默重拉等级信息
+const refreshOnShow = () => {
+  load()
+}
+
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
+})
 </script>
 
 <style scoped>

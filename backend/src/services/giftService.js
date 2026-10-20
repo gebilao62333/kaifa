@@ -1,11 +1,13 @@
 const crypto = require('crypto');
 const { User, Gift, GiftLog, GiftBag, RedPacket, RedPacketLog, Withdraw } = require('../models');
-const { getTimestamp, generatePacketNo } = require('../utils/helper');
+const { getTimestamp, generatePacketNo, parseQuery } = require('../utils/helper');
 const { CURRENCY_UNIT, WITHDRAW_FEE_RATE, calculateWithdrawFee } = require('../utils/currency');
 const { toFullUrl } = require('../utils/url');
 const { Op } = require('sequelize');
 const sequelize = require('../config/mysql');
 const { moneyMinus, affectedCount, assertFiniteNumber } = require('../utils/sql');
+// 《未完成事项清单》B-7：手机号已加密存储，展示/落库前解密
+const { decryptMobile } = require('../utils/mobile');
 
 const sendGift = async (senderId, receiverId, giftId, roomId = 0, count = 1) => {
   const gift = await Gift.findByPk(giftId);
@@ -197,7 +199,7 @@ const withdraw = async (userId, goldCoins, type, bankInfo) => {
       type: type || 1,
       bank: bankInfo?.bank || '',
       name: bankInfo?.name || '',
-      mobile: bankInfo?.mobile || user.mobile || '',
+      mobile: bankInfo?.mobile || decryptMobile(user.mobile) || '',
       image: bankInfo?.image || '',
       is_check: 0,
       status: 0,
@@ -400,16 +402,27 @@ const receiveRedPacket = async (userId, packetNo) => {
   }
 };
 
-const getRedPacketHistory = async (userId, type = 'all') => {
+// 审计 B-11：此前红包记录固定取 50 条后全量返回，既没有分页参数也没有 total，
+// 记录多时前端无法翻页。这里按 (page, pageSize) 分页，并用 findAndCountAll 拿到精确 total；
+// type=all 时两个来源各自取「前 offset+pageSize 条」再合并排序切片（窗口上限 200 条，
+// 避免合并分页退化成全表扫描），因此翻页只在前 200 条内精确。
+const RED_PACKET_HISTORY_MAX_WINDOW = 200;
+
+const getRedPacketHistory = async (userId, type = 'all', page = 1, pageSize = 20) => {
+  const { page: safePage, pageSize: safePageSize, offset } = parseQuery({ page, pageSize });
+  const window = Math.min(offset + safePageSize, RED_PACKET_HISTORY_MAX_WINDOW);
   const results = [];
-  
+  let total = 0;
+
   if (type === 'all' || type === 'sent') {
-    const sentPackets = await RedPacket.findAll({
+    const { count, rows: sentPackets } = await RedPacket.findAndCountAll({
       where: { sender_id: userId },
       order: [['create_time', 'DESC']],
-      limit: 50
+      limit: window,
+      offset: 0
     });
-    
+    total += Number(count) || 0;
+
     results.push(...sentPackets.map(packet => ({
       id: packet.id,
       type: 'sent',
@@ -422,14 +435,16 @@ const getRedPacketHistory = async (userId, type = 'all') => {
       createTime: packet.create_time
     })));
   }
-  
+
   if (type === 'all' || type === 'received') {
-    const receivedLogs = await RedPacketLog.findAll({
+    const { count, rows: receivedLogs } = await RedPacketLog.findAndCountAll({
       where: { user_id: userId },
       order: [['create_time', 'DESC']],
-      limit: 50
+      limit: window,
+      offset: 0
     });
-    
+    total += Number(count) || 0;
+
     for (const log of receivedLogs) {
       const packet = await RedPacket.findByPk(log.packet_id);
       results.push({
@@ -445,10 +460,19 @@ const getRedPacketHistory = async (userId, type = 'all') => {
       });
     }
   }
-  
+
   results.sort((a, b) => b.createTime - a.createTime);
-  
-  return results.slice(0, 50);
+  const list = results.slice(offset, offset + safePageSize);
+
+  return {
+    list,
+    pagination: {
+      page: safePage,
+      pageSize: safePageSize,
+      total,
+      totalPages: Math.ceil(total / safePageSize) || 0
+    }
+  };
 };
 
 module.exports = {

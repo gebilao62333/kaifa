@@ -1,4 +1,4 @@
-// generated from frontend/src/router/index.js
+// generated from frontend/src/router/index.js（旧站 frontend/ 已于 2026-10-21 删除，备份见 .e2e-run/legacy-frontend-backup-2026-10-21/；本文件为生效真源）
 export const ROUTES = [
   {
     "path": "/login",
@@ -458,6 +458,15 @@ export const ROUTES = [
     "title": "AI聊天",
     "requiresAuth": true,
     "fullscreen": true
+  },
+  {
+    "path": "/records-center",
+    "name": "RecordsCenter",
+    "view": "RecordsCenter",
+    "page": "/pages/RecordsCenter",
+    "title": "我的记录",
+    "requiresAuth": true,
+    "fullscreen": false
   },
   {
     "path": "/tag-manager",

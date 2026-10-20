@@ -1,18 +1,23 @@
 <template>
-  <div class="page-layout">
+  <view class="page-layout">
     <header v-if="$slots.nav" class="page-nav">
-      <div class="page-nav-inner">
+      <view class="page-nav-inner">
         <slot name="nav" />
-      </div>
+      </view>
     </header>
 
     <main class="page-body">
-      <slot />
+      <!-- 旧版 App.vue 在路由树外层包了 ErrorBoundary；这里覆盖所有使用 PageLayout 的页面 -->
+      <ErrorBoundary>
+        <slot />
+      </ErrorBoundary>
     </main>
-  </div>
+  </view>
 </template>
 
 <script setup>
+import ErrorBoundary from './ErrorBoundary.vue'
+
 // 主页面统一布局：
 // 1. 顶部渐变导航栏（sticky 固定，高度由插槽内容自适应，无需手动算 padding-top）
 // 2. PC 端整体居中（max-width 650 / 720，margin: 0 auto）
@@ -76,6 +81,23 @@
   }
 
   .page-nav {
+    max-width: var(--layout-max-width-pc-lg, 720px);
+  }
+}
+
+/* 旧版 App.vue 把弹窗遮罩约束在 650/720 列内，这里用 :deep 作用于页面内弹窗 */
+@media (min-width: 768px) {
+  :deep(.modal-overlay) {
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    width: 100%;
+    max-width: var(--layout-max-width-pc, 650px);
+  }
+}
+
+@media (min-width: 1024px) {
+  :deep(.modal-overlay) {
     max-width: var(--layout-max-width-pc-lg, 720px);
   }
 }

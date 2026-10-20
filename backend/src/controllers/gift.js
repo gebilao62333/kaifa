@@ -182,8 +182,9 @@ const receiveRedPacket = async (req, res) => {
 
 const getRedPacketHistory = async (req, res) => {
   try {
-    const { type = 'all' } = req.query;
-    const result = await giftService.getRedPacketHistory(req.userId, type);
+    // 审计 B-11：支持分页（page/pageSize 由 service 侧用 parseQuery 夹取上下限）
+    const { type = 'all', page = 1, pageSize = 20 } = req.query;
+    const result = await giftService.getRedPacketHistory(req.userId, type, page, pageSize);
     response.success(res, result);
   } catch (error) {
     logger.error('获取红包记录错误:', error);

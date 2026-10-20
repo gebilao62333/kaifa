@@ -81,7 +81,11 @@ function collectConfigRisks() {
     ].filter(Boolean).join(' / ');
     warnings.push(`SMS_APP_ID 已配置但缺少 ${missing}：验证码/通知短信将无法下发`);
   }
-  if (config.admin && config.admin.emergencyLogin) {
+  if (config.sms && config.sms.testMode) {
+  warnings.push('SMS_TEST_MODE=true：验证码会直接回传给调用方，仅限内测/演示；正式上线请关闭并配置短信通道');
+}
+
+if (config.admin && config.admin.emergencyLogin) {
     warnings.push('ADMIN_EMERGENCY_LOGIN=true：环境变量应急管理员登录已开启，创建正式管理员后请立即改为 false');
   }
   // 审计 M-3：管理端令牌已改用独立密钥签名（用户端令牌签不出、验不过）。但未显式配置
@@ -265,7 +269,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(xssProtection);
 
 app.use('/public', express.static(path.join(__dirname, 'public')));
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use('/uploads', express.static(config.paths.uploads));
 
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();

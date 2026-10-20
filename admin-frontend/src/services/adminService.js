@@ -30,6 +30,12 @@ const adminService = {
     return logoutRequest
   },
 
+  // A-3：当前管理员实时主体（含 id / role_id / permissions）。
+  // adminAuth 每次请求回读库，管理端用它在挂载时刷新 localStorage.admin_user 快照。
+  async getCurrentAdmin() {
+    return request('/api/admin-manage/current', 'GET')
+  },
+
   async getStatistics() {
     return request('/api/admin/statistics', 'GET')
   },
@@ -45,6 +51,56 @@ const adminService = {
 
   async getUserDetail(userId) {
     return request('/api/admin/users/' + userId, 'GET')
+  },
+
+  // 《未完成事项清单》B-2：后台实名审核（列表 / 详情 / 通过或拒绝）
+  async getRealNameList(params = {}) {
+    const { page = 1, pageSize = 20, status, keyword } = params
+    const data = { page, pageSize }
+    if (status !== undefined && status !== null && status !== '') data.status = status
+    if (keyword) data.keyword = keyword
+    return request('/api/admin/real-names', 'GET', data)
+  },
+
+  async getRealNameDetail(userId) {
+    return request('/api/admin/real-names/' + userId, 'GET')
+  },
+
+  async reviewRealName(userId, action) {
+    validateParams({ userId, action }, {
+      userId: { required: true, label: '用户ID', type: 'number' },
+      action: { required: true, label: '审核动作', type: 'string' }
+    })
+    return request('/api/admin/real-names/' + userId + '/review', 'PUT', { action })
+  },
+
+  // 《未完成事项清单》B-3/B-4：公告管理（写操作后服务端会 socket 全服广播）
+  async getNoticeList(params = {}) {
+    const { page = 1, pageSize = 20, status, keyword } = params
+    const data = { page, pageSize }
+    if (status !== undefined && status !== null && status !== '') data.status = status
+    if (keyword) data.keyword = keyword
+    return request('/api/admin/notices', 'GET', data)
+  },
+
+  async getNoticeDetail(id) {
+    return request('/api/admin/notices/' + id, 'GET')
+  },
+
+  async createNotice(payload) {
+    validateParams(payload, {
+      title: { required: true, label: '标题', type: 'string' },
+      content: { required: true, label: '内容', type: 'string' }
+    })
+    return request('/api/admin/notices', 'POST', payload)
+  },
+
+  async updateNotice(id, payload) {
+    return request('/api/admin/notices/' + id, 'PUT', payload)
+  },
+
+  async deleteNotice(id) {
+    return request('/api/admin/notices/' + id, 'DELETE')
   },
 
   async createUser(userData) {

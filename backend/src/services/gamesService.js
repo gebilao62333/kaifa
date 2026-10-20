@@ -5,6 +5,8 @@ const sequelize = require('../config/mysql');
 const { getCommissionRate } = require('./settingsService');
 const { moneyMinus } = require('../utils/sql');
 const levelService = require('./levelService');
+const { getPrivacyPrefsForUsers, getPriorityUserIds } = require('../utils/privacyPrefs');
+const notificationCenterService = require('./notificationCenterService');
 const logger = require('../utils/logger');
 
 // 订单分账比例（陪玩师分成）默认值：系统设置 order_commission_rate 缺省时使用
@@ -24,8 +26,9 @@ const getCategories = async () => {
   }));
 };
 
-const getCompanions = async (gameId, page, pageSize) => {
+const getCompanions = async (gameId, page, pageSize, options = {}) => {
   const { offset, limit } = parseQuery({ page, pageSize });
+  const { serviceType, sort } = options;
   
   const where = {
     status: 2
@@ -34,6 +37,16 @@ const getCompanions = async (gameId, page, pageSize) => {
   if (gameId) {
     where.game_id = gameId;
   }
+  // 线上/线下筛选：service_type 由入驻表单写入（缺省 online）
+  if (serviceType === 'online' || serviceType === 'offline') {
+    where.service_type = serviceType;
+  }
+
+  const orderMap = {
+    hot: [['order_num', 'DESC'], ['star', 'DESC']],
+    new: [['create_time', 'DESC'], ['id', 'DESC']]
+  };
+  const order = orderMap[sort] || [['star', 'DESC'], ['order_num', 'DESC']];
   
   const { count, rows } = await CompanionProfile.findAndCountAll({
     where,
@@ -44,13 +57,17 @@ const getCompanions = async (gameId, page, pageSize) => {
     }],
     offset,
     limit,
-    order: [['star', 'DESC'], ['order_num', 'DESC']]
+    order
   });
   
-  const companions = await Promise.all(rows.map(async (profile) => {
+  // U-20：优先匹配（VIP priorityPush）在当页内优先展示
+  const priorityIds = await getPriorityUserIds(rows.map(profile => profile.user_id));
+  const orderedRows = [...rows].sort((a, b) => Number(priorityIds.has(Number(b.user_id))) - Number(priorityIds.has(Number(a.user_id))));
+  const companions = await Promise.all(orderedRows.map(async (profile) => {
     const user = await User.findByPk(profile.user_id);
     return {
       userId: profile.user_id,
+      priority: priorityIds.has(Number(profile.user_id)),
       nickname: user?.nickname || '',
       avatar: user?.avatar || '',
       city: user?.city || '',
@@ -328,6 +345,18 @@ const completeOrder = async (userId, orderId) => {
     }
     
     await transaction.commit();
+    // U-12：订单完成通知接单方（失败不影响订单）
+    try {
+      if (companionUserId && Number(companionUserId) > 0) {
+        await notificationCenterService.create(
+          companionUserId,
+          'order',
+          '订单已完成',
+          `订单 ${order.order_no || order.id} 已完成，收入 ${companionIncome} 金币`,
+          { orderId: Number(order.id), amount: companionIncome }
+        );
+      }
+    } catch (e) { /* 通知失败降级 */ }
   } catch (error) {
     await transaction.rollback();
     throw error;
@@ -464,6 +493,12 @@ const getOrders = async (userId, role, status, page, pageSize) => {
       num: order.num,
       totalPrice: Number(order.total_price),
       status: order.status,
+      // 审计 B-15：列表接口此前不返回评价态，前端只能用「不存在的 item.rated」判断，
+      // 刷新后「已评价」状态丢失、可重复进入评价页。这里补权威字段：
+      // pingjiaStatus=1 表示已评价，rated 为兼容前端的布尔投影。
+      pingjiaStatus: Number(order.pingjia_status) || 0,
+      rated: Number(order.pingjia_status) === 1,
+      star: Number(order.star) || 0,
       createTime: order.create_time
     };
   }));
@@ -491,11 +526,14 @@ const applyAsCompanion = async (userId, gameId, price, tags, profile = {}) => {
       : (existing?.service_type || 'online')
   };
 
+  const isEdit = !!profile.edit;
   if (existing) {
-    if (existing.status === 1) {
+    // 编辑已上架服务（MyServices）允许修改认证资料，但不能把状态打回审核中；
+    // 新申请/重新提交仍要求未在审核且未认证。
+    if (!isEdit && existing.status === 1) {
       throw new Error('申请正在审核中');
     }
-    if (existing.status === 2) {
+    if (!isEdit && existing.status === 2) {
       throw new Error('您已经是认证陪玩师');
     }
     
@@ -504,7 +542,7 @@ const applyAsCompanion = async (userId, gameId, price, tags, profile = {}) => {
       price,
       tags,
       ...extraFields,
-      status: 1,
+      status: (isEdit && existing.status === 2) ? 2 : 1,
       update_time: getTimestamp()
     });
   } else {
@@ -540,6 +578,27 @@ const getApplyStatus = async (userId) => {
   };
 };
 
+// U-18：线下服务目录统一挂到真实 xn_game「线下服务」记录下，
+// 不再把 201-304 这类前端假 id 当 gameId 落库。
+const OFFLINE_SERVICES = [
+  { serviceId: 201, name: '逛街购物', icon: '🛍️', price: 150, desc: '陪同逛街购物', bgColor: 'var(--gradient-primary)' },
+  { serviceId: 202, name: '看电影', icon: '🎬', price: 200, desc: '陪同观看电影', bgColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
+  { serviceId: 203, name: '美食探店', icon: '🍽️', price: 180, desc: '陪同品尝美食', bgColor: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' },
+  { serviceId: 204, name: '密室逃脱', icon: '🔐', price: 160, desc: '组队密室挑战', bgColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' },
+  { serviceId: 301, name: '运动健身', icon: '💪', price: 120, desc: '陪同健身指导', bgColor: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' },
+  { serviceId: 302, name: '羽毛球', icon: '🏸', price: 100, desc: '双人羽毛球对打', bgColor: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)' },
+  { serviceId: 303, name: '跑步陪练', icon: '🏃', price: 80, desc: '户外跑步陪伴', bgColor: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)' },
+  { serviceId: 304, name: '篮球', icon: '🏀', price: 150, desc: '组队篮球比赛', bgColor: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' }
+];
+
+const getOfflineServices = async () => {
+  let game = await Game.findOne({ where: { name: '线下服务' } });
+  if (!game) {
+    game = await Game.create({ name: '线下服务', status: 1, sort: 99, image: '', create_time: getTimestamp() });
+  }
+  return OFFLINE_SERVICES.map(item => ({ ...item, gameId: Number(game.id) }));
+};
+
 const searchCompanions = async (keyword, gameId, page, pageSize) => {
   const { offset, limit } = parseQuery({ page, pageSize });
 
@@ -566,10 +625,17 @@ const searchCompanions = async (keyword, gameId, page, pageSize) => {
     order: [['star', 'DESC'], ['order_num', 'DESC']]
   });
 
-  const companions = await Promise.all(rows.map(async (profile) => {
+  // C-9：allowSearch —— 关闭「允许被搜索」的陪玩师不返回；批量读取偏好避免 N+1
+  const prefsMap = await getPrivacyPrefsForUsers(rows.map(profile => profile.user_id));
+  const visibleRows = rows.filter(profile => prefsMap[profile.user_id]?.allowSearch !== false);
+
+  const searchPriorityIds = await getPriorityUserIds(visibleRows.map(profile => profile.user_id));
+  const orderedVisibleRows = [...visibleRows].sort((a, b) => Number(searchPriorityIds.has(Number(b.user_id))) - Number(searchPriorityIds.has(Number(a.user_id))));
+  const companions = await Promise.all(orderedVisibleRows.map(async (profile) => {
     const user = profile.user || await User.findByPk(profile.user_id);
     return {
       userId: profile.user_id,
+      priority: searchPriorityIds.has(Number(profile.user_id)),
       nickname: user?.nickname || '',
       avatar: user?.avatar || '',
       city: user?.city || '',
@@ -586,7 +652,9 @@ const searchCompanions = async (keyword, gameId, page, pageSize) => {
     };
   }));
 
-  return { total: count, list: companions };
+  // 受隐私开关影响，当前页条数可能少于 count；total 按过滤后的可见数对当前页做修正
+  const hidden = rows.length - visibleRows.length;
+  return { total: Math.max(0, count - hidden), list: companions };
 };
 
 const getCompanionDetail = async (companionId) => {
@@ -827,6 +895,7 @@ const toggleServiceStatus = async (userId, serviceId) => {
 
 module.exports = {
   getCategories,
+  getOfflineServices,
   getCompanions,
   searchCompanions,
   createOrder,

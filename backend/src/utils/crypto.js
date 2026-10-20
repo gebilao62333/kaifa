@@ -43,27 +43,7 @@ const decrypt = (encryptedData, password) => {
   return decrypted;
 };
 
-const hashPassword = (password) => {
-  return crypto.createHash('sha256').update(password).digest('hex');
-};
-
-const md5 = (text) => {
-  return crypto.createHash('md5').update(text).digest('hex');
-};
-
-const sha1 = (text) => {
-  return crypto.createHash('sha1').update(text).digest('hex');
-};
-
-const generateRandomString = (length = 32) => {
-  return crypto.randomBytes(length).toString('hex').slice(0, length);
-};
-
 module.exports = {
   encrypt,
-  decrypt,
-  hashPassword,
-  md5,
-  sha1,
-  generateRandomString
+  decrypt
 };

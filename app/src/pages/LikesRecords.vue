@@ -1,21 +1,21 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">获赞记录</span>
-      <span class="total">总计 {{ totalLikes }}</span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">获赞记录</text>
+      <text class="total">总计 {{ totalLikes }}</text>
     </template>
 
-    <div class="likes-list" v-if="likesList.length > 0">
-      <div class="like-item" v-for="(item, idx) in likesList" :key="idx" @click="viewProfile(item)">
-        <img :src="item.avatar" class="item-avatar" />
-        <div class="item-info">
-          <span class="item-name">{{ item.nickName }}</span>
-          <span class="item-time">{{ item.time }}</span>
-        </div>
-        <span class="item-content">{{ item.content }}</span>
-      </div>
-    </div>
+    <view class="likes-list" v-if="likesList.length > 0">
+      <view class="like-item" v-for="(item, idx) in likesList" :key="idx" @click="viewProfile(item)">
+        <image mode="aspectFill" :src="item.avatar" class="item-avatar" />
+        <view class="item-info">
+          <text class="item-name">{{ item.nickName }}</text>
+          <text class="item-time">{{ item.time }}</text>
+        </view>
+        <text class="item-content">{{ item.content }}</text>
+      </view>
+    </view>
 
     <EmptyState v-else icon="❤️" text="还没有人赞过你" />
   </PageLayout>
@@ -23,6 +23,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -59,7 +60,21 @@ const loadLikes = async () => {
   }
 }
 
+// 返回点赞记录页时静默刷新，不重复首载
+const refreshOnShow = () => {
+  loadLikes()
+}
+
 onMounted(loadLikes)
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
+})
 
 const goBack = () => {
   router.back()

@@ -1,22 +1,22 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">访客记录</span>
-      <span class="total">近30天 {{ visitorsList.length }} 人</span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">访客记录</text>
+      <text class="total">近30天 {{ visitorsList.length }} 人</text>
     </template>
 
-    <div class="visitors-list" v-if="visitorsList.length > 0">
-      <div class="visitor-item" v-for="(item, idx) in visitorsList" :key="idx" @click="viewProfile(item)">
-        <img :src="item.avatar" class="item-avatar" v-img-fallback="item.nickName" />
-        <div class="item-info">
-          <span class="item-name">{{ item.nickName }}</span>
-          <span class="item-time">{{ item.time }}</span>
-        </div>
-        <span class="item-tag" v-if="item.isFollowed">已关注</span>
-        <span class="item-tag follow" v-else @click.stop="followUser(item)">+ 关注</span>
-      </div>
-    </div>
+    <view class="visitors-list" v-if="visitorsList.length > 0">
+      <view class="visitor-item" v-for="(item, idx) in visitorsList" :key="idx" @click="viewProfile(item)">
+        <SafeImage :src="item.avatar" class="item-avatar" :fallback="item.nickName" mode="aspectFill" />
+        <view class="item-info">
+          <text class="item-name">{{ item.nickName }}</text>
+          <text class="item-time">{{ item.time }}</text>
+        </view>
+        <text class="item-tag" v-if="item.isFollowed">已关注</text>
+        <text class="item-tag follow" v-else @click.stop="followUser(item)">+ 关注</text>
+      </view>
+    </view>
 
     <EmptyState v-else icon="👀" text="还没有访客记录" />
   </PageLayout>
@@ -24,11 +24,13 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
 import authService from '../services/authService'
 import { DEFAULT_AVATAR } from '../common/constants'
+import SafeImage from '../components/SafeImage.vue'
 
 const router = useRouter()
 
@@ -57,7 +59,21 @@ const loadVisitors = async () => {
   }
 }
 
+// 返回访客记录页时静默刷新，不重复首载
+const refreshOnShow = () => {
+  loadVisitors()
+}
+
 onMounted(loadVisitors)
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
+})
 
 const goBack = () => {
   router.back()

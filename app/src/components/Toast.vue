@@ -1,16 +1,16 @@
 <template>
   <Teleport to="body">
     <Transition name="toast">
-      <div v-if="visible" :class="['toast', type]" @click="handleClick">
-        <span class="toast-icon">{{ iconMap[type] }}</span>
-        <span class="toast-message">{{ message }}</span>
-      </div>
+      <view v-if="visible" :class="['toast', type]" @click="handleClick">
+        <text class="toast-icon">{{ iconMap[type] }}</text>
+        <text class="toast-message">{{ message }}</text>
+      </view>
     </Transition>
   </Teleport>
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { watch } from 'vue'
 import { TIMERS } from '../common/constants'
 
 const props = defineProps({

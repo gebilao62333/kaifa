@@ -1,168 +1,170 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">提现</span>
-      <span class="history-btn" @click="goRecords">明细</span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">提现</text>
+      <text class="history-btn" @click="goRecords">明细</text>
     </template>
 
-    <div class="balance-card">
-      <div class="label">可提现余额</div>
-      <div class="amount">{{ formatAmount(balance) }}</div>
-      <div class="unit">金币</div>
-    </div>
+    <view class="balance-card">
+      <view class="label">可提现余额</view>
+      <view class="amount">{{ formatAmount(balance) }}</view>
+      <view class="unit">金币</view>
+    </view>
 
-    <div class="fee-standard">
-      <span class="fee-standard-icon">📋</span>
-      <span class="fee-standard-text">手续费 {{ feeRate }}%，10金币 = ¥1.00</span>
-    </div>
+    <view class="fee-standard">
+      <text class="fee-standard-icon">📋</text>
+      <text class="fee-standard-text">手续费 {{ feeRate }}%，10金币 = ¥1.00</text>
+    </view>
 
-    <div class="section-title">提现金额</div>
-    <div class="amount-input-wrap">
-      <span class="amount-symbol">💰</span>
-      <input type="number" class="amount-input" v-model="withdrawAmount" placeholder="0.00" />
-      <span class="amount-unit">金币</span>
-    </div>
-    <div class="amount-tips">
-      <span>最低提现 100 金币</span>
-      <span class="all-btn" @click="withdrawAmount = Math.floor(balance * 100) / 100">全部提现</span>
-    </div>
+    <view class="section-title">提现金额</view>
+    <view class="amount-input-wrap">
+      <text class="amount-symbol">💰</text>
+      <!-- H5 保留 number input；App 用 digit 才能输入两位小数 -->
+      <input v-if="!isApp" type="number" class="amount-input" v-model="withdrawAmount" placeholder="0.00" />
+      <input v-else type="digit" class="amount-input" v-model="withdrawAmount" placeholder="0.00" />
+      <text class="amount-unit">金币</text>
+    </view>
+    <view class="amount-tips">
+      <text>最低提现 100 金币</text>
+      <text class="all-btn" @click="withdrawAmount = Math.floor(balance * 100) / 100">全部提现</text>
+    </view>
 
-    <div class="quick-amounts">
-      <span
+    <view class="quick-amounts">
+      <text
         v-for="amt in quickAmounts"
         :key="amt"
         :class="['quick-item', { active: withdrawAmount === amt }]"
         @click="withdrawAmount = amt"
-      >{{ amt }} 金币</span>
-    </div>
+      >{{ amt }} 金币</text>
+    </view>
 
-    <div class="section-title">提现到</div>
-    <div class="payment-methods">
-      <div
+    <view class="section-title">提现到</view>
+    <view class="payment-methods">
+      <view
         v-for="method in payMethods"
         :key="method.id"
         :class="['payment-item', { active: payMethod === method.id }]"
         @click="switchPayMethod(method.id)"
       >
-        <span class="pay-icon" :style="{ background: method.bg }">{{ method.icon }}</span>
-        <div class="pay-info">
-          <span class="pay-name">{{ method.name }}</span>
-          <span class="pay-desc">{{ method.desc }}</span>
-        </div>
-        <span class="radio" :class="{ checked: payMethod === method.id }"></span>
-      </div>
-    </div>
+        <text class="pay-icon" :style="{ background: method.bg }">{{ method.icon }}</text>
+        <view class="pay-info">
+          <text class="pay-name">{{ method.name }}</text>
+          <text class="pay-desc">{{ method.desc }}</text>
+        </view>
+        <text class="radio" :class="{ checked: payMethod === method.id }"></text>
+      </view>
+    </view>
 
-    <div class="section-title">收款信息</div>
-    <div class="receiver-card">
-      <div class="receiver-field">
-        <span class="receiver-label">收款人姓名</span>
+    <view class="section-title">收款信息</view>
+    <view class="receiver-card">
+      <view class="receiver-field">
+        <text class="receiver-label">收款人姓名</text>
         <input type="text" class="receiver-input" v-model="receiverName" placeholder="请输入收款人姓名" />
-      </div>
+      </view>
 
       <template v-if="payMethod === 'card'">
-        <div class="receiver-field">
-          <span class="receiver-label">密卡号</span>
+        <view class="receiver-field">
+          <text class="receiver-label">密卡号</text>
           <input type="text" class="receiver-input" v-model="cardNo" placeholder="请输入密卡号" maxlength="19" />
-        </div>
-        <div class="receiver-field">
-          <span class="receiver-label">开户银行</span>
-          <div class="receiver-select" @click="showBankPicker = true">
-            <span class="receiver-select-text">{{ bankName || '请选择开户银行' }}</span>
-            <span class="select-arrow">›</span>
-          </div>
-        </div>
+        </view>
+        <view class="receiver-field">
+          <text class="receiver-label">开户银行</text>
+          <view class="receiver-select" @click="showBankPicker = true">
+            <text class="receiver-select-text">{{ bankName || '请选择开户银行' }}</text>
+            <text class="select-arrow">›</text>
+          </view>
+        </view>
       </template>
 
       <template v-if="payMethod === 'alipay'">
-        <div class="receiver-field">
-          <span class="receiver-label">支付宝账号</span>
+        <view class="receiver-field">
+          <text class="receiver-label">支付宝账号</text>
           <input type="text" class="receiver-input" v-model="alipayAccount" placeholder="请输入支付宝账号/手机号" />
-        </div>
-        <div class="receiver-field">
-          <span class="receiver-label">收款二维码</span>
-          <div class="qr-upload" @click="triggerQrUpload('alipay')">
-            <img v-if="alipayQrUrl" :src="alipayQrUrl" class="qr-preview" />
+        </view>
+        <view class="receiver-field">
+          <text class="receiver-label">收款二维码</text>
+          <view class="qr-upload" @click="triggerQrUpload('alipay')">
+            <image mode="aspectFit" v-if="alipayQrUrl" :src="alipayQrUrl" class="qr-preview" />
             <template v-else>
-              <span class="qr-upload-icon">📷</span>
-              <span class="qr-upload-text">上传支付宝收款码</span>
+              <text class="qr-upload-icon">📷</text>
+              <text class="qr-upload-text">上传支付宝收款码</text>
             </template>
-            <span v-if="qrUploading" class="qr-uploading">上传中...</span>
-          </div>
-        </div>
+            <text v-if="qrUploading" class="qr-uploading">上传中...</text>
+          </view>
+        </view>
       </template>
 
       <template v-if="payMethod === 'wechat'">
-        <div class="receiver-field">
-          <span class="receiver-label">微信账号</span>
+        <view class="receiver-field">
+          <text class="receiver-label">微信账号</text>
           <input type="text" class="receiver-input" v-model="wechatAccount" placeholder="请输入微信号/手机号" />
-        </div>
-        <div class="receiver-field">
-          <span class="receiver-label">收款二维码</span>
-          <div class="qr-upload" @click="triggerQrUpload('wechat')">
-            <img v-if="wechatQrUrl" :src="wechatQrUrl" class="qr-preview" />
+        </view>
+        <view class="receiver-field">
+          <text class="receiver-label">收款二维码</text>
+          <view class="qr-upload" @click="triggerQrUpload('wechat')">
+            <image mode="aspectFit" v-if="wechatQrUrl" :src="wechatQrUrl" class="qr-preview" />
             <template v-else>
-              <span class="qr-upload-icon">📷</span>
-              <span class="qr-upload-text">上传微信收款码</span>
+              <text class="qr-upload-icon">📷</text>
+              <text class="qr-upload-text">上传微信收款码</text>
             </template>
-            <span v-if="qrUploading" class="qr-uploading">上传中...</span>
-          </div>
-        </div>
+            <text v-if="qrUploading" class="qr-uploading">上传中...</text>
+          </view>
+        </view>
       </template>
-    </div>
+    </view>
 
     <input type="file" ref="qrFileInput" accept="image/*" style="display: none" @change="handleQrUpload" />
 
-    <div class="bank-picker-overlay" v-if="showBankPicker" @click.self="showBankPicker = false">
-      <div class="bank-picker-content">
-        <div class="bank-picker-header">
-          <span class="bank-picker-cancel" @click="showBankPicker = false">取消</span>
-          <span class="bank-picker-title">选择开户银行</span>
-          <span class="bank-picker-confirm" @click="showBankPicker = false">完成</span>
-        </div>
-        <div class="bank-picker-list">
-          <div
+    <view class="bank-picker-overlay" v-if="showBankPicker" @click.self="showBankPicker = false">
+      <view class="bank-picker-content">
+        <view class="bank-picker-header">
+          <text class="bank-picker-cancel" @click="showBankPicker = false">取消</text>
+          <text class="bank-picker-title">选择开户银行</text>
+          <text class="bank-picker-confirm" @click="showBankPicker = false">完成</text>
+        </view>
+        <view class="bank-picker-list">
+          <view
             v-for="bank in bankOptions"
             :key="bank"
             :class="['bank-picker-item', { active: bankName === bank }]"
             @click="bankName = bank; showBankPicker = false"
           >
             {{ bank }}
-          </div>
-        </div>
-      </div>
-    </div>
+          </view>
+        </view>
+      </view>
+    </view>
 
-    <div class="section-title">到账信息</div>
-    <div class="account-card">
-      <div class="account-row">
-        <span class="account-label">到账方式</span>
-        <span class="account-value">{{ currentPayMethod }}</span>
-      </div>
-      <div class="account-row">
-        <span class="account-label">收款账户</span>
-        <span class="account-value">{{ receiverName || '待填写' }} · {{ currentPayAccount || '待填写' }}</span>
-      </div>
-      <div class="account-row">
-        <span class="account-label">提现金币</span>
-        <span class="account-value amount">{{ formatAmount(withdrawAmount) }} 金币</span>
-      </div>
-      <div class="account-row">
-        <span class="account-label">预计到账金额</span>
-        <span class="account-value">¥ {{ formatAmount(actualArrival) }}</span>
-      </div>
-      <div class="account-row">
-        <span class="account-label">预计到账</span>
-        <span class="account-value">2小时内到账</span>
-      </div>
-      <div class="account-row">
-        <span class="account-label">手续费</span>
-        <span class="account-value">{{ feeRate }}% ({{ formatAmount(feeCoins) }} 金币 ≈ ¥{{ formatAmount(feeCoins / 10) }})</span>
-      </div>
-    </div>
+    <view class="section-title">到账信息</view>
+    <view class="account-card">
+      <view class="account-row">
+        <text class="account-label">到账方式</text>
+        <text class="account-value">{{ currentPayMethod }}</text>
+      </view>
+      <view class="account-row">
+        <text class="account-label">收款账户</text>
+        <text class="account-value">{{ receiverName || '待填写' }} · {{ currentPayAccount || '待填写' }}</text>
+      </view>
+      <view class="account-row">
+        <text class="account-label">提现金币</text>
+        <text class="account-value amount">{{ formatAmount(withdrawAmount) }} 金币</text>
+      </view>
+      <view class="account-row">
+        <text class="account-label">预计到账金额</text>
+        <text class="account-value">¥ {{ formatAmount(actualArrival) }}</text>
+      </view>
+      <view class="account-row">
+        <text class="account-label">预计到账</text>
+        <text class="account-value">2小时内到账</text>
+      </view>
+      <view class="account-row">
+        <text class="account-label">手续费</text>
+        <text class="account-value">{{ feeRate }}% ({{ formatAmount(feeCoins) }} 金币 ≈ ¥{{ formatAmount(feeCoins / 10) }})</text>
+      </view>
+    </view>
 
-    <div class="withdraw-bottom">
+    <view class="withdraw-bottom">
       <button
         class="withdraw-btn"
         :disabled="!canWithdraw || submitting"
@@ -170,12 +172,13 @@
       >
         {{ withdrawBtnText }}
       </button>
-    </div>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import { getWithdrawMethods } from '../common/payMethods'
 import PageLayout from '../components/PageLayout.vue'
@@ -183,6 +186,8 @@ import { toast } from '../composables/useToast'
 import walletService from '../services/walletService'
 import payService from '../services/payService'
 import { uploadFile } from '../services/uploadService'
+import { chooseImages } from '../services/mediaPicker'
+import { isApp } from '../common/platform'
 import { isLoggedIn } from '@/common/common'
 
 const router = useRouter()
@@ -303,27 +308,50 @@ onMounted(async () => {
   await fetchBalance()
 })
 
+// 从提现记录/支付页返回时余额可能已变，静默刷新可提现余额；
+// 提现费率是前端常量（feeRate），没有可刷新的服务端来源
+const refreshOnShow = () => {
+  fetchBalance()
+}
+
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
+})
+
 const switchPayMethod = (id) => {
   payMethod.value = id
 }
 
-const triggerQrUpload = (type) => {
+// App 端没有可点击的 <input type=file>，统一走 mediaPicker（相册/相机）
+const triggerQrUpload = async (type) => {
   if (qrUploading.value) return
   currentQrType.value = type
-  qrFileInput.value?.click()
+  if (!isApp) { qrFileInput.value?.click(); return }
+  try {
+    const { supported, files } = await chooseImages(1)
+    if (supported && files.length) await applyQrFile(files[0])
+  } catch (err) {
+    toast.error(err.message || '选择图片失败')
+  }
 }
 
+// H5 与 App 共用：H5 传 File，App 传 mediaPicker 的 { path, name, type, size }。
 // 收款码选图后立即直传（COS，失败自动回退后端中转），表单只保存返回的图片链接。
 // 不能把 base64 dataURL 当 image 提交：后端 xn_withdraw.image 为 STRING(255)。
-const handleQrUpload = async (e) => {
-  const file = e.target.files?.[0]
-  e.target.value = ''
+const applyQrFile = async (file) => {
   if (!file || qrUploading.value) return
 
   const target = currentQrType.value
   const urlRef = target === 'alipay' ? alipayQrUrl : wechatQrUrl
   const previous = urlRef.value
-  urlRef.value = URL.createObjectURL(file)
+  const preview = isApp ? file.path : URL.createObjectURL(file)
+  urlRef.value = preview
   qrUploading.value = true
   try {
     const res = await uploadFile(file, 'image')
@@ -335,7 +363,14 @@ const handleQrUpload = async (e) => {
     toast.error(err.message || '收款码上传失败，请重试')
   } finally {
     qrUploading.value = false
+    if (!isApp) URL.revokeObjectURL(preview)
   }
+}
+
+const handleQrUpload = async (e) => {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  await applyQrFile(file)
 }
 
 const doWithdraw = async () => {

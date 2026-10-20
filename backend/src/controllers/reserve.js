@@ -4,7 +4,7 @@ const logger = require('../utils/logger');
 
 const getSlots = async (req, res) => {
   try {
-    const { companionId, date, gameId } = req.query;
+    const { companionId, date, gameId, includeDisabled } = req.query;
     
     if (!companionId || !date) {
       return response.badRequest(res, '陪玩师ID和日期不能为空');
@@ -13,7 +13,8 @@ const getSlots = async (req, res) => {
     const result = await reserveService.getAvailableSlots(
       parseInt(companionId),
       date,
-      gameId ? parseInt(gameId) : null
+      gameId ? parseInt(gameId) : null,
+      includeDisabled === '1' || includeDisabled === 'true'
     );
     response.success(res, result);
   } catch (error) {

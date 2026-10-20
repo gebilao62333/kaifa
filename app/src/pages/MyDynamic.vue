@@ -1,55 +1,56 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">我的动态</span>
-      <span class="add-btn" @click="goPublish">发动态</span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">我的动态</text>
+      <text class="add-btn" @click="goPublish">发动态</text>
     </template>
 
-    <div class="posts-tabs">
-      <span
+    <view class="posts-tabs">
+      <text
         v-for="tab in tabs"
         :key="tab.id"
         :class="['tab-item', { active: activeTab === tab.id }]"
         @click="activeTab = tab.id"
       >
         {{ tab.name }}
-        <span class="tab-count">{{ tab.count }}</span>
-      </span>
-    </div>
+        <text class="tab-count">{{ tab.count }}</text>
+      </text>
+    </view>
 
-    <div class="posts-list" v-if="filteredPosts.length > 0">
-      <div class="post-card" v-for="post in filteredPosts" :key="post.id" @click="goDetail(post.id)">
-        <div class="post-header">
-          <img :src="userInfo.avatar" class="post-avatar" />
-          <div class="post-user">
-            <span class="post-nickname">{{ userInfo.nickName }}</span>
-            <span class="post-time">{{ post.createTime }}</span>
-          </div>
-          <span class="post-status" :class="'status-' + post.status">{{ getStatusText(post.status) }}</span>
-        </div>
-        <div class="post-body">
-          <p class="post-content">{{ post.content }}</p>
-          <div class="post-images" v-if="post.images.length > 0">
-            <img
+    <view class="posts-list" v-if="filteredPosts.length > 0">
+      <view class="post-card" v-for="post in filteredPosts" :key="post.id" @click="goDetail(post.id)">
+        <view class="post-header">
+          <image mode="aspectFill" :src="userInfo.avatar" class="post-avatar" />
+          <view class="post-user">
+            <text class="post-nickname">{{ userInfo.nickName }}</text>
+            <text class="post-time">{{ post.createTime }}</text>
+          </view>
+          <text class="post-status" :class="'status-' + post.status">{{ getStatusText(post.status) }}</text>
+        </view>
+        <view class="post-body">
+          <view class="post-content">{{ post.content }}</view>
+          <view class="post-images" v-if="post.images.length > 0">
+            <image
+              mode="aspectFill"
               v-for="(img, idx) in post.images.slice(0, 3)"
               :key="idx"
               :src="img"
               class="post-img"
               :class="{ single: post.images.length === 1 }"
             />
-          </div>
-        </div>
-        <div class="post-footer">
-          <span class="footer-item">❤️ {{ post.likeCount }}</span>
-          <span class="footer-item">💬 {{ post.commentCount }}</span>
-          <span class="footer-item">🔄 {{ post.shareCount }}</span>
-          <span class="post-actions">
-            <span class="action-btn" @click.stop="deletePost(post)">🗑️ 删除</span>
-          </span>
-        </div>
-      </div>
-    </div>
+          </view>
+        </view>
+        <view class="post-footer">
+          <text class="footer-item">❤️ {{ post.likeCount }}</text>
+          <text class="footer-item">💬 {{ post.commentCount }}</text>
+          <text class="footer-item">🔄 {{ post.shareCount }}</text>
+          <text class="post-actions">
+            <text class="action-btn" @click.stop="deletePost(post)">🗑️ 删除</text>
+          </text>
+        </view>
+      </view>
+    </view>
 
     <EmptyState v-else :text="emptyText" actionText="发第一条动态" @action="goPublish" />
   </PageLayout>
@@ -57,90 +58,34 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
 import circleService from '../services/circleService'
 import { toast } from '../composables/useToast'
+import { useUserStore } from '../store/user-info'
 import { DEFAULT_AVATAR } from '@/common/constants'
+import { isApp } from '../common/platform'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 const activeTab = ref('all')
 
-const userInfo = ref({
-  nickName: '多客用户',
-  avatar: DEFAULT_AVATAR
-})
+const userInfo = computed(() => ({
+  nickName: userStore.profile?.nickName || userStore.profile?.nickname || '我',
+  avatar: userStore.profile?.avatar || DEFAULT_AVATAR
+}))
 
 const tabs = ref([
-  { id: 'all', name: '全部', count: 6 },
-  { id: 'published', name: '已发布', count: 4 },
-  { id: 'review', name: '审核中', count: 1 },
-  { id: 'rejected', name: '未通过', count: 1 }
+  { id: 'all', name: '全部', count: 0 },
+  { id: 'published', name: '已发布', count: 0 },
+  { id: 'review', name: '审核中', count: 0 },
+  { id: 'rejected', name: '未通过', count: 0 }
 ])
 
-const allPosts = ref([
-  {
-    id: 1,
-    content: '今天和朋友一起打王者荣耀，连胜5局，太开心了！有没有一起开黑的？',
-    images: [
-      'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=400',
-      'https://images.unsplash.com/photo-1529543544282-ea9007613f3a?w=400'
-    ],
-    createTime: '2026-05-18',
-    likeCount: 24,
-    commentCount: 8,
-    shareCount: 3,
-    status: 'published'
-  },
-  {
-    id: 2,
-    content: '分享一个和平精英的跳伞技巧，学会轻松上分！',
-    images: [
-      'https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=400'
-    ],
-    createTime: '2026-05-15',
-    likeCount: 56,
-    commentCount: 12,
-    shareCount: 7,
-    status: 'published'
-  },
-  {
-    id: 3,
-    content: '周末线下聚会，有一起玩桌游的吗？',
-    images: [
-      'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400',
-      'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400',
-      'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400'
-    ],
-    createTime: '2026-05-12',
-    likeCount: 18,
-    commentCount: 5,
-    shareCount: 2,
-    status: 'published'
-  },
-  {
-    id: 4,
-    content: '新赛季开始了，求组队上分，本人主玩打野位，擅长李白韩信！',
-    images: [],
-    createTime: '2026-05-10',
-    likeCount: 10,
-    commentCount: 15,
-    shareCount: 1,
-    status: 'review'
-  },
-  {
-    id: 5,
-    content: '测试一下发帖功能，这条正在审核中。',
-    images: [],
-    createTime: '2026-05-08',
-    likeCount: 0,
-    commentCount: 0,
-    shareCount: 0,
-    status: 'rejected'
-  }
-])
+const allPosts = ref([])
 
 const filteredPosts = computed(() => {
   if (activeTab.value === 'all') return allPosts.value
@@ -169,8 +114,27 @@ const goDetail = (id) => {
   router.push(`/post-detail/${id}`)
 }
 
+// App 原生端没有可靠的 window.confirm：统一用 uni.showModal 二次确认；H5 保持 confirm 原逻辑
+const confirmAction = (message) => new Promise((resolve) => {
+  if (isApp) {
+    if (typeof uni !== 'undefined' && typeof uni.showModal === 'function') {
+      uni.showModal({
+        title: '提示',
+        content: message,
+        success: (res) => resolve(!!res.confirm),
+        fail: () => resolve(false)
+      })
+    } else {
+      // 原生端拿不到 uni.showModal 时按「取消」处理，避免无法确认就执行破坏性操作
+      resolve(false)
+    }
+    return
+  }
+  resolve(confirm(message))
+})
+
 const deletePost = async (post) => {
-  if (!confirm('确定要删除这条动态吗？相关图片/视频也会一并删除')) return
+  if (!(await confirmAction('确定要删除这条动态吗？相关图片/视频也会一并删除'))) return
   try {
     await circleService.deletePost(post.id)
     const idx = allPosts.value.findIndex(p => p.id === post.id)
@@ -199,23 +163,41 @@ const mapPost = (p) => ({
   likeCount: p.likeCount ?? p.likes ?? 0,
   commentCount: p.commentCount ?? p.comments ?? 0,
   shareCount: p.shareCount ?? p.share_num ?? 0,
-  status: p.status || 'published'
+  status: typeof p.status === 'string' ? p.status : (Number(p.status) === 2 ? 'rejected' : (Number(p.status) === 0 ? 'review' : 'published'))
 })
 
-const loadPosts = async () => {
+const loadPosts = async (silent = false) => {
   try {
     const res = await circleService.getMyPosts({ page: 1, pageSize: 50 })
     const rows = res?.data?.list || []
     allPosts.value = rows.map(mapPost)
   } catch (e) {
-    // 接口失败时保留内置示例数据
+    // 接口失败展示空态，不再回退内置示例数据；静默刷新失败则保留旧列表且不弹 toast
+    if (!silent) {
+      allPosts.value = []
+      toast.error('加载动态失败，请稍后重试')
+    }
   } finally {
     updateTabCounts()
   }
 }
 
+// 返回我的动态时静默刷新（发布/删除后状态可能变化）
+const refreshOnShow = () => {
+  loadPosts(true)
+}
+
 onMounted(loadPosts)
 updateTabCounts()
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
+})
 </script>
 
 <style scoped>

@@ -12,6 +12,10 @@ export default defineConfig({
     testTimeout: 10000
   },
   resolve: {
-    alias: { '@': resolve(__dirname, 'src') }
+    alias: {
+      // 必须排在 '@' 之前：避免较短前缀先命中，把 '@dcloudio/uni-app' 改写成 src 下的路径
+      '@dcloudio/uni-app': resolve(__dirname, 'tests/mocks/uni-app.js'),
+      '@': resolve(__dirname, 'src')
+    }
   }
 })

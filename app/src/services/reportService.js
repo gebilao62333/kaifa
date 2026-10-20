@@ -1,12 +1,5 @@
 import { request, validateParams } from '../common/common'
 
-// 与后端 xn_report.target_type 枚举一致
-export const REPORT_TARGET = {
-  USER: 1,
-  POST: 2,
-  COMMENT: 3
-}
-
 const reportService = {
   async submitReport({ targetType, targetId, reason, images = [] }) {
     validateParams({ targetType, targetId, reason }, {

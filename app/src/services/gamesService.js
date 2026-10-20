@@ -2,6 +2,10 @@ import { request } from '../common/common'
 import { validateParams } from '../common/common'
 
 const gamesService = {
+  async getOfflineServices() {
+    return request('/api/games/offline-services', 'GET')
+  },
+
   async getCategories() {
     return request('/api/games/categories', 'GET')
   },
@@ -119,6 +123,11 @@ const gamesService = {
       orderId: { required: true, label: '订单ID', type: 'number' }
     })
     return request('/api/games/appeal', 'POST', { orderId, reason })
+  },
+
+  // 订单统计
+  async getStatistics() {
+    return request('/api/games/statistics', 'GET')
   }
 }
 

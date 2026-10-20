@@ -29,25 +29,40 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import adminService from '@/services/adminService'
+import { hasPermission, readStoredAdmin, writeStoredAdmin } from '@/common/adminPermission'
 
 const route = useRoute()
 const router = useRouter()
 
-// 当前登录管理员的权限（登录时写入 localStorage admin_user）
-const hasPerm = (perm) => {
+// 当前登录管理员的权限：先用登录时写入的 localStorage.admin_user 快照渲染，
+// 挂载后立即用 /api/admin-manage/current 的实时主体刷新（A-3）。
+// 这样权限/角色被改后，刷新页面菜单即按新权限渲染；路由守卫仍以刷新后的快照兜底。
+const currentAdmin = ref(readStoredAdmin())
+
+const hasPerm = (perm) => hasPermission(currentAdmin.value && currentAdmin.value.permissions, perm)
+
+const refreshCurrentAdmin = async () => {
   try {
-    const user = JSON.parse(localStorage.getItem('admin_user') || '{}')
-    const perms = user.permissions || []
-    if (!Array.isArray(perms)) return false
-    if (perms.includes('all')) return true
-    return perms.includes(perm)
+    const res = await adminService.getCurrentAdmin()
+    const admin = res && res.data
+    if (!admin) return
+    currentAdmin.value = admin
+    // 回写快照：路由守卫与下次加载都读它，避免「菜单已变、守卫还认旧权限」
+    writeStoredAdmin(admin)
+    // 刷新后当前页已不在可访问范围（如角色权限被收回）：菜单已过滤，这里把页面也送走
+    if (route.meta && route.meta.perm && !hasPerm(route.meta.perm)) {
+      router.replace('/403')
+    }
   } catch (e) {
-    return false
+    // 拉取失败时保留本地快照，菜单按旧权限渲染；越权请求仍会被服务端按实时权限拒绝
+    console.warn('刷新当前管理员权限失败:', e && e.message)
   }
 }
+
+onMounted(refreshCurrentAdmin)
 
 // 菜单与页面标题由路由 children 的 meta 自动生成，并按 meta.perm 过滤无权菜单
 const menuItems = computed(() => {

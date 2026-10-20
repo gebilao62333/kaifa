@@ -56,20 +56,20 @@ tags: ["自习"]
 - `admin-frontend/src/components/AdminLayout.vue:40-65`：`hasPerm(perm)` 读 `JSON.parse(localStorage.getItem('admin_user')).permissions`，菜单由路由表过滤 `!meta.hidden && hasPerm(meta.perm)` 生成。
 - `admin-frontend/src/router/index.js:73-115`：守卫同样从 localStorage 取权限，`to.meta.perm` 不过 → 跳 `/403`。
 - **按钮级权限预判：不存在**（全前端 `hasPerm` 只出现在上述两处），越权拦截完全靠服务端 403。
-- **第二份键表副本（重点坑）**：`admin-frontend/src/views/admin/AdminRoles.vue:68-89` 有自己硬编码的 `allPermissions`。**新增权限键必须同时改这处**，否则角色编辑器里勾不到该键。
-- 注意 `GET /api/admin-manage/permissions` 返回的是 `DEFAULT_PERMISSIONS`（`controllers/adminManage.js:18-38`，19 个**模块 id** 如 `dashboard/users/orders`），**不是 `模块:动作` 键**；`GET /api/admin-manage/current` 返回实时 `req.admin`。两个接口当前前端都未调用。
+- **键表真源**：后端 `backend/src/utils/permissions.js` 的 `ALL_PERMISSIONS`（`模块:动作` 键 + 中文 label）。`AdminRoles.vue` 已改为启动时调 `GET /api/admin-manage/permissions` 的 `data.permissions` 渲染勾选项；文件内仍保留一份 `DEFAULT_PERMISSION_OPTIONS` 兜底（接口不可用时不至于无法编辑）。新增权限键只需改后端真源 + 该兜底副本。
+- `GET /api/admin-manage/permissions` 的 `data` 为 `{ modules, permissions }`：`modules` 是 19 个模块 id（旧结构兼容），`permissions` 才是权限键；`GET /api/admin-manage/current` 返回实时 `req.admin`（前端仍未调用，A-3 遗留）。
 
 ### 4. 已知坑（编号与《未完成事项清单》一致）
 
-- **A-1｜创建管理员默认角色是超管**：`admin-frontend/src/views/admin/AdminAdmins.vue:63` 与 `:81` 的 `role_id: 1`。非超管管理员打开创建弹窗直接提交 → 服务端 403「无权分配超出自身权限范围的角色」（`controllers/adminManage.js:266-273`，同文案另见 `:337-338` 换角色分支）。表单无本地预判。
-- **A-3｜权限改了要重登才生效（仅前端）**：后端实时（`adminAuth` 回读），前端只认登录时写入的 `localStorage.admin_user`（写入点 `AdminLogin.vue:92`，清理点 `adminService.js:28`、`common.js:186`、`AdminDashboard.vue:85`）。`GET /api/admin-manage/current` 是现成的刷新入口，但前端零调用。
+- **A-1（已修复）**：`AdminAdmins.vue` 的角色默认值改为空、保存必选，下拉只列 `filterAssignableRoles` 可分配角色（权限未知时保守只给非超管）；新建/编辑/保存有二次守卫。新增角色下拉/默认值时不要退回 `role_id: 1`。
+- **A-3（已修复，注意新页面）**：`AdminLayout.vue` 挂载即调 `GET /api/admin-manage/current` 刷新 `admin_user` 快照，菜单/守卫用响应式权限；当前页失权自动 `/403`。**新页面不要直接读 `localStorage.admin_user` 做权限判断**，应走 `adminPermission.js` 的 `hasPermission/readStoredAdmin`。
 - 菜单 `finance:read` 的粒度与页内 tab 实际调用的键（`vip:*` / `withdraw:*` / `recharge:*` / `gift:read`）不完全对齐。
 
 ### 5. 改动步骤（新增一个权限点）
 
 1. 后端 `src/utils/permissions.js` 加键（键 + label），保持 `<模块>:<动作>` 命名。
 2. 目标路由挂 `requirePermission('<模块>:<动作>')`。
-3. 管理端 `AdminRoles.vue` 的 `allPermissions` 同步加同一键（否则角色编辑器勾不到）。
+3. 管理端 `AdminRoles.vue` 已改为启动时拉 `GET /api/admin-manage/permissions` 的 `data.permissions` 渲染；文件内 `DEFAULT_PERMISSION_OPTIONS` 只是接口不可用时的兜底，仍要同步加同一键。
 4. 新页面的菜单项写进 `admin-frontend/src/router/index.js` 的 `meta.perm`。
 5. 角色默认权限模板（若有）与 `controllers/adminManage.js` 的 `DEFAULT_PERMISSIONS` 是否需同步——注意它用的是模块 id 而非 `模块:动作`，别混。
 6. 文档：`backend/后端API接口文档.md` + `前端功能差异清单.md`（用 `kaifa-doc-sync`）。

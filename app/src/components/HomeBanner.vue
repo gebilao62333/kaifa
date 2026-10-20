@@ -1,22 +1,22 @@
 <template>
-  <div class="banner-section">
-    <div class="banner-swiper" @touchstart="onTouchStart" @touchend="onTouchEnd">
-      <div class="banner-track" :style="{ transform: `translateX(-${currentBannerIndex * 100}%)` }">
-        <div v-for="(banner, index) in banners" :key="index" class="banner-slide">
-          <img class="banner-image" v-lazy="banner.image" :alt="banner.title" @click="onBannerClick(banner)" />
-        </div>
-      </div>
-      <div class="banner-dots">
-        <span
+  <view class="banner-section">
+    <view class="banner-swiper" @touchstart="onTouchStart" @touchend="onTouchEnd">
+      <view class="banner-track" :style="{ transform: `translateX(-${currentBannerIndex * 100}%)` }">
+        <view v-for="(banner, index) in banners" :key="index" class="banner-slide">
+          <image mode="aspectFill" class="banner-image" :src="banner.image" :alt="banner.title" @click="onBannerClick(banner)" />
+        </view>
+      </view>
+      <view class="banner-dots">
+        <text
           v-for="(banner, index) in banners"
           :key="index"
           class="dot"
           :class="{ active: currentBannerIndex === index }"
           @click="goToBanner(index)"
-        ></span>
-      </div>
-    </div>
-  </div>
+        ></text>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup>

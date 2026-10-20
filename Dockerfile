@@ -24,8 +24,8 @@ RUN npm prune --production
 # ============================================
 FROM node:24-alpine
 
-# 安装运行时依赖：tzdata（时区）、curl（健康检查）
-RUN apk add --no-cache tzdata curl && \
+# 安装运行时依赖：tzdata（时区）、curl（健康检查）、mysql-client（Sealos 初始化 SQL 用）
+RUN apk add --no-cache tzdata curl mysql-client && \
     cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && \
     echo "Asia/Shanghai" > /etc/timezone && \
     rm -rf /var/cache/apk/*
@@ -42,6 +42,9 @@ COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 COPY --from=builder --chown=nodejs:nodejs /app/package-lock.json ./
 COPY --from=builder --chown=nodejs:nodejs /app/server.js ./
 COPY --from=builder --chown=nodejs:nodejs /app/src ./src
+# 部署/运维脚本与初始化 SQL：Sealos 容器终端里可直接执行
+COPY --from=builder --chown=nodejs:nodejs /app/scripts ./scripts
+COPY --from=builder --chown=nodejs:nodejs /app/sql ./sql
 
 # 注：数据库迁移脚本位于 src/migrations，已随上方 /app/src 一并复制
 

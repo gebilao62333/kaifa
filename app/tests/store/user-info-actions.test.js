@@ -18,9 +18,12 @@ vi.mock('@/services/authService', () => ({
   }
 }))
 
-vi.mock('@/services/socketService', () => ({
-  default: { disconnect: vi.fn() }
-}))
+vi.mock('@/services/socketService', () => {
+  // P0：登录成功后会调用 connect 并由 chat store 注册实时监听。
+  // noticeService 使用具名导出 socketService，所以默认/具名都要给（真实模块两者是同一实例）。
+  const socketService = { disconnect: vi.fn(), connect: vi.fn(), on: vi.fn(), emit: vi.fn() }
+  return { default: socketService, socketService }
+})
 
 vi.mock('@/plugins/persistedState', () => ({
   clearPersistedState: vi.fn(),
@@ -163,6 +166,8 @@ describe('User Store - actions', () => {
     expect(store.token).toBe('tk')
     expect(store.profile.userId).toBe(1)
     expect(store.loading).toBe(false)
+    // P0：登录成功即建立 Socket（此前只有 App 启动瞬间已登录才连）
+    expect(socketService.connect).toHaveBeenCalled()
   })
 
   it('login 业务失败返回消息', async () => {
@@ -228,10 +233,13 @@ describe('User Store - actions', () => {
     expect((await store.sendSms('138')).message).toBe('sms fail')
   })
 
-  it('register 成功与失败与异常', async () => {
-    authService.register.mockResolvedValue(ok({ token: 'rt', userInfo: { userId: 4 } }))
+  it('register 成功与失败与异常（后端注册响应与登录同构）', async () => {
+    authService.register.mockResolvedValue(ok({ accessToken: 'rt', refreshToken: 'rr', userId: 4, nickname: 'n' }))
     expect((await store.register('138', 'p', '0000')).success).toBe(true)
+    expect(store.token).toBe('rt')
     expect(store.profile.userId).toBe(4)
+    expect(localStorage.getItem('refreshToken')).toBe('rr')
+    expect(socketService.connect).toHaveBeenCalled()
 
     authService.register.mockResolvedValue({ code: 400, message: '已注册' })
     expect((await store.register('138', 'p', '0')).message).toBe('已注册')

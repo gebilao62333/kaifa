@@ -788,12 +788,15 @@ describe('Controller - AdminManage', () => {
   });
 
   describe('permissions / current admin', () => {
-    it('getPermissions returns permission list', async () => {
+    it('getPermissions returns module ids + permission-key truth source', async () => {
       const res = mockRes();
       await adminManageController.getPermissions(mockReq(), res);
       const data = res.json.mock.calls[0][0].data;
-      expect(Array.isArray(data)).toBe(true);
-      expect(data.length).toBeGreaterThan(0);
+      expect(Array.isArray(data.modules)).toBe(true);
+      expect(data.modules.length).toBeGreaterThan(0);
+      expect(Array.isArray(data.permissions)).toBe(true);
+      expect(data.permissions.some((p) => p.key === 'user:read')).toBe(true);
+      expect(data.permissions.some((p) => p.key === 'settings:write')).toBe(true);
     });
 
     it('getCurrentAdmin returns 401 without admin and data with admin', async () => {

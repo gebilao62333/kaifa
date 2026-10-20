@@ -1,9 +1,9 @@
 <template>
-  <div class="not-found">
-    <div class="code">404</div>
-    <p class="text">页面不存在或已被移除</p>
+  <view class="not-found">
+    <view class="code">404</view>
+    <view class="text">页面不存在或已被移除</view>
     <button class="btn" type="button" @click="goHome">返回首页</button>
-  </div>
+  </view>
 </template>
 
 <script setup>

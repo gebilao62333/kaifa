@@ -6,4 +6,3 @@ onlyBuiltDependencies:
   - vue-demi
 nodeLinker: hoisted
 verifyDepsBeforeRun: false
-dangerouslyAllowAllBuilds: true

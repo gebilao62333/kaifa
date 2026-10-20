@@ -1,67 +1,67 @@
 <template>
-  <div class="report-modal-overlay" v-if="visible" @click.self="close">
-    <div class="report-modal">
-      <div class="modal-header">
-        <span class="modal-title">🚨 举报内容</span>
-        <span class="modal-close" @click="close">✕</span>
-      </div>
+  <view class="report-modal-overlay" v-if="visible" @click.self="close">
+    <view class="report-modal">
+      <view class="modal-header">
+        <text class="modal-title">🚨 举报内容</text>
+        <text class="modal-close" @click="close">✕</text>
+      </view>
 
-      <div class="modal-body">
-        <div class="report-type-section">
-          <div class="section-label">举报类型</div>
-          <div class="type-grid">
-            <span
+      <view class="modal-body">
+        <view class="report-type-section">
+          <view class="section-label">举报类型</view>
+          <view class="type-grid">
+            <text
               v-for="type in reportTypes"
               :key="type.id"
               :class="['type-item', { active: selectedType === type.id }]"
               @click="selectedType = type.id"
             >
               {{ type.name }}
-            </span>
-          </div>
-        </div>
+            </text>
+          </view>
+        </view>
 
-        <div class="report-reason-section">
-          <div class="section-label">举报原因</div>
-          <div class="reason-list">
-            <div
+        <view class="report-reason-section">
+          <view class="section-label">举报原因</view>
+          <view class="reason-list">
+            <view
               v-for="reason in reasons"
               :key="reason.id"
               :class="['reason-item', { active: selectedReason === reason.id }]"
               @click="selectedReason = reason.id"
             >
-              <span class="reason-icon">{{ selectedReason === reason.id ? '✓' : '' }}</span>
-              <span class="reason-text">{{ reason.name }}</span>
-            </div>
-          </div>
-        </div>
+              <text class="reason-icon">{{ selectedReason === reason.id ? '✓' : '' }}</text>
+              <text class="reason-text">{{ reason.name }}</text>
+            </view>
+          </view>
+        </view>
 
-        <div class="report-desc-section">
-          <div class="section-label">补充说明（选填）</div>
+        <view class="report-desc-section">
+          <view class="section-label">补充说明（选填）</view>
           <textarea name="description"
             class="desc-input"
             v-model="description"
             placeholder="请详细描述举报原因，有助于我们更快处理..."
             rows="4"
           ></textarea>
-          <div class="desc-length">{{ description.length }}/200</div>
-        </div>
+          <view class="desc-length">{{ description.length }}/200</view>
+        </view>
 
-        <div class="upload-evidence">
-          <div class="section-label">上传证据（选填）</div>
-          <div class="evidence-grid">
-            <div
+        <view class="upload-evidence">
+          <view class="section-label">上传证据（选填）</view>
+          <view class="evidence-grid">
+            <view
               v-for="(img, index) in evidenceImages"
               :key="index"
               class="evidence-item"
             >
-              <img :src="img.url" class="evidence-img" />
-              <span class="evidence-remove" @click="removeEvidence(index)">✕</span>
-            </div>
-            <div class="evidence-add" @click="triggerFileInput" v-if="evidenceImages.length < 3">
-              <span class="add-icon">{{ uploading ? '…' : '+' }}</span>
-              <span class="add-text">{{ uploading ? '上传中' : '添加图片' }}</span>
-            </div>
+              <image mode="aspectFill" :src="img.url" class="evidence-img" />
+              <text class="evidence-remove" @click="removeEvidence(index)">✕</text>
+            </view>
+            <view class="evidence-add" @click="triggerFileInput" v-if="evidenceImages.length < 3">
+              <text class="add-icon">{{ uploading ? '…' : '+' }}</text>
+              <text class="add-text">{{ uploading ? '上传中' : '添加图片' }}</text>
+            </view>
             <input
               ref="fileInputRef"
               type="file"
@@ -69,33 +69,35 @@
               class="evidence-file-input"
               @change="handleFileChange"
             />
-          </div>
-        </div>
-      </div>
+          </view>
+        </view>
+      </view>
 
-      <div class="modal-footer">
+      <view class="modal-footer">
         <button class="cancel-btn" @click="close">取消</button>
         <button class="submit-btn" @click="submitReport" :disabled="!canSubmit">
           提交举报
         </button>
-      </div>
+      </view>
 
-      <div class="success-modal" v-if="showSuccess">
-        <div class="success-content">
-          <span class="success-icon">✅</span>
-          <span class="success-text">举报成功</span>
-          <span class="success-desc">感谢您的反馈，我们会尽快处理</span>
+      <view class="success-modal" v-if="showSuccess">
+        <view class="success-content">
+          <text class="success-icon">✅</text>
+          <text class="success-text">举报成功</text>
+          <text class="success-desc">感谢您的反馈，我们会尽快处理</text>
           <button class="success-btn" @click="confirmSuccess">确定</button>
-        </div>
-      </div>
-    </div>
-  </div>
+        </view>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
 import reportService from '../../services/reportService'
 import { uploadImage } from '../../services/uploadService'
+import { chooseImages } from '../../services/mediaPicker'
+import { isApp } from '../../common/platform'
 import { toast } from '../../composables/useToast'
 
 const props = defineProps({
@@ -124,6 +126,8 @@ const evidenceImages = ref([])
 const showSuccess = ref(false)
 const submitting = ref(false)
 const uploading = ref(false)
+// 举报凭证最多 3 张（与模板里的 evidenceImages.length < 3 保持一致）
+const MAX_EVIDENCE = 3
 
 const reportTypes = [
   { id: 'spam', name: '垃圾广告' },
@@ -168,19 +172,28 @@ const close = () => {
   emit('close')
 }
 
-const triggerFileInput = () => {
-  fileInputRef.value?.click()
+// App 端没有可点击的 <input type=file>，统一走 mediaPicker（相册/相机）
+const triggerFileInput = async () => {
+  if (!isApp) { fileInputRef.value?.click(); return }
+  if (uploading.value) return
+  const remaining = MAX_EVIDENCE - evidenceImages.value.length
+  if (remaining <= 0) return
+  try {
+    const { supported, files } = await chooseImages(remaining)
+    if (supported && files.length) await applyEvidenceFiles(files)
+  } catch (err) {
+    toast.error(err.message || '选择图片失败')
+  }
 }
 
-const handleFileChange = async (event) => {
-  const files = Array.from(event.target.files || [])
-  event.target.value = ''
-  if (!files.length) return
+// H5 与 App 共用：H5 传 File，App 传 mediaPicker 的 { path, name, type, size }
+const applyEvidenceFiles = async (files) => {
+  if (!files.length || uploading.value) return
 
   uploading.value = true
   try {
     for (const file of files) {
-      if (evidenceImages.value.length >= 3) break
+      if (evidenceImages.value.length >= MAX_EVIDENCE) break
       const res = await uploadImage(file)
       const url = res?.data?.url
       if (url) evidenceImages.value.push({ url })
@@ -190,6 +203,12 @@ const handleFileChange = async (event) => {
   } finally {
     uploading.value = false
   }
+}
+
+const handleFileChange = async (event) => {
+  const files = Array.from(event.target.files || [])
+  event.target.value = ''
+  await applyEvidenceFiles(files)
 }
 
 const removeEvidence = (index) => {

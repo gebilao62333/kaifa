@@ -24,6 +24,32 @@ const getPhotos = async (req, res) => {
   }
 };
 
+// U-13：查看他人主页公开相册
+const getUserPhotos = async (req, res) => {
+  try {
+    const targetUserId = parseInt(req.params.userId);
+    if (!targetUserId) return response.badRequest(res, '用户ID不能为空');
+    const { page = 1, pageSize = 12 } = req.query;
+    const result = await albumService.getUserPublicPhotos(
+      targetUserId,
+      req.userId,
+      parseInt(page),
+      parseInt(pageSize)
+    );
+    if (result && Array.isArray(result.list)) {
+      result.list = await Promise.all(result.list.map(async (p) => {
+        if (p.url) p.url = await cosSignedUrlService.getSignedAccessUrl(p.url);
+        if (p.thumbnail) p.thumbnail = await cosSignedUrlService.getSignedAccessUrl(p.thumbnail);
+        return p;
+      }));
+    }
+    response.success(res, result);
+  } catch (error) {
+    logger.error('获取用户相册错误:', error);
+    response.error(res, error.message);
+  }
+};
+
 const uploadPhoto = async (req, res) => {
   try {
     const { url, description, privacy, password, price } = req.body;
@@ -86,6 +112,7 @@ const likePhoto = async (req, res) => {
 
 module.exports = {
   getPhotos,
+  getUserPhotos,
   uploadPhoto,
   deletePhoto,
   likePhoto

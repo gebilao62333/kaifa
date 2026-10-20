@@ -1,4 +1,5 @@
 const { payService, wechatPayService } = require('../services');
+const alipayPayService = require('../services/alipayPayService');
 // 只借用错误码常量：入账逻辑仍通过上面聚合入口调用，便于单测替换 service，
 // 而 controller 分流 HTTP 状态时需要一份不会变的契约（code），而不是靠比对中文文案。
 const { PAY_ERRORS } = require('../services/payService');
@@ -56,21 +57,54 @@ const createOrder = async (req, res) => {
   }
 };
 
-const createWxOrder = async (req, res) => {
+// 支付宝 SDK 预留入口：仅做配置检查与占位，不生成真实支付单
+const createAlipayOrder = async (req, res) => {
   try {
     const { packageId } = req.body;
+    if (!packageId) return response.badRequest(res, '套餐ID不能为空');
+    if (!alipayPayService.isConfigured()) {
+      return response.serviceUnavailable(res, '支付宝 SDK 已预留，待配置商户参数后开放');
+    }
+    const order = await alipayPayService.createOrder(req.userId, parseInt(packageId));
+    response.success(res, order);
+  } catch (error) {
+    logger.error('创建支付宝订单错误:', error);
+    if (error.code === 'ALIPAY_NOT_CONFIGURED') {
+      return response.serviceUnavailable(res, error.message);
+    }
+    response.unprocessableEntity(res, error.message);
+  }
+};
+
+const createWxOrder = async (req, res) => {
+  try {
+    const { packageId, tradeType, openid } = req.body;
     
     if (!packageId) {
       return response.badRequest(res, '套餐ID不能为空');
     }
-    
-    const order = await wechatPayService.createUnifiedOrder(req.userId, parseInt(packageId));
-    const jsApiParams = wechatPayService.getJsApiSign(order.prepayId);
+
+    // 依赖未配置属于环境问题（503），不要伪装成业务 422
+    if (!wechatPayService.isConfigured()) {
+      return response.serviceUnavailable(res, '微信支付未配置，请使用卡密充值');
+    }
+
+    const order = await wechatPayService.createUnifiedOrder(
+      req.userId,
+      parseInt(packageId),
+      { tradeType, openid }
+    );
+    // JSAPI 才需要前端调起 WeixinJSBridge；NATIVE 用 code_url 渲染二维码
+    const jsApiParams = order.tradeType === 'JSAPI' && order.prepayId
+      ? wechatPayService.getJsApiSign(order.prepayId)
+      : null;
     
     response.success(res, {
       orderId: order.orderId,
       orderNo: order.orderNo,
       amount: order.amount,
+      tradeType: order.tradeType || 'NATIVE',
+      codeUrl: order.codeUrl || '',
       jsApiParams
     });
   } catch (error) {
@@ -410,6 +444,10 @@ const getPaymentHistory = async (req, res) => {
   }
 };
 
+/**
+ * @deprecated 兼容别名（POST /api/pay/pay/create）：与 createOrder（POST /api/pay/create-order）逻辑等价，
+ * 仅成功文案不同。2026-10-20 盘点决定保留兼容，不删除、不改行为；新调用用 createOrder。
+ */
 const createPayment = async (req, res) => {
   try {
     const { packageId, payType = 1 } = req.body;
@@ -457,6 +495,7 @@ module.exports = {
   getPackages,
   createOrder,
   createWxOrder,
+  createAlipayOrder,
   wxNotify,
   queryWxOrder,
   closeWxOrder,

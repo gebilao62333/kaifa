@@ -92,11 +92,20 @@ const request = (url, data, isPost = true) => {
   });
 };
 
-const createUnifiedOrder = async (userId, packageId) => {
+// tradeType:
+//   - NATIVE（默认）：PC/H5 扫码支付，统一下单返回 code_url，前端渲染二维码；
+//   - JSAPI：微信内浏览器支付，必须由调用方提供 openid（需公众号网页授权，当前链路未接入）。
+const createUnifiedOrder = async (userId, packageId, options = {}) => {
   const pkg = await RechargePackage.findByPk(packageId);
   
   if (!pkg || pkg.status !== 1) {
     throw new Error('充值套餐不存在');
+  }
+
+  const tradeType = options.tradeType === 'JSAPI' ? 'JSAPI' : 'NATIVE';
+  const openid = String(options.openid || '');
+  if (tradeType === 'JSAPI' && !openid) {
+    throw new Error('微信内支付需要 openid，请改用扫码支付');
   }
 
   const orderNo = generateOrderNo();
@@ -111,9 +120,9 @@ const createUnifiedOrder = async (userId, packageId) => {
     total_fee: totalFee,
     spbill_create_ip: '127.0.0.1',
     notify_url: config.notifyUrl,
-    trade_type: 'JSAPI',
-    openid: ''
+    trade_type: tradeType
   };
+  if (tradeType === 'JSAPI') params.openid = openid;
 
   params.sign = buildSign(params);
 
@@ -135,6 +144,8 @@ const createUnifiedOrder = async (userId, packageId) => {
       orderId: order.id,
       orderNo: orderNo,
       prepayId: result.prepay_id,
+      codeUrl: tradeType === 'NATIVE' ? (result.code_url || '') : '',
+      tradeType,
       amount: Number(pkg.price)
     };
   } catch (error) {

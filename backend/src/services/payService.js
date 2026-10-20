@@ -4,6 +4,8 @@ const { CURRENCY_UNIT, validateGoldCoins } = require('../utils/currency');
 const logger = require('../utils/logger');
 const { Op } = require('sequelize');
 const crypto = require('crypto');
+// 《未完成事项清单》B-10：卡密密码静态加密（与实名 PII 共用 pii 工具；存量明文行透明兼容）
+const pii = require('../utils/pii');
 
 // 审计 H-2：支付入账相关业务错误的稳定标识。
 // controller 按 code 分流 HTTP 状态码，不靠 message 文案匹配（文案会为体验改写，code 才是契约）。
@@ -204,8 +206,8 @@ const resolveCardCoins = (card) => {
 //   - 只比卡号（原实现）等于「拿到卡号即可入账」，密码形同虚设；
 //   - 卡号/密码不匹配一律回同一条文案，避免免登录枚举出「哪些卡号存在」；
 //   - 比对先做 sha256 摘要再 timingSafeEqual，不直接 `===` 比明文（长度与逐字符早退都会泄露信息）。
-// 卡密密码目前明文存于 xn_card.card_password（管理端列表要展示给发卡方），
-// 因此这里只能做恒定时间比较，落库加密列为遗留项。
+// B-10 起卡密密码静态加密存于 xn_card.card_password（管理端列表展示时解密），
+// 这里先解密再恒定时间比较；存量明文行由 pii.decryptField 原样返回，行为与历史一致。
 const CARD_CREDENTIAL_ERROR = '卡号或密码错误';
 
 const safeCompare = (a, b) => {
@@ -226,7 +228,12 @@ const findCardByCredentials = async (cardCode, cardPwd) => {
   if (!card) {
     return null;
   }
-  if (!card.card_password || !safeCompare(card.card_password, pwd)) {
+  if (!card.card_password) {
+    return null;
+  }
+  // 密文先解密；若密钥缺失导致解密为空，按「密码错误」拒绝（不泄露内部原因）
+  const storedPwd = pii.decryptField(card.card_password);
+  if (!storedPwd || !safeCompare(storedPwd, pwd)) {
     return null;
   }
   return card;

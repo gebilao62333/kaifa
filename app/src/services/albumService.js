@@ -8,6 +8,11 @@ export const albumService = {
     return request('/api/album/photos', 'GET', { page, pageSize: PAGE_SIZE })
   },
 
+  // U-13：他人主页公开相册
+  async getUserPhotos(userId, page = 1) {
+    return request(`/api/album/user/${userId}`, 'GET', { page, pageSize: PAGE_SIZE })
+  },
+
   // 前端直传 COS：先拿到真实访问 URL，再交给后端登记入库（只存 URL，不占服务器带宽）
   async uploadPhoto(file, description = '', privacy = 'public', password = '', price = 0) {
     const result = await uploadFile(file, 'image')

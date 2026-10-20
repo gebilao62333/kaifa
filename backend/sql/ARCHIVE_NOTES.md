@@ -43,7 +43,7 @@ fix_columns.sql、fix_companion_profile.sql、fix_status_types.sql、init_data.s
 上表中"需单独决策"的脚本已**全部移入 `archive/` 子目录**；2026-10-03 又把根目录两个初始化脚本加上序号前缀，
 `sql/` 根目录现在只保留：
 
-- `01_init_schema.sql` —— 唯一权威建表脚本（43 张表，与 Sequelize 模型逐列对齐）
+- `01_init_schema.sql` —— 唯一权威建表脚本（**43 张表 / 44 个模型**；`xn_notice` 由启动迁移 `20261020000000_add_notice.js` 建表，本脚本尚未同步该表，其余表逐列对齐）
 - `02_init_data.sql` —— 初始化数据（字段与 01_init_schema 一致）
 
 > **为什么必须带序号**：`docker-compose.yml` 把整个 `backend/sql` 目录挂载为 MySQL 容器的
@@ -70,6 +70,9 @@ mysql -u root -p --default-character-set=utf8mb4 eudazi_peer < 02_init_data.sql
 > `archive/` 里的脚本**不要**放在这个目录的顶层，否则 Docker 首次初始化会自动执行（顺序也不受控）。
 >
 > 注意：后端**不调用 `sequelize.sync()`**，修改模型后必须同步更新 `01_init_schema.sql`。
+>
+> **迁移与建表脚本的分工（2026-10-20 补）**：后端启动时默认执行 `src/migrations/` 下的自动迁移（`runMigrations`，16 个迁移文件 / 17 步，可用 `AUTO_MIGRATE=false` 关闭）；`01_init_schema.sql` 是基线建表，之后新增的结构（`xn_notice`、`xn_user.mobile_hash`、`xn_card.card_password` 宽列等）由启动迁移补齐。
+> 其中两个**宽列迁移**（`20261003000002_widen_user_id_and_ip`、`20261004000002_widen_pii_columns`）受 `AUTO_MIGRATE_WIDEN_COLUMNS` 控制：未设置时非生产执行、**生产默认跳过**；生产上线窗口须显式设 `AUTO_MIGRATE_WIDEN_COLUMNS=true`，或手工执行这两个迁移——顺序必须在配置 `PII_ENCRYPTION_KEY` 之前，否则密文会被旧列宽截断。
 
 ## 确认现有库执行状态的方法
 

@@ -13,6 +13,7 @@ export function addIceCandidate(userId: string, candidate: string, sdpMid: strin
 export function startLocalAudio(): void {}
 export function startLocalVideo(): void {}
 export function muteAudio(muted: boolean): void {}
+export function muteVideo(muted: boolean): void {}
 export function switchCamera(): void {}
 export function setSpeaker(on: boolean): void {}
 export function hangup(): void {}

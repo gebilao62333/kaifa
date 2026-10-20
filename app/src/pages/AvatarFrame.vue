@@ -1,44 +1,44 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">专属头像框</span>
-      <span class="placeholder"></span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">专属头像框</text>
+      <text class="placeholder"></text>
     </template>
 
-    <div class="content">
-      <div class="preview-card">
-        <div class="preview-label">预览效果</div>
-        <div class="preview-body">
-          <div class="preview-avatar-wrap">
-            <div class="frame-preview" :style="selectedFrame.style">
-              <img class="preview-avatar" :src="userAvatar" alt="" />
-            </div>
-            <div class="frame-name-preview">{{ selectedFrame.name }}</div>
-          </div>
-        </div>
-      </div>
+    <view class="content">
+      <view class="preview-card">
+        <view class="preview-label">预览效果</view>
+        <view class="preview-body">
+          <view class="preview-avatar-wrap">
+            <view class="frame-preview" :style="selectedFrame.style">
+              <image mode="aspectFill" class="preview-avatar" :src="userAvatar" alt="" />
+            </view>
+            <view class="frame-name-preview">{{ selectedFrame.name }}</view>
+          </view>
+        </view>
+      </view>
 
-      <div class="frame-section" v-for="group in frameGroups" :key="group.name">
-        <div class="section-title">{{ group.name }}</div>
-        <div class="frame-grid">
-          <div
+      <view class="frame-section" v-for="group in frameGroups" :key="group.name">
+        <view class="section-title">{{ group.name }}</view>
+        <view class="frame-grid">
+          <view
             class="frame-item"
             v-for="frame in group.list"
             :key="frame.id"
             :class="{ active: selectedId === frame.id, locked: frame.locked }"
             @click="selectFrame(frame)"
           >
-            <div class="frame-preview" :style="frame.style">
-              <img class="frame-avatar" :src="userAvatar" alt="" />
-            </div>
-            <div class="frame-name">{{ frame.name }}</div>
-            <div class="frame-condition" v-if="frame.locked">{{ frame.condition }}</div>
-            <div class="frame-check" v-if="!frame.locked && selectedId === frame.id">✓</div>
-          </div>
-        </div>
-      </div>
-    </div>
+            <view class="frame-preview" :style="frame.style">
+              <image mode="aspectFill" class="frame-avatar" :src="userAvatar" alt="" />
+            </view>
+            <view class="frame-name">{{ frame.name }}</view>
+            <view class="frame-condition" v-if="frame.locked">{{ frame.condition }}</view>
+            <view class="frame-check" v-if="!frame.locked && selectedId === frame.id">✓</view>
+          </view>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
@@ -49,6 +49,7 @@ import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
 import { DEFAULT_AVATAR } from '@/common/constants'
 import userPrefService from '../services/userPrefService'
+import storage from '../common/storage'
 
 const router = useRouter()
 
@@ -110,7 +111,7 @@ const selectFrame = (frame) => {
   selectedFrame.name = frame.name
   selectedFrame.style = { ...frame.style }
   const payload = { id: frame.id, name: frame.name, style: frame.style }
-  localStorage.setItem('selectedAvatarFrame', JSON.stringify(payload))
+  storage.setItem('selectedAvatarFrame', JSON.stringify(payload))
   // 同步到服务端偏好
   userPrefService.save({ selectedAvatarFrame: payload }).catch(() => {})
 }

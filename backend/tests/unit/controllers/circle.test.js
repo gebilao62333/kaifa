@@ -313,8 +313,18 @@ describe('Controller - Circle', () => {
 
       await circleController.getComments(req, res);
 
-      expect(circleService.getComments).toHaveBeenCalledWith(1, 1, 10);
+      expect(circleService.getComments).toHaveBeenCalledWith(100001, 1, 1, 10);
       expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it('maps hidden-post comments to 403', async () => {
+      circleService.getComments.mockRejectedValue(new Error('无权查看该动态评论'));
+      const req = mockReq({ query: { postId: '1' } });
+      const res = mockRes();
+
+      await circleController.getComments(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
     });
   });
 

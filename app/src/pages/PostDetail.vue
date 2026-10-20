@@ -1,49 +1,60 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">动态详情</span>
-      <span class="more-btn" @click="showReport = true">•••</span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">动态详情</text>
+      <text class="more-btn" @click="showReport = true">•••</text>
     </template>
     
-    <div class="post-content" v-if="!loading">
-      <div class="locked-view" v-if="postData.locked">
-        <div class="lock-icon">🔒</div>
-        <div class="lock-title">该动态为私密内容</div>
-        <div class="lock-desc" v-if="postData.privateType === 2">
+    <view class="post-content" v-if="!loading">
+      <view class="locked-view" v-if="postData.locked">
+        <view class="lock-icon">🔒</view>
+        <view class="lock-title">该动态为私密内容</view>
+        <view class="lock-desc" v-if="postData.privateType === 2">
           解锁需 {{ postData.privatePrice }} 金币
-        </div>
-        <div class="lock-desc" v-else>
+        </view>
+        <view class="lock-desc" v-else-if="postData.privateType === 1">
           输入密码即可查看
-        </div>
+        </view>
+        <view class="lock-desc" v-else-if="postData.privateType === 3">
+          仅关注该作者的人可以查看
+        </view>
+        <view class="lock-desc" v-else>
+          该动态仅作者本人可见
+        </view>
         <input 
           class="lock-input" 
-          v-if="postData.privateType !== 2" 
+          v-if="postData.privateType === 1 || postData.privateType === 2" 
           v-model="unlockPassword"
           type="password" 
           placeholder="请输入解锁密码"
           @keyup.enter="handleUnlock"
         />
-        <button class="unlock-btn" :disabled="unlocking" @click="handleUnlock">
+        <button
+          class="unlock-btn"
+          v-if="postData.privateType === 1 || postData.privateType === 2"
+          :disabled="unlocking"
+          @click="handleUnlock"
+        >
           {{ unlocking ? '解锁中...' : (postData.privateType === 2 ? '支付解锁' : '立即解锁') }}
         </button>
-      </div>
+      </view>
 
       <template v-else>
-      <div class="user-info" @click="goUserProfile">
-        <img class="avatar" :src="postData.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200'" alt="" />
-        <div class="info">
-          <div class="nickname">{{ postData.nickName }}</div>
-          <div class="time">{{ formatTime(postData.createTime) }}</div>
-        </div>
-        <span class="follow-btn" v-if="postData.isFollow">已关注</span>
-        <span class="follow-btn not-follow" v-else @click="follow">+ 关注</span>
-      </div>
+      <view class="user-info" @click="goUserProfile">
+        <image mode="aspectFill" class="avatar" :src="postData.avatar || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200'" alt="" />
+        <view class="info">
+          <view class="nickname">{{ postData.nickname }}</view>
+          <view class="time">{{ formatTime(postData.createTime) }}</view>
+        </view>
+        <text class="follow-btn" v-if="postData.isFollow">已关注</text>
+        <text class="follow-btn not-follow" v-else @click="follow">+ 关注</text>
+      </view>
       
-      <div class="content-text">{{ postData.content }}</div>
+      <view class="content-text">{{ postData.content }}</view>
       
-      <div class="images-grid" v-if="postData.images && postData.images.length">
-        <img 
+      <view class="images-grid" v-if="postData.images && postData.images.length">
+        <image mode="aspectFill" 
           class="image" 
           v-for="(img, index) in postData.images" 
           :key="index" 
@@ -51,81 +62,81 @@
           :alt="'图片' + index"
           @click="previewImage(img)"
         />
-      </div>
+      </view>
       
-      <div class="post-tag" v-if="postData.tagName">#{{ postData.tagName }}</div>
+      <view class="post-tag" v-if="postData.tagName">#{{ postData.tagName }}</view>
       
-      <div class="action-bar">
-        <div class="action-item" @click="toggleLike">
-          <span class="icon">{{ postData.isLike ? '❤️' : '🤍' }}</span>
-          <span class="count">{{ postData.likes || 0 }}</span>
-        </div>
-        <div class="action-item">
-          <span class="icon">💬</span>
-          <span class="count">{{ postData.comments || 0 }}</span>
-        </div>
-        <div class="action-item" @click="openSharePopup">
-          <span class="icon">📤</span>
-          <span class="text">分享</span>
-        </div>
-      </div>
+      <view class="action-bar">
+        <view class="action-item" @click="toggleLike">
+          <text class="icon">{{ postData.isLiked ? '❤️' : '🤍' }}</text>
+          <text class="count">{{ postData.likes || 0 }}</text>
+        </view>
+        <view class="action-item">
+          <text class="icon">💬</text>
+          <text class="count">{{ postData.comments || 0 }}</text>
+        </view>
+        <view class="action-item" @click="openSharePopup">
+          <text class="icon">📤</text>
+          <text class="text">分享</text>
+        </view>
+      </view>
       </template>
-    </div>
+    </view>
     
-    <div class="loading-state" v-else>
-      <div class="loading-spinner"></div>
-      <p>加载中...</p>
-    </div>
+    <view class="loading-state" v-else>
+      <view class="loading-spinner"></view>
+      <view>加载中...</view>
+    </view>
     
-    <div class="comments-section">
-      <div class="section-header">
-        <span class="title">评论 ({{ commentList.length }})</span>
-      </div>
+    <view class="comments-section">
+      <view class="section-header">
+        <text class="title">评论 ({{ commentTotal }})</text>
+      </view>
       
-      <div class="comment-list">
-        <div class="comment-item" v-for="comment in commentList" :key="comment.id">
-          <img class="comment-avatar" :src="comment.avatar" alt="" />
-          <div class="comment-content">
-            <div class="comment-user">
-              <span class="comment-nickname">{{ comment.nickName }}</span>
-              <span class="comment-time">{{ formatTime(comment.createTime) }}</span>
-            </div>
-            <div class="comment-text">{{ comment.content }}</div>
-            <div class="comment-actions">
-              <span class="comment-reply" @click="replyTo(comment)">回复</span>
-              <span class="comment-like">{{ comment.isLike ? '❤️' : '🤍' }} {{ comment.likes }}</span>
-            </div>
-            <div class="reply-list" v-if="comment.replyList && comment.replyList.length">
-              <div class="reply-item" v-for="reply in comment.replyList" :key="reply.id">
-                <span class="reply-nickname">{{ reply.nickName }}:</span>
-                <span class="reply-text">{{ reply.content }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <view class="comment-list">
+        <view class="comment-item" v-for="comment in commentList" :key="comment.commentId">
+          <image mode="aspectFill" class="comment-avatar" :src="comment.avatar" alt="" />
+          <view class="comment-content">
+            <view class="comment-user">
+              <text class="comment-nickname">{{ comment.nickname }}</text>
+              <text class="comment-time">{{ formatTime(comment.createTime) }}</text>
+            </view>
+            <view class="comment-text">{{ comment.content }}</view>
+            <view class="comment-actions">
+              <text class="comment-reply" @click="replyTo(comment)">回复</text>
+              <text class="comment-like">{{ comment.isLike ? '❤️' : '🤍' }} {{ comment.likes }}</text>
+            </view>
+            <view class="reply-list" v-if="comment.replyList && comment.replyList.length">
+              <view class="reply-item" v-for="reply in comment.replyList" :key="reply.id">
+                <text class="reply-nickname">{{ reply.nickName }}:</text>
+                <text class="reply-text">{{ reply.content }}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
     
-    <div class="bottom-bar">
-      <div class="input-wrapper">
+    <view class="bottom-bar">
+      <view class="input-wrapper">
         <input 
           class="input" 
           :placeholder="'评论...'" 
           v-model="commentText"
           @keyup.enter="sendComment"
         />
-        <div class="tools">
-          <span class="tool">😊</span>
-          <span class="tool">📷</span>
-          <span class="send-btn" @click="sendComment">发送</span>
-        </div>
-      </div>
-    </div>
+        <view class="tools">
+          <text class="tool">😊</text>
+          <text class="tool">📷</text>
+          <text class="send-btn" @click="sendComment">发送</text>
+        </view>
+      </view>
+    </view>
 
     <SharePopup
       :visible="shareVisible"
       :postId="postId"
-      :postNickname="postData.nickName || ''"
+      :postNickname="postData.nickname || ''"
       :postContent="postData.content || ''"
       :postShareUrl="shareUrl"
       @close="shareVisible = false"
@@ -145,6 +156,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter, useRoute } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import SharePopup from '../components/SharePopup.vue'
@@ -152,6 +164,7 @@ import ReportModal from '../components/report-modal/report-modal.vue'
 import circleService from '../services/circleService'
 import authService from '../services/authService'
 import { toast } from '../composables/useToast'
+import { isApp } from '../common/platform'
 
 const router = useRouter()
 const route = useRoute()
@@ -160,6 +173,7 @@ const loading = ref(true)
 const postId = ref(null)
 const postData = ref({})
 const commentList = ref([])
+const commentTotal = ref(0)
 const commentText = ref('')
 const replyToId = ref(null)
 const unlockPassword = ref('')
@@ -187,17 +201,18 @@ const formatTime = (timestamp) => {
   return `${date.getMonth() + 1}-${date.getDate()}`
 }
 
-const loadPostDetail = async () => {
+const loadPostDetail = async (silent = false) => {
   try {
-    loading.value = true
+    // silent=true：onShow 静默刷新，不闪整页 loading
+    if (!silent) loading.value = true
     const res = await circleService.getPostDetail(postId.value)
     const payload0 = res && res.data !== undefined ? res.data : res
     postData.value = (payload0 && typeof payload0 === 'object') ? payload0 : {}
   } catch (err) {
     console.error('加载帖子详情失败:', err)
-    toast.error('加载帖子详情失败')
+    if (!silent) toast.error('加载帖子详情失败')
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
 }
 
@@ -254,13 +269,13 @@ const follow = async () => {
 
 const toggleLike = async () => {
   try {
-    if (postData.value.isLike) {
+    if (postData.value.isLiked) {
       await circleService.unlikePost(postId.value)
-      postData.value.isLike = false
+      postData.value.isLiked = false
       postData.value.likes = Math.max(0, (postData.value.likes || 0) - 1)
     } else {
       await circleService.likePost(postId.value)
-      postData.value.isLike = true
+      postData.value.isLiked = true
       postData.value.likes = (postData.value.likes || 0) + 1
     }
   } catch (err) {
@@ -270,7 +285,9 @@ const toggleLike = async () => {
 
 // 分享弹窗状态
 const shareVisible = ref(false)
-const shareUrl = window.location.href
+// App 端没有 window.location：详情链接用构建时注入的站点域名（VITE_API_ORIGIN，见 common/config.js）
+const siteOrigin = isApp ? String(import.meta.env.VITE_API_ORIGIN || '').replace(/\/+$/, '') : ''
+const shareUrl = isApp ? `${siteOrigin}/post-detail/${Number(route.params && route.params.id) || ''}` : window.location.href
 
 const openSharePopup = () => {
   shareVisible.value = true
@@ -287,14 +304,21 @@ const onReposted = () => {
 }
 
 const previewImage = (img) => {
+  // App 端没有 window.open：用 uni.previewImage 打开原生大图预览
+  if (isApp) {
+    if (typeof uni === 'undefined' || typeof uni.previewImage !== 'function') return
+    const images = Array.isArray(postData.value.images) && postData.value.images.length ? postData.value.images : [img]
+    uni.previewImage({ urls: images, current: img })
+    return
+  }
   // 审计低危项：新窗口打开外部图片必须带 noopener/noreferrer，否则被打开页面
   // 可通过 window.opener 反向操纵本页（tabnabbing）。
   window.open(img, '_blank', 'noopener,noreferrer')
 }
 
 const replyTo = (comment) => {
-  replyToId.value = comment.id
-  commentText.value = `回复 ${comment.nickName}：`
+  replyToId.value = comment.commentId
+  commentText.value = `回复 ${comment.nickname}：`
 }
 
 const sendComment = async () => {
@@ -312,6 +336,7 @@ const sendComment = async () => {
     if (postData.value.comments !== undefined) {
       postData.value.comments++
     }
+    commentTotal.value++
   } catch (err) {
     toast.error('评论失败，请重试')
   }
@@ -326,6 +351,18 @@ onMounted(() => {
     toast.error('帖子不存在')
     router.back()
   }
+})
+
+// 首次 onShow 跳过（onMounted 已首载）；从评论/举报等返回时静默刷新详情与评论
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  if (!postId.value) return
+  loadPostDetail(true)
+  loadComments()
 })
 </script>
 

@@ -71,4 +71,69 @@ describe('common/route - uni-app 路由兼容层', () => {
     expect(route.router.resolve('/post-detail/9')).toMatchObject({ route: { name: 'PostDetail' }, params: { id: '9' } })
     expect(route.router.resolve('/chat-room/3')).toMatchObject({ route: { name: 'ChatRoom' }, params: { id: '3' } })
   })
+
+  it('router.options.history.state.back：按页面栈深度判断能否返回（通话页 safeBack 依赖）', () => {
+    global.getCurrentPages = vi.fn(() => [{ route: 'pages/Home', options: {} }])
+    expect(route.router.options.history.state.back).toBe(false)
+    global.getCurrentPages = vi.fn(() => [{ route: 'pages/Home', options: {} }, { route: 'pages/Wallet', options: {} }])
+    expect(route.router.options.history.state.back).toBe(true)
+  })
+
+  it('setNavDirection 写入/清除 html[data-nav-dir]（主 Tab 滑动过渡）', () => {
+    route.setNavDirection('left')
+    expect(document.documentElement.getAttribute('data-nav-dir')).toBe('left')
+    route.setNavDirection(null)
+    expect(document.documentElement.hasAttribute('data-nav-dir')).toBe(false)
+  })
+
+  // 修复：resolve 现在把 '/' 与 '' 归一为 Home（MyReserve「回首页」按钮 push('/')）
+  it("resolve('/') 与 resolve('') 都解析到 Home", () => {
+    expect(route.router.resolve('/')).toMatchObject({ route: { name: 'Home' }, params: {} })
+    expect(route.router.resolve('')).toMatchObject({ route: { name: 'Home' } })
+    expect(route.canResolve('/')).toBe(true)
+  })
+
+  it('canResolve：动态路由与带 query 的路径可解析，未知路径不可解析', () => {
+    expect(route.canResolve('/post-detail/9')).toBe(true)
+    expect(route.canResolve('/chat-room/3?from=push')).toBe(true)
+    expect(route.canResolve({ name: 'UserProfile', params: { id: 3 } })).toBe(true)
+    expect(route.canResolve('/not-exist-route')).toBe(false)
+    expect(route.canResolve(null)).toBe(false)
+  })
+
+  it("push('/') 回首页（主 Tab 走 reLaunch）", () => {
+    route.router.push('/')
+    expect(global.uni.reLaunch).toHaveBeenCalledWith({ url: '/pages/Home' })
+  })
+
+  // 修复：syncFromLocation 的 H5 分支用真实 loc.pathname + loc.search 作 fullPath，
+  // 旧实现写死 pageRoute.path，深链登录回跳会丢掉 id/query
+  it('syncFromLocation：H5 用真实 pathname+search 作 fullPath', () => {
+    const original = { pathname: window.location.pathname, search: window.location.search }
+    try {
+      window.location.pathname = '/pages/PostDetail'
+      window.location.search = '?id=9&from=share'
+      route.syncFromLocation()
+      expect(route.useRoute().fullPath).toBe('/pages/PostDetail?id=9&from=share')
+      expect(route.useRoute().params.id).toBe('9')
+      expect(route.useRoute().query.from).toBe('share')
+    } finally {
+      window.location.pathname = original.pathname
+      window.location.search = original.search
+    }
+  })
+
+  it('syncFromLocation：旧链接的 fullPath 保留真实地址', () => {
+    const original = { pathname: window.location.pathname, search: window.location.search }
+    try {
+      window.location.pathname = '/post-detail/9'
+      window.location.search = '?from=share'
+      route.syncFromLocation()
+      expect(route.useRoute().fullPath).toBe('/post-detail/9?from=share')
+      expect(route.useRoute().params.id).toBe('9')
+    } finally {
+      window.location.pathname = original.pathname
+      window.location.search = original.search
+    }
+  })
 })

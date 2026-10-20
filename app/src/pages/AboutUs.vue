@@ -1,86 +1,86 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">关于我们</span>
-      <span class="placeholder"></span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">关于我们</text>
+      <text class="placeholder"></text>
     </template>
 
-    <div class="content">
-      <div class="logo-card">
-        <div class="logo-icon">🎮</div>
-        <div class="app-name">eu搭子</div>
-        <div class="app-version">版本 1.0.0</div>
-      </div>
+    <view class="content">
+      <view class="logo-card">
+        <view class="logo-icon">🎮</view>
+        <view class="app-name">eu搭子</view>
+        <view class="app-version">版本 1.0.0</view>
+      </view>
 
-      <div class="menu-list">
-        <div class="menu-item" @click="showPage('user')">
-          <span class="menu-text">用户协议</span>
-          <span class="menu-arrow">›</span>
-        </div>
-        <div class="menu-item" @click="showPage('privacy')">
-          <span class="menu-text">隐私政策</span>
-          <span class="menu-arrow">›</span>
-        </div>
-        <div class="menu-item">
-          <span class="menu-text">版本更新</span>
-          <span class="menu-tag">已是最新</span>
-          <span class="menu-arrow">›</span>
-        </div>
-        <div class="menu-item">
-          <span class="menu-text">给我们评分</span>
-          <span class="menu-arrow">›</span>
-        </div>
-        <div class="menu-item" @click="showContact">
-          <span class="menu-text">联系客服</span>
-          <span class="menu-arrow">›</span>
-        </div>
-      </div>
+      <view class="menu-list">
+        <view class="menu-item" @click="showPage('user')">
+          <text class="menu-text">用户协议</text>
+          <text class="menu-arrow">›</text>
+        </view>
+        <view class="menu-item" @click="showPage('privacy')">
+          <text class="menu-text">隐私政策</text>
+          <text class="menu-arrow">›</text>
+        </view>
+        <view class="menu-item">
+          <text class="menu-text">版本更新</text>
+          <text class="menu-tag">已是最新</text>
+          <text class="menu-arrow">›</text>
+        </view>
+        <view class="menu-item">
+          <text class="menu-text">给我们评分</text>
+          <text class="menu-arrow">›</text>
+        </view>
+        <view class="menu-item" @click="showContact">
+          <text class="menu-text">联系客服</text>
+          <text class="menu-arrow">›</text>
+        </view>
+      </view>
 
-      <div class="info-card">
-        <div class="info-title">公司信息</div>
-        <div class="info-item">
-          <span class="info-label">公司名称</span>
-          <span class="info-value">北京多客科技有限公司</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">成立时间</span>
-          <span class="info-value">2023年</span>
-        </div>
-        <div class="info-item">
-          <span class="info-label">官方网站</span>
-          <span class="info-value">www.eudazi.com</span>
-        </div>
-      </div>
+      <view class="info-card">
+        <view class="info-title">公司信息</view>
+        <view class="info-item">
+          <text class="info-label">公司名称</text>
+          <text class="info-value">北京多客科技有限公司</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">成立时间</text>
+          <text class="info-value">2023年</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">官方网站</text>
+          <text class="info-value">www.eudazi.com</text>
+        </view>
+      </view>
 
-      <div class="copyright">
+      <view class="copyright">
         Copyright © 2023-2024 多客科技
         <br />
         All Rights Reserved
-      </div>
-    </div>
+      </view>
+    </view>
 
-    <div class="modal" v-if="showModal" @click.self="closeModal">
-      <div class="modal-content">
-        <div class="modal-header">
-          <span class="modal-title">{{ modalTitle }}</span>
-          <span class="modal-close" @click="closeModal">×</span>
-        </div>
-        <div class="modal-body">
-          <div class="modal-text" v-if="modalType === 'contact'">
-            <p>客服热线：400-888-8888</p>
-            <p>服务时间：9:00-21:00</p>
-            <p>客服邮箱：service@eudazi.com</p>
-          </div>
-          <div class="modal-text" v-else>
-            <p>欢迎使用eu搭子平台！</p>
-            <p>在使用我们的服务前，请仔细阅读并理解本协议的全部内容。</p>
-            <p>我们将严格保护用户的个人信息安全。</p>
-            <p>更多详细内容请查看完整协议文档。</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <view class="modal" v-if="showModal" @click.self="closeModal">
+      <view class="modal-content">
+        <view class="modal-header">
+          <text class="modal-title">{{ modalTitle }}</text>
+          <text class="modal-close" @click="closeModal">×</text>
+        </view>
+        <view class="modal-body">
+          <view class="modal-text" v-if="modalType === 'contact'">
+            <view>客服热线：400-888-8888</view>
+            <view>服务时间：9:00-21:00</view>
+            <view>客服邮箱：service@eudazi.com</view>
+          </view>
+          <view class="modal-text" v-else>
+            <view>欢迎使用eu搭子平台！</view>
+            <view>在使用我们的服务前，请仔细阅读并理解本协议的全部内容。</view>
+            <view>我们将严格保护用户的个人信息安全。</view>
+            <view>更多详细内容请查看完整协议文档。</view>
+          </view>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
@@ -299,7 +299,7 @@ const closeModal = () => {
   overflow-y: auto;
 }
 
-.modal-text p {
+.modal-text view {
   font-size: 14px;
   color: #666;
   line-height: 1.8;

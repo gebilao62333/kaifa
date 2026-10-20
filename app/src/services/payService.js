@@ -11,9 +11,15 @@ const payService = {
     return request('/api/pay/create-order', 'POST', { packageId, payType })
   },
 
-  // 微信统一下单：返回 { orderId, orderNo, amount, jsApiParams }
-  async createWxOrder(packageId) {
-    return request('/api/pay/wx-order', 'POST', { packageId })
+  // 微信统一下单：返回 { orderId, orderNo, amount, tradeType, codeUrl, jsApiParams }
+  // NATIVE（默认）用于扫码支付；JSAPI 需要 openid（微信内网页授权，当前未接入）
+  async createWxOrder(packageId, options = {}) {
+    return request('/api/pay/wx-order', 'POST', { packageId, ...options })
+  },
+
+  // 支付宝 SDK 预留入口（后端未配置时 503）
+  async createAlipayOrder(packageId) {
+    return request('/api/pay/alipay-order', 'POST', { packageId })
   },
 
   // 第三方支付成功回调入账（生产环境由支付渠道服务端回调触发）
@@ -65,6 +71,11 @@ const payService = {
 
   async getWalletBalance() {
     return request('/api/pay/wallet/balance', 'GET')
+  },
+
+  // 支付/充值记录（xn_order_chong）
+  async getPaymentHistory(page = 1, pageSize = 20) {
+    return request('/api/pay/payment/history', 'GET', { page, pageSize })
   }
 }
 

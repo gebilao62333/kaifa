@@ -1,3 +1,5 @@
+import storage from '../common/storage'
+
 const STORAGE_KEY = 'notification_list'
 
 const NOTIFICATION_TYPES = {
@@ -18,7 +20,7 @@ let unreadCount = 0
 
 const loadFromStorage = () => {
   try {
-    const data = localStorage.getItem(STORAGE_KEY)
+    const data = storage.getItem(STORAGE_KEY)
     if (data) {
       notificationList = JSON.parse(data)
       unreadCount = notificationList.filter(n => !n.isRead).length
@@ -30,7 +32,7 @@ const loadFromStorage = () => {
 }
 
 const saveToStorage = () => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notificationList))
+  storage.setItem(STORAGE_KEY, JSON.stringify(notificationList))
 }
 
 const notifyListeners = () => {
@@ -177,7 +179,7 @@ export const notificationService = {
   clearAll() {
     notificationList = []
     unreadCount = 0
-    localStorage.removeItem(STORAGE_KEY)
+    storage.removeItem(STORAGE_KEY)
     notifyListeners()
   },
 

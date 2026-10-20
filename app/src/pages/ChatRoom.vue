@@ -1,36 +1,36 @@
 <template>
-  <div class="chat-room">
-    <div class="header">
-      <span class="back-btn" @click="goBack">←</span>
-      <div class="avatar-mini avatar-frame" :style="avatarFrameStyle" @click="goUserProfile">
-        <img :src="userInfo.avatar" alt="" v-img-fallback="userInfo.nickName" />
-      </div>
-      <span class="nickname">{{ userInfo.nickName }}</span>
-      <span class="badge-tag" v-if="selectedBadge" :style="selectedBadge.style">
-        <span class="badge-icon">{{ selectedBadge.icon }}</span>
+  <view class="chat-room">
+    <view class="header">
+      <text class="back-btn" @click="goBack">←</text>
+      <view class="avatar-mini avatar-frame" :style="avatarFrameStyle" @click="goUserProfile">
+        <SafeImage :src="userInfo.avatar" alt="" :fallback="userInfo.nickName" mode="aspectFill" />
+      </view>
+      <text class="nickname">{{ userInfo.nickName }}</text>
+      <text class="badge-tag" v-if="selectedBadge" :style="selectedBadge.style">
+        <text class="badge-icon">{{ selectedBadge.icon }}</text>
         {{ selectedBadge.label }}
-      </span>
-      <span class="online-status" v-if="userInfo.isOnline">在线</span>
-      <span class="more-btn" @click="showMoreMenu = true">•••</span>
-    </div>
+      </text>
+      <text class="online-status" v-if="userInfo.isOnline">在线</text>
+      <text class="more-btn" @click="showMoreMenu = true">•••</text>
+    </view>
     
-    <div class="messages" ref="messagesRef" @scroll="handleScroll">
-      <div class="date-divider" v-if="showDateDivider">
-        <span>{{ currentDateText }}</span>
-      </div>
+    <view class="messages" ref="messagesRef" @scroll="handleScroll">
+      <view class="date-divider" v-if="showDateDivider">
+        <text>{{ currentDateText }}</text>
+      </view>
 
-      <div v-if="messages.length === 0 && !loadingMessages" class="empty-chat">
-        <span class="empty-icon">💬</span>
-        <p>暂无消息，发送一条消息开始聊天吧</p>
-      </div>
+      <view v-if="messages.length === 0 && !loadingMessages" class="empty-chat">
+        <text class="empty-icon">💬</text>
+        <view>暂无消息，发送一条消息开始聊天吧</view>
+      </view>
       
-      <div v-for="(msg, index) in messages" :key="msg.id" :class="['message', msg.isOwn ? 'own' : 'other']">
-        <div class="avatar-wrap-frame" :class="[msg.isOwn ? 'own' : 'other']" :style="msg.isOwn ? {} : avatarFrameStyle">
-          <img class="avatar" :src="msg.isOwn ? myInfo.avatar : userInfo.avatar" alt="" v-img-fallback="msg.isOwn ? myInfo.nickName : userInfo.nickName" />
-        </div>
-        <div class="content">
-          <div class="time" v-if="shouldShowTime(index)">{{ formatTime(msg.createTime) }}</div>
-          <div 
+      <view v-for="(msg, index) in messages" :key="msg.id" :class="['message', msg.isOwn ? 'own' : 'other']">
+        <view class="avatar-wrap-frame" :class="[msg.isOwn ? 'own' : 'other']" :style="msg.isOwn ? {} : avatarFrameStyle">
+          <SafeImage class="avatar" :src="msg.isOwn ? myInfo.avatar : userInfo.avatar" alt="" :fallback="msg.isOwn ? myInfo.nickName : userInfo.nickName" mode="aspectFill" />
+        </view>
+        <view class="content">
+          <view class="time" v-if="shouldShowTime(index)">{{ formatTime(msg.createTime) }}</view>
+          <view 
             class="bubble" 
             @click="handleMessageClick(msg)"
             @contextmenu.prevent="showMessageMenu(msg, $event)"
@@ -39,108 +39,122 @@
               {{ msg.content }}
             </template>
             <template v-else-if="msg.type === 'image'">
-              <img class="image-msg" :src="msg.content" alt="" @click.stop="previewImage(msg)" />
+              <image mode="aspectFill" class="image-msg" :src="msg.content" alt="" @click.stop="previewImage(msg)" />
             </template>
             <template v-else-if="msg.type === 'video'">
-              <div class="video-msg" @click.stop="previewVideo(msg)">
-                <img class="video-thumbnail" :src="msg.thumbnail || msg.content" alt="" />
-                <span class="video-play-icon">▶️</span>
-                <span class="video-duration">{{ msg.duration }}</span>
-              </div>
+              <view class="video-msg" @click.stop="previewVideo(msg)">
+                <!-- App 端没有真实视频缩略图：本地临时路径或视频直链塞进 image 都会裂图，改深色占位 -->
+                <image v-if="!isApp" mode="scaleToFill" class="video-thumbnail" :src="msg.thumbnail || msg.content" alt="" />
+                <view v-else class="video-thumbnail video-thumbnail-placeholder"></view>
+                <text class="video-play-icon">▶️</text>
+                <text class="video-duration">{{ msg.duration }}</text>
+              </view>
             </template>
             <template v-else-if="msg.type === 'audio'">
-              <div class="audio-msg" @click.stop="toggleAudio(msg)">
-                <span class="icon" :class="{ playing: playingAudioId === msg.id }">
+              <view class="audio-msg" @click.stop="toggleAudio(msg)">
+                <text class="icon" :class="{ playing: playingAudioId === msg.id }">
                   {{ playingAudioId === msg.id ? '⏸️' : '🔊' }}
-                </span>
-                <span class="waveform" v-if="playingAudioId === msg.id">
-                  <span v-for="i in 5" :key="i" class="bar" :style="{ animationDelay: `${i * 0.1}s` }"></span>
-                </span>
-                <span class="duration">{{ msg.duration }}''</span>
-              </div>
+                </text>
+                <text class="waveform" v-if="playingAudioId === msg.id">
+                  <text v-for="i in 5" :key="i" class="bar" :style="{ animationDelay: `${i * 0.1}s` }"></text>
+                </text>
+                <text class="duration">{{ msg.duration }}''</text>
+              </view>
             </template>
             <template v-else-if="msg.type === 'location'">
-              <div class="location-msg">
-                <div class="location-map">
-                  <span class="location-icon">📍</span>
-                </div>
-                <div class="location-info">
-                  <span class="location-title">{{ msg.title }}</span>
-                  <span class="location-address">{{ msg.content }}</span>
-                </div>
-              </div>
+              <view class="location-msg">
+                <view class="location-map">
+                  <text class="location-icon">📍</text>
+                </view>
+                <view class="location-info">
+                  <text class="location-title">{{ msg.title }}</text>
+                  <text class="location-address">{{ msg.content }}</text>
+                </view>
+              </view>
             </template>
             <template v-else-if="msg.type === 'gift'">
-              <div class="gift-msg" :class="{ 'gift-msg-luxury': msg.giftType === 1 }">
-                <span class="gift-msg-badge" v-if="msg.giftType === 1">豪华</span>
-                <img v-if="msg.icon && /^https?:/.test(msg.icon)" class="gift-icon-img" :src="msg.icon" alt="" />
-                <span v-else class="gift-icon">{{ msg.icon }}</span>
-                <span class="gift-content">赠送了 {{ msg.count }} 个 {{ msg.name }}</span>
-              </div>
+              <view class="gift-msg" :class="{ 'gift-msg-luxury': msg.giftType === 1 }">
+                <text class="gift-msg-badge" v-if="msg.giftType === 1">豪华</text>
+                <image mode="aspectFit" v-if="msg.icon && /^https?:/.test(msg.icon)" class="gift-icon-img" :src="msg.icon" alt="" />
+                <text v-else class="gift-icon">{{ msg.icon }}</text>
+                <text class="gift-content">赠送了 {{ msg.count }} 个 {{ msg.name }}</text>
+              </view>
             </template>
             <template v-else-if="msg.type === 'redpacket'">
-              <div class="redpacket-msg">
-                <div class="redpacket-icon">🧧</div>
-                <div class="redpacket-content">
-                  <span class="redpacket-title">{{ msg.message }}</span>
-                  <span class="redpacket-info">
+              <view
+                class="redpacket-msg"
+                :class="{ opened: msg.packetReceived, expired: msg.packetExpired }"
+                @click.stop="openRedPacket(msg)"
+              >
+                <view class="redpacket-icon">🧧</view>
+                <view class="redpacket-content">
+                  <text class="redpacket-title">{{ msg.message }}</text>
+                  <text class="redpacket-info">
                     普通红包 · {{ msg.count }}个 · ¥{{ msg.amount }}
-                  </span>
-                </div>
-              </div>
+                  </text>
+                  <text class="redpacket-status" v-if="msg.packetReceived">
+                    已领取 ¥{{ formatAmount(msg.packetAmount) }}
+                  </text>
+                  <text class="redpacket-status expired" v-else-if="msg.packetExpired">
+                    已过期或已领完
+                  </text>
+                  <text class="redpacket-status" v-else-if="msg.isOwn">你发出的红包</text>
+                  <text class="redpacket-status tap" v-else>点击领取</text>
+                </view>
+              </view>
             </template>
             <template v-else-if="msg.type === 'system'">
-              <span class="system-text">{{ msg.content }}</span>
+              <text class="system-text">{{ msg.content }}</text>
             </template>
             <template v-else-if="msg.status === 'recalled'">
-              <span class="recalled-text">消息已撤回</span>
+              <text class="recalled-text">消息已撤回</text>
             </template>
-          </div>
-          <div class="status">
-            <span v-if="msg.isOwn" class="send-status">
-              <span v-if="msg.status === 'sending'">发送中...</span>
-              <span v-else-if="msg.status === 'failed'" class="failed" @click="retrySend(msg)">发送失败</span>
-              <span v-else-if="msg.status === 'sent'">✓</span>
-              <span v-else-if="msg.status === 'read'" class="read-icon">已读</span>
-            </span>
-          </div>
-        </div>
-      </div>
+          </view>
+          <view class="status">
+            <text v-if="msg.isOwn" class="send-status">
+              <text v-if="msg.status === 'sending'">发送中...</text>
+              <text v-else-if="msg.status === 'failed'" class="failed" @click="retrySend(msg)">发送失败</text>
+              <text v-else-if="msg.status === 'sent'">✓</text>
+              <text v-else-if="msg.status === 'read'" class="read-icon">已读</text>
+            </text>
+          </view>
+        </view>
+      </view>
       
-      <div v-if="typing" class="typing-indicator">
-        <div class="typing-dots">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-        <span>{{ userInfo.nickName }}正在输入...</span>
-      </div>
-    </div>
+      <view v-if="typing" class="typing-indicator">
+        <view class="typing-dots">
+          <text></text>
+          <text></text>
+          <text></text>
+        </view>
+        <text>{{ userInfo.nickName }}正在输入...</text>
+      </view>
+    </view>
     
-    <div v-if="showMoreMenu" class="modal" @click.self="showMoreMenu = false">
-      <div class="more-menu">
-        <div class="menu-item" @click="goUserProfile">查看资料</div>
-        <div class="menu-item" @click="blockUser">拉黑</div>
-        <div class="menu-item" @click="openReport">举报</div>
-        <div class="menu-item cancel" @click="showMoreMenu = false">取消</div>
-      </div>
-    </div>
+    <view v-if="showMoreMenu" class="modal" @click.self="showMoreMenu = false">
+      <view class="more-menu">
+        <view class="menu-item" @click="goUserProfile">查看资料</view>
+        <view class="menu-item" @click="blockUser">拉黑</view>
+        <view class="menu-item" @click="openReport">举报</view>
+        <view class="menu-item cancel" @click="showMoreMenu = false">取消</view>
+      </view>
+    </view>
 
-    <div v-if="showMessageContextMenu" class="modal" @click.self="showMessageContextMenu = false">
-      <div class="context-menu" :style="contextMenuStyle">
-        <div class="context-item" v-if="selectedMessage?.isOwn" @click="revokeMessage(selectedMessage)">撤回</div>
-        <div class="context-item" v-if="selectedMessage && !selectedMessage.isOwn && selectedMessage.type !== 'system'" @click="openReportMessage(selectedMessage)">举报</div>
-        <div class="context-item" @click="copyMessage(selectedMessage)">复制</div>
-        <div class="context-item" @click="forwardMessage(selectedMessage)">转发</div>
-        <div class="context-item cancel" @click="showMessageContextMenu = false">取消</div>
-      </div>
-    </div>
+    <view v-if="showMessageContextMenu" class="modal" @click.self="showMessageContextMenu = false">
+      <view class="context-menu" :style="contextMenuStyle">
+        <view class="context-item" v-if="selectedMessage?.isOwn" @click="revokeMessage(selectedMessage)">撤回</view>
+        <view class="context-item" v-if="selectedMessage && !selectedMessage.isOwn && selectedMessage.type !== 'system'" @click="openReportMessage(selectedMessage)">举报</view>
+        <view class="context-item" @click="copyMessage(selectedMessage)">复制</view>
+        <view class="context-item" @click="forwardMessage(selectedMessage)">转发</view>
+        <view class="context-item cancel" @click="showMessageContextMenu = false">取消</view>
+      </view>
+    </view>
     
-    <div class="bottom-bar">
-      <div class="voice-btn" @click="toggleVoice">
+    <view class="bottom-bar">
+      <view class="voice-btn" @click="toggleVoice">
         {{ isVoice ? '⌨️' : '🎤' }}
-      </div>
-      <div class="input-wrapper">
+      </view>
+      <view class="input-wrapper">
         <input 
           v-if="!isVoice" 
           class="text-input" 
@@ -150,119 +164,132 @@
           @keyup.enter="sendText"
           @input="handleInput"
         />
-        <div v-else class="voice-input">
-          <div class="record-indicator" :class="{ recording: isRecording }"
+        <view v-else class="voice-input">
+          <view class="record-indicator" :class="{ recording: isRecording }"
             @touchstart.prevent="startRecord"
             @touchend.prevent="endRecord"
             @touchcancel="endRecord"
             @mousedown.prevent="startRecord"
             @mouseup="endRecord"
             @mouseleave="endRecord">
-            <span class="record-icon">{{ isRecording ? '🔴' : '🎤' }}</span>
-            <span class="record-text">{{ isRecording ? '松开发送' : '按住录音' }}</span>
-            <span class="record-time" v-if="isRecording">{{ recordDuration }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="emoji-btn" @click="toggleEmoji">😊</div>
-      <div class="add-btn" @click="toggleAdd">+</div>
-    </div>
+            <text class="record-icon">{{ isRecording ? '🔴' : '🎤' }}</text>
+            <text class="record-text">{{ isRecording ? '松开发送' : '按住录音' }}</text>
+            <text class="record-time" v-if="isRecording">{{ recordDuration }}</text>
+          </view>
+        </view>
+      </view>
+      <view class="emoji-btn" @click="toggleEmoji">😊</view>
+      <view class="add-btn" @click="toggleAdd">+</view>
+    </view>
     
-    <div v-if="showEmoji" class="emoji-panel">
-      <div class="emoji-tabs">
-        <span 
+    <view v-if="showEmoji" class="emoji-panel">
+      <view class="emoji-tabs">
+        <text 
           v-for="(tab, index) in emojiTabs" 
           :key="index" 
           :class="['tab', { active: activeEmojiTab === index }]"
           @click="activeEmojiTab = index"
-        >{{ tab }}</span>
-      </div>
-      <div class="emoji-content">
-        <div class="emoji-item" v-for="emoji in currentEmojis" :key="emoji" @click="selectEmoji(emoji)">
+        >{{ tab }}</text>
+      </view>
+      <view class="emoji-content">
+        <view class="emoji-item" v-for="emoji in currentEmojis" :key="emoji" @click="selectEmoji(emoji)">
           {{ emoji }}
-        </div>
-      </div>
-    </div>
+        </view>
+      </view>
+    </view>
     
-    <div v-if="showAdd" class="add-panel">
-      <div class="add-item" @click="selectImage">📷 图片</div>
-      <div class="add-item" @click="selectVideo">🎬 视频</div>
-      <div class="add-item" @click="makeCall">📞 语音通话<span class="add-price" v-if="callRates.voicePrice">{{ callRates.voicePrice }}金币/分钟</span></div>
-      <div class="add-item" @click="makeVideoCall">📹 视频通话<span class="add-price" v-if="callRates.videoPrice">{{ callRates.videoPrice }}金币/分钟</span></div>
-      <div class="add-item" @click="selectLocation">📍 位置</div>
-      <div class="add-item" @click="selectGift">🎁 礼物</div>
-      <div class="add-item" @click="selectRedPacket">🧧 红包</div>
-    </div>
+    <view v-if="showAdd" class="add-panel">
+      <view class="add-item" @click="selectImage">📷 图片</view>
+      <view class="add-item" @click="selectVideo">🎬 视频</view>
+      <view class="add-item" @click="makeCall">📞 语音通话<text class="add-price" v-if="callRates.voicePrice">{{ callRates.voicePrice }}金币/分钟</text></view>
+      <view class="add-item" @click="makeVideoCall">📹 视频通话<text class="add-price" v-if="callRates.videoPrice">{{ callRates.videoPrice }}金币/分钟</text></view>
+      <view class="add-item" @click="selectLocation">📍 位置</view>
+      <view class="add-item" @click="selectGift">🎁 礼物</view>
+      <view class="add-item" @click="selectRedPacket">🧧 红包</view>
+    </view>
 
-    <div v-if="showImagePreview" class="modal" @click.self="showImagePreview = false">
-      <div class="image-preview">
-        <img :src="previewImageUrl" alt="" />
-        <span class="close-btn" @click="showImagePreview = false">✕</span>
-      </div>
-    </div>
+    <view v-if="showImagePreview" class="modal" @click.self="showImagePreview = false">
+      <view class="image-preview">
+        <image class="preview-img" mode="aspectFit" style="width:90vw;height:80vh;" :src="previewImageUrl" />
+        <text class="close-btn" @click="showImagePreview = false">✕</text>
+      </view>
+    </view>
 
-    <div v-if="showVideoPreview" class="modal" @click.self="showVideoPreview = false">
-      <div class="video-preview">
+    <view v-if="showVideoPreview" class="modal" @click.self="showVideoPreview = false">
+      <view class="video-preview">
         <video :src="previewVideoUrl" controls autoplay></video>
-        <span class="close-btn" @click="showVideoPreview = false">✕</span>
-      </div>
-    </div>
+        <text class="close-btn" @click="showVideoPreview = false">✕</text>
+      </view>
+    </view>
 
-    <div v-if="showLocationSelector" class="modal" @click.self="showLocationSelector = false">
-      <div class="location-modal">
-        <div class="modal-header">
-          <span class="modal-title">选择位置</span>
-          <span class="modal-close" @click="showLocationSelector = false">✕</span>
-        </div>
-        <div class="location-body">
-          <div class="location-search">
+    <view v-if="showLocationSelector" class="modal" @click.self="showLocationSelector = false">
+      <view class="location-modal">
+        <view class="modal-header">
+          <text class="modal-title">选择位置</text>
+          <text class="modal-close" @click="showLocationSelector = false">✕</text>
+        </view>
+        <view class="location-body">
+          <view class="location-search">
             <input 
               type="text" 
               v-model="locationSearch" 
               placeholder="搜索地址..." 
               class="search-input"
             />
-          </div>
-          <div class="location-picker">
-            <div class="picker-row">
-              <select v-model="selectedProvince" @change="onProvinceChange" class="location-select">
+          </view>
+          <view class="location-picker">
+            <view class="picker-row">
+              <!-- H5 保留原生 select；App 没有浏览器 select，改 uni picker(selector) 回填同一字段 -->
+              <select v-if="!isApp" v-model="selectedProvince" @change="onProvinceChange" class="location-select">
                 <option value="">请选择省份</option>
                 <option v-for="p in provinces" :key="p.code" :value="p.code">{{ p.name }}</option>
               </select>
-            </div>
-            <div class="picker-row">
-              <select v-model="selectedCity" @change="onCityChange" class="location-select">
+              <picker v-else class="picker-fill" mode="selector" :range="toPickerRange(provinces, '请选择省份')" :value="pickerIndex(provinces, selectedProvince)" @change="onProvincePick">
+                <view class="location-select app-picker-value" :class="{ placeholder: !selectedProvince }">{{ nameByCode(provinces, selectedProvince, '请选择省份') }}</view>
+              </picker>
+            </view>
+            <view class="picker-row">
+              <select v-if="!isApp" v-model="selectedCity" @change="onCityChange" class="location-select">
                 <option value="">请选择城市</option>
                 <option v-for="c in cities" :key="c.code" :value="c.code">{{ c.name }}</option>
               </select>
-            </div>
-            <div class="picker-row">
-              <select v-model="selectedDistrict" @change="onDistrictChange" class="location-select">
+              <picker v-else class="picker-fill" mode="selector" :range="toPickerRange(cities, '请选择城市')" :value="pickerIndex(cities, selectedCity)" @change="onCityPick">
+                <view class="location-select app-picker-value" :class="{ placeholder: !selectedCity }">{{ nameByCode(cities, selectedCity, '请选择城市') }}</view>
+              </picker>
+            </view>
+            <view class="picker-row">
+              <select v-if="!isApp" v-model="selectedDistrict" @change="onDistrictChange" class="location-select">
                 <option value="">请选择区县</option>
                 <option v-for="d in districts" :key="d.code" :value="d.code">{{ d.name }}</option>
               </select>
-            </div>
-            <div class="picker-row">
-              <select v-model="selectedTown" @change="onTownChange" class="location-select">
+              <picker v-else class="picker-fill" mode="selector" :range="toPickerRange(districts, '请选择区县')" :value="pickerIndex(districts, selectedDistrict)" @change="onDistrictPick">
+                <view class="location-select app-picker-value" :class="{ placeholder: !selectedDistrict }">{{ nameByCode(districts, selectedDistrict, '请选择区县') }}</view>
+              </picker>
+            </view>
+            <view class="picker-row">
+              <select v-if="!isApp" v-model="selectedTown" @change="onTownChange" class="location-select">
                 <option value="">请选择乡镇</option>
                 <option v-for="t in towns" :key="t.code" :value="t.code">{{ t.name }}</option>
               </select>
-            </div>
-            <div class="picker-row">
+              <picker v-else class="picker-fill" mode="selector" :range="toPickerRange(towns, '请选择乡镇')" :value="pickerIndex(towns, selectedTown)" @change="onTownPick">
+                <view class="location-select app-picker-value" :class="{ placeholder: !selectedTown }">{{ nameByCode(towns, selectedTown, '请选择乡镇') }}</view>
+              </picker>
+            </view>
+            <view class="picker-row">
               <input v-model="selectedStreet" class="location-select" placeholder="请输入街道（可自定义）" />
-            </div>
-          </div>
-          <div class="current-location" @click="useCurrentLocation">
-            <span class="location-icon">📍</span>
-            <span>使用当前位置</span>
-          </div>
-        </div>
-        <div class="modal-footer">
+            </view>
+          </view>
+          <view class="current-location" @click="useCurrentLocation">
+            <text class="location-icon">📍</text>
+            <text>使用当前位置</text>
+          </view>
+        </view>
+        <view class="modal-footer">
           <button class="modal-btn cancel" @click="showLocationSelector = false">取消</button>
           <button class="modal-btn confirm" @click="sendLocation">发送位置</button>
-        </div>
-      </div>
-    </div>
+        </view>
+      </view>
+    </view>
 
     <GiftList 
       :visible="showGiftPanel" 
@@ -272,23 +299,23 @@
       @send="handleSendGift"
     />
     
-    <div v-if="giftEffect" class="gift-effect-overlay" @click="giftEffect = null">
-      <div class="gift-effect-content">
-        <div class="effect-rays"></div>
-        <div class="effect-icon">
+    <view v-if="giftEffect" class="gift-effect-overlay" @click="giftEffect = null">
+      <view class="gift-effect-content">
+        <view class="effect-rays"></view>
+        <view class="effect-icon">
           <video v-if="giftEffect.animation && isVideoUrl(giftEffect.animation)" :src="giftEffect.animation" class="effect-video" autoplay loop muted playsinline></video>
-          <img v-else-if="giftEffect.animation" :src="giftEffect.animation" alt="">
-          <img v-else-if="giftEffect.icon" :src="giftEffect.icon" alt="">
-          <span v-else>👑</span>
-        </div>
-        <div class="effect-title">豪华礼物</div>
-        <div class="effect-name">{{ giftEffect.name }}</div>
-        <div class="effect-count">x{{ giftEffect.count }}</div>
-        <div class="effect-particles">
-          <span v-for="i in 16" :key="i" class="particle" :style="{ left: (5 + i * 6) + '%', animationDelay: (i * 0.08) + 's' }">✨</span>
-        </div>
-      </div>
-    </div>
+          <image v-else-if="giftEffect.animation" class="gift-effect-img" mode="aspectFit" style="width:160px;height:160px;" :src="giftEffect.animation" />
+          <image v-else-if="giftEffect.icon" class="gift-effect-img" mode="aspectFit" style="width:160px;height:160px;" :src="giftEffect.icon" />
+          <text v-else>👑</text>
+        </view>
+        <view class="effect-title">豪华礼物</view>
+        <view class="effect-name">{{ giftEffect.name }}</view>
+        <view class="effect-count">x{{ giftEffect.count }}</view>
+        <view class="effect-particles">
+          <text v-for="i in 16" :key="i" class="particle" :style="{ left: (5 + i * 6) + '%', animationDelay: (i * 0.08) + 's' }">✨</text>
+        </view>
+      </view>
+    </view>
     
     <RedPacketPanel 
       :visible="showRedPacketPanel" 
@@ -306,50 +333,50 @@
       @submitted="onReported"
     />
     
-    <div v-if="showForwardPanel" class="modal" @click.self="showForwardPanel = false">
-      <div class="forward-modal">
-        <div class="modal-header">
-          <span class="modal-title">转发给好友</span>
-          <span class="modal-close" @click="showForwardPanel = false">✕</span>
-        </div>
-        <div class="forward-body">
-          <div class="forward-search">
+    <view v-if="showForwardPanel" class="modal" @click.self="showForwardPanel = false">
+      <view class="forward-modal">
+        <view class="modal-header">
+          <text class="modal-title">转发给好友</text>
+          <text class="modal-close" @click="showForwardPanel = false">✕</text>
+        </view>
+        <view class="forward-body">
+          <view class="forward-search">
             <input 
               type="text" 
               v-model="forwardSearch" 
               placeholder="搜索好友..." 
               class="search-input"
             />
-          </div>
-          <div class="forward-list">
-            <div 
+          </view>
+          <view class="forward-list">
+            <view 
               v-for="friend in forwardFriends" 
               :key="friend.id" 
               class="forward-item"
               @click="confirmForward(friend)"
             >
-              <img :src="friend.avatar" class="forward-avatar" v-img-fallback="friend.nickName" />
-              <div class="forward-info">
-                <span class="forward-name">{{ friend.nickName }}</span>
-                <span class="forward-status" v-if="friend.isOnline">在线</span>
-                <span class="forward-status offline" v-else>离线</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+              <SafeImage :src="friend.avatar" class="forward-avatar" :fallback="friend.nickName" mode="aspectFill" />
+              <view class="forward-info">
+                <text class="forward-name">{{ friend.nickName }}</text>
+                <text class="forward-status" v-if="friend.isOnline">在线</text>
+                <text class="forward-status offline" v-else>离线</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
 
-    <div v-if="confirmDialog.show" class="modal" @click.self="confirmDialog.onCancel">
-      <div class="confirm-dialog">
-        <div class="confirm-dialog-body">{{ confirmDialog.message }}</div>
-        <div class="confirm-dialog-actions">
+    <view v-if="confirmDialog.show" class="modal" @click.self="confirmDialog.onCancel">
+      <view class="confirm-dialog">
+        <view class="confirm-dialog-body">{{ confirmDialog.message }}</view>
+        <view class="confirm-dialog-actions">
           <button class="cancel-btn" @click="confirmDialog.onCancel">取消</button>
           <button class="confirm-btn" @click="confirmDialog.onConfirm">确定</button>
-        </div>
-      </div>
-    </div>
-  </div>
+        </view>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup>
@@ -357,7 +384,12 @@ import { streetData } from '../data/china-streets'
 import { ref, reactive, nextTick, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter, useRoute } from '@/common/route';
 import { useUserStore } from '../store/user-info';
-import chatService from '../services/chatService';
+import { useChatStore } from '../store/chat';
+import chatService from '../services/chatService'
+import gamesService from '../services/gamesService'
+import { chooseImages, chooseVideo } from '../services/mediaPicker'
+import audioRecorder from '../services/audioRecorder';
+import { isApp } from '../common/platform';
 import giftService from '../services/giftService';
 import { uploadFile } from '../services/uploadService';
 import socketService from '../services/socketService';
@@ -370,10 +402,12 @@ import { toast } from '../composables/useToast';
 import { DEFAULT_AVATAR, STORAGE_KEYS } from '../common/constants';
 import { provinceList, cityData as chinaCityData } from '../data/china-regions';
 import { applyRevokedState, isRevokedMessage, isChatMessageExpired } from '../utils/chatMessage';
+import SafeImage from '../components/SafeImage.vue'
 
 const router = useRouter();
 const route = useRoute();
 const userStore = useUserStore();
+const chatStore = useChatStore();
 const selectedBadge = ref(null);
 const avatarFrameStyle = ref({});
 
@@ -447,6 +481,22 @@ const forwardSearch = ref('');
 const forwardFriends = ref([]);
 const typing = ref(false);
 const playingAudioId = ref(null);
+let audioPlayer = null;
+const stopAudio = () => {
+  if (audioPlayer) {
+    try {
+      // App 端是 uni.InnerAudioContext（有 stop/destroy），H5 是 HTMLAudioElement（只有 pause）
+      if (typeof audioPlayer.stop === 'function') audioPlayer.stop();
+      else audioPlayer.pause();
+    } catch (e) { /* ignore */ }
+    try {
+      if (typeof audioPlayer.destroy === 'function') audioPlayer.destroy();
+    } catch (e) { /* ignore */ }
+    audioPlayer = null;
+  }
+  // 播完/点停止后必须复位，否则气泡图标停在播放态（模板 waveform 依赖它）
+  playingAudioId.value = null;
+};
 const messagesRef = ref(null);
 const activeEmojiTab = ref(0);
 const emojiTabs = ['😊', '🎉', '💯', '❤️'];
@@ -474,6 +524,9 @@ let recordTimer = null;
 let typingTimer = null;
 let mediaRecorder = null;
 let recordedChunks = [];
+// 按住录音的按压状态：App 端 startRecord 要等权限/录音器回调，
+// 用户可能在等待期间就松手了，用它判定这次按压是否还该继续
+let recordPressActive = false;
 
 // 时间自动撤回 / 已读自动销毁均由服务端下发（expireAt / destroyAt），
 // 本机只做展示倒计时；原先读 localStorage 的本地实现已移除。
@@ -572,11 +625,17 @@ const goUserProfile = () => {
  router.push(`/user/${userInfo.value.userId}`);
 };
 const blockUser = async () => {
- showMoreMenu.value = false;
- if (await showConfirm(`确定要拉黑 ${userInfo.value.nickName} 吗？`)) {
- toast.success('已拉黑该用户');
- router.back();
- }
+  showMoreMenu.value = false;
+  const targetId = Number(userInfo.value.userId);
+  if (!targetId) return;
+  if (!(await showConfirm(`确定要拉黑 ${userInfo.value.nickName} 吗？`))) return;
+  try {
+    await authService.blockUser(targetId);
+    toast.success('已拉黑该用户');
+    router.back();
+  } catch (error) {
+    toast.error(error.message || '拉黑失败');
+  }
 };
 const openReport = () => {
   showMoreMenu.value = false;
@@ -662,6 +721,33 @@ const sendText = async () => {
 };
 const startRecord = async () => {
  if (isRecording.value) return;
+ recordPressActive = true;
+ if (isApp) {
+  // App 端没有 navigator.mediaDevices / MediaRecorder，走 audioRecorder 的 uni 原生录音器
+  const res = await audioRecorder.startRecord();
+  if (!res.supported) { toast.error('当前环境不支持录音'); return; }
+  if (!res.started) {
+   if (res.busy) toast.info('正在录音，请稍候');
+   else if (res.message) toast.error(res.message);
+   return;
+  }
+  if (!recordPressActive) {
+   // 用户已松手（权限弹窗耗时），这次录音直接丢弃，避免录出一条没人要的语音
+   audioRecorder.cancelRecord();
+   return;
+  }
+  isRecording.value = true;
+  recordDuration.value = '00:00';
+  let seconds = 0;
+  recordTimer = setInterval(() => {
+   seconds++;
+   if (seconds >= 60) { endRecord(); return; }
+   const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+   const s = (seconds % 60).toString().padStart(2, '0');
+   recordDuration.value = `${m}:${s}`;
+  }, 1000);
+  return;
+ }
  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
  toast.error('当前环境不支持录音');
  return;
@@ -691,11 +777,23 @@ const startRecord = async () => {
  }
 };
 const endRecord = () => {
+ recordPressActive = false;
  if (recordTimer) {
  clearInterval(recordTimer);
  recordTimer = null;
  }
- if (!isRecording.value || !mediaRecorder) return;
+ if (!isRecording.value) return;
+ if (isApp) {
+  // 原生录音 stop 是异步回调：拿到临时文件后直接喂 sendAudio，uploadService 的
+  // App 分支取 file.path，不需要 blob/File 转换
+  isRecording.value = false;
+  recordDuration.value = '';
+  audioRecorder.stopRecord().then((file) => {
+   if (file) sendAudio(file.duration, file);
+  }).catch(() => { /* stopRecord 内部已兜底 resolve null，这里不再上抛 */ });
+  return;
+ }
+ if (!mediaRecorder) return;
  const duration = Math.max(1, Math.floor(parseInt(recordDuration.value.split(':')[0]) * 60 + parseInt(recordDuration.value.split(':')[1])) || 0);
  const recorder = mediaRecorder;
  const stream = recorder.stream;
@@ -755,17 +853,98 @@ const sendAudio = async (duration, file) => {
  }
 };
 const toggleAudio = (msg) => {
- if (playingAudioId.value === msg.id) {
- playingAudioId.value = null;
- }
- else {
- playingAudioId.value = msg.id;
- setTimeout(() => {
- playingAudioId.value = null;
- }, msg.duration * 1000);
- }
+  if (!msg.mediaUrl) {
+    toast.error('语音文件不可用');
+    return;
+  }
+  if (playingAudioId.value === msg.id) {
+    stopAudio();
+    return;
+  }
+  stopAudio();
+  // App 端没有 Audio 构造器：远端语音地址用 uni.createInnerAudioContext 播放，
+  // H5 保持原来的 new Audio，行为不变
+  if (isApp) {
+    if (typeof uni === 'undefined' || typeof uni.createInnerAudioContext !== 'function') {
+      toast.error('语音播放失败');
+      return;
+    }
+    playingAudioId.value = msg.id;
+    const player = uni.createInnerAudioContext();
+    audioPlayer = player;
+    player.src = msg.mediaUrl;
+    player.onEnded(() => { if (audioPlayer === player) stopAudio(); });
+    player.onError(() => {
+      if (audioPlayer !== player) return;
+      stopAudio();
+      toast.error('语音播放失败');
+    });
+    try {
+      player.play();
+    } catch (e) {
+      stopAudio();
+      toast.error('语音播放失败');
+    }
+    return;
+  }
+  audioPlayer = new Audio(msg.mediaUrl);
+  playingAudioId.value = msg.id;
+  audioPlayer.onended = () => stopAudio();
+  audioPlayer.onerror = () => {
+    stopAudio();
+    toast.error('语音播放失败');
+  };
+  audioPlayer.play().catch(() => {
+    stopAudio();
+    toast.error('语音播放失败');
+  });
 };
-const selectImage = () => {
+
+const selectImage = async () => {
+  if (isApp) {
+    // App 端动态创建 file input 唤不起系统相册，统一走 mediaPicker（uni.chooseImage）
+    showAdd.value = false;
+    let picked = null;
+    try {
+      picked = await chooseImages(1);
+    } catch (error) {
+      toast.error(error.message || '选择图片失败');
+      return;
+    }
+    const file = picked && picked.files && picked.files[0];
+    if (!file) return; // 用户取消选择
+    const msgId = Date.now();
+    const newMessage = {
+      id: msgId,
+      isOwn: true,
+      type: 'image',
+      // App 端用 uni 临时路径直接本地预览，不依赖 blob URL
+      content: file.path,
+      showTime: messages.value.length === 0 ||
+      (Date.now() - messages.value[messages.value.length - 1].createTime) > 300000,
+      status: 'sending',
+      createTime: Date.now()
+    };
+    messages.value.push(newMessage);
+    scrollToBottom();
+    try {
+      // App 端 uni.uploadFile 取 file.path 上传，成功后消息体换成真实访问 URL
+      const result = await uploadFile(file, 'image');
+      const realUrl = result.data.url;
+      newMessage.content = realUrl;
+      await chatService.sendMessage(userInfo.value.userId, realUrl, 2, realUrl);
+      const index = messages.value.findIndex(m => m.id === msgId);
+      if (index > -1) {
+        messages.value[index].status = 'sent';
+      }
+    } catch (error) {
+      const index = messages.value.findIndex(m => m.id === msgId);
+      if (index > -1) {
+        messages.value[index].status = 'failed';
+      }
+    }
+    return;
+  }
  const input = document.createElement('input');
  input.type = 'file';
  input.accept = 'image/*';
@@ -815,7 +994,57 @@ const selectImage = () => {
  input.click();
  showAdd.value = false;
 };
-const selectVideo = () => {
+const selectVideo = async () => {
+  if (isApp) {
+    // App 端同上，走 mediaPicker 的 chooseVideo（album / camera 二选一）
+    showAdd.value = false;
+    let picked = null;
+    try {
+      picked = await chooseVideo();
+    } catch (error) {
+      toast.error(error.message || '选择视频失败');
+      return;
+    }
+    const file = picked && picked.file;
+    if (!file) return; // 用户取消选择
+    // 时长按 chooseVideo 回传的秒数格式化；H5 拿不到时长，保留原逻辑的 '00:15'
+    const total = Math.max(1, Math.round(Number(file.duration) || 0));
+    const mm = Math.floor(total / 60).toString().padStart(2, '0');
+    const ss = (total % 60).toString().padStart(2, '0');
+    const msgId = Date.now();
+    const newMessage = {
+      id: msgId,
+      isOwn: true,
+      type: 'video',
+      // App 端用 uni 临时路径直接本地预览，不依赖 blob URL
+      content: file.path,
+      thumbnail: file.path,
+      duration: `${mm}:${ss}`,
+      showTime: messages.value.length === 0 ||
+      (Date.now() - messages.value[messages.value.length - 1].createTime) > 300000,
+      status: 'sending',
+      createTime: Date.now()
+    };
+    messages.value.push(newMessage);
+    scrollToBottom();
+    try {
+      const result = await uploadFile(file, 'video');
+      const realUrl = result.data.url;
+      newMessage.content = realUrl;
+      newMessage.thumbnail = realUrl;
+      await chatService.sendMessage(userInfo.value.userId, realUrl, 3, realUrl);
+      const index = messages.value.findIndex(m => m.id === msgId);
+      if (index > -1) {
+        messages.value[index].status = 'sent';
+      }
+    } catch (error) {
+      const index = messages.value.findIndex(m => m.id === msgId);
+      if (index > -1) {
+        messages.value[index].status = 'failed';
+      }
+    }
+    return;
+  }
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = 'video/*';
@@ -932,6 +1161,35 @@ const onDistrictChange = async (keepSearch = false) => {
 const onTownChange = () => {
   locationSearch.value = '';
 };
+// App 端没有浏览器 <select>：同一份省市数据用 uni picker(mode=selector) 回填，
+// range 第 0 项对应原 select 的「请选择」占位，其余与 option 顺序一一对应
+const toPickerRange = (list, placeholder) => [placeholder, ...((list || []).map((item) => item.name))];
+const pickerIndex = (list, code) => {
+  const index = (list || []).findIndex((item) => item.code === code);
+  return index < 0 ? 0 : index + 1;
+};
+const nameByCode = (list, code, placeholder) => ((list || []).find((item) => item.code === code) || {}).name || placeholder;
+const codeFromPicker = (list, value) => {
+  const index = Number(value) || 0;
+  return index > 0 ? (((list || [])[index - 1] || {}).code || '') : '';
+};
+const onProvincePick = (e) => {
+  selectedProvince.value = codeFromPicker(provinces.value, e.detail.value);
+  onProvinceChange();
+};
+const onCityPick = (e) => {
+  selectedCity.value = codeFromPicker(cities.value, e.detail.value);
+  onCityChange();
+};
+const onDistrictPick = (e) => {
+  selectedDistrict.value = codeFromPicker(districts.value, e.detail.value);
+  // 与 H5 的 select @change 传事件对象等价：保留已输入的搜索地址
+  onDistrictChange(true);
+};
+const onTownPick = (e) => {
+  selectedTown.value = codeFromPicker(towns.value, e.detail.value);
+  onTownChange();
+};
 // 清洗逆地理编码返回的完整地址文本：按逗号拆分、去掉国家、省→街道正序、去重
 const formatDisplayName = (raw) => {
   if (!raw) return '';
@@ -944,27 +1202,26 @@ const formatDisplayName = (raw) => {
   }
   return result.join(' ');
 };
-const useCurrentLocation = () => {
-  if (!navigator.geolocation) {
-    toast.error('您的浏览器不支持定位');
-    return;
-  }
-  toast.info('正在获取当前位置...');
-  navigator.geolocation.getCurrentPosition(
-    async (position) => {
+const useCurrentLocation = async () => {
+  // 拿到坐标后的逆地理编码 + 省市匹配只有一份：H5 的 navigator.geolocation 与 App 的
+  // uni.getLocation 都先归一成 { coords } 再进 applyPosition，避免两套地址解析逻辑漂移
+  const applyPosition = async (position) => {
       const { latitude, longitude } = position.coords;
-      // 带超时的 JSON 请求
-      const fetchJson = async (url) => {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 8000);
-        try {
-          const res = await fetch(url, { signal: controller.signal });
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return await res.json();
-        } finally {
-          clearTimeout(timer);
-        }
-      };
+      // 带超时的 JSON 请求：统一走 uni.request（H5/App 通用），
+      // App WebView 里浏览器 fetch 会受 CORS/域名策略影响
+      const fetchJson = (url) => new Promise((resolve, reject) => {
+        uni.request({
+          url,
+          method: 'GET',
+          timeout: 8000,
+          dataType: 'json',
+          success: (res) => {
+            if (res.statusCode >= 200 && res.statusCode < 300) resolve(res.data);
+            else reject(new Error(`HTTP ${res.statusCode}`));
+          },
+          fail: (err) => reject(new Error((err && err.errMsg) || 'network error'))
+        });
+      });
       // 依次尝试多个逆地理编码服务（国内高德/腾讯优先，需在 .env.local 配置 key），拿到中文地址
       const AMAP_KEY = import.meta.env.VITE_AMAP_KEY || '';
       const QQMAP_KEY = import.meta.env.VITE_QQMAP_KEY || '';
@@ -1094,7 +1351,34 @@ const useCurrentLocation = () => {
       // 完整地址填入搜索框，可直接发送
       locationSearch.value = fullAddress;
       toast.success('已获取当前位置，可直接发送');
-    },
+  };
+  if (isApp) {
+    if (typeof uni === 'undefined' || typeof uni.getLocation !== 'function') {
+      toast.error('当前环境不支持定位');
+      return;
+    }
+    toast.info('正在获取当前位置...');
+    uni.getLocation({
+      type: 'gcj02',
+      success: (res) => {
+        applyPosition({ coords: { latitude: Number(res.latitude), longitude: Number(res.longitude) } });
+      },
+      fail: (err) => {
+        const text = String((err && err.errMsg) || '');
+        toast.error(/auth|deny|denied|permission/i.test(text)
+          ? '定位权限被拒绝，请在系统设置中开启定位权限'
+          : '无法获取位置，请手动选择');
+      }
+    });
+    return;
+  }
+  if (!navigator.geolocation) {
+    toast.error('您的浏览器不支持定位');
+    return;
+  }
+  toast.info('正在获取当前位置...');
+  navigator.geolocation.getCurrentPosition(
+    (position) => { applyPosition(position); },
     (error) => {
       let msg = '无法获取位置，请手动选择';
       switch (error.code) {
@@ -1163,8 +1447,54 @@ const selectRedPacket = () => {
   showRedPacketPanel.value = true;
   showAdd.value = false;
 };
+// 《未完成事项清单》C-1：红包领取。服务端 /api/gift/redpacket/receive 已实现事务领取 +
+// 防重复 + 过期校验，前端只需在气泡点击时调用并如实展示结果（金额/已领取/已领完）。
+const formatAmount = (value) => {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount.toFixed(2) : '0.00';
+};
+
+const openRedPacket = async (msg) => {
+  if (!msg || msg.type !== 'redpacket') return;
+  if (msg.isOwn) {
+    toast.info('这是你发出的红包，不能领取');
+    return;
+  }
+  if (msg.packetReceived) {
+    toast.success(`已领取 ¥${formatAmount(msg.packetAmount)}`);
+    return;
+  }
+  if (msg.packetExpired) {
+    toast.info('红包已过期或已被领完');
+    return;
+  }
+  if (msg.receiving) return;
+  if (!msg.packetNo) {
+    toast.error('红包信息缺失，请重新进入会话后再试');
+    return;
+  }
+
+  msg.receiving = true;
+  try {
+    const res = await giftService.receiveRedPacket(msg.packetNo);
+    const data = (res && res.data) || {};
+    const amount = data.amount != null ? data.amount : data.money;
+    msg.packetReceived = true;
+    msg.packetAmount = Number(amount) || 0;
+    toast.success(`领取成功 +${formatAmount(msg.packetAmount)}`);
+    userStore.fetchUserInfo().catch(() => {});
+  } catch (error) {
+    const message = error && error.message ? error.message : '领取失败，请稍后重试';
+    if (/已领取/.test(message)) msg.packetReceived = true;
+    else if (/领完|过期/.test(message)) msg.packetExpired = true;
+    toast.error(message);
+  } finally {
+    msg.receiving = false;
+  }
+};
+
 const handleSendRedPacket = (data) => {
-  const { type, amount, count, message } = data;
+  const { type, amount, count, message, packetNo } = data;
   const msgId = Date.now();
   const newMessage = {
     id: msgId,
@@ -1174,6 +1504,8 @@ const handleSendRedPacket = (data) => {
     amount: amount,
     count: count,
     message: message,
+    // C-1：服务端发送响应里带 packetNo；本地乐观气泡也带上，刷新前后语义一致
+    packetNo: packetNo || '',
     showTime: messages.value.length === 0 ||
       (Date.now() - messages.value[messages.value.length - 1].createTime) > 300000,
     status: 'sending',
@@ -1231,26 +1563,61 @@ const handleSendGift = async (data) => {
     toast.error(error.message || '礼物发送失败');
   }
 };
-const makeCall = () => {
-  const saved = localStorage.getItem('callSettings')
-  const callSettings = saved ? JSON.parse(saved) : { voice: false, voicePrice: 0 }
-  if (!callSettings.voice) {
-    toast.info('对方已关闭语音通话功能')
-    showAdd.value = false
-    return
+// U-22：从聊天发起通话时识别「陪玩订单通话」，把 companion/orderId 传给通话页，
+// 后端 endCall 才会在 is_companion_call=1 时生成计费单并扣款/分账。
+const resolveCallContext = async () => {
+  const peerId = Number(userInfo.value.userId);
+  const ctx = { companion: false, orderId: 0 };
+  if (!peerId) return ctx;
+  try {
+    await gamesService.getCompanionDetail(peerId);
+    ctx.companion = true;
+  } catch (e) { /* 非陪玩师 */ }
+  if (ctx.companion) {
+    try {
+      const res = await gamesService.getOrders({ role: 'user', pageSize: 20 });
+      const list = res?.data?.list || res?.data || [];
+      const active = (Array.isArray(list) ? list : []).find(order =>
+        Number(order.targetUserId || order.target_user_id) === peerId &&
+        [1, 2].includes(Number(order.status))
+      );
+      ctx.orderId = Number(active?.orderId || active?.id) || 0;
+    } catch (e) { /* 订单查询失败不阻断通话 */ }
   }
-  router.push(`/call/${userInfo.value.userId}/audio`);
+  return ctx;
+};
+
+const goCall = (type) => {
+  const peerId = Number(userInfo.value.userId);
+  if (!peerId) return;
+  return resolveCallContext().then(ctx => {
+    const query = {};
+    if (ctx.companion) query.companion = '1';
+    if (ctx.orderId) query.orderId = String(ctx.orderId);
+    router.push({ path: `/call/${peerId}/${type}`, query });
+  });
+};
+
+const makeCall = () => {
+  const saved = localStorage.getItem('callSettings');
+  const callSettings = saved ? JSON.parse(saved) : { voice: false, voicePrice: 0 };
+  if (!callSettings.voice) {
+    toast.info('对方已关闭语音通话功能');
+    showAdd.value = false;
+    return;
+  }
+  goCall('audio');
   showAdd.value = false;
 };
 const makeVideoCall = () => {
-  const saved = localStorage.getItem('callSettings')
-  const callSettings = saved ? JSON.parse(saved) : { video: false, videoPrice: 0 }
+  const saved = localStorage.getItem('callSettings');
+  const callSettings = saved ? JSON.parse(saved) : { video: false, videoPrice: 0 };
   if (!callSettings.video) {
-    toast.info('对方已关闭视频通话功能')
-    showAdd.value = false
-    return
+    toast.info('对方已关闭视频通话功能');
+    showAdd.value = false;
+    return;
   }
-  router.push(`/call/${userInfo.value.userId}/video`);
+  goCall('video');
   showAdd.value = false;
 };
 const previewImage = (msg) => {
@@ -1304,6 +1671,23 @@ const revokeMessage = async (msg) => {
 };
 const copyMessage = async (msg) => {
  if (msg.type === 'text') {
+   if (isApp) {
+     // App WebView 里 navigator.clipboard 常因非安全上下文不可用，改用 uni 原生剪贴板
+     if (typeof uni !== 'undefined' && typeof uni.setClipboardData === 'function') {
+       try {
+         await new Promise((resolve, reject) => {
+           uni.setClipboardData({ data: msg.content, success: resolve, fail: reject })
+         })
+         toast.success('已复制')
+       } catch (e) {
+         toast.error('复制失败，请手动复制')
+       }
+     } else {
+       toast.error('复制失败，请手动复制')
+     }
+     showMessageContextMenu.value = false
+     return
+   }
    try {
      await navigator.clipboard.writeText(msg.content)
      toast.success('已复制')
@@ -1313,10 +1697,28 @@ const copyMessage = async (msg) => {
  }
  showMessageContextMenu.value = false
 }
+const loadForwardFriends = async () => {
+  try {
+    const res = await chatService.getChatList(1, 50);
+    const data = res && res.data;
+    const rows = Array.isArray(data) ? data : ((data && data.list) || []);
+    forwardFriends.value = rows.map(c => ({
+      id: Number(c.toId || c.fromId || c.id),
+      nickName: c.nickname || c.nickName || '用户',
+      avatar: c.avatar || DEFAULT_AVATAR,
+      isOnline: !!c.online
+    })).filter(friend => friend.id && friend.id !== userInfo.value.userId);
+  } catch (error) {
+    console.error('加载转发好友失败:', error);
+    toast.error('好友列表加载失败');
+  }
+};
+
 const forwardMessage = (msg) => {
  selectedMessage.value = msg;
  showMessageContextMenu.value = false;
  showForwardPanel.value = true;
+  if (!forwardFriends.value.length) loadForwardFriends();
 };
 const confirmForward = (friend) => {
  if (selectedMessage.value) {
@@ -1344,8 +1746,9 @@ const getMessageTypeCode = (type) => {
  video: 3,
  audio: 1,
  location: 4,
- gift: 5,
- redpacket: 6
+ // C-10：与 MESSAGE_TYPE_MAP / 后端消息类型表对齐（6=礼物 7=红包），此前误映射为 5/6
+ gift: 6,
+ redpacket: 7
  };
  return typeMap[type] || 0;
 };
@@ -1368,67 +1771,105 @@ const retrySend = (msg) => {
  });
  }
 };
-const handleScroll = () => {
-};
-const loadMessages = async () => {
- try {
-   loadingMessages.value = true
- const response = await chatService.getMessages(userInfo.value.userId);
- // 后端返回 { total, list } 分页对象；此前按数组处理，导致历史消息永远加载失败
- const list = response && response.data
-   ? (Array.isArray(response.data) ? response.data : (response.data.list || []))
-   : [];
- if (list.length > 0) {
- messages.value = list.map(item => {
- const typeName = getMessageTypeName(item.type)
- const structured = parseStructuredMessage(typeName, item.content)
- const base = {
- id: item.id,
- isOwn: item.fromId === myInfo.value.userId,
- type: typeName,
- content: item.content,
- duration: item.duration || 0,
- showTime: true,
- status: item.isRead ? 'read' : 'sent',
- createTime: item.sendTime ? item.sendTime * 1000 : Date.now(),
- expireAt: Number(item.expireAt) || 0,
- readAt: Number(item.readAt) || 0,
- destroyAt: Number(item.destroyAt) || 0
- }
- // 已撤回消息优先按撤回态渲染：历史接口是刷新后唯一的真相来源，不能把原文显示回来
- // 已撤回，或已到期但清理器还没扫到：读取侧按 expireAt 再兜一层，绝不把原文下发到界面
- if (isRevokedMessage(item) || isChatMessageExpired(item.expireAt)) return applyRevokedState(base)
- if (!structured) return base
- if (typeName === 'gift') {
- return Object.assign(base, {
- icon: structured.icon || '',
- name: structured.name || '',
- count: Number(structured.count) || 1,
- giftType: Number(structured.giftType) || 0,
- animation: structured.animation || ''
- })
- }
- return Object.assign(base, {
- packetNo: structured.packetNo || '',
- amount: Number(structured.amount) || 0,
- count: Number(structured.count) || 1,
- message: structured.message || ''
- })
-});
-      // 给尚未到期的消息挂上展示倒计时（到期后本机自动切成「已撤回」）
-      messages.value.forEach((m) => { if (m.expireAt > 0) scheduleExpireAt(m, m.expireAt); });
-      // 已读销毁：服务端可能已算好 destroyAt（例如另一台设备读过），到点移除气泡
-      messages.value.forEach((m) => { if (m.destroyAt > 0) scheduleDestroyAt(m, m.destroyAt); });
-    } else {
-      messages.value = []
-    }
+const mapHistoryMessage = (item) => {
+  const typeName = getMessageTypeName(item.type);
+  const structured = parseStructuredMessage(typeName, item.content);
+  const base = {
+    id: item.id,
+    isOwn: item.fromId === myInfo.value.userId,
+    type: typeName,
+    content: item.content,
+    mediaUrl: item.mediaUrl || '',
+    duration: item.duration || 0,
+    showTime: true,
+    status: item.isRead ? 'read' : 'sent',
+    createTime: item.sendTime ? item.sendTime * 1000 : Date.now(),
+    expireAt: Number(item.expireAt) || 0,
+    readAt: Number(item.readAt) || 0,
+    destroyAt: Number(item.destroyAt) || 0
+  };
+  // 已撤回消息优先按撤回态渲染：历史接口是刷新后唯一的真相来源，不能把原文显示回来
+  if (isRevokedMessage(item) || isChatMessageExpired(item.expireAt)) return applyRevokedState(base);
+  if (!structured) return base;
+  if (typeName === 'gift') {
+    return Object.assign(base, {
+      icon: structured.icon || '',
+      name: structured.name || '',
+      count: Number(structured.count) || 1,
+      giftType: Number(structured.giftType) || 0,
+      animation: structured.animation || ''
+    });
   }
-  catch (error) {
-    console.error('加载消息失败:', error)
-    messages.value = []
-    toast.error('消息加载失败，请稍后重试')
+  return Object.assign(base, {
+    packetNo: structured.packetNo || '',
+    amount: Number(structured.amount) || 0,
+    count: Number(structured.count) || 1,
+    message: structured.message || ''
+  });
+};
+
+const messagePage = ref(1);
+const hasMoreMessages = ref(false);
+const loadingOlder = ref(false);
+
+const loadMessages = async () => {
+  try {
+    loadingMessages.value = true;
+    const response = await chatService.getMessages(userInfo.value.userId, 1, 20);
+    const data = response && response.data;
+    const list = Array.isArray(data) ? data : ((data && data.list) || []);
+    messages.value = list.map(mapHistoryMessage);
+    messagePage.value = 1;
+    hasMoreMessages.value = messages.value.length < (Number(data && data.total) || messages.value.length);
+    // 给尚未到期的消息挂上展示倒计时（到期后本机自动切成「已撤回」）
+    messages.value.forEach((m) => { if (m.expireAt > 0) scheduleExpireAt(m, m.expireAt); });
+    // 已读销毁：服务端可能已算好 destroyAt（例如另一台设备读过），到点移除气泡
+    messages.value.forEach((m) => { if (m.destroyAt > 0) scheduleDestroyAt(m, m.destroyAt); });
+  } catch (error) {
+    console.error('加载消息失败:', error);
+    messages.value = [];
+    toast.error('消息加载失败，请稍后重试');
   } finally {
-    loadingMessages.value = false
+    loadingMessages.value = false;
+  }
+};
+
+// 上拉加载更早的历史消息：按页取，前置插入并保持当前滚动位置
+const loadOlderMessages = async () => {
+  if (loadingOlder.value || !hasMoreMessages.value) return;
+  loadingOlder.value = true;
+  try {
+    const nextPage = messagePage.value + 1;
+    const response = await chatService.getMessages(userInfo.value.userId, nextPage, 20);
+    const data = response && response.data;
+    const list = Array.isArray(data) ? data : ((data && data.list) || []);
+    if (!list.length) {
+      hasMoreMessages.value = false;
+      return;
+    }
+    const older = list.map(mapHistoryMessage);
+    const container = messagesRef.value;
+    const previousHeight = container ? container.scrollHeight : 0;
+    messages.value = [...older, ...messages.value];
+    messagePage.value = nextPage;
+    const total = Number(data && data.total);
+    hasMoreMessages.value = Number.isFinite(total) ? messages.value.length < total : list.length === 20;
+    older.forEach((m) => { if (m.expireAt > 0) scheduleExpireAt(m, m.expireAt); });
+    older.forEach((m) => { if (m.destroyAt > 0) scheduleDestroyAt(m, m.destroyAt); });
+    await nextTick();
+    if (messagesRef.value) {
+      messagesRef.value.scrollTop = messagesRef.value.scrollHeight - previousHeight;
+    }
+  } catch (error) {
+    console.error('加载更早消息失败:', error);
+  } finally {
+    loadingOlder.value = false;
+  }
+};
+
+const handleScroll = () => {
+  if (messagesRef.value && messagesRef.value.scrollTop < 40) {
+    loadOlderMessages();
   }
 };
 // 后台尝试通过 P2P 取回对方头像（失败保持原 URL，不阻塞渲染）
@@ -1556,6 +1997,9 @@ onMounted(async () => {
  const targetId = route.params.id;
  if (targetId && targetId !== 'kefu') {
  userInfo.value.userId = parseInt(targetId);
+ // 同步给全局 chat store：全局 private_message 监听据此判断「当前会话」，
+ // 否则在聊天页收到消息仍会被累加未读（角标虚高且持久化）。
+ chatStore.setCurrentChat({ userId: userInfo.value.userId });
  }
  
  if (!localStorage.getItem(STORAGE_KEYS.TOKEN)) {
@@ -1566,6 +2010,12 @@ onMounted(async () => {
  const userRes = await authService.getUserInfo();
  if (userRes?.code === 200 && userRes.data) {
    userStore.setUserInfo(userRes.data);
+    // 刷新后也必须恢复「我是谁」，否则 isOwn 判定失败会把己方消息渲染成对方
+    myInfo.value = {
+      userId: Number(userRes.data.userId || userRes.data.id) || 0,
+      nickName: userRes.data.nickname || userRes.data.nickName || '',
+      avatar: userRes.data.avatar || DEFAULT_AVATAR
+    };
  }
  
  await loadMessages();
@@ -1575,6 +2025,8 @@ onMounted(async () => {
  upgradePeerAvatarViaP2P();
 });
 onUnmounted(() => {
+ // 只清自己：切换会话时新页面可能已先 setCurrentChat，避免把新会话标记清掉
+ if (chatStore.currentChatUser?.userId === userInfo.value.userId) chatStore.clearCurrentChat();
  teardownSocketListeners();
  clearExpireTimers();
  clearDestroyTimers();
@@ -1584,6 +2036,9 @@ onUnmounted(() => {
   } catch (e) { /* 忽略 */ }
  });
  objectUrls.clear();
+ // App 端录音器是全局原生资源，切页时主动取消，避免残留占用麦克风
+ if (isApp && isRecording.value) audioRecorder.cancelRecord();
+ if (audioPlayer) stopAudio();
  if (recordTimer) {
  clearInterval(recordTimer);
  }
@@ -1734,7 +2189,7 @@ onUnmounted(() => {
   margin: 8px 0;
 }
 
-.date-divider span {
+.date-divider text {
   background: #ddd;
   color: #666;
   padding: 4px 12px;
@@ -1881,7 +2336,7 @@ onUnmounted(() => {
   gap: 3px;
 }
 
-.typing-dots span {
+.typing-dots text {
   width: 6px;
   height: 6px;
   background: #999;
@@ -1889,9 +2344,9 @@ onUnmounted(() => {
   animation: typing 1.4s infinite ease-in-out;
 }
 
-.typing-dots span:nth-child(1) { animation-delay: 0s; }
-.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
-.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+.typing-dots text:nth-child(1) { animation-delay: 0s; }
+.typing-dots text:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots text:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes typing {
   0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
@@ -2094,7 +2549,7 @@ onUnmounted(() => {
   z-index: 1000;
 }
 
-.image-preview img {
+.image-preview .preview-img {
   max-width: 90%;
   max-height: 90%;
   object-fit: contain;
@@ -2120,6 +2575,13 @@ onUnmounted(() => {
   width: 100%;
   height: auto;
   display: block;
+}
+
+/* App 端没有真实缩略图：用固定尺寸深色占位保持气泡大小，播放图标与时长仍叠在上面 */
+.video-thumbnail-placeholder {
+  width: 200px;
+  height: 150px;
+  background: #2b2b2b;
 }
 
 .video-play-icon {
@@ -2398,6 +2860,32 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #d62929 0%, #ff6b6b 100%);
   border-radius: 12px;
   min-width: 180px;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.2s ease;
+}
+
+.redpacket-msg:active {
+  transform: scale(0.97);
+}
+
+/* C-1：领取后/失效后的视觉状态，避免用户误以为还能反复点 */
+.redpacket-msg.opened {
+  opacity: 0.72;
+}
+
+.redpacket-msg.expired {
+  background: linear-gradient(135deg, #8e8e8e 0%, #b5b5b5 100%);
+}
+
+.redpacket-status {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.redpacket-status.tap {
+  text-decoration: underline;
 }
 
 .redpacket-icon {
@@ -2489,6 +2977,23 @@ onUnmounted(() => {
   border-radius: 8px;
   font-size: 14px;
   background: white;
+}
+
+/* App 端 uni picker 在 flex 行里需要显式占满宽度，否则触发区按文字宽度收缩 */
+.picker-fill {
+  flex: 1;
+}
+
+/* App 端 uni picker 触发区：沿用 .location-select 外观，文字需垂直居中 */
+.app-picker-value {
+  display: flex;
+  align-items: center;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.app-picker-value.placeholder {
+  color: #999;
 }
 
 .current-location {

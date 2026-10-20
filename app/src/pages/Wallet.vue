@@ -1,127 +1,128 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">我的钱包</span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">我的钱包</text>
     </template>
 
-    <div class="balance-section">
-      <div class="balance-card" @click="showBreakdown = true">
-        <div class="balance-header">
-          <span class="balance-label">总资产 <span v-if="userInfo.vip" class="vip-badge">VIP{{ userInfo.vipLevel }}</span></span>
-          <span class="asset-detail">查看构成 ›</span>
-        </div>
-        <div class="balance-main">
-          <span class="coin-icon">💰</span>
-          <div class="balance-info">
-            <div class="balance-row">
-              <span class="balance-num">{{ formatBalance(totalAssets) }}</span>
-              <span class="balance-unit">金币</span>
-            </div>
-            <span class="balance-hint">≈ ¥{{ formatBalance(totalAssets / 10) }}</span>
-          </div>
-        </div>
-      </div>
+    <view class="balance-section">
+      <view class="balance-card" @click="showBreakdown = true">
+        <view class="balance-header">
+          <text class="balance-label">总资产 <text v-if="userInfo.vip" class="vip-badge">VIP{{ userInfo.vipLevel }}</text></text>
+          <text class="asset-detail">查看构成 ›</text>
+        </view>
+        <view class="balance-main">
+          <text class="coin-icon">💰</text>
+          <view class="balance-info">
+            <view class="balance-row">
+              <text class="balance-num">{{ formatBalance(totalAssets) }}</text>
+              <text class="balance-unit">金币</text>
+            </view>
+            <text class="balance-hint">≈ ¥{{ formatBalance(totalAssets / 10) }}</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="quick-actions">
-        <div class="action-btn recharge" @click="goRecharge">
-          <span class="action-icon">💎</span>
-          <span class="action-text">充值</span>
-        </div>
-        <div class="action-btn withdraw" @click="goWithdraw">
-          <span class="action-icon">💸</span>
-          <span class="action-text">提现</span>
-        </div>
-      </div>
-    </div>
+      <view class="quick-actions">
+        <view class="action-btn recharge" @click="goRecharge">
+          <text class="action-icon">💎</text>
+          <text class="action-text">充值</text>
+        </view>
+        <view class="action-btn withdraw" @click="goWithdraw">
+          <text class="action-icon">💸</text>
+          <text class="action-text">提现</text>
+        </view>
+      </view>
+    </view>
 
-    <div class="stats-section">
-      <div class="section-title">今日概览</div>
-      <div class="stats-row">
-        <div class="stat-card income" @click="goIncomeRecords">
-          <div class="stat-header">
-            <span class="stat-icon">📈</span>
-            <span class="stat-label">今日收入</span>
-          </div>
-          <span class="stat-value income">+{{ formatBalance(userInfo.todayIncome) }}</span>
-        </div>
-        <div class="stat-card expense" @click="goExpenseRecords">
-          <div class="stat-header">
-            <span class="stat-icon">📉</span>
-            <span class="stat-label">今日支出</span>
-          </div>
-          <span class="stat-value expense">-{{ formatBalance(todayExpense) }}</span>
-        </div>
-      </div>
-      <div class="stats-row">
-        <div class="stat-card" @click="goWithdrawRecords">
-          <div class="stat-header">
-            <span class="stat-icon">💳</span>
-            <span class="stat-label">累计提现</span>
-          </div>
-          <span class="stat-value">{{ formatBalance(totalWithdraw) }}</span>
-        </div>
-        <div class="stat-card" @click="goIncomeRecords">
-          <div class="stat-header">
-            <span class="stat-icon">💵</span>
-            <span class="stat-label">累计收入</span>
-          </div>
-          <span class="stat-value income">+{{ formatBalance(grossIncome) }}</span>
-        </div>
-      </div>
-    </div>
+    <view class="stats-section">
+      <view class="section-title">今日概览</view>
+      <view class="stats-row">
+        <view class="stat-card income" @click="goIncomeRecords">
+          <view class="stat-header">
+            <text class="stat-icon">📈</text>
+            <text class="stat-label">今日收入</text>
+          </view>
+          <text class="stat-value income">+{{ formatBalance(todayIncome) }}</text>
+        </view>
+        <view class="stat-card expense" @click="goExpenseRecords">
+          <view class="stat-header">
+            <text class="stat-icon">📉</text>
+            <text class="stat-label">今日支出</text>
+          </view>
+          <text class="stat-value expense">-{{ formatBalance(todayExpense) }}</text>
+        </view>
+      </view>
+      <view class="stats-row">
+        <view class="stat-card" @click="goWithdrawRecords">
+          <view class="stat-header">
+            <text class="stat-icon">💳</text>
+            <text class="stat-label">累计提现</text>
+          </view>
+          <text class="stat-value">{{ formatBalance(totalWithdraw) }}</text>
+        </view>
+        <view class="stat-card" @click="goIncomeRecords">
+          <view class="stat-header">
+            <text class="stat-icon">💵</text>
+            <text class="stat-label">累计收入</text>
+          </view>
+          <text class="stat-value income">+{{ formatBalance(grossIncome) }}</text>
+        </view>
+      </view>
+    </view>
 
-    <div class="menu-section">
-      <div class="menu-group">
-        <div class="menu-title">交易记录</div>
-        <div class="menu-item" @click="goIncomeRecords">
-          <span class="menu-icon">📈</span>
-          <span class="menu-text">收入记录</span>
-          <span class="menu-arrow">›</span>
-        </div>
-        <div class="menu-item" @click="goExpenseRecords">
-          <span class="menu-icon">📉</span>
-          <span class="menu-text">支出记录</span>
-          <span class="menu-arrow">›</span>
-        </div>
-        <div class="menu-item" @click="goWithdrawRecords">
-          <span class="menu-icon">💳</span>
-          <span class="menu-text">提现记录</span>
-          <span class="menu-arrow">›</span>
-        </div>
-      </div>
-    </div>
+    <view class="menu-section">
+      <view class="menu-group">
+        <view class="menu-title">交易记录</view>
+        <view class="menu-item" @click="goIncomeRecords">
+          <text class="menu-icon">📈</text>
+          <text class="menu-text">收入记录</text>
+          <text class="menu-arrow">›</text>
+        </view>
+        <view class="menu-item" @click="goExpenseRecords">
+          <text class="menu-icon">📉</text>
+          <text class="menu-text">支出记录</text>
+          <text class="menu-arrow">›</text>
+        </view>
+        <view class="menu-item" @click="goWithdrawRecords">
+          <text class="menu-icon">💳</text>
+          <text class="menu-text">提现记录</text>
+          <text class="menu-arrow">›</text>
+        </view>
+      </view>
+    </view>
 
-    <div class="breakdown-mask" v-if="showBreakdown" @click="showBreakdown = false">
-      <div class="breakdown-sheet" @click.stop>
-        <div class="breakdown-header">
-          <span class="breakdown-title">收入来源构成</span>
-          <span class="breakdown-close" @click="showBreakdown = false">×</span>
-        </div>
-        <div class="breakdown-total">
-          <span class="label">收入合计</span>
-          <span class="num">{{ formatBalance(grossIncome) }} 金币</span>
-        </div>
-        <div class="breakdown-list">
-          <div class="breakdown-item" v-for="item in assetSources" :key="item.name">
-            <span class="item-icon" :style="{ background: item.bgColor }">{{ item.icon }}</span>
-            <div class="item-info">
-              <span class="item-name">{{ item.name }}</span>
-              <span class="item-bar"><i :style="{ width: item.percent + '%' }"></i></span>
-            </div>
-            <div class="item-right">
-              <span class="item-amount">{{ formatBalance(item.amount) }}</span>
-              <span class="item-percent">{{ item.percent }}%</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <view class="breakdown-mask" v-if="showBreakdown" @click="showBreakdown = false">
+      <view class="breakdown-sheet" @click.stop>
+        <view class="breakdown-header">
+          <text class="breakdown-title">收入来源构成</text>
+          <text class="breakdown-close" @click="showBreakdown = false">×</text>
+        </view>
+        <view class="breakdown-total">
+          <text class="label">收入合计</text>
+          <text class="num">{{ formatBalance(grossIncome) }} 金币</text>
+        </view>
+        <view class="breakdown-list">
+          <view class="breakdown-item" v-for="item in assetSources" :key="item.name">
+            <text class="item-icon" :style="{ background: item.bgColor }">{{ item.icon }}</text>
+            <view class="item-info">
+              <text class="item-name">{{ item.name }}</text>
+              <text class="item-bar"><i :style="{ width: item.percent + '%' }"></i></text>
+            </view>
+            <view class="item-right">
+              <text class="item-amount">{{ formatBalance(item.amount) }}</text>
+              <text class="item-percent">{{ item.percent }}%</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import walletService from '../services/walletService'
@@ -168,6 +169,20 @@ onMounted(async () => {
     return
   }
   await fetchWallet()
+})
+
+// 返回钱包页（充值/提现后）静默刷新余额，未登录时保持原跳转逻辑
+const refreshOnShow = () => {
+  if (isLoggedIn()) fetchWallet()
+}
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
 })
 
 const formatBalance = (balance) => {

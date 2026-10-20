@@ -73,6 +73,15 @@ describe('common/request - uni.request 适配层', () => {
     await expect(common.request('/api/test')).rejects.toMatchObject({ code: 403, message: '无权限' })
   })
 
+  // P0（2026-10-20 用户端完整度审计）：created() 返回 statusCode 201 + code 201 时必须成功并归一为 200。
+  it('201 + 业务 code 201：成功并归一为 code 200', async () => {
+    uniRequest.mockImplementation((opts) => respond(opts, 201, { code: 201, data: { ok: true }, message: '创建成功' }))
+    const res = await common.request('/api/demo', 'POST', { a: 1 })
+    expect(res.code).toBe(200)
+    expect(res.httpStatus).toBe(201)
+    expect(res.data.ok).toBe(true)
+  })
+
   it('网络失败：抛网络错误', async () => {
     uniRequest.mockImplementation((opts) => setTimeout(() => opts.fail({ errMsg: 'request:fail' }), 0))
     await expect(common.request('/api/test')).rejects.toMatchObject({ status: 0 })

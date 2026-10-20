@@ -42,6 +42,40 @@ const getPhotos = async (userId, page = 1, pageSize = 12) => {
   };
 };
 
+// U-13：他人主页相册——只返回 public 照片（password/paid/private 需单独解锁，当前不暴露）
+const getUserPublicPhotos = async (targetUserId, viewerId, page = 1, pageSize = 12) => {
+  const { offset, limit } = parseQuery({ page, pageSize });
+  const { count, rows } = await AlbumPhoto.findAndCountAll({
+    where: { user_id: Number(targetUserId), status: 1, privacy: 'public' },
+    offset,
+    limit,
+    order: [['create_time', 'DESC']]
+  });
+  const likedSet = new Set();
+  if (viewerId && rows.length > 0) {
+    const likes = await AlbumLike.findAll({
+      where: { user_id: Number(viewerId), photo_id: { [Op.in]: rows.map(r => r.id) } },
+      attributes: ['photo_id']
+    });
+    likes.forEach(l => likedSet.add(Number(l.photo_id)));
+  }
+  return {
+    total: count,
+    page: Number(page),
+    pageSize: Number(pageSize),
+    list: rows.map(p => ({
+      id: p.id,
+      url: p.image_url,
+      thumbnail: p.image_url,
+      description: p.description || '',
+      privacy: p.privacy,
+      likeCount: p.likes || 0,
+      isLiked: likedSet.has(Number(p.id)),
+      createTime: p.create_time
+    }))
+  };
+};
+
 const uploadPhoto = async (userId, url, description, privacy, password, price) => {
   const photo = await AlbumPhoto.create({
     user_id: userId,
@@ -120,6 +154,7 @@ const likePhoto = async (userId, photoId) => {
 
 module.exports = {
   getPhotos,
+  getUserPublicPhotos,
   uploadPhoto,
   deletePhoto,
   likePhoto

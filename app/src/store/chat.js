@@ -16,7 +16,10 @@ export const useChatStore = defineStore('chat', {
     messageLoading: false,
     hasMoreMessages: true,
     currentPage: 1,
-    socketConnected: false
+    socketConnected: false,
+    // 实时监听只注册一次：socketService 内部保存监听注册表，断线/重建 socket 时会自动重挂，
+    // 不需要（也不能）重复注册，否则未读角标会被重复累加。放在 state 里便于按 store 实例复位。
+    socketListenersBound: false
   }),
 
   getters: {
@@ -143,6 +146,8 @@ export const useChatStore = defineStore('chat', {
     },
 
     setupSocketListeners() {
+      if (this.socketListenersBound) return
+      this.socketListenersBound = true
       // 事件名与后端对齐：后端 socket 发送的是 private_message / fromId（见 backend/src/socket/index.js）
       socketService.on('private_message', (data) => {
         if (import.meta.env.DEV) console.log('[Chat] 收到私聊消息:', data)
@@ -254,13 +259,14 @@ export const useChatStore = defineStore('chat', {
       this.clearMessages()
     },
 
-    initSocketConnection() {
+    // url 缺省时由 socketService 回落到 common/config 的 socketUrl
+    initSocketConnection(url = undefined) {
       const token = localStorage.getItem(STORAGE_KEYS.TOKEN)
-      if (token) {
-        socketService.connect()
-        this.socketConnected = true
-        this.setupSocketListeners()
-      }
+      if (!token) return
+      const socket = socketService.connect(url)
+      // connect 返回 null 表示未建连（无 token / 创建失败）；不要置真误导 UI
+      this.socketConnected = !!socket
+      this.setupSocketListeners()
     },
 
     disconnectSocket() {

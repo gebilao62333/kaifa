@@ -11,6 +11,7 @@ jest.mock('../../../src/services', () => ({
     completeOrder: jest.fn(),
     cancelOrder: jest.fn(),
     getOrders: jest.fn(),
+    evaluateOrder: jest.fn(),
     applyAsCompanion: jest.fn(),
     getApplyStatus: jest.fn()
   }
@@ -88,7 +89,7 @@ describe('Controller - Games', () => {
 
       await gamesController.getCompanions(req, res);
 
-      expect(gamesService.getCompanions).toHaveBeenCalledWith(null, 1, 20);
+      expect(gamesService.getCompanions).toHaveBeenCalledWith(null, 1, 20, { serviceType: undefined, sort: undefined });
       expect(res.status).toHaveBeenCalledWith(200);
     });
 
@@ -100,7 +101,7 @@ describe('Controller - Games', () => {
 
       await gamesController.getCompanions(req, res);
 
-      expect(gamesService.getCompanions).toHaveBeenCalledWith(1, 1, 10);
+      expect(gamesService.getCompanions).toHaveBeenCalledWith(1, 1, 10, { serviceType: undefined, sort: undefined });
     });
   });
 
@@ -386,6 +387,55 @@ describe('Controller - Games', () => {
 
       await gamesController.getApplyStatus(req, res);
 
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  // ==================== evaluateOrder（审计 B-14） ====================
+  describe('evaluateOrder', () => {
+    it('参数缺失返回 400', async () => {
+      const res = mockRes();
+      await gamesController.evaluateOrder(mockReq({ body: { orderId: 1 } }), res);
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('订单不存在返回 404', async () => {
+      gamesService.evaluateOrder.mockRejectedValue(new Error('订单不存在'));
+      const res = mockRes();
+      await gamesController.evaluateOrder(mockReq({ body: { orderId: 1, rating: 5 } }), res);
+      expect(res.status).toHaveBeenCalledWith(404);
+    });
+
+    it('评价他人订单返回 403', async () => {
+      gamesService.evaluateOrder.mockRejectedValue(new Error('无权评价他人订单'));
+      const res = mockRes();
+      await gamesController.evaluateOrder(mockReq({ body: { orderId: 1, rating: 5 } }), res);
+      expect(res.status).toHaveBeenCalledWith(403);
+    });
+
+    it('未完成/已评价等状态冲突返回 409 而非 500', async () => {
+      gamesService.evaluateOrder.mockRejectedValue(new Error('该订单已评价'));
+      const res = mockRes();
+      await gamesController.evaluateOrder(mockReq({ body: { orderId: 1, rating: 5 } }), res);
+      expect(res.status).toHaveBeenCalledWith(409);
+
+      gamesService.evaluateOrder.mockRejectedValue(new Error('订单尚未完成'));
+      const res2 = mockRes();
+      await gamesController.evaluateOrder(mockReq({ body: { orderId: 1, rating: 5 } }), res2);
+      expect(res2.status).toHaveBeenCalledWith(409);
+    });
+
+    it('评分越界返回 400', async () => {
+      gamesService.evaluateOrder.mockRejectedValue(new Error('评分需在 1-5 之间'));
+      const res = mockRes();
+      await gamesController.evaluateOrder(mockReq({ body: { orderId: 1, rating: 9 } }), res);
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('未知错误仍返回 500（不把故障伪装成业务错误）', async () => {
+      gamesService.evaluateOrder.mockRejectedValue(new Error('connect ECONNREFUSED'));
+      const res = mockRes();
+      await gamesController.evaluateOrder(mockReq({ body: { orderId: 1, rating: 5 } }), res);
       expect(res.status).toHaveBeenCalledWith(500);
     });
   });

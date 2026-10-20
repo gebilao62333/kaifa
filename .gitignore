@@ -17,6 +17,8 @@ backend/tests/e2e/report.json
 backend/tests/e2e/report.md
 backend/tests/e2e/write-report.json
 backend/scripts/bench_results.jsonl
+backend/tests/e2e/api-matrix-report.json
+backend/tests/e2e/api-matrix-report.md
 
 # ===== 依赖与构建产物 =====
 node_modules/
@@ -58,8 +60,25 @@ Desktop.ini
 # E2E test artifacts
 .e2e-run/
 
+# ===== 本地迁移自动化草稿（app/automation 下的正式文档仍入库）=====
+app/.automation/
+
+# ===== 迁移自动化自动产物（task:report / task:auto 每次重写，不入库）=====
+app/automation/report.md
+app/automation/page-matrix.md
+app/automation/run-summary.md
+app/automation/run-summary.json
+
+# ===== 迁移自动化运行态 / 编辑器临时文件 =====
+app/automation/heartbeat.json
+app/automation/allow-shutdown
+*-impmap.tmp.json
+
 # ===== 本地备份/缓存/工具目录（不入库）=====
 kaifa-snapshot-*/
 kaifa-prefix-snapshot-*/
 undefined/
 .dsh/
+
+# ===== 本机工具目录（Playwright 等，不入库）=====
+.tools/

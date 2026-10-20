@@ -1,14 +1,17 @@
-import { api, uploadUrl } from '../common/config'
+import { api } from '../common/config'
 import { goLogin } from '../common/route'
 import { validateParams, request } from '../common/common'
 import { STORAGE_KEYS } from '../common/constants'
+import { isApp } from '../common/platform'
 
 const DEFAULT_TIMEOUT = 60000
 const API_ORIGIN = import.meta.env.VITE_API_ORIGIN || ''
 const withOrigin = (path) => (API_ORIGIN ? API_ORIGIN.replace(/\/$/, '') + (path.startsWith('/') ? path : '/' + path) : path)
 
+// App 端（uni.chooseImage/chooseVideo 的临时文件）通常只有 path，没有 name；
+// 因此扩展名统一从 name → path 回落，保证 COS 直传 Content-Type 与中转校验可用。
 const getExt = (file) => {
-  const name = file.name || ''
+  const name = file?.name || file?.path || file?.tempFilePath || ''
   const idx = name.lastIndexOf('.')
   return idx >= 0 ? name.substring(idx).toLowerCase() : ''
 }
@@ -117,22 +120,37 @@ const BACKEND_FIELD_MAP = {
 const uploadViaAppBackend = (file, type, onProgress) => {
   const fieldName = BACKEND_FIELD_MAP[type] || 'image'
   const endpoint = type === 'audio' ? '/api/upload/audio' : type === 'video' ? '/api/upload/video' : '/api/upload/image'
-  const token = (() => { try { return uni.getStorageSync(STORAGE_KEYS.TOKEN) } catch (e) { return '' } })()
+  const token = (() => {
+    try {
+      return uni.getStorageSync(STORAGE_KEYS.TOKEN) || localStorage.getItem(STORAGE_KEYS.TOKEN) || ''
+    } catch (e) { return '' }
+  })()
+  const filePath = file.path || file.tempFilePath || file
   return new Promise((resolve, reject) => {
     const task = uni.uploadFile({
       url: withOrigin(endpoint),
-      filePath: file.path || file.tempFilePath || file,
+      filePath,
       name: fieldName,
       formData: type ? { type } : {},
       header: token ? { Authorization: 'Bearer ' + token } : {},
       success: (res) => {
-        try {
-          const data = JSON.parse(res.data)
-          if (data.code === 200 || data.code === 0) resolve(data)
-          else reject(new Error(data.message || '上传失败'))
-        } catch (e) { reject(new Error('解析响应失败')) }
+        const statusCode = Number(res.statusCode || 200)
+        if (statusCode === 401) {
+          try { uni.removeStorageSync(STORAGE_KEYS.TOKEN) } catch (e) { /* 忽略 */ }
+          try { localStorage.removeItem(STORAGE_KEYS.TOKEN) } catch (e) { /* 忽略 */ }
+          goLogin()
+          reject(new Error('登录已过期，请重新登录'))
+          return
+        }
+        let data = res.data
+        if (typeof data === 'string') {
+          try { data = JSON.parse(data) } catch (e) { reject(new Error('解析响应失败')); return }
+        }
+        if (!data || typeof data !== 'object') { reject(new Error('解析响应失败')); return }
+        if (data.code === 200 || data.code === 0) resolve(data)
+        else reject(new Error(data.message || '上传失败'))
       },
-      fail: (err) => reject(new Error(err.errMsg || '网络连接失败'))
+      fail: (err) => reject(new Error((err && err.errMsg) || '网络连接失败'))
     })
     if (task && typeof task.onProgressUpdate === 'function' && onProgress) {
       task.onProgressUpdate((e) => onProgress(e.progress))
@@ -140,10 +158,11 @@ const uploadViaAppBackend = (file, type, onProgress) => {
   })
 }
 
+// App 端只能走 uni.uploadFile（WebView 拿不到可 PUT 的 File 对象）；
+// H5 端保留 XHR + FormData。用运行时 isApp 判断而不是条件编译，
+// 这样单元测试可以直接覆盖两条分支。
 const uploadViaBackend = (file, type, onProgress) => {
-  // #ifdef APP-PLUS
-  return uploadViaAppBackend(file, type, onProgress)
-  // #endif
+  if (isApp) return uploadViaAppBackend(file, type, onProgress)
   // 后端 multer 按 image/audio/video 区分字段名，字段名必须与路由一致
   const fieldName = BACKEND_FIELD_MAP[type] || 'image'
   const formData = new FormData()
@@ -209,20 +228,23 @@ export const uploadFile = async (file, type = 'image', onProgress = null) => {
   // 上传前做大小与类型校验，不符合规则时抛出明确错误
   validateFile(file, type)
 
-  // 优先前端直传 COS，失败时回退后端中转
-  try {
-    const uploadInfo = await getToken(type, getExt(file))
-    const accessUrl = await directUploadToCos(uploadInfo, file, onProgress)
-    await registerUpload(accessUrl, type)
-    return {
-      code: 200,
-      data: { url: accessUrl, key: uploadInfo.key, filename: uploadInfo.filename },
-      message: '上传成功'
+  // H5 优先前端直传 COS；App 没有可 PUT 的 File（只有临时路径），
+  // 直传必然失败还会多打一次 /upload/token，因此直接走后端中转。
+  if (!isApp) {
+    try {
+      const uploadInfo = await getToken(type, getExt(file))
+      const accessUrl = await directUploadToCos(uploadInfo, file, onProgress)
+      await registerUpload(accessUrl, type)
+      return {
+        code: 200,
+        data: { url: accessUrl, key: uploadInfo.key, filename: uploadInfo.filename },
+        message: '上传成功'
+      }
+    } catch (err) {
+      console.warn('[上传] 直传COS失败，回退后端中转:', err.message)
     }
-  } catch (err) {
-    console.warn('[上传] 直传COS失败，回退后端中转:', err.message)
-    return await uploadViaBackend(file, type, onProgress)
   }
+  return await uploadViaBackend(file, type, onProgress)
 }
 
 export const uploadImage = (file, onProgress) => {

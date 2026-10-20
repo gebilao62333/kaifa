@@ -1,78 +1,79 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">虚拟人</span>
-      <span class="placeholder"></span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">虚拟人</text>
+      <text class="placeholder"></text>
     </template>
 
-    <div class="search-bar">
+    <view class="search-bar">
       <input
         v-model="searchKeyword"
         class="search-input"
         placeholder="搜索虚拟人..."
         @input="handleSearch"
       />
-    </div>
+    </view>
 
-    <div class="category-tabs">
-      <div
+    <view class="category-tabs">
+      <view
         v-for="tab in categoryTabs"
         :key="tab.key"
         :class="['tab-item', { active: activeTab === tab.key }]"
         @click="switchTab(tab.key)"
       >
-        <span class="tab-icon">{{ tab.icon }}</span>
-        <span class="tab-label">{{ tab.label }}</span>
-      </div>
-    </div>
+        <text class="tab-icon">{{ tab.icon }}</text>
+        <text class="tab-label">{{ tab.label }}</text>
+      </view>
+    </view>
 
-    <div class="user-list">
-      <div
+    <view class="user-list">
+      <view
         v-for="(user, index) in filteredUsers"
         :key="user.id"
         :class="['user-item', { 'no-border': index === filteredUsers.length - 1 }]"
         @click="startChat(user)"
       >
-        <div class="avatar-wrap">
-          <img class="avatar" :src="user.avatar || defaultAvatar" alt="" />
-          <div class="online-dot" :class="{ online: user.online_status === 1 }"></div>
-        </div>
-        <div class="user-info">
-          <div class="name-row">
-            <span class="nickname">{{ user.name }}</span>
-            <span class="gender-tag" v-if="user.gender">{{ genderText(user.gender) }}</span>
-            <span class="age-tag" v-if="user.age">{{ user.age }}岁</span>
-            <span class="recommend-tag" v-if="user.is_recommend === 1">推荐</span>
-          </div>
-          <div class="region-row" v-if="user.region">
-            <span class="region-text">📍 {{ user.region }}</span>
-            <span class="price-text" v-if="user.price_per_hour">¥{{ user.price_per_hour }}/小时</span>
-          </div>
-          <div class="desc-row" v-if="user.intro">
-            <span class="desc-text">{{ user.intro }}</span>
-          </div>
-        </div>
-        <div class="action-btn">
-          <span class="chat-icon">💬</span>
-        </div>
-      </div>
+        <view class="avatar-wrap">
+          <image mode="aspectFill" class="avatar" :src="user.avatar || defaultAvatar" alt="" />
+          <view class="online-dot" :class="{ online: user.online_status === 1 }"></view>
+        </view>
+        <view class="user-info">
+          <view class="name-row">
+            <text class="nickname">{{ user.name }}</text>
+            <text class="gender-tag" v-if="user.gender">{{ genderText(user.gender) }}</text>
+            <text class="age-tag" v-if="user.age">{{ user.age }}岁</text>
+            <text class="recommend-tag" v-if="user.is_recommend === 1">推荐</text>
+          </view>
+          <view class="region-row" v-if="user.region">
+            <text class="region-text">📍 {{ user.region }}</text>
+            <text class="price-text" v-if="user.price_per_hour">¥{{ user.price_per_hour }}/小时</text>
+          </view>
+          <view class="desc-row" v-if="user.intro">
+            <text class="desc-text">{{ user.intro }}</text>
+          </view>
+        </view>
+        <view class="action-btn">
+          <text class="chat-icon">💬</text>
+        </view>
+      </view>
 
-      <div class="loading-state" v-if="loading">
-        <div class="loading-text">加载中...</div>
-      </div>
+      <view class="loading-state" v-if="loading">
+        <view class="loading-text">加载中...</view>
+      </view>
 
-      <div class="empty-state" v-if="!loading && filteredUsers.length === 0">
-        <div class="empty-icon">🤖</div>
-        <div class="empty-text">暂无虚拟人</div>
-        <div class="empty-hint">稍后再来看看吧</div>
-      </div>
-    </div>
+      <view class="empty-state" v-if="!loading && filteredUsers.length === 0">
+        <view class="empty-icon">🤖</view>
+        <view class="empty-text">暂无虚拟人</view>
+        <view class="empty-hint">稍后再来看看吧</view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import { virtualUserService } from '../services/virtualUserService'
 import { genAvatar } from '../utils/placeholder'
@@ -117,8 +118,9 @@ const filteredUsers = computed(() => {
   return users
 })
 
-const loadUsers = async () => {
-  loading.value = true
+// silent：返回本页刷新时不切整页 loading，避免列表被「加载中」覆盖闪烁
+const loadUsers = async (silent = false) => {
+  if (!silent) loading.value = true
   try {
     const res = await virtualUserService.getVirtualUsers({ pageSize: 100, status: 1 })
     if (res.data && res.data.list) {
@@ -129,7 +131,7 @@ const loadUsers = async () => {
   } catch (error) {
     console.error('加载虚拟用户失败:', error)
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
   }
 }
 
@@ -148,6 +150,21 @@ const goBack = () => {
 const startChat = (user) => {
   router.push(`/ai-chat/${user.id}`)
 }
+
+// 虚拟用户的在线/推荐状态由服务端定时更新，返回本页时静默同步
+const refreshOnShow = () => {
+  loadUsers(true)
+}
+
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
+})
 
 onMounted(() => {
   loadUsers()

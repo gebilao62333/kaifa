@@ -1,44 +1,44 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">提现明细</span>
-      <span class="total">累计 {{ formatAmount(totalWithdraw) }} 金币</span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">提现明细</text>
+      <text class="total">累计 {{ formatAmount(totalWithdraw) }} 金币</text>
     </template>
 
-    <div class="summary-card">
-      <div class="summary-item">
-        <span class="summary-label">累计提现</span>
-        <span class="summary-value">{{ formatAmount(totalWithdraw) }}</span>
-      </div>
-      <div class="summary-divider"></div>
-      <div class="summary-item">
-        <span class="summary-label">提现次数</span>
-        <span class="summary-value">{{ records.length }} 次</span>
-      </div>
-      <div class="summary-divider"></div>
-      <div class="summary-item">
-        <span class="summary-label">可提现余额</span>
-        <span class="summary-value withdraw">{{ formatAmount(balance) }}</span>
-      </div>
-    </div>
+    <view class="summary-card">
+      <view class="summary-item">
+        <text class="summary-label">累计提现</text>
+        <text class="summary-value">{{ formatAmount(totalWithdraw) }}</text>
+      </view>
+      <view class="summary-divider"></view>
+      <view class="summary-item">
+        <text class="summary-label">提现次数</text>
+        <text class="summary-value">{{ records.length }} 次</text>
+      </view>
+      <view class="summary-divider"></view>
+      <view class="summary-item">
+        <text class="summary-label">可提现余额</text>
+        <text class="summary-value withdraw">{{ formatAmount(balance) }}</text>
+      </view>
+    </view>
 
-    <div class="records-list">
-      <div class="record-card" v-for="item in records" :key="item.id">
-        <div class="record-icon-wrap" :style="{ background: item.bgColor }">
-          <span class="record-icon">{{ item.icon }}</span>
-        </div>
-        <div class="record-info">
-          <span class="record-title">{{ item.title }}</span>
-          <span class="record-desc">{{ item.desc }}</span>
-          <span class="record-time">{{ item.time }}</span>
-        </div>
-        <div class="record-status-wrap">
-          <span class="record-amount">-{{ formatAmount(item.amount) }}</span>
-          <span :class="['record-status', item.status]">{{ item.status === 'success' ? '已到账' : '处理中' }}</span>
-        </div>
-      </div>
-    </div>
+    <view class="records-list">
+      <view class="record-card" v-for="item in records" :key="item.id">
+        <view class="record-icon-wrap" :style="{ background: item.bgColor }">
+          <text class="record-icon">{{ item.icon }}</text>
+        </view>
+        <view class="record-info">
+          <text class="record-title">{{ item.title }}</text>
+          <text class="record-desc">{{ item.desc }}</text>
+          <text class="record-time">{{ item.time }}</text>
+        </view>
+        <view class="record-status-wrap">
+          <text class="record-amount">-{{ formatAmount(item.amount) }}</text>
+          <text :class="['record-status', item.status]">{{ item.status === 'success' ? '已到账' : (item.status === 'rejected' ? '已拒绝' : '处理中') }}</text>
+        </view>
+      </view>
+    </view>
 
     <EmptyState v-if="records.length === 0" icon="🏦" text="暂无提现记录" />
   </PageLayout>
@@ -46,6 +46,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -95,7 +96,10 @@ const mapRecord = (r) => {
     desc: maskAccount(r.account) || '钱包提现',
     time: formatTime(r.createTime),
     amount: Number(r.amount || 0),
-    status: r.status === 'success' || r.status === 'approved' ? 'success' : 'pending',
+    // 后端状态：pending / approved / rejected；此前 rejected 被映射成 pending（显示"处理中"）
+    status: r.status === 'success' || r.status === 'approved'
+      ? 'success'
+      : (r.status === 'rejected' ? 'rejected' : 'pending'),
     bgColor: meta.bgColor
   }
 }
@@ -128,6 +132,20 @@ onMounted(async () => {
     return
   }
   await fetchRecords()
+})
+
+// 返回提现记录页时静默刷新；未登录时保持原跳转逻辑
+const refreshOnShow = () => {
+  if (isLoggedIn()) fetchRecords()
+}
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
 })
 
 const goBack = () => {
@@ -273,6 +291,11 @@ const goBack = () => {
 .record-status.success {
   color: #10b981;
   background: rgba(16, 185, 129, 0.1);
+}
+
+.record-status.rejected {
+  color: #e74c3c;
+  background: #fdecea;
 }
 
 .record-status.pending {

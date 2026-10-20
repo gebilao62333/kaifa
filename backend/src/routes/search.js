@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const response = require('../utils/response');
 const logger = require('../utils/logger');
-const { authMiddleware } = require('../middlewares');
+const { optionalAuth } = require('../middlewares');
 const { circleService } = require('../services');
 const { Game } = require('../models');
 const { Op } = require('sequelize');
@@ -29,7 +29,8 @@ router.get('/hot', (req, res) => {
 });
 
 // 搜索动态
-router.get('/posts', authMiddleware, async (req, res) => {
+// 公开搜索：未登录也可浏览公开动态（服务层按可见范围过滤）
+router.get('/posts', optionalAuth, async (req, res) => {
   try {
     const { keyword, page = 1, pageSize = 20 } = req.query;
     if (!keyword || !String(keyword).trim()) {
@@ -44,7 +45,7 @@ router.get('/posts', authMiddleware, async (req, res) => {
 });
 
 // 搜索游戏
-router.get('/games', authMiddleware, async (req, res) => {
+router.get('/games', optionalAuth, async (req, res) => {
   try {
     const { keyword } = req.query;
     if (!keyword || !String(keyword).trim()) {

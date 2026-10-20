@@ -9,7 +9,8 @@ jest.mock('../../../src/services', () => ({
     getUserInfo: jest.fn(),
     updateUserInfo: jest.fn(),
     followUser: jest.fn(),
-    refreshToken: jest.fn()
+    refreshToken: jest.fn(),
+    changePassword: jest.fn()
   },
   smsService: {
     sendSMS: jest.fn(),
@@ -251,6 +252,55 @@ describe('Controller - User', () => {
       User.findOne.mockRejectedValue(new Error('boom'));
       const res = mockRes();
       await userController.resetPassword(mockReq({ body: { phone: '13800000000', password: 'abcdef', code: '1' } }), res);
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  describe('changePassword（已登录改密）', () => {
+    it('rejects missing fields', async () => {
+      const res = mockRes();
+      await userController.changePassword(mockReq({ body: {} }), res);
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+
+    it('rejects bad new password length or same password', async () => {
+      const short = mockRes();
+      await userController.changePassword(mockReq({ body: { oldPassword: 'oldpwd1', newPassword: '123' } }), short);
+      expect(short.status).toHaveBeenCalledWith(422);
+
+      const same = mockRes();
+      await userController.changePassword(mockReq({ body: { oldPassword: 'abcdef', newPassword: 'abcdef' } }), same);
+      expect(same.status).toHaveBeenCalledWith(422);
+    });
+
+    it('changes password with the authenticated user id', async () => {
+      authService.changePassword.mockResolvedValue({ devicesRevoked: true });
+      const res = mockRes();
+      await userController.changePassword(mockReq({ body: { oldPassword: 'oldpwd1', newPassword: 'newpwd1' } }), res);
+      expect(authService.changePassword).toHaveBeenCalledWith(100001, 'oldpwd1', 'newpwd1');
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json.mock.calls[0][0].data).toEqual({ devicesRevoked: true });
+    });
+
+    it('maps wrong old password to 400', async () => {
+      authService.changePassword.mockRejectedValue(new Error('原密码错误'));
+      const res = mockRes();
+      await userController.changePassword(mockReq({ body: { oldPassword: 'badpwd', newPassword: 'newpwd1' } }), res);
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json.mock.calls[0][0].message).toBe('原密码错误');
+    });
+
+    it('returns 503 when revocation state cannot be confirmed (fail-closed)', async () => {
+      authService.changePassword.mockRejectedValue(new Error('REVOCATION_UNAVAILABLE'));
+      const res = mockRes();
+      await userController.changePassword(mockReq({ body: { oldPassword: 'oldpwd1', newPassword: 'newpwd1' } }), res);
+      expect(res.status).toHaveBeenCalledWith(503);
+    });
+
+    it('returns 500 on unexpected error', async () => {
+      authService.changePassword.mockRejectedValue(new Error('boom'));
+      const res = mockRes();
+      await userController.changePassword(mockReq({ body: { oldPassword: 'oldpwd1', newPassword: 'newpwd1' } }), res);
       expect(res.status).toHaveBeenCalledWith(500);
     });
   });

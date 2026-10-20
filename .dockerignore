@@ -3,7 +3,6 @@
 **/.pnpm-store
 
 # 构建产物
-frontend/dist
 admin-frontend/dist
 
 # 日志
@@ -64,8 +63,19 @@ Thumbs.db
 # 测试截图
 test-screenshots
 
+# 历史快照 / 联调产物 / 本地构建产物（不参与镜像）
+kaifa-*snapshot*
+.e2e-run
+undefined
+pi-plugin-kaifa-skills
+app/dist
+app/coverage
+app/.automation
+
 # 备份 & 杂项
 *.sql
+# 例外：初始化 SQL 需要进后端镜像（Sealos 容器终端执行）；构建时按需保留
+!backend/sql/*.sql
 *.tar.gz
 *.zip
 *.bak

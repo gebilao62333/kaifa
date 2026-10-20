@@ -1,49 +1,49 @@
 <template>
-  <div class="bottom-nav" :class="{ 'no-anim': !navAnimationEnabled }">
-    <div class="nav-items">
-      <div 
+  <view class="bottom-nav" :class="{ 'no-anim': !navAnimationEnabled }">
+    <view class="nav-items">
+      <view 
         class="nav-item" 
         :class="{ active: currentRoute === '/home' }"
         @click="goTo('/home')"
       >
-        <div class="nav-icon">{{ currentRoute === '/home' ? '🏠' : '🏡' }}</div>
-        <div class="nav-text">首页</div>
-      </div>
-      <div 
+        <view class="nav-icon">{{ currentRoute === '/home' ? '🏠' : '🏡' }}</view>
+        <view class="nav-text">首页</view>
+      </view>
+      <view 
         class="nav-item" 
         :class="{ active: currentRoute === '/square' }"
         @click="goTo('/square')"
       >
-        <div class="nav-icon">{{ currentRoute === '/square' ? '🎭' : '🎪' }}</div>
-        <div class="nav-text">广场</div>
-      </div>
-      <div 
+        <view class="nav-icon">{{ currentRoute === '/square' ? '🎭' : '🎪' }}</view>
+        <view class="nav-text">广场</view>
+      </view>
+      <view 
         class="nav-item" 
         :class="{ active: currentRoute === '/preferred' }"
         @click="goTo('/preferred')"
       >
-        <div class="nav-icon-wrapper">
-          <div class="nav-icon">{{ currentRoute === '/preferred' ? '💬' : '🗨️' }}</div>
-          <div class="badge" v-if="unreadCount > 0">
+        <view class="nav-icon-wrapper">
+          <view class="nav-icon">{{ currentRoute === '/preferred' ? '💬' : '🗨️' }}</view>
+          <view class="badge" v-if="unreadCount > 0">
             {{ unreadCount > 99 ? '99+' : unreadCount }}
-          </div>
-        </div>
-        <div class="nav-text">消息</div>
-      </div>
-      <div 
+          </view>
+        </view>
+        <view class="nav-text">消息</view>
+      </view>
+      <view 
         class="nav-item" 
         :class="{ active: currentRoute === '/mine' }"
         @click="goTo('/mine')"
       >
-        <div class="nav-icon">{{ currentRoute === '/mine' ? '👤' : '👥' }}</div>
-        <div class="nav-text">我的</div>
-      </div>
-    </div>
-  </div>
+        <view class="nav-icon">{{ currentRoute === '/mine' ? '👤' : '👥' }}</view>
+        <view class="nav-text">我的</view>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRouter, useRoute } from '@/common/route'
 import { useChatStore } from '../store/chat'
 import { useNavAnimation } from '../composables/useNavAnimation'

@@ -1,15 +1,15 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">← 返回</span>
-      <span class="nav-title">卡密充值</span>
+      <text class="back-btn" @click="goBack">← 返回</text>
+      <text class="nav-title">卡密充值</text>
     </template>
 
-    <div class="card-form">
-      <div class="form-icon">🎫</div>
-      <p class="form-desc">输入25位充值密钥即可充值</p>
+    <view class="card-form">
+      <view class="form-icon">🎫</view>
+      <view class="form-desc">输入25位充值密钥即可充值</view>
 
-      <div class="key-input-wrapper">
+      <view class="key-input-wrapper">
         <input
           v-model="displayKey"
           type="text"
@@ -20,33 +20,33 @@
           :disabled="loading"
           @input="onKeyInput"
         />
-        <div class="key-blocks">
-          <span
+        <view class="key-blocks">
+          <text
             v-for="(group, gi) in keyGroups"
             :key="gi"
             class="key-block"
             :class="{ filled: group.length === 5 }"
           >
-            <span
+            <text
               v-for="(ch, ci) in group.padEnd(5, ' ')"
               :key="ci"
               class="key-char"
               :class="{ placeholder: ch === ' ' }"
-            >{{ ch }}</span>
-          </span>
-        </div>
-      </div>
+            >{{ ch }}</text>
+          </text>
+        </view>
+      </view>
 
       <button
         class="submit-btn"
-        :disabled="!canSubmit || loading"
+        :disabled="!canSubmit || loading || retryCooldown > 0"
         @click="submitRecharge"
       >
-        <span v-if="loading" class="btn-loading"></span>
-        {{ loading ? '验证中...' : '立即充值' }}
+        <text v-if="loading" class="btn-loading"></text>
+        {{ retryCooldown > 0 ? retryCooldown + 's 后可重试' : (loading ? '验证中...' : '立即充值') }}
       </button>
 
-      <div class="tips">
+      <view class="tips">
         <h4>使用说明</h4>
         <ul>
           <li>输入平台发放的25位充值密钥</li>
@@ -54,18 +54,18 @@
           <li>充值成功后余额将立即到账</li>
           <li>无需区分卡号密码，一键充值</li>
         </ul>
-      </div>
-    </div>
+      </view>
+    </view>
 
-    <div class="result-modal" v-if="showResult" @click.self="closeResult">
-      <div class="result-content">
-        <div class="result-icon">{{ resultSuccess ? '✅' : '❌' }}</div>
+    <view class="result-modal" v-if="showResult" @click.self="closeResult">
+      <view class="result-content">
+        <view class="result-icon">{{ resultSuccess ? '✅' : '❌' }}</view>
         <h3>{{ resultSuccess ? '充值成功' : '充值失败' }}</h3>
-        <p v-if="resultSuccess">已到账 <strong>{{ resultAmount }}</strong> 金币</p>
-        <p v-else>{{ resultMsg }}</p>
+        <view v-if="resultSuccess">已到账 <strong>{{ resultAmount }}</strong> 金币</view>
+        <view v-else>{{ resultMsg }}</view>
         <button class="result-btn" @click="closeResult">确定</button>
-      </div>
-    </div>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
@@ -83,6 +83,24 @@ const showResult = ref(false)
 const resultSuccess = ref(false)
 const resultMsg = ref('')
 const resultAmount = ref(0)
+// C-7：卡密校验接口有 cardLimiter，429 时按服务端给的冷却时间禁用按钮
+const retryCooldown = ref(0)
+let retryTimer = null
+
+const startRetryCooldown = (seconds) => {
+  const safe = Math.max(1, Math.min(Number(seconds) || 0, 3600))
+  if (!safe) return
+  retryCooldown.value = safe
+  if (retryTimer) clearInterval(retryTimer)
+  retryTimer = setInterval(() => {
+    retryCooldown.value -= 1
+    if (retryCooldown.value <= 0) {
+      clearInterval(retryTimer)
+      retryTimer = null
+      retryCooldown.value = 0
+    }
+  }, 1000)
+}
 
 const keyGroups = computed(() => {
   const clean = rawKey.value.replace(/\D/g, '')
@@ -124,6 +142,7 @@ const submitRecharge = async () => {
   } catch (err) {
     console.error('密钥充值失败:', err)
     showResultModal(false, err.message || '网络错误，请稍后重试')
+    if (err.retryAfterSec) startRetryCooldown(err.retryAfterSec)
   } finally {
     loading.value = false
   }
@@ -339,13 +358,13 @@ const closeResult = () => {
   margin-bottom: 8px;
 }
 
-.result-content p {
+.result-content view:not(.result-icon) {
   font-size: 14px;
   color: #666;
   margin-bottom: 20px;
 }
 
-.result-content p strong {
+.result-content view:not(.result-icon) strong {
   color: var(--color-primary);
   font-size: 18px;
 }

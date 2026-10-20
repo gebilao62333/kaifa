@@ -1,78 +1,78 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">我的相册</span>
-      <span class="add-btn" @click="handleAddClick">+</span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">我的相册</text>
+      <text class="add-btn" @click="handleAddClick">+</text>
     </template>
 
-    <div class="content">
-      <div class="album-info" v-if="!isLoading">
-        <div class="album-stats">
-          <div class="stat-item">
-            <div class="stat-num">{{ totalPhotos }}</div>
-            <div class="stat-label">照片</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-num">{{ totalViews }}</div>
-            <div class="stat-label">浏览</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-num">{{ totalLikes }}</div>
-            <div class="stat-label">获赞</div>
-          </div>
-        </div>
-      </div>
+    <view class="content">
+      <view class="album-info" v-if="!isLoading">
+        <view class="album-stats">
+          <view class="stat-item">
+            <view class="stat-num">{{ totalPhotos }}</view>
+            <view class="stat-label">照片</view>
+          </view>
+          <view class="stat-item">
+            <view class="stat-num">{{ totalViews }}</view>
+            <view class="stat-label">浏览</view>
+          </view>
+          <view class="stat-item">
+            <view class="stat-num">{{ totalLikes }}</view>
+            <view class="stat-label">获赞</view>
+          </view>
+        </view>
+      </view>
 
-      <div class="loading-state" v-if="isLoading">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">加载中...</div>
-      </div>
+      <view class="loading-state" v-if="isLoading">
+        <view class="loading-spinner"></view>
+        <view class="loading-text">加载中...</view>
+      </view>
 
-      <div class="album-grid" v-else-if="photos.length > 0">
-        <div class="photo-item" v-for="photo in photos" :key="photo.id" @click="viewPhoto(photo)">
-          <img class="photo-img" :src="photo.url" alt="" />
-          <div class="photo-overlay">
-            <span class="photo-likes" :class="{ active: photo.liked }" @click.stop="toggleLike(photo)">
-              {{ photo.liked ? '❤️' : '🤍' }} {{ photo.likes }}
-            </span>
-          </div>
-        </div>
-      </div>
+      <view class="album-grid" v-else-if="photos.length > 0">
+        <view class="photo-item" v-for="photo in photos" :key="photo.id" @click="viewPhoto(photo)">
+          <image mode="aspectFill" class="photo-img" :src="photo.url" alt="" />
+          <view class="photo-overlay">
+            <text class="photo-likes" :class="{ active: photo.isLiked }" @click.stop="toggleLike(photo)">
+              {{ photo.isLiked ? '❤️' : '🤍' }} {{ photo.likeCount }}
+            </text>
+          </view>
+        </view>
+      </view>
 
       <EmptyState v-else-if="!isLoading" icon="📷" text="暂无照片" hint="点击右上角添加照片" />
 
-      <div class="load-more" v-if="hasMore && !isLoading" @click="loadMore">
+      <view class="load-more" v-if="hasMore && !isLoading" @click="loadMore">
         加载更多
-      </div>
-    </div>
+      </view>
+    </view>
 
-    <div class="viewer" v-if="currentPhoto" @click.self="closeViewer">
-      <div class="viewer-close" @click="closeViewer">✕</div>
-      <img class="viewer-img" :src="currentPhoto.url" alt="" />
-      <div class="viewer-info">
-        <div class="viewer-desc" v-if="currentPhoto.description">{{ currentPhoto.description }}</div>
-        <div class="viewer-time">{{ formatDate(currentPhoto.createdAt) }}</div>
-      </div>
-      <div class="viewer-actions">
-        <button class="viewer-btn like-btn" :class="{ active: currentPhoto.liked }" @click="toggleLike(currentPhoto)">
-          {{ currentPhoto.liked ? '❤️ 取消点赞' : '🤍 点赞' }}
+    <view class="viewer" v-if="currentPhoto" @click.self="closeViewer">
+      <view class="viewer-close" @click="closeViewer">✕</view>
+      <image class="viewer-img" mode="aspectFit" style="width:100%;height:70vh;" :src="currentPhoto.url" />
+      <view class="viewer-info">
+        <view class="viewer-desc" v-if="currentPhoto.description">{{ currentPhoto.description }}</view>
+        <view class="viewer-time">{{ formatDate(currentPhoto.createdAt) }}</view>
+      </view>
+      <view class="viewer-actions">
+        <button class="viewer-btn like-btn" :class="{ active: currentPhoto.isLiked }" @click="toggleLike(currentPhoto)">
+          {{ currentPhoto.isLiked ? '❤️ 取消点赞' : '🤍 点赞' }}
         </button>
         <button class="viewer-btn delete-btn" @click="deleteCurrentPhoto">删除</button>
-      </div>
-    </div>
+      </view>
+    </view>
 
-    <div class="modal" v-if="showAdd" @click.self="showAdd = false">
-      <div class="modal-content">
-        <div class="modal-title">添加照片</div>
-        <div class="modal-body">
-          <div class="upload-area" @click="triggerUpload" ref="uploadArea">
-            <div class="upload-icon">📷</div>
-            <div class="upload-text">点击上传照片</div>
-            <div class="upload-hint">支持 jpg、png 格式，可多选</div>
+    <view class="modal" v-if="showAdd" @click.self="showAdd = false">
+      <view class="modal-content">
+        <view class="modal-title">添加照片</view>
+        <view class="modal-body">
+          <view class="upload-area" @click="triggerUpload" ref="uploadArea">
+            <view class="upload-icon">📷</view>
+            <view class="upload-text">点击上传照片</view>
+            <view class="upload-hint">支持 jpg、png 格式，可多选</view>
             <input type="file" ref="fileInput" accept="image/*" style="display: none" @change="handleFileChange" multiple />
-          </div>
-          <div class="desc-input" v-if="previewUrls.length > 0">
+          </view>
+          <view class="desc-input" v-if="previewUrls.length > 0">
             <input
               type="text"
               v-model="photoDescription"
@@ -80,65 +80,68 @@
               class="description-input"
               maxlength="50"
             />
-          </div>
-          <div class="privacy-section" v-if="previewUrls.length > 0">
-            <div class="privacy-title">隐私设置</div>
-            <div class="privacy-options">
+          </view>
+          <view class="privacy-section" v-if="previewUrls.length > 0">
+            <view class="privacy-title">隐私设置</view>
+            <view class="privacy-options">
               <label class="privacy-option">
                 <input type="radio" v-model="privacySetting" value="public" />
-                <span>公开可见</span>
+                <text>公开可见</text>
               </label>
               <label class="privacy-option">
                 <input type="radio" v-model="privacySetting" value="friends" />
-                <span>好友可见</span>
+                <text>好友可见</text>
               </label>
               <label class="privacy-option">
                 <input type="radio" v-model="privacySetting" value="password" />
-                <span>密码保护</span>
+                <text>密码保护</text>
               </label>
               <label class="privacy-option">
                 <input type="radio" v-model="privacySetting" value="paid" />
-                <span>付费查看</span>
+                <text>付费查看</text>
               </label>
               <label class="privacy-option">
                 <input type="radio" v-model="privacySetting" value="private" />
-                <span>仅自己可见</span>
+                <text>仅自己可见</text>
               </label>
-            </div>
-            <div class="privacy-password" v-if="privacySetting === 'password'">
+            </view>
+            <view class="privacy-password" v-if="privacySetting === 'password'">
               <input type="password" v-model="privacyPassword" placeholder="设置访问密码" class="password-input" />
-            </div>
-            <div class="privacy-price" v-if="privacySetting === 'paid'">
+            </view>
+            <view class="privacy-price" v-if="privacySetting === 'paid'">
               <input type="number" v-model="privacyPrice" placeholder="设置查看价格（金币）" class="price-input" />
-            </div>
-          </div>
-          <div class="preview-list" v-if="previewUrls.length > 0">
-            <div class="preview-item" v-for="(preview, index) in previewUrls" :key="index">
-              <img class="preview-img" :src="preview.url" alt="" />
-              <div class="preview-remove" @click="removePreview(index)">✕</div>
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
+            </view>
+          </view>
+          <view class="preview-list" v-if="previewUrls.length > 0">
+            <view class="preview-item" v-for="(preview, index) in previewUrls" :key="index">
+              <image mode="aspectFill" class="preview-img" :src="preview.url" alt="" />
+              <view class="preview-remove" @click="removePreview(index)">✕</view>
+            </view>
+          </view>
+        </view>
+        <view class="modal-footer">
           <button class="modal-btn cancel" @click="cancelAdd">取消</button>
           <button class="modal-btn confirm" :disabled="previewUrls.length === 0 || isUploading" @click="confirmAdd">
-            <span v-if="isUploading">上传中...</span>
-            <span v-else>确定</span>
+            <text v-if="isUploading">上传中...</text>
+            <text v-else>确定</text>
           </button>
-        </div>
-      </div>
-    </div>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import { albumService } from '@/services/albumService'
 import { isLoggedIn } from '@/common/common'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
 import { toast } from '../composables/useToast'
+import { chooseImages } from '../services/mediaPicker'
+import { isApp } from '../common/platform'
 
 const router = useRouter()
 
@@ -155,10 +158,13 @@ const photoDescription = ref('')
 const privacySetting = ref('public')
 const privacyPassword = ref('')
 const privacyPrice = ref(0)
+// App 端 uni.chooseImage 单次最多 9 张；相册总数上限仍由后端额度（基础 20/Lv.25 扩容 50）校验
+const MAX_PICK_COUNT = 9
 
-const totalPhotos = computed(() => photos.value.length)
+const serverTotal = ref(0)
+const totalPhotos = computed(() => serverTotal.value || photos.value.length)
 const totalViews = computed(() => photos.value.reduce((sum, p) => sum + (p.views || 0), 0))
-const totalLikes = computed(() => photos.value.reduce((sum, p) => sum + (p.likes || 0), 0))
+const totalLikes = computed(() => photos.value.reduce((sum, p) => sum + (Number(p.likeCount) || 0), 0))
 
 const goBack = () => {
   router.back()
@@ -178,23 +184,23 @@ const handleAddClick = () => {
   }
 }
 
-const loadPhotos = async (page = 1, append = false) => {
-  isLoading.value = true
+const loadPhotos = async (page = 1, append = false, silent = false) => {
+  if (!silent) isLoading.value = true
   try {
     const result = await albumService.getPhotos(page)
-    if (result.code === 0) {
-      if (append) {
-        photos.value = [...photos.value, ...result.data.list]
-      } else {
-        photos.value = result.data.list
-      }
-      hasMore.value = result.data.hasMore
+    // 后端成功码为 200（request 层对 2xx 归一），列表/总数在 data.list/data.total
+    if (result.code === 0 || result.code === 200) {
+      const payload = result.data || {}
+      const list = Array.isArray(payload.list) ? payload.list : []
+      photos.value = append ? [...photos.value, ...list] : list
+      serverTotal.value = Number(payload.total) || photos.value.length
+      hasMore.value = photos.value.length < serverTotal.value
       currentPage.value = page
     }
   } catch (error) {
     console.error('加载照片失败:', error)
   } finally {
-    isLoading.value = false
+    if (!silent) isLoading.value = false
   }
 }
 
@@ -214,24 +220,48 @@ const closeViewer = () => {
 
 const toggleLike = async (photo) => {
   if (!checkLogin()) return
-  const result = await albumService.likePhoto(photo.id)
-  if (result.code === 0) {
-    const updatedPhoto = result.data
-    const index = photos.value.findIndex(p => p.id === photo.id)
-    if (index !== -1) {
-      photos.value[index] = updatedPhoto
+  try {
+    const result = await albumService.likePhoto(photo.id)
+    if (result.code === 0 || result.code === 200) {
+      const updated = result.data || {}
+      const patch = { isLiked: !!updated.isLiked, likeCount: Number(updated.likeCount) || 0 }
+      const index = photos.value.findIndex(p => p.id === photo.id)
+      if (index !== -1) {
+        photos.value[index] = { ...photos.value[index], ...patch }
+      }
+      if (currentPhoto.value && currentPhoto.value.id === photo.id) {
+        currentPhoto.value = { ...currentPhoto.value, ...patch }
+      }
     }
-    if (currentPhoto.value && currentPhoto.value.id === photo.id) {
-      currentPhoto.value = updatedPhoto
-    }
+  } catch (error) {
+    toast.error(error.message || '点赞失败，请重试')
   }
 }
 
+// App 原生端没有可靠的 window.confirm：统一用 uni.showModal 二次确认；H5 保持 confirm 原逻辑
+const confirmAction = (message) => new Promise((resolve) => {
+  if (isApp) {
+    if (typeof uni !== 'undefined' && typeof uni.showModal === 'function') {
+      uni.showModal({
+        title: '提示',
+        content: message,
+        success: (res) => resolve(!!res.confirm),
+        fail: () => resolve(false)
+      })
+    } else {
+      // 原生端拿不到 uni.showModal 时按「取消」处理，避免无法确认就执行破坏性操作
+      resolve(false)
+    }
+    return
+  }
+  resolve(confirm(message))
+})
+
 const deleteCurrentPhoto = async () => {
   if (!currentPhoto.value) return
-  if (confirm('确定要删除这张照片吗？')) {
+  if (await confirmAction('确定要删除这张照片吗？')) {
     const result = await albumService.deletePhoto(currentPhoto.value.id)
-    if (result.code === 0) {
+    if (result.code === 0 || result.code === 200) {
       photos.value = photos.value.filter(p => p.id !== currentPhoto.value.id)
       currentPhoto.value = null
     } else {
@@ -240,26 +270,56 @@ const deleteCurrentPhoto = async () => {
   }
 }
 
-const triggerUpload = () => {
-  fileInput.value?.click()
+// App 端没有可点击的 <input type=file>，统一走 mediaPicker（相册/相机）
+const triggerUpload = async () => {
+  if (!isApp) { fileInput.value?.click(); return }
+  const remaining = MAX_PICK_COUNT - previewUrls.value.length
+  if (remaining <= 0) {
+    toast.error(`一次最多添加 ${MAX_PICK_COUNT} 张图片`)
+    return
+  }
+  try {
+    const { supported, files } = await chooseImages(remaining)
+    if (supported && files.length) await appendPreviewFiles(files)
+  } catch (err) {
+    toast.error(err.message || '选择图片失败')
+  }
 }
 
-const handleFileChange = (e) => {
-  const files = e.target.files
-  if (files && files.length > 0) {
-    previewUrls.value = []
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i]
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        previewUrls.value.push({
-          url: event.target?.result || '',
-          file: file
-        })
-      }
-      reader.readAsDataURL(file)
-    }
+// H5 与 App 共用：H5 仍用 FileReader 转 dataURL 预览（file 原样保留给确认上传），
+// App 直接用 mediaPicker 的临时路径预览，确认时把 { path, ... } 交给 uploadFile
+const appendPreviewFile = (file) => new Promise((resolve) => {
+  if (isApp) {
+    previewUrls.value.push({ url: file.path, file })
+    resolve()
+    return
   }
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    previewUrls.value.push({
+      url: event.target?.result || '',
+      file: file
+    })
+    resolve()
+  }
+  reader.readAsDataURL(file)
+})
+
+const appendPreviewFiles = async (files) => {
+  for (const file of files) {
+    // H5 保持原有「一次选择不限张数」的行为；App 受 uni.chooseImage 单批上限约束
+    if (isApp && previewUrls.value.length >= MAX_PICK_COUNT) break
+    await appendPreviewFile(file)
+  }
+}
+
+const handleFileChange = async (e) => {
+  const files = e.target.files
+  const picked = files ? Array.from(files) : []
+  e.target.value = ''
+  if (!picked.length) return
+  previewUrls.value = []
+  await appendPreviewFiles(picked)
 }
 
 const clearPreview = () => {
@@ -298,7 +358,8 @@ const confirmAdd = async () => {
         privacyPrice.value
       )
       if (result?.data) {
-        uploadResults.push(result.data)
+        // 后端上传返回 { id, url }，补齐列表展示字段，避免新照片点赞/计数为 undefined
+        uploadResults.push({ ...result.data, isLiked: false, likeCount: 0 })
       }
     }
     
@@ -325,10 +386,26 @@ const formatDate = (dateStr) => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
+// 返回相册页时静默刷新第一页，不闪骨架屏、不重复首载
+const refreshOnShow = () => {
+  if (!isLoggedIn()) return
+  currentPage.value = 1
+  loadPhotos(1, false, true)
+}
+
 onMounted(() => {
   if (checkLogin()) {
     loadPhotos()
   }
+})
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
 })
 </script>
 
@@ -729,12 +806,12 @@ onMounted(() => {
   display: none;
 }
 
-.privacy-option span {
+.privacy-option text {
   font-size: 13px;
   color: #666;
 }
 
-.privacy-option input[type="radio"]:checked + span {
+.privacy-option input[type="radio"]:checked + text {
   color: var(--color-primary);
   font-weight: 500;
 }

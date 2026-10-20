@@ -1,11 +1,11 @@
 <template>
   <PageLayout>
     <template #nav>
-      <div class="list-nav">
-        <div class="nav-back" @click="goBack">‹</div>
-        <div class="nav-title">{{ title }}</div>
-        <div class="nav-spacer"></div>
-      </div>
+      <view class="list-nav">
+        <view class="nav-back" @click="goBack">‹</view>
+        <view class="nav-title">{{ title }}</view>
+        <view class="nav-spacer"></view>
+      </view>
     </template>
 
     <HomeRecommend
@@ -22,6 +22,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRoute, useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import HomeRecommend from '../components/HomeRecommend.vue'
@@ -57,13 +58,16 @@ const genAvatar = (name) => {
 
 
 
-const load = async (reset = false) => {
+// silent：返回本页静默重拉第一页，保留旧列表直到新数据到达，避免整页 loading 闪烁
+const load = async (reset = false, silent = false) => {
   if (reset) {
     currentPage.value = 1
     hasMore.value = true
     loadError.value = false
-    loadingCompanions.value = true
-    companions.value = []
+    if (!silent) {
+      loadingCompanions.value = true
+      companions.value = []
+    }
   }
 
   if (!hasMore.value) return
@@ -93,11 +97,12 @@ const load = async (reset = false) => {
     }
   } catch (error) {
     console.error('加载陪玩列表失败:', error)
-    if (reset) {
+    if (reset && !silent) {
       companions.value = []
       loadError.value = true
     }
-    hasMore.value = false
+    // 静默刷新失败时保留原分页状态，避免返回后「加载更多」被误关
+    if (!silent) hasMore.value = false
   } finally {
     loadingCompanions.value = false
     loadingMore.value = false
@@ -120,6 +125,21 @@ const goBack = () => {
   if (window.history.length > 1) router.back()
   else router.push('/home')
 }
+
+// 从用户主页/筛选页返回时刷新第一页推荐数据（接单状态、价格可能已变）
+const refreshOnShow = () => {
+  load(true, true)
+}
+
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
+})
 
 onMounted(() => {
   load(true)

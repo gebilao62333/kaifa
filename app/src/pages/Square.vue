@@ -5,76 +5,77 @@
       <button class="publish-btn" @click="goPublish">+ 发布</button>
     </template>
 
-    <div class="tag-filter" v-if="tagList.length > 0">
-      <div
+    <view class="tag-filter" v-if="tagList.length > 0">
+      <view
         class="tag-item"
         :class="{ active: activeTag === '' }"
         @click="switchTag('')"
-      >全部</div>
-      <div
+      >全部</view>
+      <view
         v-for="tag in tagList"
         :key="tag.tagId"
         class="tag-item"
         :class="{ active: activeTag === tag.tagName }"
         @click="switchTag(tag.tagName)"
-      >{{ tag.tagName }}</div>
-    </div>
+      >{{ tag.tagName }}</view>
+    </view>
 
-    <div class="post-list" v-if="postList.length > 0">
-      <div
+    <view class="post-list" v-if="postList.length > 0">
+      <view
         v-for="post in postList"
         :key="post.postId || post.id"
         class="post-card"
         @click="goPostDetail(post)"
       >
-        <div class="post-header">
-          <img :src="post.avatar || defaultAvatar" class="post-avatar" v-img-fallback="post.nickName || '用户'" />
-          <div class="post-user-info">
-            <span class="post-nickname">{{ post.nickName || post.nickname || '用户' }}</span>
-            <span class="post-time">{{ formatTime(post.createTime || post.createdAt) }}</span>
-          </div>
-          <span class="post-tag" v-if="post.tagName">{{ post.tagName }}</span>
-        </div>
-        <div class="post-content">{{ post.content }}</div>
+        <view class="post-header">
+          <SafeImage :src="post.avatar || defaultAvatar" class="post-avatar" :fallback="post.nickName || '用户'" mode="aspectFill" />
+          <view class="post-user-info">
+            <text class="post-nickname">{{ post.nickName || post.nickname || '用户' }}</text>
+            <text class="post-time">{{ formatTime(post.createTime || post.createdAt) }}</text>
+          </view>
+          <text class="post-tag" v-if="post.tagName">{{ post.tagName }}</text>
+        </view>
+        <view class="post-content">{{ post.content }}</view>
         <!-- 转发展示 -->
-        <div class="repost-card" v-if="post.repostId && post.repostContent" @click.stop="goPostDetail({ postId: post.repostId, id: post.repostId })">
-          <div class="repost-header">
-            <span class="repost-icon">🔄</span>
-            <span class="repost-nickname">{{ post.repostNickname || '原作者' }}</span>
-          </div>
-          <div class="repost-content">{{ post.repostContent }}</div>
-        </div>
-        <div class="post-images" v-if="post.images && post.images.length > 0">
-          <img
+        <view class="repost-card" v-if="post.repostId && post.repostContent" @click.stop="goPostDetail({ postId: post.repostId, id: post.repostId })">
+          <view class="repost-header">
+            <text class="repost-icon">🔄</text>
+            <text class="repost-nickname">{{ post.repostNickname || '原作者' }}</text>
+          </view>
+          <view class="repost-content">{{ post.repostContent }}</view>
+        </view>
+        <view class="post-images" v-if="post.images && post.images.length > 0">
+          <image
+              mode="aspectFill"
             v-for="(img, idx) in post.images.slice(0, 3)"
             :key="idx"
             :src="img"
             class="post-image"
             :class="post.images.length === 1 ? 'single' : ''"
           />
-          <div class="image-more" v-if="post.images.length > 3">+{{ post.images.length - 3 }}</div>
-        </div>
-        <div class="post-actions">
-          <span class="action-item" @click.stop="handleLike(post)">
-            <span>{{ post.isLiked ? '❤️' : '🤍' }}</span>
-            <span>{{ post.likes || 0 }}</span>
-          </span>
-          <span class="action-item">
-            <span>💬</span>
-            <span>{{ post.comments || 0 }}</span>
-          </span>
-          <span class="action-item" @click.stop="openSharePopup(post)">
-            <span>📤</span>
-            <span>{{ post.shares || 0 }}</span>
-          </span>
-        </div>
-      </div>
-    </div>
+          <view class="image-more" v-if="post.images.length > 3">+{{ post.images.length - 3 }}</view>
+        </view>
+        <view class="post-actions">
+          <text class="action-item" @click.stop="handleLike(post)">
+            <text>{{ post.isLiked ? '❤️' : '🤍' }}</text>
+            <text>{{ post.likes || 0 }}</text>
+          </text>
+          <text class="action-item">
+            <text>💬</text>
+            <text>{{ post.comments || 0 }}</text>
+          </text>
+          <text class="action-item" @click.stop="openSharePopup(post)">
+            <text>📤</text>
+            <text>{{ post.shares || 0 }}</text>
+          </text>
+        </view>
+      </view>
+    </view>
 
     <EmptyState v-else-if="!loading" text="暂无动态" actionText="发布第一条动态" @action="goPublish" />
 
-    <div class="loading-more" v-if="loading">加载中...</div>
-    <div class="no-more" v-if="!hasMore && postList.length > 0">没有更多了</div>
+    <view class="loading-more" v-if="loading">加载中...</view>
+    <view class="no-more" v-if="!hasMore && postList.length > 0">没有更多了</view>
 
     <SharePopup
       :visible="shareVisible"
@@ -91,12 +92,24 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { onHide, onPageScroll, onReachBottom, onShow, onUnload } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
+import { useUserStore } from '../store/user-info'
+import {
+  readScrollTop,
+  restoreScrollTop,
+  restoreTabState,
+  saveScrollTop,
+  saveTabState,
+  setTabStateOwner
+} from '../common/tabState'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
 import SharePopup from '../components/SharePopup.vue'
 import circleService from '../services/circleService'
 import { genAvatar } from '../utils/placeholder'
+import SafeImage from '../components/SafeImage.vue'
+import { isApp } from '../common/platform'
 
 const router = useRouter()
 
@@ -109,6 +122,41 @@ const page = ref(1)
 const hasMore = ref(true)
 const pageSize = 20
 
+const userStore = useUserStore()
+const TAB_STATE_PATH = '/square'
+const tabOwnerId = () => userStore.profile?.userId || ''
+
+// 主 Tab 用 reLaunch 切页会重建本页：优先恢复上次离开时的列表/标签/分页，避免骨架屏 + 滚动归零。
+// 快照超过 30s 视为过期，列表照常先渲染，但仍静默刷新一次（见 tabState.TAB_STATE_FRESH_MS）。
+const tabRestore = restoreTabState(TAB_STATE_PATH, tabOwnerId(), (snapshot) => {
+  if (Array.isArray(snapshot.tagList)) tagList.value = snapshot.tagList
+  if (Array.isArray(snapshot.postList)) postList.value = snapshot.postList
+  if (typeof snapshot.activeTag === 'string') activeTag.value = snapshot.activeTag
+  if (typeof snapshot.page === 'number') page.value = snapshot.page
+  if (typeof snapshot.hasMore === 'boolean') hasMore.value = snapshot.hasMore
+  // 有快照时列表可直接渲染，不能停留在首载 loading 态
+  loading.value = false
+})
+const restoredScrollTop = tabRestore.restored ? readScrollTop(TAB_STATE_PATH) : 0
+let pageScrollTop = restoredScrollTop
+
+// onHide 在 reLaunch 销毁前触发，onUnload 兜底；两者都触发时只保存一次
+let tabStateSaved = false
+const saveTabSnapshot = () => {
+  if (tabStateSaved) return
+  tabStateSaved = true
+  saveTabState(TAB_STATE_PATH, {
+    tagList: tagList.value,
+    postList: postList.value,
+    activeTag: activeTag.value,
+    page: page.value,
+    hasMore: hasMore.value
+  })
+  saveScrollTop(TAB_STATE_PATH, pageScrollTop)
+}
+onHide(saveTabSnapshot)
+onUnload(saveTabSnapshot)
+
 const loadTags = async () => {
   try {
     const res = await circleService.getTags()
@@ -120,15 +168,16 @@ const loadTags = async () => {
   }
 }
 
-const loadPosts = async (reset = false) => {
+const loadPosts = async (reset = false, silent = false) => {
   if (loading.value) return
   if (!hasMore.value && !reset) return
 
-  loading.value = true
+  // silent=true：onShow 静默刷新，不闪 loading、不先清空列表（H5 首载/切换标签仍走原逻辑）
+  if (!silent) loading.value = true
   if (reset) {
     page.value = 1
     hasMore.value = true
-    postList.value = []
+    if (!silent) postList.value = []
   }
 
   try {
@@ -148,7 +197,9 @@ const loadPosts = async (reset = false) => {
   } catch (e) {
     console.error('加载帖子失败:', e)
   } finally {
-    loading.value = false
+    if (!silent) loading.value = false
+    // 列表高度变化后重新测量页面总高度，App 端下一次滚动才能正确触发触底加载
+    if (isApp) setTimeout(measurePageScrollHeight, 200)
   }
 }
 
@@ -195,7 +246,9 @@ const openSharePopup = (post) => {
   sharePostId.value = id
   sharePostNickname.value = post.nickName || post.nickname || ''
   sharePostContent.value = post.content || ''
-  sharePostUrl.value = `${window.location.origin}/post-detail/${id}`
+  // App 端没有 window.location：站点域名取构建时注入的 VITE_API_ORIGIN（见 common/config.js）
+  const siteOrigin = isApp ? String(import.meta.env.VITE_API_ORIGIN || '').replace(/\/+$/, '') : window.location.origin
+  sharePostUrl.value = `${siteOrigin}/post-detail/${id}`
   shareVisible.value = true
 }
 
@@ -224,6 +277,8 @@ const formatTime = (time) => {
 
 const handleScroll = () => {
   const scrollTop = window.scrollY || document.documentElement.scrollTop
+  // H5 侧滚动位置以 window 监听为准，供切 Tab 后恢复（App 侧走 onPageScroll）
+  pageScrollTop = Number(scrollTop) || 0
   const windowHeight = window.innerHeight
   const documentHeight = document.documentElement.scrollHeight
   if (scrollTop + windowHeight >= documentHeight - 100) {
@@ -231,13 +286,63 @@ const handleScroll = () => {
   }
 }
 
+// App 端页面由原生容器滚动、拿不到 document 高度：用 onPageScroll + 选择器查到的页面总高度
+// 还原「触底加载」，onReachBottom 兜底；H5 继续走 window 监听，行为不变
+let pageScrollHeight = 0
+const measurePageScrollHeight = () => {
+  try {
+    uni.createSelectorQuery().selectViewport().scrollOffset((res) => {
+      if (res && res.scrollHeight) pageScrollHeight = res.scrollHeight
+    }).exec()
+  } catch (e) { /* 查询失败时交给 onReachBottom 兜底 */ }
+}
+
+onPageScroll(({ scrollTop }) => {
+  pageScrollTop = Number(scrollTop) || 0
+  if (!isApp || !pageScrollHeight) return
+  let windowHeight = 0
+  try { windowHeight = uni.getSystemInfoSync().windowHeight || 0 } catch (e) {}
+  if (scrollTop + windowHeight >= pageScrollHeight - 100) loadPosts()
+})
+
+onReachBottom(() => {
+  // 只在页面高度查询不可用（pageScrollHeight 为 0）时兜底；
+  // 查询成功时滚动判定已覆盖触底，避免两个入口重复拉同一份数据
+  if (isApp && !pageScrollHeight) loadPosts()
+})
+
 onMounted(async () => {
-  await Promise.all([loadTags(), loadPosts(true)])
-  window.addEventListener('scroll', handleScroll)
+  if (tabRestore.restored) {
+    // 列表已由快照渲染，等挂载后再恢复滚动位置（restoreScrollTop 内部会补两次重试）
+    restoreScrollTop(restoredScrollTop)
+    if (!tagList.value.length) loadTags()
+    // 快照列表为空（上次加载失败/无数据）时不锁死空态：仍静默拉一次
+    if (tabRestore.needRefresh || postList.value.length === 0) loadPosts(true, true)
+  } else {
+    await Promise.all([loadTags(), loadPosts(true)])
+  }
+  if (!isApp) {
+    window.addEventListener('scroll', handleScroll)
+    return
+  }
+  measurePageScrollHeight()
 })
 
 onUnmounted(() => {
-  window.removeEventListener('scroll', handleScroll)
+  if (!isApp) window.removeEventListener('scroll', handleScroll)
+})
+
+// 首次 onShow 跳过（onMounted 已首载）；从详情页返回时静默刷新列表
+let __firstShow = true
+onShow(() => {
+  // 账号（含登出）变化时清空全部 Tab 缓存，避免跨账号恢复旧列表
+  setTabStateOwner(tabOwnerId())
+  tabStateSaved = false
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  loadPosts(true, true)
 })
 </script>
 

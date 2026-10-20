@@ -206,6 +206,7 @@ const getComments = async (req, res) => {
     }
     
     const result = await circleService.getComments(
+      req.userId,
       parseInt(postId),
       parseInt(page),
       parseInt(pageSize)
@@ -213,6 +214,9 @@ const getComments = async (req, res) => {
     response.success(res, result);
   } catch (error) {
     logger.error('获取评论列表错误:', error);
+    if (String(error.message).includes('无权')) {
+      return response.forbidden(res, error.message);
+    }
     response.error(res, error.message);
   }
 };

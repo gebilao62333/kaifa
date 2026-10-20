@@ -1,75 +1,76 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">VIP会员</span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">VIP会员</text>
     </template>
     
-    <div class="vip-card">
-      <div class="card-background">
-        <div class="vip-level">VIP {{ userVipLevel }}</div>
-        <div class="expire-time">{{ expireTimeText }}</div>
-      </div>
-    </div>
+    <view class="vip-card">
+      <view class="card-background">
+        <view class="vip-level">VIP {{ userVipLevel }}</view>
+        <view class="expire-time">{{ expireTimeText }}</view>
+      </view>
+    </view>
 
-    <div class="packages">
-      <div class="section-title">套餐选择</div>
-      <div class="package-list">
-        <div 
+    <view class="packages">
+      <view class="section-title">套餐选择</view>
+      <view class="package-list">
+        <view 
           v-for="pkg in packages" 
           :key="pkg.id"
           :class="['package-item', { active: selectedPkgId === pkg.id }]"
           @click="selectPackage(pkg.id)"
         >
-          <div class="pkg-top">
-            <div class="pkg-icon">{{ pkg.icon }}</div>
-            <div class="pkg-info">
-              <div class="pkg-level">{{ pkg.name }}</div>
-              <div class="pkg-desc">{{ pkg.desc }}</div>
-            </div>
-            <div class="pkg-price-block">
-              <div class="price">
-                <span class="price-value">{{ currentPkgPrice(pkg) }}</span>
-                <span class="price-unit">金币</span>
-              </div>
-              <div class="original" v-if="currentPkgOriginal(pkg)"><s>{{ currentPkgOriginal(pkg) }} 金币</s></div>
-            </div>
-          </div>
-          <div class="duration-selector" @click.stop>
-            <div 
+          <view class="pkg-top">
+            <view class="pkg-icon">{{ pkg.icon }}</view>
+            <view class="pkg-info">
+              <view class="pkg-level">{{ pkg.name }}</view>
+              <view class="pkg-desc">{{ pkg.desc }}</view>
+            </view>
+            <view class="pkg-price-block">
+              <view class="price">
+                <text class="price-value">{{ currentPkgPrice(pkg) }}</text>
+                <text class="price-unit">金币</text>
+              </view>
+              <view class="original" v-if="currentPkgOriginal(pkg)"><s>{{ currentPkgOriginal(pkg) }} 金币</s></view>
+            </view>
+          </view>
+          <view class="duration-selector" @click.stop>
+            <view 
               v-for="d in pkg.durations" 
               :key="d.months"
               :class="['duration-option', { active: selectedDurations[pkg.id] === d.months }]"
               @click="selectDuration(pkg.id, d.months)"
             >
               {{ d.label }}
-            </div>
-          </div>
-          <div class="pkg-benefits">
-            <div class="benefit-line" v-for="b in pkg.benefits" :key="b">{{ b }}</div>
-          </div>
+            </view>
+          </view>
+          <view class="pkg-benefits">
+            <view class="benefit-line" v-for="b in pkg.benefits" :key="b">{{ b }}</view>
+          </view>
           <button class="pkg-buy-btn" :class="{ active: selectedPkgId === pkg.id }" @click.stop="buyPackage(pkg)">
             {{ isLoading && selectedPkgId === pkg.id ? '处理中...' : '立即开通' }}
           </button>
-        </div>
-      </div>
-    </div>
+        </view>
+      </view>
+    </view>
 
-    <div class="privileges">
-      <div class="section-title">专属特权</div>
-      <div class="privilege-grid">
-        <div class="privilege-item" v-for="p in privileges" :key="p.id" @click="goPrivilege(p)">
-          <span class="icon">{{ p.icon }}</span>
-          <span class="name">{{ p.name }}</span>
-          <span class="vip-level-badge" :class="'vip' + p.vipLevel">{{ p.vipLabel }}</span>
-        </div>
-      </div>
-    </div>
+    <view class="privileges">
+      <view class="section-title">专属特权</view>
+      <view class="privilege-grid">
+        <view class="privilege-item" v-for="p in privileges" :key="p.id" @click="goPrivilege(p)">
+          <text class="icon">{{ p.icon }}</text>
+          <text class="name">{{ p.name }}</text>
+          <text class="vip-level-badge" :class="'vip' + p.vipLevel">{{ p.vipLabel }}</text>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
@@ -142,7 +143,26 @@ const goPrivilege = (p) => {
   }
 }
 
+// onShow 返回本页会重新拉套餐；若直接套默认热门套餐，会把用户刚选中的套餐/时长重置。
+// 刷新前记住当前选择，刷新后该套餐仍存在就恢复，否则才回退默认。
+const restoreSelection = (prevPkgId, prevDurations, fallbackId) => {
+  const list = packages.value
+  if (!list.length) return
+  const keptPkg = list.find(p => p.id === prevPkgId)
+  const hotPkg = list.find(p => p.hot)
+  const fallbackPkg = fallbackId ? list.find(p => p.id === fallbackId) : null
+  selectedPkgId.value = keptPkg ? keptPkg.id : (hotPkg ? hotPkg.id : (fallbackPkg ? fallbackPkg.id : list[0].id))
+  list.forEach(pkg => {
+    const prevMonths = prevDurations[pkg.id]
+    const canKeep = prevMonths && pkg.durations.some(d => d.months === prevMonths)
+    selectedDurations.value[pkg.id] = canKeep ? prevMonths : pkg.durations[0].months
+  })
+}
+
 const loadVipPackages = async () => {
+  // 快照当前选择：本函数会被 onShow 反复调用，刷新不能重置用户选择
+  const prevPkgId = selectedPkgId.value
+  const prevDurations = { ...selectedDurations.value }
   const defaultPackages = [
     {
       id: 1,
@@ -192,7 +212,10 @@ const loadVipPackages = async () => {
     // 库表暂无对应列，缺失时按等级回退到内置文案。
     const metaByLevel = {}
     defaultPackages.forEach(p => { metaByLevel[p.level] = p })
-    const data = await getVipPackages()
+    // request() 返回完整响应 { code, data }，套餐数组在 data 中；此前虽然解了一层 list，
+    // 但 data 仍是响应壳，list 恒为空并静默回退到下面的硬编码套餐。
+    const res = await getVipPackages()
+    const data = res && res.data !== undefined ? res.data : res
     const list = Array.isArray(data) ? data : (data && Array.isArray(data.list) ? data.list : [])
     packages.value = list.map(pkg => {
       const meta = metaByLevel[pkg.level] || {}
@@ -206,26 +229,15 @@ const loadVipPackages = async () => {
           : [{ label: `${pkg.duration}天`, months: 1, price: String(pkg.price), original: pkg.original ? String(pkg.original) : null }]
       }
     })
-    if (packages.value.length > 0) {
-      const hotPkg = packages.value.find(p => p.hot)
-      selectedPkgId.value = hotPkg ? hotPkg.id : packages.value[0].id
-      packages.value.forEach(pkg => {
-        selectedDurations.value[pkg.id] = pkg.durations[0].months
-      })
-    } else {
+    if (packages.value.length === 0) {
       packages.value = defaultPackages
-      selectedPkgId.value = 2
-      defaultPackages.forEach(pkg => {
-        selectedDurations.value[pkg.id] = pkg.durations[0].months
-      })
     }
+    // 默认回退套餐沿用原来的「铂金(id=2)」选择，避免首次加载失败时行为变化
+    restoreSelection(prevPkgId, prevDurations, 2)
   } catch (error) {
     console.error('获取VIP套餐失败:', error)
     packages.value = defaultPackages
-    selectedPkgId.value = 2
-    defaultPackages.forEach(pkg => {
-      selectedDurations.value[pkg.id] = pkg.durations[0].months
-    })
+    restoreSelection(prevPkgId, prevDurations, 2)
   }
 }
 
@@ -237,7 +249,9 @@ const loadUserVipInfo = async () => {
   }
   
   try {
-    const data = await getUserVipInfo()
+    // request() 返回完整响应，会员信息在 data 中；此前取响应壳导致等级/到期时间恒 undefined。
+    const res = await getUserVipInfo()
+    const data = (res && res.data) || res || {}
     userVipLevel.value = data.vipLevel
     vipExpireTime.value = data.expireTime
   } catch (error) {
@@ -263,7 +277,10 @@ const buyVip = async () => {
   isLoading.value = true
 
   try {
-    const order = await createVipOrder(selectedPkgId.value)
+    // request() 返回完整响应，订单号在 data.orderNo；此前 order.orderNo 恒 undefined，
+    // 会在 complete 时被后端 400「订单号不能为空」，VIP 开通 100% 失败。
+    const res = await createVipOrder(selectedPkgId.value)
+    const order = (res && res.data) || res || {}
     if (import.meta.env.DEV) console.log('创建订单成功:', order)
 
     await completeVipOrder(order.orderNo)
@@ -287,6 +304,22 @@ const buyVip = async () => {
     isLoading.value = false
   }
 }
+
+// 从充值页返回时余额可能已补足，静默刷新套餐与当前 VIP 等级/到期时间
+const refreshOnShow = () => {
+  loadVipPackages()
+  loadUserVipInfo()
+}
+
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
+})
 
 onMounted(() => {
   loadVipPackages()

@@ -1,24 +1,24 @@
 <template>
-  <div class="quick-nav">
-    <div class="nav-grid">
-      <div class="nav-item" @click="$emit('navigate', 'companion-list?type=offline')">
-        <div class="nav-icon" style="background: var(--gradient-primary);">🏃</div>
-        <div class="nav-text">线下陪玩</div>
-      </div>
-      <div class="nav-item" @click="$emit('navigate', 'companion-list?type=online')">
-        <div class="nav-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">💻</div>
-        <div class="nav-text">线上陪玩</div>
-      </div>
-      <div class="nav-item" @click="$emit('navigate', 'paidan')">
-        <div class="nav-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">📋</div>
-        <div class="nav-text">派单大厅</div>
-      </div>
-      <div class="nav-item" @click="$emit('navigate', 'publish-demand')">
-        <div class="nav-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">📝</div>
-        <div class="nav-text">需求发布</div>
-      </div>
-    </div>
-  </div>
+  <view class="quick-nav">
+    <view class="nav-grid">
+      <view class="nav-item" @click="$emit('navigate', 'companion-list?type=offline')">
+        <view class="nav-icon" style="background: var(--gradient-primary);">🏃</view>
+        <view class="nav-text">线下陪玩</view>
+      </view>
+      <view class="nav-item" @click="$emit('navigate', 'companion-list?type=online')">
+        <view class="nav-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">💻</view>
+        <view class="nav-text">线上陪玩</view>
+      </view>
+      <view class="nav-item" @click="$emit('navigate', 'paidan')">
+        <view class="nav-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">📋</view>
+        <view class="nav-text">派单大厅</view>
+      </view>
+      <view class="nav-item" @click="$emit('navigate', 'publish-demand')">
+        <view class="nav-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);">📝</view>
+        <view class="nav-text">需求发布</view>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup>

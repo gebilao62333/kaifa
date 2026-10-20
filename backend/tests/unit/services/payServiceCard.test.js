@@ -9,7 +9,16 @@ jest.mock('../../../src/models', () => ({
   RechargePackage: { findAll: jest.fn(), findByPk: jest.fn() }
 }));
 
+// B-10：卡密密码加密后，读取侧要用 decryptField；这里默认透传，单测按需覆盖
+jest.mock('../../../src/utils/pii', () => ({
+  decryptField: jest.fn((v) => v),
+  encryptField: jest.fn((v) => v),
+  looksEncrypted: jest.fn(() => false),
+  isConfigured: jest.fn(() => false)
+}));
+
 const { Card, User } = require('../../../src/models');
+const pii = require('../../../src/utils/pii');
 const payService = require('../../../src/services/payService');
 
 const makeCard = (over = {}) => Object.assign({
@@ -61,6 +70,18 @@ describe('Service - payService 卡密充值（25 位密钥链路回归）', () =
     await expect(payService.validateCard('DK1', 'WRONG')).rejects.toThrow('卡号或密码错误');
     Card.findOne.mockResolvedValue(null);
     await expect(payService.validateCard('NOPE', 'PW1')).rejects.toThrow('卡号或密码错误');
+  });
+
+  // B-10：库里存的是密文时，必须先解密再比对；密文解不出（密钥缺失）按密码错误拒绝
+  it('validateCard 对加密存储的密码先解密再校验', async () => {
+    Card.findOne.mockResolvedValue(makeCard({ card_password: 'CIPHER_TEXT' }));
+    pii.decryptField.mockReturnValueOnce('PW1');
+    const r = await payService.validateCard('DK1', 'PW1');
+    expect(pii.decryptField).toHaveBeenCalledWith('CIPHER_TEXT');
+    expect(r.cardId).toBe(1);
+
+    pii.decryptField.mockReturnValueOnce('');
+    await expect(payService.validateCard('DK1', 'PW1')).rejects.toThrow('卡号或密码错误');
   });
 
   it('validateCard 拒绝已使用或已禁用的卡', async () => {

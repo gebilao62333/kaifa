@@ -1,6 +1,7 @@
 import { reactive, computed } from 'vue'
 import { ROUTES, ROUTE_BY_NAME, ROUTE_BY_PAGE } from './routes'
 import { STORAGE_KEYS, PUBLIC_ROUTE_NAMES, isPublicPath } from './constants'
+import storage from './storage'
 
 const isH5 = typeof window !== 'undefined' && typeof document !== 'undefined'
 
@@ -77,7 +78,8 @@ export function syncFromLocation() {
         const key = k.slice(1)
         if (query[key] !== undefined) { params[key] = query[key]; delete query[key] }
       })
-      apply(pageRoute, params, query, pageRoute.path)
+      // fullPath 用真实地址（含 query），否则深链登录回跳时只带页面、丢掉 redirect 等参数
+      apply(pageRoute, params, query, loc.pathname + loc.search)
       return state
     }
     if (loc.pathname === '/' || loc.pathname === '') {
@@ -98,7 +100,8 @@ export function syncFromLocation() {
           const key = k.slice(1)
           if (query[key] !== undefined) { params[key] = query[key]; delete query[key] }
         })
-        apply(pageRoute, params, query, pageRoute.path)
+        // 参数已回填进 params，fullPath 用参数填充后的真实路径，否则深链登录回跳会丢 id
+        apply(pageRoute, params, query, buildUrl(pageRoute, params, query))
       }
     }
   } catch (e) {}
@@ -109,6 +112,10 @@ function resolve(to) {
   if (typeof to === 'string') {
     const [rawPath, rawQuery] = to.split('?')
     const query = parseQuery(rawQuery ? '?' + rawQuery : '')
+    // 根路径（MyReserve 等页面「回首页」会 push('/')）统一解析成 Home
+    if (!rawPath || rawPath === '/') {
+      return { route: ROUTE_BY_NAME.Home, params: {}, query }
+    }
     if (rawPath.indexOf('/pages/') === 0) {
       const pageRoute = ROUTE_BY_PAGE[rawPath]
       if (pageRoute) return { route: pageRoute, params: {}, query }
@@ -122,14 +129,24 @@ function resolve(to) {
     if (to.name && ROUTE_BY_NAME[to.name]) {
       return { route: ROUTE_BY_NAME[to.name], params: Object.assign({}, to.params || {}), query: Object.assign({}, to.query || {}) }
     }
-    if (to.path) {
-      const found = matchLegacy(to.path)
+    if (typeof to.path === 'string') {
+      const targetPath = to.path
+      if (targetPath === '' || targetPath === '/') {
+        return { route: ROUTE_BY_NAME.Home, params: Object.assign({}, to.params || {}), query: Object.assign({}, to.query || {}) }
+      }
+      const found = matchLegacy(targetPath)
       if (found) {
         return { route: found.route, params: Object.assign({}, found.params, to.params || {}), query: Object.assign({}, to.query || {}) }
       }
     }
   }
   return null
+}
+
+// 给调用方（登录回跳等）判断「这个地址能不能解析成已知路由」：
+// 旧写法用 getRoutes().map(path) 严格等值，动态路由（/post-detail/:id）会被误判为非法而打回首页
+export function canResolve(to) {
+  return !!resolve(to)
 }
 
 export function buildUrl(route, params, query) {
@@ -147,9 +164,8 @@ export function buildUrl(route, params, query) {
 
 export function isLoggedIn() {
   try {
-    let token = ''
-    try { token = uni.getStorageSync(STORAGE_KEYS.TOKEN) } catch (e) {}
-    if (!token && typeof localStorage !== 'undefined') token = localStorage.getItem(STORAGE_KEYS.TOKEN)
+    // 存储适配器已处理「uni 优先、localStorage 回落」与两侧不可用的异常
+    const token = storage.getItem(STORAGE_KEYS.TOKEN)
     return !!token && token !== 'undefined' && token !== 'null'
   } catch (e) {
     return false
@@ -193,6 +209,36 @@ export function goLogin() {
 
 const MAIN_TABS = ['/home', '/square', '/preferred', '/mine']
 
+// ===== 页面切换动画方向（补齐旧版 App.vue 的 tab-left / tab-right 过渡） =====
+// 旧版在 vue-router 的 <transition> 上根据 Tab 下标设置方向；uni-app 的页面容器是
+// <uni-page>，无法直接使用 <transition>，因此用 html[data-nav-dir] + 全局 CSS 动画实现。
+let navDirectionTimer = null
+export function setNavDirection(direction) {
+  if (typeof document === 'undefined') return
+  const root = document.documentElement
+  if (!root) return
+  if (direction === 'left' || direction === 'right') {
+    root.setAttribute('data-nav-dir', direction)
+  } else {
+    root.removeAttribute('data-nav-dir')
+  }
+  if (navDirectionTimer) clearTimeout(navDirectionTimer)
+  navDirectionTimer = setTimeout(() => {
+    try { root.removeAttribute('data-nav-dir') } catch (e) {}
+    navDirectionTimer = null
+  }, 420)
+}
+
+function canGoBack() {
+  try {
+    if (typeof getCurrentPages === 'function') {
+      const pages = getCurrentPages()
+      if (Array.isArray(pages) && pages.length > 1) return true
+    }
+  } catch (e) {}
+  return isH5 && typeof window !== 'undefined' && window.history.length > 1
+}
+
 function navigate(to, mode) {
   const target = resolve(to)
   if (!target) {
@@ -225,6 +271,11 @@ export const router = {
     else if (isH5) window.history.forward()
   },
   currentRoute: computed(() => state),
+  // 兼容 vue-router 的 router.options.history.state.back：
+  // AudioCall / VideoCall 用它判断「站内是否有上一页」，没有则回首页。
+  get options() {
+    return { history: { state: { back: canGoBack() } } }
+  },
   getRoutes: () => ROUTES.map((r) => ({ path: r.path, name: r.name })),
   resolve
 }

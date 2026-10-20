@@ -1,19 +1,19 @@
 <template>
-  <div class="login-page">
-    <div class="login-container">
-      <div class="login-header">
-        <div class="logo">🎮</div>
-        <div class="title">eu搭子</div>
-        <div class="subtitle">连接游戏玩家与陪玩师</div>
-      </div>
+  <view class="login-page">
+    <view class="login-container">
+      <view class="login-header">
+        <view class="logo">🎮</view>
+        <view class="title">eu搭子</view>
+        <view class="subtitle">连接游戏玩家与陪玩师</view>
+      </view>
 
-      <div class="login-tabs">
-        <span :class="['login-tab', { active: loginMode === 'password' }]" @click="loginMode = 'password'">密码登录</span>
-        <span :class="['login-tab', { active: loginMode === 'code' }]" @click="loginMode = 'code'">验证码登录</span>
-      </div>
+      <view class="login-tabs">
+        <text :class="['login-tab', { active: loginMode === 'password' }]" @click="loginMode = 'password'">密码登录</text>
+        <text :class="['login-tab', { active: loginMode === 'code' }]" @click="loginMode = 'code'">验证码登录</text>
+      </view>
 
       <view v-show="loginMode === 'password'" class="login-form">
-        <div class="form-group">
+        <view class="form-group">
           <label class="form-label">手机号</label>
           <input 
             v-model="phone" 
@@ -21,9 +21,9 @@
             class="form-input" 
             placeholder="请输入手机号"
           />
-        </div>
+        </view>
 
-        <div class="form-group">
+        <view class="form-group">
           <label class="form-label">密码</label>
           <input 
             v-model="password" 
@@ -31,113 +31,114 @@
             class="form-input" 
             placeholder="请输入密码"
           />
-        </div>
+        </view>
 
-        <button type="button" @click="handleLogin" class="login-btn" :disabled="isLoading">
-          {{ isLoading ? '登录中...' : '登 录' }}
+        <button type="button" @click="handleLogin" class="login-btn" :disabled="isLoading || retryCooldown > 0">
+          {{ retryCooldown > 0 ? retryCooldown + 's 后可重试' : (isLoading ? '登录中...' : '登 录') }}
         </button>
       </view>
 
       <view v-show="loginMode === 'code'" class="login-form">
-        <div class="form-group">
+        <view class="form-group">
           <label class="form-label">手机号</label>
           <input v-model="codePhone" type="tel" class="form-input" placeholder="请输入手机号" />
-        </div>
+        </view>
 
-        <div class="form-group">
+        <view class="form-group">
           <label class="form-label">验证码</label>
-          <div class="code-row">
+          <view class="code-row">
             <input v-model="codeValue" type="text" class="form-input" placeholder="请输入验证码" />
             <button type="button" class="code-btn" :disabled="loginCodeSending" @click="sendLoginCode">
               {{ loginCodeSending ? loginCountdown + 's' : '获取验证码' }}
             </button>
-          </div>
-        </div>
+          </view>
+        </view>
 
         <button type="button" @click="handleCodeLogin" class="login-btn" :disabled="isLoading">
           {{ isLoading ? '登录中...' : '登 录' }}
         </button>
       </view>
 
-      <div class="third-login">
-        <div class="third-divider"><span>其他登录方式</span></div>
-        <div class="third-btns">
-          <button type="button" class="third-btn wechat" @click="handleThirdLogin('wechat')">微信登录</button>
-          <button type="button" class="third-btn qq" @click="handleThirdLogin('qq')">QQ 登录</button>
-        </div>
-      </div>
+      <view class="third-login">
+        <view class="third-divider"><text>其他登录方式</text></view>
+        <view class="third-btns">
+          <button type="button" class="third-btn wechat" :disabled="isLoading" @click="handleThirdLogin('wechat')">微信登录</button>
+          <button type="button" class="third-btn qq" :disabled="isLoading" @click="handleThirdLogin('qq')">QQ 登录</button>
+        </view>
+      </view>
 
-      <div class="login-links">
-        <span class="link" @click="showRegister = true">注册账号</span>
-        <span class="link" @click="showForgot = true">忘记密码</span>
-      </div>
-    </div>
+      <view class="login-links">
+        <text class="link" @click="showRegister = true">注册账号</text>
+        <text class="link" @click="showForgot = true">忘记密码</text>
+      </view>
+    </view>
 
     <Teleport to="body">
       <transition name="modal">
-        <div v-if="showRegister" class="modal-overlay" @click.self="showRegister = false">
-          <div class="modal-box">
-            <div class="modal-header">
-              <span class="modal-title">注册账号</span>
-              <span class="modal-close" @click="showRegister = false">✕</span>
-            </div>
-            <div class="modal-body">
-              <div class="form-group">
+        <view v-if="showRegister" class="modal-overlay" @click.self="showRegister = false">
+          <view class="modal-box">
+            <view class="modal-header">
+              <text class="modal-title">注册账号</text>
+              <text class="modal-close" @click="showRegister = false">✕</text>
+            </view>
+            <view class="modal-body">
+              <view class="form-group">
                 <label class="form-label">手机号</label>
                 <input v-model="regPhone" type="text" class="form-input" placeholder="请输入手机号" />
-              </div>
-              <div class="form-group">
+              </view>
+              <view class="form-group">
                 <label class="form-label">验证码</label>
-                <div class="code-row">
+                <view class="code-row">
                   <input v-model="regCode" type="text" class="form-input" placeholder="请输入验证码" />
                   <button class="code-btn" :disabled="codeSending" @click="sendCode">{{ codeCountdown > 0 ? codeCountdown + 's' : (codeSending ? '发送中' : '获取验证码') }}</button>
-                </div>
-              </div>
-              <div class="form-group">
+                </view>
+              </view>
+              <view class="form-group">
                 <label class="form-label">设置密码</label>
                 <input v-model="regPwd" type="password" class="form-input" placeholder="请设置6-16位密码" />
-              </div>
+              </view>
               <button class="submit-btn" @click="handleRegister">注册</button>
-            </div>
-          </div>
-        </div>
+            </view>
+          </view>
+        </view>
       </transition>
 
       <transition name="modal">
-        <div v-if="showForgot" class="modal-overlay" @click.self="showForgot = false">
-          <div class="modal-box">
-            <div class="modal-header">
-              <span class="modal-title">找回密码</span>
-              <span class="modal-close" @click="showForgot = false">✕</span>
-            </div>
-            <div class="modal-body">
-              <div class="form-group">
+        <view v-if="showForgot" class="modal-overlay" @click.self="showForgot = false">
+          <view class="modal-box">
+            <view class="modal-header">
+              <text class="modal-title">找回密码</text>
+              <text class="modal-close" @click="showForgot = false">✕</text>
+            </view>
+            <view class="modal-body">
+              <view class="form-group">
                 <label class="form-label">手机号</label>
                 <input v-model="forgotPhone" type="text" class="form-input" placeholder="请输入注册手机号" />
-              </div>
-              <div class="form-group">
+              </view>
+              <view class="form-group">
                 <label class="form-label">验证码</label>
-                <div class="code-row">
+                <view class="code-row">
                   <input v-model="forgotCode" type="text" class="form-input" placeholder="请输入验证码" />
                   <button class="code-btn" :disabled="codeSending" @click="sendCode">{{ codeCountdown > 0 ? codeCountdown + 's' : (codeSending ? '发送中' : '获取验证码') }}</button>
-                </div>
-              </div>
-              <div class="form-group">
+                </view>
+              </view>
+              <view class="form-group">
                 <label class="form-label">新密码</label>
                 <input v-model="forgotPwd" type="password" class="form-input" placeholder="请设置新密码" />
-              </div>
+              </view>
               <button class="submit-btn" @click="handleResetPwd">重置密码</button>
-            </div>
-          </div>
-        </div>
+            </view>
+          </view>
+        </view>
       </transition>
     </Teleport>
-  </div>
+  </view>
 </template>
 
 <script setup>
-import { ref, nextTick, watch } from 'vue'
-import { useRouter } from '@/common/route'
+import { ref, nextTick } from 'vue'
+import { useRouter, canResolve } from '@/common/route'
+import { isApp } from '../common/platform'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
 import { RequestError } from '../common/common'
@@ -171,6 +172,39 @@ const forgotCode = ref('')
 const forgotPwd = ref('')
 const codeSending = ref(false)
 const codeCountdown = ref(0)
+// C-7：429（IP 限流/账号锁定）后的冷却倒计时，禁用登录按钮并显示剩余秒数
+const retryCooldown = ref(0)
+let retryTimer = null
+
+const startRetryCooldown = (seconds) => {
+  const safe = Math.max(1, Math.min(Number(seconds) || 0, 3600))
+  if (!safe) return
+  retryCooldown.value = safe
+  if (retryTimer) clearInterval(retryTimer)
+  retryTimer = setInterval(() => {
+    retryCooldown.value -= 1
+    if (retryCooldown.value <= 0) {
+      clearInterval(retryTimer)
+      retryTimer = null
+      retryCooldown.value = 0
+    }
+  }, 1000)
+}
+
+// C-7：发送验证码被 429 限流时用服务端 retryAfterSec 锁住按钮
+const startCodeCooldown = (seconds) => {
+  const safe = Math.max(1, Math.min(Number(seconds) || 0, 300))
+  if (!safe) return
+  codeSending.value = true
+  codeCountdown.value = safe
+  const timer = setInterval(() => {
+    codeCountdown.value -= 1
+    if (codeCountdown.value <= 0) {
+      clearInterval(timer)
+      codeSending.value = false
+    }
+  }, 1000)
+}
 
 const loginMode = ref('password')
 const codePhone = ref('')
@@ -183,8 +217,8 @@ const redirectAfterLogin = async () => {
   let redirect = readLoginRedirect()
   try {
     const decoded = decodeURIComponent(redirect)
-    const validRoutes = router.getRoutes().map(r => r.path)
-    if (!validRoutes.includes(decoded)) redirect = '/home'
+    // 用 canResolve 而不是 getRoutes 严格等值：动态路由（/post-detail/:id）也能回跳
+    redirect = canResolve(decoded) ? decoded : '/home'
   } catch (e) {
     redirect = '/home'
   }
@@ -252,20 +286,52 @@ const handleCodeLogin = async () => {
   }
 }
 
-// 第三方登录：真实场景由平台授权后回调携带 openId（?provider=wechat&openId=xxx）
-const handleThirdLogin = async (provider) => {
-  const q = router.currentRoute.value.query
-  const openId = q.openId || q.openid || ''
-  const fromProvider = q.provider
-  if (!openId || (fromProvider && fromProvider !== provider)) {
-    toast.info('第三方登录需经对应平台授权后回调，当前未接入')
-    return
-  }
+// App 端拉起对应平台的授权 SDK，只有拿到 openid/uid 才说明授权链路可用；
+// 未配置平台 SDK 的基座里 uni.login 会直接 fail，这里统一回落空串交给调用方提示。
+const requestAppAuth = (provider) => new Promise((resolve) => {
+  // 直接调 uni.login（不要取出方法引用），保留 uni API 方法内的 this 绑定
+  if (typeof uni === 'undefined' || !uni || typeof uni.login !== 'function') { resolve(''); return }
+  const providerMap = { wechat: 'weixin', qq: 'qq' }
   try {
-    const result = await userStore.loginThird(provider, openId, {
-      nickname: q.nickname || '',
-      avatar: q.avatar || ''
+    uni.login({
+      provider: providerMap[provider] || provider,
+      success: (res) => {
+        const authResult = (res && (res.authResult || res.auth_result)) || res || {}
+        resolve(authResult.openid || authResult.openId || authResult.uid || '')
+      },
+      fail: () => resolve('')
     })
+  } catch (e) {
+    resolve('')
+  }
+})
+
+// 第三方登录：H5 依赖平台授权回调带回的 openId（?provider=wechat&openId=xxx），
+// App 端先尝试拉起平台授权。拿不到授权信息时只提示、不伪造登录。
+const handleThirdLogin = async (provider) => {
+  if (isLoading.value) return
+  const q = router.currentRoute.value.query || {}
+  const fromProvider = q.provider
+  let openId = q.openId || q.openid || ''
+  const userInfo = { nickname: q.nickname || '', avatar: q.avatar || '' }
+
+  if (!isApp) {
+    // 与旧站同款提示：H5 没有授权回调参数时不能发起第三方登录
+    if (!openId || (fromProvider && fromProvider !== provider)) {
+      toast.info('第三方登录需经对应平台授权后回调，当前未接入')
+      return
+    }
+  } else {
+    if (!openId) openId = await requestAppAuth(provider)
+    if (!openId) {
+      toast.info('第三方登录需在对应平台授权后接入，当前未接入')
+      return
+    }
+  }
+
+  isLoading.value = true
+  try {
+    const result = await userStore.loginThird(provider, openId, userInfo)
     if (result.success) {
       toast.success('登录成功')
       await redirectAfterLogin()
@@ -274,6 +340,8 @@ const handleThirdLogin = async (provider) => {
     }
   } catch (error) {
     toast.error(error.message || '登录失败')
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -347,8 +415,9 @@ const handleLogin = async () => {
       if (redirect) {
         try {
           const decoded = decodeURIComponent(redirect)
-          const validRoutes = router.getRoutes().map(r => r.path)
-          if (!validRoutes.includes(decoded)) {
+          if (canResolve(decoded)) {
+            redirect = decoded
+          } else {
             console.warn('无效的重定向路径:', decoded, '，将跳转到首页')
             redirect = '/home'
           }
@@ -372,10 +441,12 @@ const handleLogin = async () => {
         handleFieldErrors(result.error)
       } else {
         toast.error(result.message || '登录失败')
+        if (result.retryAfterSec) startRetryCooldown(result.retryAfterSec)
       }
     }
   } catch (error) {
     console.error('登录失败:', error)
+    if (error.retryAfterSec) startRetryCooldown(error.retryAfterSec)
     if (error instanceof RequestError) {
       if (error.status === 422 && handleFieldErrors(error)) {
         return
@@ -431,11 +502,13 @@ const sendCode = async () => {
     } else {
       toast.error(result.message || '发送失败')
       codeSending.value = false
+      if (result.retryAfterSec) startCodeCooldown(result.retryAfterSec)
     }
   } catch (error) {
     console.error('发送验证码失败:', error)
-    toast.error('发送失败，请重试')
+    toast.error(error.message || '发送失败，请重试')
     codeSending.value = false
+    if (error.retryAfterSec) startCodeCooldown(error.retryAfterSec)
   }
 }
 
@@ -490,7 +563,13 @@ const handleRegister = async () => {
       toast.success('注册成功')
       showRegister.value = false
       
-      const redirect = readLoginRedirect()
+      let redirect = readLoginRedirect()
+      try {
+        const decoded = decodeURIComponent(redirect)
+        redirect = canResolve(decoded) ? decoded : '/home'
+      } catch (e) {
+        redirect = '/home'
+      }
       router.push(redirect)
     } else {
       toast.error(result.message || '注册失败')
@@ -892,10 +971,12 @@ const handleResetPwd = async () => {
 .third-login { margin-top: 20px; }
 .third-divider { display: flex; align-items: center; color: #bbb; font-size: 12px; margin: 12px 0; }
 .third-divider::before, .third-divider::after { content: ''; flex: 1; height: 1px; background: #eee; }
-.third-divider span { padding: 0 12px; }
+.third-divider text { padding: 0 12px; }
 .third-btns { display: flex; gap: 12px; }
-.third-btn { flex: 1; padding: 10px; border-radius: 10px; border: 1px solid #eee; background: #fff; font-size: 14px; cursor: pointer; transition: all .2s; }
+.third-btn { flex: 1; height: 44px; line-height: 44px; padding: 0; margin: 0; border-radius: 10px; border: 1px solid #eee; background: #fff; font-size: 14px; cursor: pointer; transition: all .2s; }
+.third-btn::after { border: none; }
 .third-btn:active { transform: scale(0.98); }
-.third-btn.wechat { color: #07c160; }
-.third-btn.qq { color: #12b7f5; }
+.third-btn:disabled { opacity: 0.6; }
+.third-btn.wechat { color: #07c160; border-color: #07c160; }
+.third-btn.qq { color: #12b7f5; border-color: #12b7f5; }
 </style>

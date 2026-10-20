@@ -159,14 +159,30 @@ describe('Middleware - Auth', () => {
       expect(next).toHaveBeenCalled();
     });
 
-    it('attaches user when found', async () => {
+    it('attaches user when found and active', async () => {
       verifyToken.mockReturnValue({ userId: 5 });
-      User.findByPk.mockResolvedValue({ id: 5 });
+      User.findByPk.mockResolvedValue({ id: 5, status: 1 });
       const next = jest.fn();
       const req = mockReq({ headers: { authorization: 'Bearer t' } });
       await optionalAuth(req, mockRes(), next);
       expect(req.userId).toBe(5);
       expect(next).toHaveBeenCalled();
+    });
+
+    // 审计 S-1：被封禁账号持有效 access 令牌时，可选认证入口必须与 authMiddleware 口径一致，
+    // 不能把封禁用户重新洗成「登录态」；但公开页仍要能匿名访问，所以只摘身份、不返回 403。
+    it('被封禁用户在可选认证入口只按匿名处理（审计 S-1）', async () => {
+      verifyToken.mockReturnValue({ userId: 5, type: TOKEN_TYPES.ACCESS });
+      User.findByPk.mockResolvedValue({ id: 5, status: 0 });
+      const next = jest.fn();
+      const res = mockRes();
+      const req = mockReq({ headers: { authorization: 'Bearer t' } });
+      await optionalAuth(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+      expect(req.user).toBeUndefined();
+      expect(req.userId).toBeUndefined();
+      expect(res.status).not.toHaveBeenCalled();
     });
 
     it('已登出的令牌在这里换不到身份，但页面照常可访问（审计 H-5）', async () => {

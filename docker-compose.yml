@@ -22,7 +22,8 @@ services:
       - ./nginx/logs:/var/log/nginx
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - ./nginx/certbot/www:/var/www/certbot:ro
-      - ./frontend/dist:/usr/share/nginx/html:ro
+      # 2026-10-21 旧站 frontend/ 已删除：站点根改挂 uni-app H5 产物（需先 cd app && npm run build:h5）
+      - ./app/dist/build/h5:/usr/share/nginx/html:ro
       - ./admin-frontend/dist:/usr/share/nginx/admin:ro
       - ./backend/public/uploads:/usr/share/nginx/uploads:ro
     depends_on:

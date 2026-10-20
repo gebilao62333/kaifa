@@ -1,67 +1,67 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">意见反馈</span>
-      <span class="placeholder"></span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">意见反馈</text>
+      <text class="placeholder"></text>
     </template>
 
-    <div class="content">
-      <div class="type-card">
-        <div class="section-title">反馈类型</div>
-        <div class="type-grid">
-          <div class="type-item" :class="{ active: feedbackType === item.value }" v-for="item in typeList" :key="item.value" @click="feedbackType = item.value">
-            <span class="type-icon">{{ item.icon }}</span>
-            <span class="type-text">{{ item.label }}</span>
-          </div>
-        </div>
-      </div>
+    <view class="content">
+      <view class="type-card">
+        <view class="section-title">反馈类型</view>
+        <view class="type-grid">
+          <view class="type-item" :class="{ active: feedbackType === item.value }" v-for="item in typeList" :key="item.value" @click="feedbackType = item.value">
+            <text class="type-icon">{{ item.icon }}</text>
+            <text class="type-text">{{ item.label }}</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="form-card">
-        <div class="form-item">
-          <div class="form-label">
+      <view class="form-card">
+        <view class="form-item">
+          <view class="form-label">
             反馈内容
-            <span class="count">{{ feedbackContent.length }}/500</span>
-          </div>
+            <text class="count">{{ feedbackContent.length }}/500</text>
+          </view>
           <textarea class="form-textarea" v-model="feedbackContent" placeholder="请详细描述您遇到的问题或建议..." maxlength="500"></textarea>
-        </div>
+        </view>
 
-        <div class="form-item">
-          <div class="form-label">上传图片（选填）</div>
-          <div class="upload-list">
-            <div class="upload-item" v-for="(img, index) in uploadImages" :key="index">
-              <img class="upload-img" :src="img" alt="" />
-              <span class="upload-remove" @click="removeImage(index)">×</span>
-            </div>
-            <div class="upload-btn" @click="uploadImage" v-if="uploadImages.length < 6">
-              <span class="upload-add">+</span>
-              <span class="upload-hint">{{ uploadImages.length }}/6</span>
-            </div>
-          </div>
-        </div>
+        <view class="form-item">
+          <view class="form-label">上传图片（选填）</view>
+          <view class="upload-list">
+            <view class="upload-item" v-for="(img, index) in uploadImages" :key="index">
+              <image mode="aspectFill" class="upload-img" :src="img" alt="" />
+              <text class="upload-remove" @click="removeImage(index)">×</text>
+            </view>
+            <view class="upload-btn" @click="uploadImage" v-if="uploadImages.length < 6">
+              <text class="upload-add">+</text>
+              <text class="upload-hint">{{ uploadImages.length }}/6</text>
+            </view>
+          </view>
+        </view>
 
-        <div class="form-item">
-          <div class="form-label">联系方式（选填）</div>
+        <view class="form-item">
+          <view class="form-label">联系方式（选填）</view>
           <input type="text" class="form-input" v-model="contact" placeholder="手机号或微信，方便我们联系您" />
-        </div>
-      </div>
+        </view>
+      </view>
 
       <button class="submit-btn" @click="submitFeedback">提交反馈</button>
 
-      <div class="history-card">
-        <div class="section-title">我的反馈</div>
-        <div class="history-list">
-          <div class="history-item" v-for="(item, index) in historyList" :key="index">
-            <div class="history-header">
-              <div class="history-type">{{ item.type }}</div>
-              <div class="history-status" :class="item.status">{{ item.statusText }}</div>
-            </div>
-            <div class="history-content">{{ item.content }}</div>
-            <div class="history-time">{{ item.time }}</div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <view class="history-card">
+        <view class="section-title">我的反馈</view>
+        <view class="history-list">
+          <view class="history-item" v-for="(item, index) in historyList" :key="index">
+            <view class="history-header">
+              <view class="history-type">{{ item.type }}</view>
+              <view class="history-status" :class="item.status">{{ item.statusText }}</view>
+            </view>
+            <view class="history-content">{{ item.content }}</view>
+            <view class="history-time">{{ item.time }}</view>
+          </view>
+        </view>
+      </view>
+    </view>
 
     <input type="file" ref="fileInput" accept="image/*" multiple style="display: none" @change="handleFileChange" />
   </PageLayout>
@@ -73,6 +73,8 @@ import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
 import { uploadFile } from '../services/uploadService'
+import { chooseImages } from '../services/mediaPicker'
+import { isApp } from '../common/platform'
 import feedbackService from '../services/feedbackService'
 
 const router = useRouter()
@@ -122,22 +124,35 @@ const goBack = () => {
   router.back()
 }
 
-const uploadImage = () => {
-  fileInput.value?.click()
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024
+const MAX_IMAGE_COUNT = 6
+
+// App 端没有可点击的 <input type=file>，统一走 mediaPicker（相册/相机）
+const uploadImage = async () => {
+  if (!isApp) { fileInput.value?.click(); return }
+  if (uploading.value) return
+  const remaining = MAX_IMAGE_COUNT - uploadImages.value.length
+  if (remaining <= 0) {
+    toast.error('最多上传6张图片')
+    return
+  }
+  try {
+    const { supported, files } = await chooseImages(remaining)
+    if (supported && files.length) await applyFeedbackFiles(files)
+  } catch (err) {
+    toast.error(err.message || '选择图片失败')
+  }
 }
 
-const MAX_IMAGE_SIZE = 10 * 1024 * 1024
-
+// H5 与 App 共用：H5 传 File，App 传 mediaPicker 的 { path, name, type, size }。
 // 截图选中后立即上传，列表中保存的是可提交的URL而非base64
-const handleFileChange = async (e) => {
-  const files = Array.from(e.target.files || [])
-  e.target.value = ''
+const applyFeedbackFiles = async (files) => {
   if (!files.length || uploading.value) return
 
   uploading.value = true
   try {
     for (const file of files) {
-      if (uploadImages.value.length >= 6) {
+      if (uploadImages.value.length >= MAX_IMAGE_COUNT) {
         toast.error('最多上传6张图片')
         break
       }
@@ -163,6 +178,12 @@ const handleFileChange = async (e) => {
   } finally {
     uploading.value = false
   }
+}
+
+const handleFileChange = async (e) => {
+  const files = Array.from(e.target.files || [])
+  e.target.value = ''
+  await applyFeedbackFiles(files)
 }
 
 const removeImage = (index) => {

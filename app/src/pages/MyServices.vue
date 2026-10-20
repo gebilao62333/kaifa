@@ -1,47 +1,47 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">‹</span>
-      <span class="nav-title">我的服务</span>
-      <span class="placeholder"></span>
+      <text class="back-btn" @click="goBack">‹</text>
+      <text class="nav-title">我的服务</text>
+      <text class="placeholder"></text>
     </template>
 
-    <div class="service-list">
-      <div 
+    <view class="service-list">
+      <view 
         class="service-card" 
         v-for="(service, idx) in currentServices" 
         :key="service.id">
-        <div class="service-header">
-          <div class="service-info">
-            <img class="service-icon" :src="service.icon" alt="" />
-            <div class="info">
-              <div class="name">{{ service.name }}</div>
-              <div class="game-name">{{ service.gameName }}</div>
-            </div>
-          </div>
-          <div class="status-badge" :class="service.status">
+        <view class="service-header">
+          <view class="service-info">
+            <image mode="aspectFill" class="service-icon" :src="service.icon" alt="" />
+            <view class="info">
+              <view class="name">{{ service.name }}</view>
+              <view class="game-name">{{ service.gameName }}</view>
+            </view>
+          </view>
+          <view class="status-badge" :class="service.status">
             {{ getStatusText(service.status) }}
-          </div>
-        </div>
+          </view>
+        </view>
 
-        <div class="service-desc">{{ service.description }}</div>
+        <view class="service-desc">{{ service.description }}</view>
 
-        <div class="service-tags">
-          <span class="tag" v-for="(tag, tIdx) in service.tags" :key="tIdx">{{ tag }}</span>
-        </div>
+        <view class="service-tags">
+          <text class="tag" v-for="(tag, tIdx) in service.tags" :key="tIdx">{{ tag }}</text>
+        </view>
 
-        <div class="service-footer">
-          <div class="price">
-            <span class="price-value">{{ service.price }} 金币</span>
-            <span class="price-unit">/单</span>
-          </div>
-          <div class="stats">
-            <span>📊 {{ service.orderCount }} 单</span>
-            <span>⭐ {{ service.rating }}</span>
-          </div>
-        </div>
+        <view class="service-footer">
+          <view class="price">
+            <text class="price-value">{{ service.price }} 金币</text>
+            <text class="price-unit">/单</text>
+          </view>
+          <view class="stats">
+            <text>📊 {{ service.orderCount }} 单</text>
+            <text>⭐ {{ service.rating }}</text>
+          </view>
+        </view>
 
-        <div class="service-actions">
+        <view class="service-actions">
           <button class="action-btn" @click="editService(service)">编辑</button>
           <button 
             class="action-btn" 
@@ -49,177 +49,182 @@
             @click="toggleService(service)">
             {{ service.status === 'active' ? '暂停' : '开启' }}
           </button>
-        </div>
-      </div>
+        </view>
+      </view>
 
-      <div v-if="currentServices.length === 0" class="empty-state">
-        <div class="empty-icon">📭</div>
-        <div class="empty-text">暂无服务</div>
-        <div class="empty-hint">去申请服务开启你的陪玩之旅吧</div>
+      <view v-if="currentServices.length === 0" class="empty-state">
+        <view class="empty-icon">📭</view>
+        <view class="empty-text">暂无服务</view>
+        <view class="empty-hint">去申请服务开启你的陪玩之旅吧</view>
         <button class="empty-btn" @click="goApply">去申请</button>
-      </div>
-    </div>
+      </view>
+    </view>
 
-    <div class="edit-modal" v-if="showEditModal" @click.self="closeEditModal">
-      <div class="modal-content apply-modal">
-        <div class="modal-header">
-          <span class="modal-close" @click="closeEditModal">✕</span>
-          <span class="modal-title">编辑服务</span>
-          <span style="width: 30px;"></span>
-        </div>
+    <view class="edit-modal" v-if="showEditModal" @click.self="closeEditModal">
+      <view class="modal-content apply-modal">
+        <view class="modal-header">
+          <text class="modal-close" @click="closeEditModal">✕</text>
+          <text class="modal-title">编辑服务</text>
+          <text style="width: 30px;"></text>
+        </view>
 
-        <div class="modal-body apply-body">
-          <div class="form-item">
+        <view class="modal-body apply-body">
+          <view class="form-item">
             <label class="form-label">所在城市</label>
-            <div class="form-select" @click="openPicker('city')">
+            <view class="form-select" @click="openPicker('city')">
               {{ getCityLabel(editForm.city) || '请选择' }}
-              <span class="select-arrow">›</span>
-            </div>
-          </div>
+              <text class="select-arrow">›</text>
+            </view>
+          </view>
 
-          <div class="form-item" v-if="activeTab === 'online'">
+          <view class="form-item" v-if="activeTab === 'online'">
             <label class="form-label">技能等级</label>
-            <div class="form-select" @click="openPicker('level')">
+            <view class="form-select" @click="openPicker('level')">
               {{ getLevelLabel(editForm.level) || '请选择' }}
-              <span class="select-arrow">›</span>
-            </div>
-          </div>
+              <text class="select-arrow">›</text>
+            </view>
+          </view>
 
-          <div class="form-item">
+          <view class="form-item">
             <label class="form-label">上传图片（禁止盗用他人图片，发现将封号）</label>
             <input type="file" ref="cameraInput" accept="image/*" capture="environment" style="display: none" @change="onImageChange" />
             <input type="file" ref="galleryInput" accept="image/*" style="display: none" @change="onImageChange" />
-            <div class="upload-area" @click="showSourceMenu = true">
-              <img v-if="editForm.icon" :src="editForm.icon" class="upload-preview" />
+            <view class="upload-area" @click="openIconPicker">
+              <image mode="aspectFit" v-if="editForm.icon" :src="editForm.icon" class="upload-preview" />
               <template v-else>
-                <div class="upload-icon">📷</div>
-                <div class="upload-text">请上传与你技能等级相符的截图</div>
+                <view class="upload-icon">📷</view>
+                <view class="upload-text">请上传与你技能等级相符的截图</view>
               </template>
-            </div>
-            <div class="image-source-menu" v-if="showSourceMenu">
-              <div class="menu-mask" @click="showSourceMenu = false"></div>
-              <div class="menu-content">
-                <div class="menu-item" @click="selectCamera">
-                  <span class="menu-icon">📷</span>
-                  <span>拍照</span>
-                </div>
-                <div class="menu-item" @click="selectGallery">
-                  <span class="menu-icon">🖼️</span>
-                  <span>从相册选择</span>
-                </div>
-                <div class="menu-item cancel" @click="showSourceMenu = false">
-                  <span>取消</span>
-                </div>
-              </div>
-            </div>
-          </div>
+            </view>
+            <view class="image-source-menu" v-if="showSourceMenu">
+              <view class="menu-mask" @click="showSourceMenu = false"></view>
+              <view class="menu-content">
+                <view class="menu-item" @click="selectCamera">
+                  <text class="menu-icon">📷</text>
+                  <text>拍照</text>
+                </view>
+                <view class="menu-item" @click="selectGallery">
+                  <text class="menu-icon">🖼️</text>
+                  <text>从相册选择</text>
+                </view>
+                <view class="menu-item cancel" @click="showSourceMenu = false">
+                  <text>取消</text>
+                </view>
+              </view>
+            </view>
+          </view>
 
-          <div class="form-item">
-            <div class="form-label-row">
+          <view class="form-item">
+            <view class="form-label-row">
               <label class="form-label required">技能介绍</label>
-              <span class="label-hint">（一句话介绍自己有助于展示）</span>
-              <span class="select-btn" @click="openPicker('skill')">选择常用 ›</span>
-            </div>
+              <text class="label-hint">（一句话介绍自己有助于展示）</text>
+              <text class="select-btn" @click="openPicker('skill')">选择常用 ›</text>
+            </view>
             <textarea class="form-textarea" v-model="editForm.description" placeholder="声音特点/擅长位置/KD,技术特点/娱乐/技术陪/聊天/唱歌等"></textarea>
-          </div>
+          </view>
 
-          <div class="form-item" v-if="activeTab === 'online'">
+          <view class="form-item" v-if="activeTab === 'online'">
             <label class="form-label">擅长位置</label>
-            <div class="form-select" @click="openPicker('position')">
+            <view class="form-select" @click="openPicker('position')">
               {{ getPositionLabel(editForm.position) || '请选择' }}
-              <span class="select-arrow">›</span>
-            </div>
-          </div>
+              <text class="select-arrow">›</text>
+            </view>
+          </view>
 
-          <div class="form-item" v-if="activeTab === 'online'">
+          <view class="form-item" v-if="activeTab === 'online'">
             <label class="form-label">陪玩类型</label>
-            <div class="form-select" @click="openPicker('playType')">
+            <view class="form-select" @click="openPicker('playType')">
               {{ getPlayTypeLabel(editForm.playType) || '请选择' }}
-              <span class="select-arrow">›</span>
-            </div>
-          </div>
+              <text class="select-arrow">›</text>
+            </view>
+          </view>
 
-          <div class="form-item">
+          <view class="form-item">
             <label class="form-label">设置价格(币/{{ activeTab === 'online' ? '小时' : '次' }})</label>
-            <div class="form-input-wrap">
-              <input type="number" class="form-input" v-model.number="editForm.price" placeholder="输入你的价格" />
-            </div>
-          </div>
+            <view class="form-input-wrap">
+              <!-- H5 保留 number input；App 用 digit 才能输入小数价格 -->
+              <input v-if="!isApp" type="number" class="form-input" v-model.number="editForm.price" placeholder="输入你的价格" />
+              <input v-else type="digit" class="form-input" v-model.number="editForm.price" placeholder="输入你的价格" />
+            </view>
+          </view>
 
-          <div class="form-item">
+          <view class="form-item">
             <label class="form-label">语音介绍</label>
-            <div class="audio-container">
-              <div v-show="!editForm.audioUrl" :class="['record-area', { recording: isRecording }]" @click="toggleRecording">
-                <div class="record-icon">🎤</div>
-                <div class="record-text">{{ isRecording ? '录音中...' : '点击录音' }}</div>
-                <div class="record-hint">{{ isRecording ? recordDuration + '秒' : '录制一段自我介绍' }}</div>
-                <div class="record-wave" v-show="isRecording">
-                  <span></span><span></span><span></span><span></span><span></span>
-                </div>
-              </div>
-              <div v-show="editForm.audioUrl" class="audio-preview">
-                <audio :src="editForm.audioUrl" controls class="audio-player"></audio>
+            <view class="audio-container">
+              <view v-show="!editForm.audioUrl" :class="['record-area', { recording: isRecording }]" @click="toggleRecording">
+                <view class="record-icon">🎤</view>
+                <view class="record-text">{{ isRecording ? '录音中...' : '点击录音' }}</view>
+                <view class="record-hint">{{ isRecording ? recordDuration + '秒' : '录制一段自我介绍' }}</view>
+                <view class="record-wave" v-show="isRecording">
+                  <text></text><text></text><text></text><text></text><text></text>
+                </view>
+              </view>
+              <view v-show="editForm.audioUrl" class="audio-preview">
+                <audio v-if="!isApp" :src="editForm.audioUrl" controls class="audio-player"></audio>
+                <view v-else class="audio-player app-audio-player" @click="toggleAudioPreview">
+                  {{ audioPlaying ? '⏸️ 播放中' : '🔊 点击试听' }}
+                </view>
                 <button class="delete-audio-btn" @click="deleteAudio">删除重录</button>
-              </div>
-            </div>
-          </div>
+              </view>
+            </view>
+          </view>
 
-          <div class="form-actions">
+          <view class="form-actions">
             <button class="cancel-btn" @click="closeEditModal">取消</button>
             <button class="submit-btn" @click="saveService">保存修改</button>
-          </div>
-        </div>
-      </div>
-    </div>
+          </view>
+        </view>
+      </view>
+    </view>
 
-    <div class="picker-modal" v-if="showPicker" @click.self="closePicker">
-      <div class="modal-content picker-modal-content" @click.stop>
-        <div class="modal-header">
-          <span class="modal-close" @click="closePicker">✕</span>
-          <span class="modal-title">{{ pickerTitle }}</span>
-          <span style="width: 30px;"></span>
-        </div>
-        <div class="modal-body picker-body">
-          <div class="picker-list">
-            <div 
+    <view class="picker-modal" v-if="showPicker" @click.self="closePicker">
+      <view class="modal-content picker-modal-content" @click.stop>
+        <view class="modal-header">
+          <text class="modal-close" @click="closePicker">✕</text>
+          <text class="modal-title">{{ pickerTitle }}</text>
+          <text style="width: 30px;"></text>
+        </view>
+        <view class="modal-body picker-body">
+          <view class="picker-list">
+            <view 
               v-for="item in pickerOptions" 
               :key="item.value" 
               :class="['picker-item', { active: getPickerValue() === item.value }]"
               @click="selectPickerItem(item)">
               {{ item.label }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
 
-    <div class="permission-guide-container">
-      <div class="permission-guide-overlay" v-if="showPermissionGuide">
-        <div class="permission-guide-modal">
-          <div class="guide-header">
-            <span class="guide-icon">{{ permissionError.type === 'camera' ? '📷' : '🎤' }}</span>
+    <view class="permission-guide-container">
+      <view class="permission-guide-overlay" v-if="showPermissionGuide">
+        <view class="permission-guide-modal">
+          <view class="guide-header">
+            <text class="guide-icon">{{ permissionError.type === 'camera' ? '📷' : '🎤' }}</text>
             <h3 class="guide-title">{{ permissionError.type === 'camera' ? '相机权限' : '麦克风权限' }}</h3>
-          </div>
+          </view>
           
-          <div class="guide-content">
-            <p class="guide-message">{{ permissionError.message }}</p>
+          <view class="guide-content">
+            <view class="guide-message">{{ permissionError.message }}</view>
             
-            <div class="guide-steps" v-if="permissionError.errorType === 'denied'">
-              <div class="steps-title">如何开启权限：</div>
-              <div 
+            <view class="guide-steps" v-if="permissionError.errorType === 'denied'">
+              <view class="steps-title">如何开启权限：</view>
+              <view 
                 v-for="(step, index) in getPermissionGuideSteps(permissionError.type)" 
                 :key="index" 
                 class="step-item"
               >
-                <span class="step-number">{{ step.step }}</span>
-                <span class="step-icon">{{ step.icon }}</span>
-                <span class="step-text">{{ step.text }}</span>
-              </div>
-            </div>
+                <text class="step-number">{{ step.step }}</text>
+                <text class="step-icon">{{ step.icon }}</text>
+                <text class="step-text">{{ step.text }}</text>
+              </view>
+            </view>
             
-            <div class="guide-alternative">
-              <div class="alternative-title">或者您也可以：</div>
-              <div class="alternative-actions">
+            <view class="guide-alternative">
+              <view class="alternative-title">或者您也可以：</view>
+              <view class="alternative-actions">
                 <button 
                   class="alternative-btn"
                   @click="handlePermissionAlternative"
@@ -233,16 +238,16 @@
                 >
                   不使用{{ permissionError.type === 'camera' ? '相机' : '麦克风' }}继续
                 </button>
-              </div>
-            </div>
-          </div>
+              </view>
+            </view>
+          </view>
           
-          <div class="guide-footer">
+          <view class="guide-footer">
             <button class="close-btn" @click="showPermissionGuide = false">关闭</button>
-          </div>
-        </div>
-      </div>
-    </div>
+          </view>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
@@ -253,6 +258,9 @@ import { usePermissions } from '../composables/usePermissions'
 import PageLayout from '../components/PageLayout.vue'
 import gamesService from '../services/gamesService'
 import { uploadFile } from '../services/uploadService'
+import { chooseImages } from '../services/mediaPicker'
+import audioRecorder from '../services/audioRecorder'
+import { isApp } from '../common/platform'
 import { toast } from '../composables/useToast'
 
 const router = useRouter()
@@ -270,6 +278,7 @@ const showPicker = ref(false)
 const currentPicker = ref('')
 const cameraInput = ref(null)
 const galleryInput = ref(null)
+const pickedIconFile = ref(null)
 const showSourceMenu = ref(false)
 const showPermissionGuide = ref(false)
 const permissionError = ref({ type: 'camera', errorType: 'denied', message: '' })
@@ -279,6 +288,11 @@ const recordDuration = ref(0)
 const mediaRecorder = ref(null)
 const audioChunks = ref([])
 let recordTimer = null
+
+// App 端原生录音的本地临时文件：试听与保存上传都直接用它；H5 仍是 blob -> File 转换
+const appVoiceFile = ref(null)
+const audioPlaying = ref(false)
+let appAudioPlayer = null
 
 const editForm = ref({
   id: null,
@@ -457,6 +471,9 @@ const selectPickerItem = (item) => {
 const editService = (service) => {
   // 编辑弹窗沿用服务自身的类型（线上/线下），不再固定 online
   activeTab.value = service.serviceType || 'online'
+  pickedIconFile.value = null
+  stopAudioPreview()
+  appVoiceFile.value = null
   editForm.value = {
     id: service.id,
     name: service.name,
@@ -477,9 +494,19 @@ const editService = (service) => {
 
 const closeEditModal = () => {
   showEditModal.value = false
+  pickedIconFile.value = null
   if (isRecording.value) {
-    stopRecording()
+    if (isApp) {
+      // 关闭弹窗即丢弃本次录音，避免残留原生录音器占麦
+      isRecording.value = false
+      if (recordTimer) { clearInterval(recordTimer); recordTimer = null }
+      audioRecorder.cancelRecord()
+    } else {
+      stopRecording()
+    }
   }
+  stopAudioPreview()
+  appVoiceFile.value = null
   editForm.value = {
     id: null,
     name: '',
@@ -497,24 +524,52 @@ const closeEditModal = () => {
   }
 }
 
-const onImageChange = (e) => {
-  showSourceMenu.value = false
-  const file = e.target.files?.[0]
-  if (file) {
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('图片大小不能超过5MB')
-      return
-    }
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      editForm.value.icon = event.target?.result
-    }
-    reader.readAsDataURL(file)
+// 点上传区：H5 弹出自定义来源菜单；App 没有可靠的文件 input，直接走 mediaPicker（拍照/相册）
+const openIconPicker = () => {
+  if (isApp) { pickIconFromApp(); return }
+  showSourceMenu.value = true
+}
+
+const pickIconFromApp = async () => {
+  try {
+    const { supported, files } = await chooseImages(1)
+    if (supported && files.length) applyIconFile(files[0])
+  } catch (err) {
+    toast.error(err.message || '选择图片失败')
   }
+}
+
+// H5 与 App 共用：H5 传 File（保留 base64 预览），App 传 mediaPicker 的 { path, name, type, size }
+const applyIconFile = (file) => {
+  showSourceMenu.value = false
+  if (!file) return
+  if (file.size > 5 * 1024 * 1024) {
+    toast.error('图片大小不能超过5MB')
+    return
+  }
+  if (isApp) {
+    // App 端 FileReader 读不了 uni 临时文件：临时路径直接做预览，保存时再补传
+    pickedIconFile.value = file
+    editForm.value.icon = file.path
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = (event) => {
+    editForm.value.icon = event.target?.result
+  }
+  reader.readAsDataURL(file)
+}
+
+const onImageChange = (e) => {
+  const file = e.target.files?.[0]
+  applyIconFile(file)
 }
 
 const selectCamera = async () => {
   showSourceMenu.value = false
+
+  // App 端没有可靠的相机权限弹窗和 <input capture>，统一交给 mediaPicker
+  if (isApp) { pickIconFromApp(); return }
   
   const result = await requestCameraPermission()
   
@@ -532,6 +587,7 @@ const selectCamera = async () => {
 
 const selectGallery = () => {
   showSourceMenu.value = false
+  if (isApp) { pickIconFromApp(); return }
   galleryInput.value?.click()
 }
 
@@ -555,6 +611,28 @@ const toggleRecording = async () => {
 }
 
 const startRecording = async () => {
+  if (isApp) {
+    // App 端没有 getUserMedia/MediaRecorder，且 usePermissions 的权限探测是浏览器实现，
+    // 直接交给 audioRecorder，由原生录音器负责权限弹窗与失败回调
+    const res = await audioRecorder.startRecord()
+    if (!res.supported) {
+      toast.error('当前环境不支持录音')
+      return
+    }
+    if (!res.started) {
+      toast.error(res.denied ? '麦克风权限被拒绝，请在系统设置中开启录音权限' : (res.message || '录音启动失败'))
+      return
+    }
+    isRecording.value = true
+    recordDuration.value = 0
+    recordTimer = setInterval(() => {
+      recordDuration.value++
+      if (recordDuration.value >= 60) {
+        stopRecording()
+      }
+    }, 1000)
+    return
+  }
   const result = await requestMicrophonePermission()
   
   if (!result.granted) {
@@ -647,6 +725,22 @@ const startRecording = async () => {
 }
 
 const stopRecording = () => {
+  if (isApp) {
+    if (recordTimer) {
+      clearInterval(recordTimer)
+      recordTimer = null
+    }
+    if (!isRecording.value) return
+    isRecording.value = false
+    // 原生 stop 是异步回调：拿到临时文件后写回 audioUrl 供试听，保存时再上传
+    audioRecorder.stopRecord().then((file) => {
+      if (!file) return
+      appVoiceFile.value = file
+      editForm.value.audioUrl = file.path
+      editForm.value.audioTime = file.duration
+    }).catch(() => { /* stopRecord 内部已兜底 resolve null */ })
+    return
+  }
   if (mediaRecorder.value && mediaRecorder.value.state !== 'inactive') {
     try {
       mediaRecorder.value.stop()
@@ -661,7 +755,56 @@ const stopRecording = () => {
   isRecording.value = false
 }
 
+// App 端试听：uni.createInnerAudioContext 播放本地临时文件；H5 继续用子页面里的 <audio controls>
+const stopAudioPreview = () => {
+  if (appAudioPlayer) {
+    try {
+      if (typeof appAudioPlayer.stop === 'function') appAudioPlayer.stop()
+    } catch (e) { /* 忽略 */ }
+    try {
+      if (typeof appAudioPlayer.destroy === 'function') appAudioPlayer.destroy()
+    } catch (e) { /* 忽略 */ }
+    appAudioPlayer = null
+  }
+  audioPlaying.value = false
+}
+const toggleAudioPreview = () => {
+  if (!isApp) return
+  const url = editForm.value.audioUrl
+  if (!url) return
+  if (audioPlaying.value) {
+    stopAudioPreview()
+    return
+  }
+  if (typeof uni === 'undefined' || typeof uni.createInnerAudioContext !== 'function') {
+    toast.error('语音播放失败')
+    return
+  }
+  stopAudioPreview()
+  const player = uni.createInnerAudioContext()
+  appAudioPlayer = player
+  player.src = url
+  player.onEnded(() => {
+    if (appAudioPlayer !== player) return
+    appAudioPlayer = null
+    audioPlaying.value = false
+  })
+  player.onError(() => {
+    if (appAudioPlayer !== player) return
+    stopAudioPreview()
+    toast.error('语音播放失败')
+  })
+  audioPlaying.value = true
+  try {
+    player.play()
+  } catch (e) {
+    stopAudioPreview()
+    toast.error('语音播放失败')
+  }
+}
 const deleteAudio = () => {
+  stopAudioPreview()
+  appVoiceFile.value = null
   const audioUrl = editForm.value.audioUrl
   editForm.value.audioUrl = ''
   editForm.value.audioTime = 0
@@ -698,19 +841,36 @@ const saveService = async () => {
   try {
     // 图片/语音先直传 COS 换取真实 URL，再提交（此前只存本地 base64/blob）
     let iconUrl = editForm.value.icon || ''
-    if (iconUrl && (iconUrl.startsWith('data:') || iconUrl.startsWith('blob:'))) {
+    if (isApp && pickedIconFile.value) {
+      // App 端 icon 只是 uni 临时路径，保存时用原始临时文件补传
+      const r = await uploadFile(pickedIconFile.value, 'image')
+      iconUrl = r.data.url
+    } else if (iconUrl && (iconUrl.startsWith('data:') || iconUrl.startsWith('blob:'))) {
       const f = await urlToFile(iconUrl, `service_${Date.now()}.jpg`)
       const r = await uploadFile(f, 'image')
       iconUrl = r.data.url
     }
     let voiceIntro = editForm.value.audioUrl || ''
-    if (voiceIntro && voiceIntro.startsWith('blob:')) {
+    if (isApp) {
+      // App 端录音是 uni 原生录音的本地临时路径，直接交给 uploadFile 的 App 分支
+      // （取 file.path）；只有路径没有文件（异常中断/已被清理）时不提交本地路径
+      if (appVoiceFile.value && voiceIntro) {
+        const r = await uploadFile(appVoiceFile.value, 'audio')
+        voiceIntro = r.data.url
+        // 回写真实 URL：此后重试保存不会再把本地临时路径当音频，也不会重复上传
+        editForm.value.audioUrl = voiceIntro
+        appVoiceFile.value = null
+      } else if (voiceIntro && !/^https?:/i.test(voiceIntro)) {
+        voiceIntro = ''
+      }
+    } else if (voiceIntro && voiceIntro.startsWith('blob:')) {
       const f = await urlToFile(voiceIntro, `voice_${Date.now()}.webm`)
       const r = await uploadFile(f, 'audio')
       voiceIntro = r.data.url
     }
 
     await gamesService.applyCompanion({
+      edit: true,
       gameId: target.gameId,
       serviceType: activeTab.value,
       price: Number(editForm.value.price),
@@ -758,8 +918,14 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (isRecording.value) {
-    stopRecording()
+    if (isApp) {
+      // 切页时丢弃未提交的录音，原生录音器必须显式取消
+      audioRecorder.cancelRecord()
+    } else {
+      stopRecording()
+    }
   }
+  stopAudioPreview()
   if (recordTimer) {
     clearInterval(recordTimer)
     recordTimer = null
@@ -1228,7 +1394,7 @@ onUnmounted(() => {
   will-change: transform;
 }
 
-.record-wave span {
+.record-wave text {
   width: 4px;
   height: 24px;
   background: white;
@@ -1237,10 +1403,10 @@ onUnmounted(() => {
   transform-origin: center bottom;
 }
 
-.record-wave span:nth-child(2) { animation-delay: 0.1s; }
-.record-wave span:nth-child(3) { animation-delay: 0.2s; }
-.record-wave span:nth-child(4) { animation-delay: 0.3s; }
-.record-wave span:nth-child(5) { animation-delay: 0.4s; }
+.record-wave text:nth-child(2) { animation-delay: 0.1s; }
+.record-wave text:nth-child(3) { animation-delay: 0.2s; }
+.record-wave text:nth-child(4) { animation-delay: 0.3s; }
+.record-wave text:nth-child(5) { animation-delay: 0.4s; }
 
 @keyframes wave {
   0%, 100% { transform: scaleY(0.4); }
@@ -1258,6 +1424,19 @@ onUnmounted(() => {
 
 .audio-player {
   width: 100%;
+.audio-player {
+  width: 100%;
+}
+
+/* App 端试听按钮：uni 没有可直接播放本地临时文件的 <audio>，走 innerAudioContext */
+.app-audio-player {
+  padding: 10px;
+  text-align: center;
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #f5576c;
 }
 
 .delete-audio-btn {

@@ -1,0 +1,110 @@
+# ============================================
+# Sealos Web 容器 Nginx 配置模板
+# 由官方 nginx entrypoint 的 envsubst 渲染：
+#   BACKEND_HOST / BACKEND_PORT 来自 Sealos 应用环境变量
+# TLS 由 Sealos 入口（Ingress）终止，容器内只监听 80。
+# ============================================
+
+# 审计 I-08：Nginx 层限流（http 上下文，conf.d 被 include 在 http 内）
+limit_req_zone $binary_remote_addr zone=api_limit:10m rate=20r/s;
+limit_req_status 429;
+limit_conn_zone $binary_remote_addr zone=conn_limit:10m;
+
+server {
+    listen 80;
+    server_name _;
+    server_tokens off;
+
+    root /usr/share/nginx/html;
+    index index.html;
+    client_max_body_size 120M;
+
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 256;
+    gzip_types text/plain text/css application/json application/javascript text/xml application/xml text/javascript image/svg+xml;
+
+    # 安全响应头基线（CSP 见下）；注意 add_header 不继承，子 location 自带 add_header 时需重复
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: blob: https:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: https:; media-src 'self' blob: https:; font-src 'self' data:; object-src 'none'; frame-ancestors 'self'; base-uri 'self'" always;
+
+    # ===== API =====
+    location /api/ {
+        limit_req zone=api_limit burst=40 nodelay;
+        limit_conn conn_limit 50;
+        proxy_pass http://${BACKEND_HOST}:${BACKEND_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # ===== WebSocket（Socket.IO） =====
+    location /socket.io/ {
+        proxy_pass http://${BACKEND_HOST}:${BACKEND_PORT};
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400s;
+        proxy_send_timeout 86400s;
+    }
+
+    # ===== 本地上传文件（后端 public/uploads，挂载持久卷） =====
+    location /uploads/ {
+        proxy_pass http://${BACKEND_HOST}:${BACKEND_PORT};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000";
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        access_log off;
+    }
+
+    # ===== 管理后台 SPA（base=/admin/） =====
+    location /admin {
+        alias /usr/share/nginx/admin;
+        index index.html;
+        charset utf-8;
+        add_header Cache-Control "no-cache, no-store, must-revalidate" always;
+        add_header Pragma "no-cache" always;
+        add_header Expires "0" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Content-Security-Policy "default-src 'self'; img-src 'self' data: blob: https:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ws: wss: https:; media-src 'self' blob: https:; font-src 'self' data:; object-src 'none'; frame-ancestors 'self'; base-uri 'self'" always;
+        try_files $uri $uri/ /admin/index.html;
+    }
+
+    # ===== 用户端 H5（uni-app history 模式） =====
+    location / {
+        charset utf-8;
+        try_files $uri $uri/ /index.html;
+    }
+
+    # ===== 健康检查（后端） =====
+    location /health {
+        proxy_pass http://${BACKEND_HOST}:${BACKEND_PORT};
+        access_log off;
+    }
+
+    # 静态资源长缓存（带 hash 的 assets 可安全长缓存）
+    location /assets/ {
+        expires 30d;
+        add_header Cache-Control "public, max-age=2592000, immutable";
+        try_files $uri =404;
+    }
+}

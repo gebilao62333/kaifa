@@ -1,25 +1,25 @@
 <template>
-  <div class="redpacket-overlay" v-if="visible" @click.self="close">
-    <div class="redpacket-panel">
-      <div class="panel-header">
-        <div class="header-decoration">
-          <span>🎇</span>
-          <span>🎆</span>
-        </div>
-        <span class="panel-title">🧧 发红包</span>
-        <span class="panel-close" @click="close">✕</span>
-      </div>
+  <view class="redpacket-overlay" v-if="visible" @click.self="close">
+    <view class="redpacket-panel">
+      <view class="panel-header">
+        <view class="header-decoration">
+          <text>🎇</text>
+          <text>🎆</text>
+        </view>
+        <text class="panel-title">🧧 发红包</text>
+        <text class="panel-close" @click="close">✕</text>
+      </view>
 
-      <div class="redpacket-decoration">
-        <span>✦</span>
-        <span>⭐</span>
-        <span>✦</span>
-      </div>
+      <view class="redpacket-decoration">
+        <text>✦</text>
+        <text>⭐</text>
+        <text>✦</text>
+      </view>
 
-      <div class="input-section">
-        <div class="amount-card">
-          <div class="amount-input-wrap">
-            <span class="amount-label">💰</span>
+      <view class="input-section">
+        <view class="amount-card">
+          <view class="amount-input-wrap">
+            <text class="amount-label">💰</text>
             <input name="amount" 
               class="amount-input" 
               type="number" 
@@ -29,13 +29,13 @@
               step="0.01"
               min="0.01"
             />
-          </div>
-          <span class="amount-hint">余额: {{ userBalance.toFixed(2) }} 金币</span>
-        </div>
-      </div>
+          </view>
+          <text class="amount-hint">余额: {{ userBalance.toFixed(2) }} 金币</text>
+        </view>
+      </view>
 
-      <div class="message-section">
-        <span class="section-label">祝福语</span>
+      <view class="message-section">
+        <text class="section-label">祝福语</text>
         <input name="message" 
           class="message-input" 
           type="text" 
@@ -43,43 +43,44 @@
           placeholder="恭喜发财，大吉大利"
           maxlength="20"
         />
-        <div class="quick-phrases">
-          <span 
+        <view class="quick-phrases">
+          <text 
             v-for="(phrase, index) in quickPhrases" 
             :key="index" 
             class="quick-phrase"
             @click="selectPhrase(phrase)"
           >
             {{ phrase }}
-          </span>
-        </div>
-      </div>
+          </text>
+        </view>
+      </view>
 
-      <div class="send-section">
-        <div 
+      <view class="send-section">
+        <view 
           class="send-btn" 
           :class="{ disabled: !canSend, loading: isLoading }" 
           @click="sendRedPacket"
         >
-          <span v-if="isLoading" class="loading-icon">⏳</span>
-          <span v-else class="btn-icon">🧧</span>
-          <span class="btn-text">{{ isLoading ? '发送中...' : '发红包' }}</span>
-        </div>
-      </div>
+          <text v-if="isLoading" class="loading-icon">⏳</text>
+          <text v-else class="btn-icon">🧧</text>
+          <text class="btn-text">{{ isLoading ? '发送中...' : '发红包' }}</text>
+        </view>
+      </view>
 
-      <div class="success-overlay" v-if="showSuccess">
-        <div class="success-content">
-          <span class="success-icon">🎉</span>
-          <span class="success-text">发送成功</span>
-        </div>
-      </div>
-    </div>
-  </div>
+      <view class="success-overlay" v-if="showSuccess">
+        <view class="success-content">
+          <text class="success-icon">🎉</text>
+          <text class="success-text">发送成功</text>
+        </view>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script>
 import { ref, computed, watch } from 'vue'
 import { giftService } from '@/services/giftService'
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'RedPacketPanel',
@@ -126,19 +127,19 @@ export default {
       if (!canSend.value) return
 
       if (!props.receiverId) {
-        alert('请选择接收者')
+        toast.error('请选择接收者')
         return
       }
 
       const num = parseFloat(amount.value) || 0
       
       if (!amount.value || num <= 0) {
-        alert('红包金额不能为空')
+        toast.error('红包金额不能为空')
         return
       }
 
       if (num > props.userBalance) {
-        alert('余额不足')
+        toast.error('余额不足')
         return
       }
 
@@ -157,12 +158,14 @@ export default {
             type: 'normal',
             amount: amountFixed,
             count: 1,
-            message: message.value
+            message: message.value,
+            // C-1：领取需要 packetNo；服务端 send 响应已返回，随事件透传给聊天页
+            packetNo: (res.data && res.data.packetNo) || ''
           })
           close()
         }, 1500)
       } else {
-        alert(res.message || '发送红包失败')
+        toast.error(res.message || '发送红包失败')
       }
     }
 
@@ -253,12 +256,12 @@ export default {
   gap: 12px;
 }
 
-.header-decoration span {
+.header-decoration text {
   font-size: 18px;
   animation: sparkle 1s ease-in-out infinite;
 }
 
-.header-decoration span:nth-child(2) {
+.header-decoration text:nth-child(2) {
   animation-delay: 0.5s;
 }
 
@@ -289,17 +292,17 @@ export default {
   background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
 }
 
-.redpacket-decoration span {
+.redpacket-decoration text {
   font-size: 14px;
   color: #f87171;
   animation: bounce 1.5s ease-in-out infinite;
 }
 
-.redpacket-decoration span:nth-child(2) {
+.redpacket-decoration text:nth-child(2) {
   animation-delay: 0.3s;
 }
 
-.redpacket-decoration span:nth-child(3) {
+.redpacket-decoration text:nth-child(3) {
   animation-delay: 0.6s;
 }
 

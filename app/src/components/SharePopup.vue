@@ -1,23 +1,23 @@
 <template>
   <teleport to="body">
-    <div class="share-overlay" v-if="visible" @click.self="close">
-      <div class="share-panel">
-        <div class="share-title">分享到</div>
-        <div class="share-options">
-          <div class="share-option" @click="shareExternal">
-            <span class="share-icon">📤</span>
-            <span class="share-label">分享给好友</span>
-            <span class="share-desc">微信 / QQ / 复制链接</span>
-          </div>
-          <div class="share-option" @click="startRepost">
-            <span class="share-icon">🔄</span>
-            <span class="share-label">转发到动态</span>
-            <span class="share-desc">附上想法，转发到自己的主页</span>
-          </div>
-        </div>
+    <view class="share-overlay" v-if="visible" @click.self="close">
+      <view class="share-panel">
+        <view class="share-title">分享到</view>
+        <view class="share-options">
+          <view class="share-option" @click="shareExternal">
+            <text class="share-icon">📤</text>
+            <text class="share-label">分享给好友</text>
+            <text class="share-desc">微信 / QQ / 复制链接</text>
+          </view>
+          <view class="share-option" @click="startRepost">
+            <text class="share-icon">🔄</text>
+            <text class="share-label">转发到动态</text>
+            <text class="share-desc">附上想法，转发到自己的主页</text>
+          </view>
+        </view>
 
         <!-- 转发输入区 -->
-        <div class="repost-input" v-if="showRepostInput">
+        <view class="repost-input" v-if="showRepostInput">
           <textarea
             v-model="repostComment"
             placeholder="说点什么吧..."
@@ -25,23 +25,24 @@
             rows="3"
             ref="repostTextarea"
           ></textarea>
-          <div class="repost-actions">
+          <view class="repost-actions">
             <button class="btn-cancel" @click="cancelRepost">取消</button>
             <button class="btn-confirm" @click="confirmRepost" :disabled="submitting">
               {{ submitting ? '转发中...' : '转发' }}
             </button>
-          </div>
-        </div>
+          </view>
+        </view>
 
         <button class="btn-close" @click="close">取消</button>
-      </div>
-    </div>
+      </view>
+    </view>
   </teleport>
 </template>
 
 <script setup>
 import { ref, nextTick } from 'vue'
 import circleService from '../services/circleService'
+import { isApp } from '../common/platform'
 
 const props = defineProps({
   visible: Boolean,
@@ -58,6 +59,35 @@ const repostComment = ref('')
 const repostTextarea = ref(null)
 const submitting = ref(false)
 
+// App 端没有 navigator.clipboard（部分非安全上下文也没有），复制链接交给 uni.setClipboardData
+const copyText = async (text) => {
+  if (!text) throw new Error('没有可复制的分享链接')
+  if (!isApp && typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    await navigator.clipboard.writeText(text)
+    return
+  }
+  if (typeof uni !== 'undefined' && typeof uni.setClipboardData === 'function') {
+    await new Promise((resolve, reject) => {
+      uni.setClipboardData({
+        data: text,
+        showToast: false,
+        success: () => resolve(),
+        fail: (err) => reject(new Error((err && err.errMsg) || '复制链接失败'))
+      })
+    })
+    return
+  }
+  throw new Error('当前环境不支持复制链接')
+}
+
+const showShareFail = (message) => {
+  if (typeof uni !== 'undefined' && typeof uni.showToast === 'function') {
+    uni.showToast({ title: message, icon: 'none' })
+    return
+  }
+  try { window.alert(message) } catch (e) { /* 提示失败不影响业务 */ }
+}
+
 const close = () => {
   showRepostInput.value = false
   repostComment.value = ''
@@ -65,28 +95,41 @@ const close = () => {
 }
 
 const shareExternal = async () => {
+  const shareData = {
+    title: props.postNickname ? `${props.postNickname} 的动态` : 'eu搭子动态',
+    text: props.postContent ? props.postContent.substring(0, 100) : '快来看看这篇精彩动态！',
+    // App 端没有 window.location：分享链接由页面通过 postShareUrl 传入
+    url: props.postShareUrl || (typeof window !== 'undefined' && window.location ? window.location.href : '')
+  }
+
+  // 先记后端分享次数；记录失败不阻断客户端分享（原逻辑同样忽略该失败）
   try {
-    // 调用后端记录分享
     await circleService.sharePost(props.postId)
+  } catch (e) {
+    console.error('记录分享失败:', e)
+  }
 
-    const shareData = {
-      title: props.postNickname ? `${props.postNickname} 的动态` : 'eu搭子动态',
-      text: props.postContent ? props.postContent.substring(0, 100) : '快来看看这篇精彩动态！',
-      url: props.postShareUrl || window.location.href
-    }
-
-    if (navigator.share) {
-      await navigator.share(shareData)
+  try {
+    if (isApp) {
+      // App 无 navigator.share/clipboard：复制链接，由用户粘贴到微信/QQ
+      await copyText(shareData.url)
+    } else if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share(shareData)
+      } catch (e) {
+        if (e && e.name === 'AbortError') return
+        // 系统分享不可用（非安全上下文/未授予）时回落到复制链接
+        await copyText(shareData.url)
+      }
     } else {
-      await navigator.clipboard.writeText(shareData.url)
+      await copyText(shareData.url)
     }
     emit('shared', 'external')
     close()
   } catch (e) {
-    if (e.name === 'AbortError') return
+    // P2-11：复制/分享都失败时不能再当成功关闭弹窗，避免传播数据虚高
     console.error('分享失败:', e)
-    emit('shared', 'external') // 后端已记录，关闭弹窗
-    close()
+    showShareFail((e && e.message) || '分享失败，请稍后重试')
   }
 }
 

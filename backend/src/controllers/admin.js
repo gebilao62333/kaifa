@@ -1,16 +1,24 @@
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { User, GameOrder, Withdraw, GiftLog, Post, VipPackage, RechargePackage, Banner, SplashScreen, CompanionProfile, Game, OrderChong, Report, Admin, AdminRole } = require('../models');
-const { signToken, TOKEN_TYPES } = require('../config/jwt');
+const { signToken, verifyToken, TOKEN_TYPES } = require('../config/jwt');
 const config = require('../config');
 const response = require('../utils/response');
 const adminLoginGuard = require('../services/adminLoginGuard');
 const tokenRevocation = require('../services/tokenRevocation');
+// 《未完成事项清单》B-2：后台实名审核 + 实名经验发放
+const realNameService = require('../services/realNameService');
+// 《未完成事项清单》B-3/B-4：平台公告落库 + 全服实时推送
+const noticeService = require('../services/noticeService');
 const { resolvePermissions } = require('../utils/permissions');
 const { safeEqual } = require('../utils/secureCompare');
 const { Op, fn, col, literal } = require('sequelize');
 const { affectedCount } = require('../utils/sql');
 const logger = require('../utils/logger');
+// 《未完成事项清单》B-10：卡密密码静态加密（与实名 PII 同一套 pii 工具）
+const pii = require('../utils/pii');
+// 《未完成事项清单》B-7：手机号加密 + 盲索引（搜索/回显/写入统一走工具）
+const { mobileFields, buildMobileWhere, decryptMobile } = require('../utils/mobile');
 
 // 环境变量应急管理员账号：**不设任何默认口令**，必须同时满足
 //   1) ADMIN_EMERGENCY_LOGIN=true
@@ -20,12 +28,22 @@ const logger = require('../utils/logger');
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || '';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 
+// 审计 B-5：管理端此前只下发短时效 ADMIN access（默认 12h），refresh 令牌要么没签发、
+// 要么签发了也没有消费入口，到期只能重新登录。这里统一签发 access+refresh，
+// refresh 由 POST /api/admin/refresh-token 消费（轮换：换新时作废旧 refresh）。
+const issueAdminTokens = (payload) => {
+  const accessToken = signToken(payload, config.jwt.adminExpiresIn, TOKEN_TYPES.ADMIN);
+  const refreshToken = signToken(payload, config.jwt.refreshExpiresIn || '30d', TOKEN_TYPES.ADMIN_REFRESH);
+  return { accessToken, refreshToken };
+};
+
 // 数据库错误统一响应：不再静默降级，显式报错
 function dbErrorResponse(res, operation, dbError) {
   logger.error(`[DB_CRITICAL] ${operation} 失败:`, dbError.message);
   return response.dbError(res, operation, dbError.message);
 }
 
+// 规范后台登录入口（POST /api/admin/login）；/api/admin-manage/login 是兼容别名（已标 deprecated）。
 const adminLogin = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -63,7 +81,7 @@ const adminLogin = async (req, res) => {
           const permissions = resolvePermissions(admin.permissions, role);
           // 审计 M-2：adminScope 标明 id 指向 Admin 账号（adminAuth 据此回读实时主体），
           // 时效改用专用 adminExpiresIn（不再硬编码 7d）
-          const token = signToken({
+          const { accessToken, refreshToken } = issueAdminTokens({
             id: admin.id,
             username: admin.username,
             role: 'admin',
@@ -71,11 +89,13 @@ const adminLogin = async (req, res) => {
             role_id: admin.role_id,
             roleId: admin.role_id,
             permissions
-          }, config.jwt.adminExpiresIn, TOKEN_TYPES.ADMIN);
+          });
 
           await adminLoginGuard.clearLoginFailures(username);
           return response.success(res, {
-            token,
+            token: accessToken,
+            refreshToken,
+            expiresIn: config.jwt.adminExpiresIn,
             user: {
               id: admin.id,
               username: admin.username,
@@ -96,7 +116,7 @@ const adminLogin = async (req, res) => {
           const valid = await bcrypt.compare(password, role.password);
           if (valid) {
             const permissions = resolvePermissions(role.permissions, role);
-            const token = signToken({
+            const { accessToken, refreshToken } = issueAdminTokens({
               id: role.id,
               username: role.username,
               role: 'admin',
@@ -104,11 +124,13 @@ const adminLogin = async (req, res) => {
               role_id: role.id,
               roleId: role.id,
               permissions
-            }, config.jwt.adminExpiresIn, TOKEN_TYPES.ADMIN);
+            });
 
             await adminLoginGuard.clearLoginFailures(username);
             return response.success(res, {
-              token,
+              token: accessToken,
+              refreshToken,
+              expiresIn: config.jwt.adminExpiresIn,
               user: {
                 id: role.id,
                 username: role.username,
@@ -170,6 +192,101 @@ const adminLogin = async (req, res) => {
   }
 };
 
+// 审计 B-5：管理端 refresh 令牌的服务端消费入口。此前 admin_refresh_token 只在
+// /api/admin-manage/login 里签发，前端登录走的是 /api/admin/login（不下发 refresh），
+// 全站也没有任何兑换入口，令牌到期只能重新登录。这里补齐：
+//   1) 只认 admin_refresh 用途（adminAuth 的 ADMIN 白名单不会误接受它）；
+//   2) 先查吊销（与 H-5 同一口径，Redis 不可确认时生产 fail-closed 503）；
+//   3) 回读实时主体（Admin / AdminRole），禁用或删除即拒绝，权限当场重算；
+//   4) 轮换 refresh：签发新对之后把旧 refresh 拉黑，避免同一枚 refresh 长期复用。
+const refreshAdminToken = async (req, res) => {
+  try {
+    const refreshTokenStr = (req.body || {}).refreshToken;
+    if (!refreshTokenStr) {
+      return response.badRequest(res, 'refresh token不能为空');
+    }
+
+    const decoded = verifyToken(refreshTokenStr, [TOKEN_TYPES.ADMIN_REFRESH]);
+    if (!decoded) {
+      return response.unauthorized(res, '登录状态已失效，请重新登录');
+    }
+
+    const revocation = await tokenRevocation.checkRevocation(refreshTokenStr, decoded);
+    if (!revocation.verifiable && tokenRevocation.revocationFailMode() === 'closed') {
+      return response.serviceUnavailable(res, '认证服务暂时不可用，请稍后重试');
+    }
+    if (revocation.revoked) {
+      return response.unauthorized(res, '登录状态已失效，请重新登录');
+    }
+
+    let subject = null;
+    let permissions = [];
+    let user = null;
+
+    if (decoded.adminScope === 'account') {
+      subject = await Admin.findByPk(decoded.id);
+      if (!subject || subject.status !== 1) {
+        return response.unauthorized(res, '账号已失效，请重新登录');
+      }
+      const role = subject.role_id ? await AdminRole.findByPk(subject.role_id) : null;
+      permissions = resolvePermissions(subject.permissions, role);
+      user = {
+        id: subject.id,
+        username: subject.username,
+        nickname: subject.nickname || subject.username,
+        role: 'admin',
+        role_id: subject.role_id,
+        permissions,
+        avatar: subject.avatar || ''
+      };
+    } else if (decoded.adminScope === 'role') {
+      subject = await AdminRole.findByPk(decoded.id);
+      if (!subject || subject.status !== 1) {
+        return response.unauthorized(res, '账号已失效，请重新登录');
+      }
+      permissions = resolvePermissions(subject.permissions, subject);
+      user = {
+        id: subject.id,
+        username: subject.username,
+        nickname: subject.name || subject.username,
+        role: 'admin',
+        role_id: subject.id,
+        permissions,
+        avatar: ''
+      };
+    } else {
+      // legacy（无 adminScope 的旧令牌）与 emergency（无数据库主体、不可吊销）一律强制重登
+      return response.unauthorized(res, '登录状态已过期，请重新登录');
+    }
+
+    const { accessToken, refreshToken } = issueAdminTokens({
+      id: user.id,
+      username: user.username,
+      role: 'admin',
+      adminScope: decoded.adminScope,
+      role_id: user.role_id,
+      roleId: user.role_id,
+      permissions
+    });
+
+    // 轮换失败取向与登出保持一致：生产无法确认旧 refresh 已作废时，不签发新令牌。
+    const revoked = await tokenRevocation.revokeToken(refreshTokenStr);
+    if (!revoked.verifiable && tokenRevocation.revocationFailMode() === 'closed') {
+      return response.serviceUnavailable(res, '认证服务暂时不可用，请稍后重试');
+    }
+
+    return response.success(res, {
+      token: accessToken,
+      refreshToken,
+      expiresIn: config.jwt.adminExpiresIn,
+      user
+    }, '刷新成功');
+  } catch (error) {
+    logger.error('刷新管理员令牌错误:', error);
+    return response.error(res, '刷新token失败');
+  }
+};
+
 const getUserList = async (req, res) => {
   try {
     const { page = 1, pageSize = 20, nickname, phone, status } = req.query;
@@ -177,7 +294,12 @@ const getUserList = async (req, res) => {
     
     const where = {};
     if (nickname) where.nickname = { [Op.like]: `%${nickname}%` };
-    if (phone) where.mobile = { [Op.like]: `%${phone}%` };
+    // B-7：手机号已加密，无法做 LIKE 模糊搜索；按盲索引精确匹配（运营需输入完整号码）。
+    // 空白输入不当作过滤条件，避免把列表意外筛成空集。
+    if (phone) {
+      const mobileWhere = buildMobileWhere(phone);
+      if (mobileWhere.mobile_hash !== '__invalid_mobile__') Object.assign(where, mobileWhere);
+    }
     if (status !== undefined) where.status = parseInt(status);
     
     const result = await User.findAndCountAll({
@@ -195,7 +317,7 @@ const getUserList = async (req, res) => {
       nickname: user.nickname,
       username: user.username || '',
       avatar: user.avatar || '',
-      phone: user.phone || user.mobile || '',
+      phone: user.phone || decryptMobile(user.mobile) || '',
       gender: user.gender || user.sex || 0,
       sex: user.sex || 0,
       city: user.city || '',
@@ -259,7 +381,7 @@ const getUserDetail = async (req, res) => {
       nickname: user.nickname,
       username: user.username || '',
       avatar: user.avatar || '',
-      phone: user.phone || user.mobile || '',
+      phone: user.phone || decryptMobile(user.mobile) || '',
       email: user.email || '',
       status: user.status,
       vip: user.vip,
@@ -295,7 +417,7 @@ const updateUser = async (req, res) => {
     const updateData = {};
     if (nickname !== undefined) updateData.nickname = nickname;
     if (username !== undefined) updateData.username = username;
-    if (phone !== undefined) updateData.mobile = phone;
+    if (phone !== undefined) Object.assign(updateData, mobileFields(phone));
     if (email !== undefined) updateData.email = email;
     if (sex !== undefined) updateData.sex = parseInt(sex);
     if (city !== undefined) updateData.city = city;
@@ -366,7 +488,7 @@ const createUser = async (req, res) => {
     const newUser = await User.create({
       nickname: nickname || '新用户',
       username: username || '',
-      mobile: phone || '',
+      ...mobileFields(phone),
       email: email || '',
       sex: parseInt(sex) || 0,
       city: city || '',
@@ -381,7 +503,7 @@ const createUser = async (req, res) => {
       nickname: newUser.nickname,
       username: newUser.username || '',
       avatar: newUser.avatar || '',
-      phone: newUser.phone || newUser.mobile || '',
+      phone: newUser.phone || decryptMobile(newUser.mobile) || '',
       email: newUser.email || '',
       sex: newUser.sex || 0,
       city: newUser.city || '',
@@ -2576,7 +2698,8 @@ const getCardList = async (req, res) => {
       list: rows.map(c => ({
         id: c.id,
         cardNo: c.card_no,
-        cardPwd: c.card_password,
+        // B-10：库里是密文（存量明文行由 decryptField 原样返回）
+        cardPwd: pii.decryptField(c.card_password),
         cardKey: c.card_key || '',
         faceValue: parseFloat(c.value) || 0,
         coinAmount: parseInt(c.coin_amount) || 0,
@@ -2628,7 +2751,8 @@ const createCard = async (req, res) => {
       const cardPwd = generateCardPwd();
       const card = await Card.create({
         card_no: cardNo,
-        card_password: cardPwd,
+        // B-10：密码静态加密落库；返回给发卡方的仍是刚生成的明文（见 createdCards）
+        card_password: pii.encryptField(cardPwd),
         card_key: cardKey,
         value: parseFloat(faceValue),
         coin_amount: parseInt(coinAmount) || 0,
@@ -2642,7 +2766,8 @@ const createCard = async (req, res) => {
         id: card.id,
         cardKey,
         cardNo: card.card_no,
-        cardPwd: card.card_password,
+        // 明文来自生成变量而不是落库行——落库值是密文，展示密文会让发卡方无法交付
+        cardPwd,
         faceValue: parseFloat(card.value) || parseFloat(faceValue),
         coinAmount: parseInt(card.coin_amount) || 0
       });
@@ -2808,8 +2933,155 @@ const getCardAdminStats = async (req, res) => {
   }
 };
 
+// 《未完成事项清单》B-2：实名审核列表/详情/审核。
+// C 端提交后状态停在 1（审核中），此前后台没有入口，状态永远不会变 2，
+// 实名经验（EXP_SOURCES.real_name_verified=100）也就永远发不出去。
+const getRealNameList = async (req, res) => {
+  try {
+    const { status, keyword, page = 1, pageSize = 20 } = req.query;
+    const result = await realNameService.listRealNames({ status, keyword, page, pageSize });
+    response.success(res, result);
+  } catch (error) {
+    logger.error('获取实名审核列表错误:', error);
+    if (error.code === 'INVALID_ACTION') {
+      return response.badRequest(res, error.message);
+    }
+    return response.error(res, error.message);
+  }
+};
+
+const getRealNameDetail = async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    if (!userId) {
+      return response.badRequest(res, '用户ID不能为空');
+    }
+    const result = await realNameService.getRealNameDetail(userId);
+    response.success(res, result);
+  } catch (error) {
+    logger.error('获取实名审核详情错误:', error);
+    if (error.code === 'USER_NOT_FOUND') {
+      return response.notFound(res, error.message);
+    }
+    return response.error(res, error.message);
+  }
+};
+
+const reviewRealName = async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id, 10);
+    if (!userId) {
+      return response.badRequest(res, '用户ID不能为空');
+    }
+    const { action } = req.body || {};
+    const result = await realNameService.reviewRealName(userId, action);
+    response.success(res, result, action === 'approve' ? '已通过实名认证' : '已拒绝实名认证');
+  } catch (error) {
+    logger.error('实名审核错误:', error);
+    if (error.code === 'USER_NOT_FOUND') {
+      return response.notFound(res, error.message);
+    }
+    if (error.code === 'INVALID_ACTION') {
+      return response.badRequest(res, error.message);
+    }
+    if (error.code === 'ALREADY_VERIFIED' || error.code === 'NOT_REVIEWABLE') {
+      return response.conflict(res, error.message);
+    }
+    return response.error(res, error.message);
+  }
+};
+
+// 《未完成事项清单》B-3/B-4：平台公告 CRUD + socket 全服广播。
+// 广播是「尽力而为」：推送失败不影响公告落库（在线用户仍可在下次拉列表时看到），只记告警。
+const broadcastNotice = (event, payload) => {
+  try {
+    const { broadcastToAll } = require('../socket');
+    broadcastToAll(event, payload);
+  } catch (error) {
+    logger.warn('[公告] socket 全服广播失败:', error.message);
+  }
+};
+
+const getNoticeList = async (req, res) => {
+  try {
+    const { status, keyword, page = 1, pageSize = 20 } = req.query;
+    const result = await noticeService.listForAdmin({ status, keyword, page, pageSize });
+    response.success(res, result);
+  } catch (error) {
+    logger.error('获取公告列表错误:', error);
+    if (error.code === 'INVALID_STATUS') return response.badRequest(res, error.message);
+    return response.error(res, error.message);
+  }
+};
+
+const getNoticeDetail = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!id) return response.badRequest(res, '公告ID不能为空');
+    const result = await noticeService.getNotice(id);
+    response.success(res, result);
+  } catch (error) {
+    if (error.code === noticeService.NOTICE_NOT_FOUND) return response.notFound(res, error.message);
+    logger.error('获取公告详情错误:', error);
+    return response.error(res, error.message);
+  }
+};
+
+const createNotice = async (req, res) => {
+  try {
+    const creatorId = req.admin && req.admin.id ? req.admin.id : 0;
+    const result = await noticeService.createNotice(req.body || {}, creatorId);
+    if (result.status === 1) broadcastNotice('notice_created', { notice: result });
+    response.success(res, result, '公告已发布');
+  } catch (error) {
+    logger.error('创建公告错误:', error);
+    if (error.code === 'INVALID_PAYLOAD') return response.badRequest(res, error.message);
+    return response.error(res, error.message);
+  }
+};
+
+const updateNotice = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!id) return response.badRequest(res, '公告ID不能为空');
+    const result = await noticeService.updateNotice(id, req.body || {});
+    // 发布中的公告变更即时同步到在线客户端；下线的公告用 notice_deleted 让客户端移除
+    if (result.status === 1) broadcastNotice('notice_updated', { notice: result });
+    else broadcastNotice('notice_deleted', { id: result.id });
+    response.success(res, result, '公告已更新');
+  } catch (error) {
+    logger.error('更新公告错误:', error);
+    if (error.code === noticeService.NOTICE_NOT_FOUND) return response.notFound(res, error.message);
+    if (error.code === 'INVALID_PAYLOAD') return response.badRequest(res, error.message);
+    return response.error(res, error.message);
+  }
+};
+
+const deleteNotice = async (req, res) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!id) return response.badRequest(res, '公告ID不能为空');
+    const result = await noticeService.deleteNotice(id);
+    broadcastNotice('notice_deleted', { id: result.id });
+    response.success(res, result, '公告已删除');
+  } catch (error) {
+    logger.error('删除公告错误:', error);
+    if (error.code === noticeService.NOTICE_NOT_FOUND) return response.notFound(res, error.message);
+    return response.error(res, error.message);
+  }
+};
+
 module.exports = {
   adminLogin,
+  refreshAdminToken,
+  getRealNameList,
+  getRealNameDetail,
+  reviewRealName,
+  getNoticeList,
+  getNoticeDetail,
+  createNotice,
+  updateNotice,
+  deleteNotice,
   getUserList,
   getUserDetail,
   createUser,

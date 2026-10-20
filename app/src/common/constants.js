@@ -9,98 +9,15 @@ export const TIMERS = {
   MAX_RECONNECT_DELAY: 5000
 }
 
-export const STATUS = {
-  MESSAGE: {
-    SENDING: 'sending',
-    SENT: 'sent',
-    FAILED: 'failed',
-    READ: 'read',
-    RECALLED: 'recalled'
-  },
-  ORDER: {
-    PENDING: 0,
-    ACCEPTED: 1,
-    IN_PROGRESS: 2,
-    COMPLETED: 3,
-    CANCELLED: 4,
-    APPEALING: 5
-  },
-  RESERVE: {
-    PENDING: 0,
-    CONFIRMED: 1,
-    REJECTED: 2,
-    COMPLETED: 3,
-    CANCELLED: 4,
-    APPEALING: 5
-  },
-  CALL: {
-    CALLING: 0,
-    CONNECTED: 1,
-    REJECTED: 2,
-    CANCELLED: 3,
-    ENDED: 4,
-    NO_ANSWER: 5,
-    EXCEPTION: 6
-  },
-  AUDIT: {
-    NOT_CERTIFIED: 0,
-    PENDING: 1,
-    APPROVED: 2,
-    REJECTED: 3
-  }
-}
-
-export const LEVELS = {
-  1: '新手',
-  2: '普通',
-  3: '进阶',
-  4: '资深',
-  5: '精英',
-  6: '大师',
-  7: '专家',
-  8: '宗师',
-  9: '传奇',
-  10: '王者'
-}
-
-export const VIP_LEVELS = {
-  1: 'VIP1',
-  2: 'VIP2',
-  3: 'VIP3',
-  4: 'VIP4',
-  5: 'VIP5'
-}
-
-export const PAGINATION = {
-  DEFAULT_PAGE: 1,
-  DEFAULT_PAGE_SIZE: 20,
-  MAX_PAGE_SIZE: 100
-}
-
 export const STORAGE_KEYS = {
   TOKEN: 'token',
+  // 审计 B-6：refresh token 供 common.js 401 静默续期消费（登录响应落盘、登出/失效时清理）
+  REFRESH_TOKEN: 'refreshToken',
   // 持久化插件的基准 key；插件会为每个 store 生成 `pinia-app-state-<storeId>`
   PINIA_STATE: 'pinia-app-state',
   PINIA_STORE_PREFIX: 'pinia-app-state-',
   // 历史遗留的本地用户信息 key（部分旧页面读写），登出时需要一并清理
   LEGACY_USER_INFO: 'userInfo'
-}
-
-export const REGEX = {
-  MOBILE: /^1[3-9]\d{9}$/,
-  EMAIL: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  ID_CARD: /^[1-9]\d{5}(18|19|20)\d{2}((0[1-9])|(1[0-2]))(([0-2][1-9])|10|20|30|31)\d{3}[0-9Xx]$/
-}
-
-export const MESSAGE_TYPES = {
-  TEXT: 'text',
-  IMAGE: 'image',
-  VIDEO: 'video',
-  AUDIO: 'audio',
-  LOCATION: 'location',
-  GIFT: 'gift',
-  REDPACKET: 'redpacket',
-  SYSTEM: 'system'
 }
 
 // 默认头像 SVG Data URI，防止空 src 导致浏览器加载当前页为图片

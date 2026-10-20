@@ -45,8 +45,9 @@
           </div>
         </div>
         
-        <button type="submit" class="login-btn" :disabled="loading">
+        <button type="submit" class="login-btn" :disabled="loading || countdown > 0">
           <span v-if="loading">登录中...</span>
+          <span v-else-if="countdown > 0">{{ countdown }} 秒后可重试</span>
           <span v-else>登录</span>
         </button>
         
@@ -59,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import adminService from '../services/adminService';
 import { getFirstAccessiblePath } from '@/router';
@@ -74,8 +75,28 @@ const form = reactive({
 const loading = ref(false);
 const error = ref('');
 const showPassword = ref(false);
+// A-4：429 锁定/限流后的剩余等待秒数，>0 时禁用登录按钮并逐秒倒计时
+const countdown = ref(0);
+let countdownTimer = null;
+
+const startCountdown = (seconds) => {
+  const total = Math.ceil(Number(seconds) || 0);
+  if (total <= 0) return;
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdown.value = total;
+  countdownTimer = setInterval(() => {
+    countdown.value -= 1;
+    if (countdown.value <= 0) {
+      countdown.value = 0;
+      clearInterval(countdownTimer);
+      countdownTimer = null;
+    }
+  }, 1000);
+};
 
 const handleLogin = async () => {
+  // 倒计时期间不重复提交，避免继续吃 429
+  if (countdown.value > 0) return;
   if (!form.username || !form.password) {
     error.value = '请输入用户名和密码';
     return;
@@ -95,6 +116,8 @@ const handleLogin = async () => {
     console.warn('登录异常:', err);
     // request() 保证 code 成功才会走到这里；失败时展示后端返回的 message
     error.value = err?.message || '网络错误，请稍后重试';
+    // A-4：后端 429/失败锁定响应经 common.js 派生 retryAfterSec，按秒倒计时禁用按钮
+    startCountdown(err?.retryAfterSec);
   } finally {
     loading.value = false;
   }
@@ -105,6 +128,11 @@ onMounted(() => {
   if (adminToken) {
     router.push(getFirstAccessiblePath());
   }
+});
+
+onUnmounted(() => {
+  if (countdownTimer) clearInterval(countdownTimer);
+  countdownTimer = null;
 });
 </script>
 

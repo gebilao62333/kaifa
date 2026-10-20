@@ -3,7 +3,7 @@ const { signToken, verifyToken, TOKEN_TYPES } = require('../config/jwt');
 const config = require('../config');
 const logger = require('../utils/logger');
 const { Admin, AdminRole } = require('../models');
-const { resolvePermissions, permissionsBeyondActor, canManageRole, canManageAdmin } = require('../utils/permissions');
+const { ALL_PERMISSIONS, resolvePermissions, permissionsBeyondActor, canManageRole, canManageAdmin } = require('../utils/permissions');
 const { safeEqual } = require('../utils/secureCompare');
 const adminLoginGuard = require('../services/adminLoginGuard');
 const tokenRevocation = require('../services/tokenRevocation');
@@ -38,6 +38,11 @@ const DEFAULT_PERMISSIONS = [
 ];
 
 // --------------- 登录 ---------------
+/**
+ * @deprecated 兼容别名（POST /api/admin-manage/login）：规范入口是 controllers/admin.js 的 adminLogin
+ * （POST /api/admin/login）。两者共用失败锁定计数，但响应封装不同；新调用一律用规范入口。
+ * 2026-10-20 盘点决定保留兼容，不删除、不改行为。
+ */
 const adminLogin = async (req, res) => {
   // 审计 I-02：原实现把整个 req.body（含明文密码）打印到日志，属严重凭据泄露。
   try {
@@ -634,7 +639,14 @@ const deleteRole = async (req, res) => {
 // --------------- 权限 / 当前用户 ---------------
 const getPermissions = async (req, res) => {
   try {
-    return res.json({ code: 200, message: '获取成功', data: DEFAULT_PERMISSIONS });
+    // 权限键唯一真源是 utils/permissions.js（与后端 requirePermission 同一张表）。
+    // modules 保留给旧调用方（侧边栏模块 id），permissions 是「模块:动作」权限键真源，
+    // 管理端 AdminRoles.vue 用它渲染权限勾选项，不再维护第二份硬编码副本。
+    return res.json({
+      code: 200,
+      message: '获取成功',
+      data: { modules: DEFAULT_PERMISSIONS, permissions: ALL_PERMISSIONS }
+    });
   } catch (error) {
     logger.error('Get permissions error:', error);
     return res.status(500).json({ code: 500, message: '服务器错误' });

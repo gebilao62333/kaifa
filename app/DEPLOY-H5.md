@@ -1,23 +1,22 @@
 # H5 上线替换说明（新 uni-app 产物）
 
-当前旧站：`frontend/dist` → nginx `/usr/share/nginx/html`。迁移后改为新产物：
+> **适用边界（2026-10-21 更新）**：旧站 `frontend/` 已删除，`docker-compose.yml` 的 nginx 站点根**已改为** `./app/dist/build/h5`；Sealos 线上走 DevBox 发版镜像（同样用 `app/dist/build/h5`）。本文件保留为产物路径与切换历史说明。
+
+当前站点根：`app/dist/build/h5` → nginx `/usr/share/nginx/html`（旧站产物已删除，备份见 `.e2e-run/legacy-frontend-backup-2026-10-21/dist`）。
 
 ```text
 app/dist/build/h5  →  nginx /usr/share/nginx/html
 ```
 
-## docker-compose 挂载
+## docker-compose 挂载（已生效）
 
-把 nginx 服务的：
-
-```yaml
-- ./frontend/dist:/usr/share/nginx/html:ro
-```
-
-改为：
+`docker-compose.yml` 现为：
 
 ```yaml
 - ./app/dist/build/h5:/usr/share/nginx/html:ro
+```
+
+（2026-10-21 前为 `./frontend/dist:/usr/share/nginx/html:ro`；旧站删除后改此挂载。）
 ```
 
 ## nginx（现有 default.conf 已兼容）

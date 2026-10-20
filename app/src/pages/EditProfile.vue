@@ -1,301 +1,311 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">编辑资料</span>
-      <span class="save-btn" @click="saveProfile">保存</span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">编辑资料</text>
+      <text class="save-btn" @click="saveProfile">保存</text>
     </template>
 
-    <div class="content">
-      <div class="profile-completeness">
-        <div class="completeness-header">
-          <span class="completeness-title">资料完善度</span>
-          <span class="completeness-percent">{{ completeness }}%</span>
-        </div>
-        <div class="completeness-bar">
-          <div class="completeness-fill" :style="{ width: completeness + '%' }"></div>
-        </div>
-        <div class="completeness-tip">完善资料让更多人认识你</div>
-      </div>
+    <view class="content">
+      <view class="profile-completeness">
+        <view class="completeness-header">
+          <text class="completeness-title">资料完善度</text>
+          <text class="completeness-percent">{{ completeness }}%</text>
+        </view>
+        <view class="completeness-bar">
+          <view class="completeness-fill" :style="{ width: completeness + '%' }"></view>
+        </view>
+        <view class="completeness-tip">完善资料让更多人认识你</view>
+      </view>
 
-      <div class="section-title">基本信息</div>
-      <div class="form-section">
-        <div class="basic-header">
-          <div class="form-item nickname-item">
-            <span class="label">昵称</span>
+      <view class="section-title">基本信息</view>
+      <view class="form-section">
+        <view class="basic-header">
+          <view class="form-item nickname-item">
+            <text class="label">昵称</text>
             <input type="text" class="input" v-model="form.nickname" placeholder="请输入昵称" maxlength="20" />
-            <span class="char-count">{{ form.nickname.length }}/20</span>
-          </div>
-          <div class="avatar-section">
-            <div class="avatar-mask" @click="selectAvatar">
-              <span class="upload-icon">📷</span>
-              <span class="upload-text">更换头像</span>
-            </div>
-            <div class="avatar-vip" v-if="form.isVip">VIP</div>
+            <text class="char-count">{{ form.nickname.length }}/20</text>
+          </view>
+          <view class="avatar-section">
+            <view class="avatar-mask" @click="selectAvatar">
+              <text class="upload-icon">📷</text>
+              <text class="upload-text">更换头像</text>
+            </view>
+            <view class="avatar-vip" v-if="form.isVip">VIP</view>
             <input type="file" ref="avatarInput" accept="image/*" style="display: none" @change="handleAvatarChange" />
-          </div>
-        </div>
+          </view>
+        </view>
 
-        <div class="form-item">
-          <span class="label">性别</span>
-          <div class="gender-options">
-            <div class="gender-option" :class="{ active: form.gender === 'male' }" @click="form.gender = 'male'">
-              <span class="gender-icon">👨</span>
-              <span class="gender-text">男</span>
-            </div>
-            <div class="gender-option" :class="{ active: form.gender === 'female' }" @click="form.gender = 'female'">
-              <span class="gender-icon">👩</span>
-              <span class="gender-text">女</span>
-            </div>
-            <div class="gender-option" :class="{ active: form.gender === 'secret' }" @click="form.gender = 'secret'">
-              <span class="gender-icon">🙈</span>
-              <span class="gender-text">保密</span>
-            </div>
-          </div>
-        </div>
+        <view class="form-item">
+          <text class="label">性别</text>
+          <view class="gender-options">
+            <view class="gender-option" :class="{ active: form.gender === 'male' }" @click="form.gender = 'male'">
+              <text class="gender-icon">👨</text>
+              <text class="gender-text">男</text>
+            </view>
+            <view class="gender-option" :class="{ active: form.gender === 'female' }" @click="form.gender = 'female'">
+              <text class="gender-icon">👩</text>
+              <text class="gender-text">女</text>
+            </view>
+            <view class="gender-option" :class="{ active: form.gender === 'secret' }" @click="form.gender = 'secret'">
+              <text class="gender-icon">🙈</text>
+              <text class="gender-text">保密</text>
+            </view>
+          </view>
+        </view>
 
-        <div class="form-item">
-          <span class="label">生日</span>
-          <input type="date" class="input" v-model="form.birthday" />
-        </div>
+        <view class="form-item">
+          <text class="label">生日</text>
+          <!-- H5 用原生 date input；App 没有该 input 类型，改 uni picker 回填同一字段 -->
+          <input v-if="!isApp" type="date" class="input" v-model="form.birthday" />
+          <picker v-else class="picker-block" mode="date" :value="form.birthday" @change="onBirthdayChange">
+            <view class="input app-picker-value" :class="{ placeholder: !form.birthday }">{{ form.birthday || '请选择生日' }}</view>
+          </picker>
+        </view>
 
-        <div class="form-item">
-          <span class="label">所在地区</span>
-          <div class="region-display" @click="showRegionPicker = true">
+        <view class="form-item">
+          <text class="label">所在地区</text>
+          <view class="region-display" @click="showRegionPicker = true">
             {{ form.region || '请选择地区' }}
-            <span class="arrow">›</span>
-          </div>
-        </div>
+            <text class="arrow">›</text>
+          </view>
+        </view>
 
-        <div class="form-item">
-          <span class="label">身高</span>
-          <div class="input-with-unit">
+        <view class="form-item">
+          <text class="label">身高</text>
+          <view class="input-with-unit">
             <input type="number" class="input small" v-model="form.height" placeholder="170" />
-            <span class="unit">cm</span>
-          </div>
-        </div>
+            <text class="unit">cm</text>
+          </view>
+        </view>
 
-        <div class="form-item">
-          <span class="label">职业</span>
+        <view class="form-item">
+          <text class="label">职业</text>
           <input type="text" class="input" v-model="form.profession" placeholder="请输入职业" />
-        </div>
-      </div>
+        </view>
+      </view>
 
-      <div class="section-title">个人介绍</div>
-      <div class="form-section">
-        <div class="form-item">
-          <span class="label">个性签名</span>
+      <view class="section-title">个人介绍</view>
+      <view class="form-section">
+        <view class="form-item">
+          <text class="label">个性签名</text>
           <textarea class="textarea" v-model="form.signature" placeholder="说点什么介绍自己..." maxlength="200"></textarea>
-          <span class="char-count">{{ form.signature.length }}/200</span>
-        </div>
+          <text class="char-count">{{ form.signature.length }}/200</text>
+        </view>
 
-        <div class="form-item">
-          <span class="label">兴趣爱好</span>
-          <div class="hobby-tags">
-            <span class="hobby-tag" v-for="hobby in hobbyOptions" :key="hobby" :class="{ active: form.hobbies.includes(hobby) }" @click="toggleHobby(hobby)">
+        <view class="form-item">
+          <text class="label">兴趣爱好</text>
+          <view class="hobby-tags">
+            <text class="hobby-tag" v-for="hobby in hobbyOptions" :key="hobby" :class="{ active: form.hobbies.includes(hobby) }" @click="toggleHobby(hobby)">
               {{ hobby }}
-            </span>
-          </div>
-        </div>
+            </text>
+          </view>
+        </view>
 
-        <div class="form-item">
-          <span class="label">擅长游戏</span>
-          <div class="game-tags">
-            <span class="game-tag" v-for="game in gameOptions" :key="game.name" :class="{ active: form.games.includes(game.name) }" @click="toggleGame(game.name)">
+        <view class="form-item">
+          <text class="label">擅长游戏</text>
+          <view class="game-tags">
+            <text class="game-tag" v-for="game in gameOptions" :key="game.name" :class="{ active: form.games.includes(game.name) }" @click="toggleGame(game.name)">
               {{ game.name }}
-            </span>
-            <span class="game-tag add" @click="showGamePicker = true">+ 添加</span>
-          </div>
-        </div>
+            </text>
+            <text class="game-tag add" @click="showGamePicker = true">+ 添加</text>
+          </view>
+        </view>
 
-        <div class="form-item">
-          <span class="label">陪玩价格</span>
-          <div class="price-input">
-            <span class="price-unit">¥</span>
-            <input type="number" class="input price" v-model="form.price" placeholder="88" />
-            <span class="price-suffix">/小时</span>
-          </div>
-        </div>
-      </div>
+        <view class="form-item">
+          <text class="label">陪玩价格</text>
+          <view class="price-input">
+            <text class="price-unit">¥</text>
+            <!-- H5 保留浏览器 number input；App 用 digit（带小数点的数字键盘） -->
+            <input v-if="!isApp" type="number" class="input price" v-model="form.price" placeholder="88" />
+            <input v-else type="digit" class="input price" v-model="form.price" placeholder="88" />
+            <text class="price-suffix">/小时</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="section-title">社交信息</div>
-      <div class="form-section">
-        <div class="form-item">
-          <span class="label">微信号</span>
+      <view class="section-title">社交信息</view>
+      <view class="form-section">
+        <view class="form-item">
+          <text class="label">微信号</text>
           <input type="text" class="input" v-model="form.wechat" placeholder="请输入微信号" />
-        </div>
+        </view>
 
-        <div class="form-item">
-          <span class="label">手机号</span>
-          <div class="phone-display">
-            <span class="phone-value">{{ form.phone || '未绑定' }}</span>
-            <span class="phone-btn" @click="showPhoneModal = true">{{ form.phone ? '更换' : '绑定' }}</span>
-          </div>
-        </div>
+        <view class="form-item">
+          <text class="label">手机号</text>
+          <view class="phone-display">
+            <text class="phone-value">{{ form.phone || '未绑定' }}</text>
+            <text class="phone-btn" @click="showPhoneModal = true">{{ form.phone ? '更换' : '绑定' }}</text>
+          </view>
+        </view>
 
-        <div class="form-item">
-          <span class="label">邮箱</span>
-          <input type="email" class="input" v-model="form.email" placeholder="请输入邮箱" />
-        </div>
-      </div>
+        <view class="form-item">
+          <text class="label">邮箱</text>
+          <!-- H5 用原生 email 类型；App 的 uni input 没有 email 类型，只能退化为文本输入 + 失焦/提交前正则校验 -->
+          <input v-if="!isApp" type="email" class="input" v-model="form.email" placeholder="请输入邮箱" />
+          <input v-else type="text" class="input" v-model="form.email" placeholder="请输入邮箱，如 name@example.com" @blur="validateEmailFormat" />
+        </view>
+      </view>
 
-      <div class="section-title">主页装扮</div>
-      <div class="form-section">
-        <div class="form-item">
-          <span class="label">主页背景</span>
-          <div class="bg-preview" :style="{ backgroundImage: `url(${form.bgImage})` }" @click="selectBg">
-            <div class="bg-overlay">
-              <span class="bg-icon">📷</span>
-              <span class="bg-text">更换背景</span>
-            </div>
-          </div>
+      <view class="section-title">主页装扮</view>
+      <view class="form-section">
+        <view class="form-item">
+          <text class="label">主页背景</text>
+          <view class="bg-preview" :style="{ backgroundImage: `url(${form.bgImage})` }" @click="selectBg">
+            <view class="bg-overlay">
+              <text class="bg-icon">📷</text>
+              <text class="bg-text">更换背景</text>
+            </view>
+          </view>
           <input type="file" ref="bgInput" accept="image/*" style="display: none" @change="handleBgChange" />
-        </div>
+        </view>
 
-        <div class="form-item">
-          <span class="label">个人标签</span>
-          <div class="tags-selector">
-            <div class="tag-item" v-for="tag in tagOptions" :key="tag.id" :class="{ selected: form.tags.includes(tag.id) }" @click="toggleTag(tag.id)">
+        <view class="form-item">
+          <text class="label">个人标签</text>
+          <view class="tags-selector">
+            <view class="tag-item" v-for="tag in tagOptions" :key="tag.id" :class="{ selected: form.tags.includes(tag.id) }" @click="toggleTag(tag.id)">
               {{ tag.name }}
-            </div>
-          </div>
-          <div class="tag-tip">选择3-8个标签展示你的特点</div>
-        </div>
-      </div>
+            </view>
+          </view>
+          <view class="tag-tip">选择3-8个标签展示你的特点</view>
+        </view>
+      </view>
 
-      <div class="section-title" v-if="activeServices.length > 0">我的服务</div>
-      <div class="form-section" v-if="activeServices.length > 0">
-        <div class="services-list">
-          <div class="service-item" v-for="service in activeServices" :key="service.id">
-            <img class="service-icon" :src="service.icon" alt="" />
-            <div class="service-info">
-              <div class="service-name">{{ service.name }}</div>
-              <div class="service-meta">
-                <span class="service-game" v-if="service.game">{{ service.game }}</span>
-                <span class="service-price" v-if="service.price">¥{{ service.price }}/小时</span>
-              </div>
-              <div class="service-expire">有效期至 {{ service.expiredAt }}</div>
-            </div>
-            <span class="service-status active">已开通</span>
-          </div>
-        </div>
-      </div>
+      <view class="section-title" v-if="activeServices.length > 0">我的服务</view>
+      <view class="form-section" v-if="activeServices.length > 0">
+        <view class="services-list">
+          <view class="service-item" v-for="service in activeServices" :key="service.id">
+            <image mode="aspectFill" class="service-icon" :src="service.icon" alt="" />
+            <view class="service-info">
+              <view class="service-name">{{ service.name }}</view>
+              <view class="service-meta">
+                <text class="service-game" v-if="service.game">{{ service.game }}</text>
+                <text class="service-price" v-if="service.price">¥{{ service.price }}/小时</text>
+              </view>
+              <view class="service-expire">有效期至 {{ service.expiredAt }}</view>
+            </view>
+            <text class="service-status active">已开通</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="section-title">认证信息</div>
-      <div class="form-section">
-        <div class="form-item">
-          <span class="label">实名认证</span>
-          <div class="verify-status" :class="{ verified: form.isVerified }">
-            <span class="verify-icon">{{ form.isVerified ? '✅' : '❌' }}</span>
-            <span class="verify-text">{{ form.isVerified ? '已认证' : '未认证' }}</span>
-            <span class="verify-btn" v-if="!form.isVerified" @click="goRealName">去认证</span>
-          </div>
-        </div>
+      <view class="section-title">认证信息</view>
+      <view class="form-section">
+        <view class="form-item">
+          <text class="label">实名认证</text>
+          <view class="verify-status" :class="{ verified: form.isVerified }">
+            <text class="verify-icon">{{ form.isVerified ? '✅' : '❌' }}</text>
+            <text class="verify-text">{{ form.isVerified ? '已认证' : '未认证' }}</text>
+            <text class="verify-btn" v-if="!form.isVerified" @click="goRealName">去认证</text>
+          </view>
+        </view>
 
-        <div class="form-item">
-          <span class="label">VIP会员</span>
-          <div class="vip-status" :class="{ active: form.isVip }">
-            <span class="vip-icon">{{ form.isVip ? '👑' : '☆' }}</span>
-            <span class="vip-text">{{ form.isVip ? 'VIP会员' : '开通VIP' }}</span>
-            <span class="vip-btn" v-if="!form.isVip" @click="goVip">立即开通</span>
-          </div>
-        </div>
-      </div>
+        <view class="form-item">
+          <text class="label">VIP会员</text>
+          <view class="vip-status" :class="{ active: form.isVip }">
+            <text class="vip-icon">{{ form.isVip ? '👑' : '☆' }}</text>
+            <text class="vip-text">{{ form.isVip ? 'VIP会员' : '开通VIP' }}</text>
+            <text class="vip-btn" v-if="!form.isVip" @click="goVip">立即开通</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="preview-section">
+      <view class="preview-section">
         <button class="preview-btn" @click="showPreview = true">
-          <span class="preview-icon">👁️</span>
+          <text class="preview-icon">👁️</text>
           预览我的主页
         </button>
-      </div>
-    </div>
+      </view>
+    </view>
 
-    <div class="region-picker" v-if="showRegionPicker">
-      <div class="picker-mask" @click="showRegionPicker = false"></div>
-      <div class="picker-content">
-        <div class="picker-header">
-          <span class="picker-cancel" @click="showRegionPicker = false">取消</span>
-          <span class="picker-title">选择地区</span>
-          <span class="picker-confirm" @click="confirmRegion">确定</span>
-        </div>
-        <div class="picker-body">
-          <div class="picker-column">
-            <div class="picker-item" :class="{ active: regionStep === 'province' && tempRegion.province === province.name }" v-for="province in regionData" :key="province.code" @click="selectProvince(province)">
+    <view class="region-picker" v-if="showRegionPicker">
+      <view class="picker-mask" @click="showRegionPicker = false"></view>
+      <view class="picker-content">
+        <view class="picker-header">
+          <text class="picker-cancel" @click="showRegionPicker = false">取消</text>
+          <text class="picker-title">选择地区</text>
+          <text class="picker-confirm" @click="confirmRegion">确定</text>
+        </view>
+        <view class="picker-body">
+          <view class="picker-column">
+            <view class="picker-item" :class="{ active: regionStep === 'province' && tempRegion.province === province.name }" v-for="province in regionData" :key="province.code" @click="selectProvince(province)">
               {{ province.name }}
-            </div>
-          </div>
-          <div class="picker-column" v-if="regionStep === 'city' || regionStep === 'district'">
-            <div class="picker-item" :class="{ active: tempRegion.city === city.name }" v-for="city in regionCities" :key="city.code" @click="selectCity(city)">
+            </view>
+          </view>
+          <view class="picker-column" v-if="regionStep === 'city' || regionStep === 'district'">
+            <view class="picker-item" :class="{ active: tempRegion.city === city.name }" v-for="city in regionCities" :key="city.code" @click="selectCity(city)">
               {{ city.name }}
-            </div>
-          </div>
-          <div class="picker-column" v-if="regionStep === 'district'">
-            <div class="picker-item" :class="{ active: tempRegion.district === district.name }" v-for="district in regionDistricts" :key="district.code" @click="selectDistrict(district)">
+            </view>
+          </view>
+          <view class="picker-column" v-if="regionStep === 'district'">
+            <view class="picker-item" :class="{ active: tempRegion.district === district.name }" v-for="district in regionDistricts" :key="district.code" @click="selectDistrict(district)">
               {{ district.name }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
 
-    <div class="modal" v-if="showPhoneModal" @click.self="showPhoneModal = false">
-      <div class="modal-content">
-        <div class="modal-title">绑定手机号</div>
-        <div class="modal-body">
+    <view class="modal" v-if="showPhoneModal" @click.self="showPhoneModal = false">
+      <view class="modal-content">
+        <view class="modal-title">绑定手机号</view>
+        <view class="modal-body">
           <input type="tel" class="modal-input" v-model="newPhone" placeholder="请输入手机号" maxlength="11" />
-          <div class="code-row">
+          <view class="code-row">
             <input type="text" class="modal-input code" v-model="verifyCode" placeholder="验证码" maxlength="6" />
             <button class="code-btn" :class="{ disabled: codeCount > 0 }" @click="sendCode">
               {{ codeCount > 0 ? `${codeCount}s` : '获取验证码' }}
             </button>
-          </div>
-        </div>
-        <div class="modal-footer">
+          </view>
+        </view>
+        <view class="modal-footer">
           <button class="modal-btn cancel" @click="showPhoneModal = false">取消</button>
           <button class="modal-btn confirm" @click="bindPhone">确定绑定</button>
-        </div>
-      </div>
-    </div>
+        </view>
+      </view>
+    </view>
 
-    <div class="modal" v-if="showPreview" @click.self="showPreview = false">
-      <div class="preview-modal">
-        <div class="preview-header">
-          <span class="preview-title">主页预览</span>
-          <span class="preview-close" @click="showPreview = false">×</span>
-        </div>
-        <div class="preview-content">
-          <div class="preview-bg" :style="{ backgroundImage: `url(${form.bgImage})` }"></div>
-          <div class="preview-info">
-            <img class="preview-avatar" :src="form.avatar" alt="" />
-            <div class="preview-name">{{ form.nickname || '未设置昵称' }}</div>
-            <div class="preview-signature">{{ form.signature || '这个人很神秘，什么都没留下...' }}</div>
-            <div class="preview-stats">
-              <div class="preview-stat">
-                <div class="stat-num">128</div>
-                <div class="stat-label">关注</div>
-              </div>
-              <div class="preview-stat">
-                <div class="stat-num">256</div>
-                <div class="stat-label">粉丝</div>
-              </div>
-              <div class="preview-stat">
-                <div class="stat-num">1.2k</div>
-                <div class="stat-label">获赞</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <view class="modal" v-if="showPreview" @click.self="showPreview = false">
+      <view class="preview-modal">
+        <view class="preview-header">
+          <text class="preview-title">主页预览</text>
+          <text class="preview-close" @click="showPreview = false">×</text>
+        </view>
+        <view class="preview-content">
+          <view class="preview-bg" :style="{ backgroundImage: `url(${form.bgImage})` }"></view>
+          <view class="preview-info">
+            <image mode="aspectFill" class="preview-avatar" :src="form.avatar" alt="" />
+            <view class="preview-name">{{ form.nickname || '未设置昵称' }}</view>
+            <view class="preview-signature">{{ form.signature || '这个人很神秘，什么都没留下...' }}</view>
+            <view class="preview-stats">
+              <view class="preview-stat">
+                <view class="stat-num">128</view>
+                <view class="stat-label">关注</view>
+              </view>
+              <view class="preview-stat">
+                <view class="stat-num">256</view>
+                <view class="stat-label">粉丝</view>
+              </view>
+              <view class="preview-stat">
+                <view class="stat-num">1.2k</view>
+                <view class="stat-label">获赞</view>
+              </view>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, onBeforeUnmount, onMounted } from 'vue'
 import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
 import { uploadFile } from '../services/uploadService'
+import { chooseImages } from '../services/mediaPicker'
+import { isApp } from '../common/platform'
 import authService from '../services/authService'
 import regionService from '../services/regionService'
 
@@ -303,6 +313,7 @@ const router = useRouter()
 const avatarUploading = ref(false)
 const bgUploading = ref(false)
 const saving = ref(false)
+const profileLoaded = ref(false)
 
 const avatarInput = ref(null)
 const bgInput = ref(null)
@@ -328,6 +339,44 @@ const form = reactive({
   isVip: false,
   services: []
 })
+
+// App 端 uni picker 选完日期后回填 form.birthday（H5 仍由原生 date input 的 v-model 负责）
+const onBirthdayChange = (e) => {
+  form.birthday = e.detail.value
+}
+
+// App 端 uni input 没有 email 类型（只会退化成普通文本键盘，没有邮箱键盘/原生校验），
+// 邮箱格式只能靠这个正则兜住；空值视为未填写（邮箱非必填），H5 仍由原生 type="email" 负责
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const validateEmailFormat = () => {
+  const value = String(form.email || '').trim()
+  if (!value) return true
+  if (EMAIL_RE.test(value)) return true
+  toast.error('请输入正确的邮箱格式')
+  return false
+}
+
+// 进入页面先回填服务端已有资料：避免「只改昵称保存」时把头像/城市/签名以空串覆盖。
+// 后端 User 表当前只支持 nickname/avatar/sex/city/dec，其余字段仍为本地展示。
+const loadProfile = async () => {
+  try {
+    const res = await authService.getUserInfo()
+    const data = (res && (res.data?.user || res.data)) || {}
+    if (!data || typeof data !== 'object') return
+    form.nickname = data.nickname || data.nickName || form.nickname
+    form.avatar = data.avatar || form.avatar
+    if (data.gender) form.gender = data.gender
+    else if (data.sex === 1) form.gender = 'male'
+    else if (data.sex === 2) form.gender = 'female'
+    form.region = data.city || data.region || form.region
+    form.signature = data.signature || data.dec || form.signature
+    profileLoaded.value = true
+  } catch (error) {
+    console.error('加载个人资料失败:', error)
+  }
+}
+
+onMounted(loadProfile)
 
 const hobbyOptions = ['游戏', '音乐', '电影', '美食', '旅行', '运动', '阅读', '摄影', '音乐', '绘画']
 const gameOptions = [
@@ -414,7 +463,16 @@ const completeness = computed(() => {
 
 const goBack = () => { router.back() }
 
-const selectAvatar = () => { avatarInput.value?.click() }
+const selectAvatar = async () => {
+  // App 端没有可点击的 <input type=file>，统一走 mediaPicker（相册/相机）
+  if (!isApp) { avatarInput.value?.click(); return }
+  try {
+    const { supported, files } = await chooseImages(1)
+    if (supported && files.length) await applyAvatarFile(files[0])
+  } catch (err) {
+    toast.error(err.message || '选择图片失败')
+  }
+}
 
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024
 
@@ -433,12 +491,11 @@ const uploadImageAndGetUrl = async (file) => {
   throw new Error(res?.message || '上传失败')
 }
 
-const handleAvatarChange = async (e) => {
-  const file = e.target.files?.[0]
-  e.target.value = ''
+// H5 与 App 共用：H5 传 File，App 传 mediaPicker 的 { path, name, type, size }
+const applyAvatarFile = async (file) => {
   if (!file || avatarUploading.value) return
 
-  const preview = URL.createObjectURL(file)
+  const preview = isApp ? file.path : URL.createObjectURL(file)
   const prev = form.avatar
   form.avatar = preview
   avatarUploading.value = true
@@ -455,18 +512,30 @@ const handleAvatarChange = async (e) => {
     toast.error(err.message || '头像上传失败')
   } finally {
     avatarUploading.value = false
-    URL.revokeObjectURL(preview)
+    if (!isApp) URL.revokeObjectURL(preview)
   }
 }
 
-const selectBg = () => { bgInput.value?.click() }
-
-const handleBgChange = async (e) => {
+const handleAvatarChange = async (e) => {
   const file = e.target.files?.[0]
   e.target.value = ''
+  await applyAvatarFile(file)
+}
+
+const selectBg = async () => {
+  if (!isApp) { bgInput.value?.click(); return }
+  try {
+    const { supported, files } = await chooseImages(1)
+    if (supported && files.length) await applyBgFile(files[0])
+  } catch (err) {
+    toast.error(err.message || '选择图片失败')
+  }
+}
+
+const applyBgFile = async (file) => {
   if (!file || bgUploading.value) return
 
-  const preview = URL.createObjectURL(file)
+  const preview = isApp ? file.path : URL.createObjectURL(file)
   const prev = form.bgImage
   form.bgImage = preview
   bgUploading.value = true
@@ -483,8 +552,14 @@ const handleBgChange = async (e) => {
     toast.error(err.message || '背景图上传失败')
   } finally {
     bgUploading.value = false
-    URL.revokeObjectURL(preview)
+    if (!isApp) URL.revokeObjectURL(preview)
   }
+}
+
+const handleBgChange = async (e) => {
+  const file = e.target.files?.[0]
+  e.target.value = ''
+  await applyBgFile(file)
 }
 
 const toggleTag = (tagId) => {
@@ -596,6 +671,7 @@ const saveProfile = async () => {
     toast.error('请至少选择3个标签')
     return
   }
+  if (!validateEmailFormat()) return
   if (avatarUploading.value || bgUploading.value) {
     toast.error('图片上传中，请稍候')
     return
@@ -608,14 +684,16 @@ const saveProfile = async () => {
 
   saving.value = true
   try {
-    // 后端 User 表当前仅支持以下字段，其余资料项待表结构扩展后再提交
-    const res = await authService.updateUserInfo({
-      avatar: form.avatar,
-      nickname: form.nickname.trim(),
-      sex: form.gender === 'male' ? 1 : 2,
-      city: form.region,
-      dec: form.signature
-    })
+    // 后端 User 表当前仅支持以下字段，其余资料项待表结构扩展后再提交。
+    // 只提交「有值/已加载」的字段，避免未回填或失败时用空串覆盖已有资料。
+    const payload = { nickname: form.nickname.trim() }
+    if (form.avatar && !form.avatar.startsWith('blob:')) payload.avatar = form.avatar
+    if (form.gender === 'male' || form.gender === 'female') {
+      payload.sex = form.gender === 'male' ? 1 : 2
+    }
+    if (profileLoaded.value || form.region) payload.city = form.region
+    if (profileLoaded.value || form.signature) payload.dec = form.signature
+    const res = await authService.updateUserInfo(payload)
 
     if (res?.code === 200) {
       toast.success('保存成功！')
@@ -792,6 +870,23 @@ const saveProfile = async () => {
 }
 
 .input:focus, .textarea:focus { border-color: var(--color-primary); background: white; }
+
+/* App 端 uni picker 默认不是块级占满，补成与 .input 同宽 */
+.picker-block {
+  display: block;
+  width: 100%;
+}
+
+/* App 端 uni picker 的展示区沿用 .input 外观，文字需垂直居中 */
+.app-picker-value {
+  display: flex;
+  align-items: center;
+  color: #333;
+}
+
+.app-picker-value.placeholder {
+  color: #999;
+}
 .textarea { resize: none; height: 80px; }
 
 .char-count {

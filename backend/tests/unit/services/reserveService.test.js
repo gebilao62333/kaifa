@@ -32,6 +32,19 @@ describe('Service - ReserveService', () => {
     ReserveSlot.findAll.mockResolvedValue([{ id: 1, reserve_time: '10:00', status: 0 }]);
     const list = await reserveService.getAvailableSlots(2, '2026-01-01', 1);
     expect(list[0]).toEqual({ slotId: 1, time: '10:00', status: 0 });
+    // 用户侧默认只查可约（status=0）
+    expect(ReserveSlot.findAll.mock.calls[0][0].where.status).toBe(0);
+  });
+
+  it('getAvailableSlots includes disabled slots when includeDisabled=true', async () => {
+    ReserveSlot.findAll.mockResolvedValue([
+      { id: 1, reserve_time: '10:00', status: 0 },
+      { id: 2, reserve_time: '11:00', status: 2 }
+    ]);
+    const list = await reserveService.getAvailableSlots(2, '2026-01-01', 1, true);
+    expect(list.map(item => item.status)).toEqual([0, 2]);
+    // 管理侧查询条件不再是 status:0，而是 {[Op.in]:[0,2]}
+    expect(ReserveSlot.findAll.mock.calls[0][0].where.status).not.toBe(0);
   });
 
   it('batchCreateSlots creates each slot', async () => {

@@ -1,12 +1,12 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">发布动态</span>
-      <span class="publish-btn" @click="publish">发布</span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">发布动态</text>
+      <text class="publish-btn" @click="publish">发布</text>
     </template>
     
-    <div class="content">
+    <view class="content">
       <textarea 
         class="text-input" 
         placeholder="分享这一刻的想法..." 
@@ -14,26 +14,26 @@
         maxlength="500"
       ></textarea>
       
-      <div class="image-upload">
-        <div class="upload-item" v-for="(item, index) in mediaItems" :key="index">
+      <view class="image-upload">
+        <view class="upload-item" v-for="(item, index) in mediaItems" :key="index">
           <video 
             v-if="item.type === 'video'" 
             class="preview" 
             :src="item.url"
           ></video>
-          <img 
+          <image mode="aspectFill" 
             v-else 
             class="preview" 
             :src="item.url" 
             alt=""
           />
-          <span class="video-indicator" v-if="item.type === 'video'">▶</span>
-          <span class="remove-btn" @click="removeMedia(index)">×</span>
-        </div>
-        <div class="upload-btn" v-if="mediaItems.length < 9" @click="triggerFileInput">
-          <span class="icon">+</span>
-          <span class="text">图片/视频</span>
-        </div>
+          <text class="video-indicator" v-if="item.type === 'video'">▶</text>
+          <text class="remove-btn" @click="removeMedia(index)">×</text>
+        </view>
+        <view class="upload-btn" v-if="mediaItems.length < 9" @click="triggerFileInput">
+          <text class="icon">+</text>
+          <text class="text">图片/视频</text>
+        </view>
         <input 
           ref="fileInputRef"
           type="file" 
@@ -43,61 +43,61 @@
           style="display: none"
           @change="handleFileChange"
         />
-      </div>
+      </view>
       
-      <div class="location-tag" @click="showLocationModal = true">
-        <span class="icon">📍</span>
-        <span class="text">{{ location || '添加位置' }}</span>
-        <span class="clear-btn" v-if="location" @click.stop="location = ''">×</span>
-      </div>
+      <view class="location-tag" @click="showLocationModal = true">
+        <text class="icon">📍</text>
+        <text class="text">{{ location || '添加位置' }}</text>
+        <text class="clear-btn" v-if="location" @click.stop="location = ''">×</text>
+      </view>
       
-      <div class="location-modal" v-if="showLocationModal" @click.self="showLocationModal = false">
-        <div class="location-modal-content">
-          <div class="location-modal-header">
-            <span class="location-modal-title">选择位置</span>
-            <span class="location-modal-close" @click="showLocationModal = false">×</span>
-          </div>
-          <div class="location-current" @click="getCurrentLocation">
-            <span class="location-current-icon">📍</span>
-            <span class="location-current-text">{{ locationLoading ? '定位中...' : '使用当前位置' }}</span>
-            <span class="location-current-loading" v-if="locationLoading">⏳</span>
-          </div>
-          <div class="location-search">
+      <view class="location-modal" v-if="showLocationModal" @click.self="showLocationModal = false">
+        <view class="location-modal-content">
+          <view class="location-modal-header">
+            <text class="location-modal-title">选择位置</text>
+            <text class="location-modal-close" @click="showLocationModal = false">×</text>
+          </view>
+          <view class="location-current" @click="getCurrentLocation">
+            <text class="location-current-icon">📍</text>
+            <text class="location-current-text">{{ locationLoading ? '定位中...' : '使用当前位置' }}</text>
+            <text class="location-current-loading" v-if="locationLoading">⏳</text>
+          </view>
+          <view class="location-search">
             <input 
               type="text" 
               v-model="locationSearch" 
               placeholder="搜索城市或地区"
             />
-          </div>
-          <div class="location-list">
-            <div 
+          </view>
+          <view class="location-list">
+            <view 
               v-for="loc in filteredLocations" 
               :key="loc"
               class="location-item"
               :class="{ selected: location === loc }"
               @click="selectLocation(loc)"
             >
-              <span class="location-icon">📍</span>
-              <span class="location-text">{{ loc }}</span>
-              <span class="location-check" v-if="location === loc">✓</span>
-            </div>
-          </div>
-        </div>
-      </div>
+              <text class="location-icon">📍</text>
+              <text class="location-text">{{ loc }}</text>
+              <text class="location-check" v-if="location === loc">✓</text>
+            </view>
+          </view>
+        </view>
+      </view>
       
-      <div class="topic-tag" @click="showTopicModal = true">
-        <span class="icon">#</span>
-        <span class="text">{{ topics.length > 0 ? topics.map(t => t.name).join(', ') : '添加话题' }}</span>
-      </div>
+      <view class="topic-tag" @click="showTopicModal = true">
+        <text class="icon">#</text>
+        <text class="text">{{ topics.length > 0 ? topics.map(t => t.name).join(', ') : '添加话题' }}</text>
+      </view>
       
-      <div class="topic-modal" v-if="showTopicModal" @click.self="showTopicModal = false">
-        <div class="topic-modal-content">
-          <div class="topic-modal-header">
-            <span class="topic-modal-title">选择话题</span>
-            <span class="topic-modal-count">{{ topics.length }}/3</span>
-          </div>
-          <div class="topic-modal-body">
-            <div 
+      <view class="topic-modal" v-if="showTopicModal" @click.self="showTopicModal = false">
+        <view class="topic-modal-content">
+          <view class="topic-modal-header">
+            <text class="topic-modal-title">选择话题</text>
+            <text class="topic-modal-count">{{ topics.length }}/3</text>
+          </view>
+          <view class="topic-modal-body">
+            <view 
               v-for="t in availableTopics" 
               :key="t.id"
               class="topic-item"
@@ -105,63 +105,63 @@
               @click="toggleTopic(t)"
             >
               {{ t.name }}
-            </div>
-          </div>
-          <div class="topic-modal-footer">
-            <div class="topic-selected" v-if="topics.length > 0">
-              <span class="topic-selected-label">已选：</span>
-              <span 
+            </view>
+          </view>
+          <view class="topic-modal-footer">
+            <view class="topic-selected" v-if="topics.length > 0">
+              <text class="topic-selected-label">已选：</text>
+              <text 
                 v-for="t in topics" 
                 :key="t.id"
                 class="topic-selected-item"
                 @click="toggleTopic(t)"
               >
                 #{{ t.name }} ×
-              </span>
-            </div>
+              </text>
+            </view>
             <button class="topic-confirm-btn" @click="showTopicModal = false">确定</button>
-          </div>
-        </div>
-      </div>
+          </view>
+        </view>
+      </view>
       
-      <div class="visibility-setting">
-        <span class="label">谁可以看</span>
-        <div class="options">
-          <div 
+      <view class="visibility-setting">
+        <text class="label">谁可以看</text>
+        <view class="options">
+          <view 
             class="option" 
             :class="{ active: visibility === 'public' }" 
             @click="visibility = 'public'"
-          >公开</div>
-          <div 
+          >公开</view>
+          <view 
             class="option" 
             :class="{ active: visibility === 'friends' }" 
             @click="visibility = 'friends'"
-          >仅关注</div>
-          <div 
+          >仅关注</view>
+          <view 
             class="option" 
             :class="{ active: visibility === 'private' }" 
             @click="visibility = 'private'"
-          >私密</div>
-          <div 
+          >私密</view>
+          <view 
             class="option" 
             :class="{ active: visibility === 'password' }" 
             @click="visibility = 'password'"
-          >密码查看</div>
-          <div 
+          >密码查看</view>
+          <view 
             class="option" 
             :class="{ active: visibility === 'pay' }" 
             @click="visibility = 'pay'"
-          >付费查看</div>
-        </div>
-        <div class="visibility-input" v-if="visibility === 'password'">
+          >付费查看</view>
+        </view>
+        <view class="visibility-input" v-if="visibility === 'password'">
           <input 
             type="text" 
             v-model="viewPassword" 
             placeholder="请输入查看密码"
             maxlength="20"
           />
-        </div>
-        <div class="visibility-input" v-if="visibility === 'pay'">
+        </view>
+        <view class="visibility-input" v-if="visibility === 'pay'">
           <input 
             type="number" 
             v-model="viewPrice" 
@@ -169,9 +169,9 @@
             min="0"
             max="999"
           />
-        </div>
-      </div>
-    </div>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
@@ -184,6 +184,8 @@ import circleService from '../services/circleService'
 import { uploadFile } from '../services/uploadService'
 import { tagService } from '../services/tagService'
 import regionService from '../services/regionService'
+import { chooseImages, chooseVideo } from '../services/mediaPicker'
+import { isApp } from '../common/platform'
 
 const router = useRouter()
 
@@ -244,8 +246,47 @@ const goBack = () => {
   router.back()
 }
 
+// 预览地址：H5 用 ObjectURL（需手动释放）；App 直接用 uni 临时路径
+const addMediaItem = (file, type) => {
+  if (!file || mediaItems.value.length >= 9) return
+  const url = isApp ? file.path : URL.createObjectURL(file)
+  mediaItems.value.push({ url, type, file })
+}
+
+// 点上传：H5 打开原生 <input type=file>；App 无法可靠触发 input，改用 mediaPicker
 const triggerFileInput = () => {
-  fileInputRef.value?.click()
+  if (!isApp) {
+    fileInputRef.value?.click()
+    return
+  }
+  uni.showActionSheet({
+    itemList: ['选择图片', '选择视频'],
+    success: (res) => {
+      if (res.tapIndex === 0) selectAppImages()
+      else if (res.tapIndex === 1) selectAppVideo()
+    }
+  })
+}
+
+const selectAppImages = async () => {
+  const remainingSlots = 9 - mediaItems.value.length
+  if (remainingSlots <= 0) return
+  try {
+    const { supported, files } = await chooseImages(remainingSlots)
+    if (supported) files.forEach((file) => addMediaItem(file, 'image'))
+  } catch (err) {
+    toast.error(err.message || '选择图片失败')
+  }
+}
+
+const selectAppVideo = async () => {
+  if (mediaItems.value.length >= 9) return
+  try {
+    const { supported, file } = await chooseVideo()
+    if (supported && file) addMediaItem(file, 'video')
+  } catch (err) {
+    toast.error(err.message || '选择视频失败')
+  }
 }
 
 const handleFileChange = (event) => {
@@ -256,9 +297,7 @@ const handleFileChange = (event) => {
   const filesToAdd = Array.from(files).slice(0, remainingSlots)
   
   filesToAdd.forEach((file) => {
-    const url = URL.createObjectURL(file)
-    const isVideo = file.type.startsWith('video/')
-    mediaItems.value.push({ url, type: isVideo ? 'video' : 'image', file })
+    addMediaItem(file, file.type.startsWith('video/') ? 'video' : 'image')
   })
   
   event.target.value = ''
@@ -266,14 +305,16 @@ const handleFileChange = (event) => {
 
 const removeMedia = (index) => {
   const item = mediaItems.value[index]
-  if (item?.url) URL.revokeObjectURL(item.url)
+  // 只有 H5 的 blob: ObjectURL 需要释放，App 的 uni 临时路径不能 revoke
+  if (!isApp && item?.url && item.url.startsWith('blob:')) URL.revokeObjectURL(item.url)
   mediaItems.value.splice(index, 1)
 }
 
-// 释放所有本地预览 Object URL（F-14）
+// 释放所有本地预览 Object URL（F-14，仅 H5 的 blob:）
 const revokeAllMedia = () => {
+  if (isApp) return
   mediaItems.value.forEach((item) => {
-    if (item?.url) URL.revokeObjectURL(item.url)
+    if (item?.url && item.url.startsWith('blob:')) URL.revokeObjectURL(item.url)
   })
 }
 
@@ -287,7 +328,82 @@ const selectLocation = (loc) => {
   locationSearch.value = ''
 }
 
+// 逆地理编码：H5/App 共用（uni.request 两端都可用），失败时由调用方回退经纬度文本
+const resolveLocationName = async (latitude, longitude) => {
+  const data = await new Promise((resolve, reject) => {
+    uni.request({
+      url: `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=zh`,
+      timeout: 8000,
+      dataType: 'json',
+      success: (res) => {
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve(res.data || {})
+        else reject(new Error(`定位服务返回 ${res.statusCode}`))
+      },
+      fail: (err) => reject(new Error((err && err.errMsg) || '定位服务请求失败'))
+    })
+  })
+
+  const address = data.address || {}
+  const city = address.city || address.town || address.village || ''
+  const district = address.suburb || address.district || ''
+  return city ? (district ? `${city}·${district}` : city) : ''
+}
+
+const applyCurrentLocation = async (latitude, longitude) => {
+  try {
+    const name = await resolveLocationName(latitude, longitude)
+    location.value = name || `${latitude.toFixed(2)}°N, ${longitude.toFixed(2)}°E`
+  } catch (error) {
+    location.value = `${latitude.toFixed(2)}°N, ${longitude.toFixed(2)}°E`
+  }
+  showLocationModal.value = false
+}
+
+// uni.getLocation 是回调式 API：Promise 化并把用户拒绝授权收口成 reject，不产生未捕获异常
+const getUniLocation = () => new Promise((resolve, reject) => {
+  if (typeof uni === 'undefined' || typeof uni.getLocation !== 'function') {
+    reject(new Error('not_supported'))
+    return
+  }
+  try {
+    uni.getLocation({
+      type: 'gcj02',
+      success: (res) => resolve(res || {}),
+      fail: (err) => reject(new Error((err && err.errMsg) || '定位失败'))
+    })
+  } catch (e) {
+    reject(e)
+  }
+})
+
+const locateByApp = async () => {
+  locationLoading.value = true
+  try {
+    const { latitude, longitude } = await getUniLocation()
+    await applyCurrentLocation(latitude, longitude)
+  } catch (error) {
+    const message = String((error && error.message) || '')
+    if (message === 'not_supported') {
+      toast.error('当前环境不支持定位功能')
+    } else if (/deny|denied|auth|拒绝/i.test(message)) {
+      toast.error('定位权限被拒绝，请在系统设置中开启定位权限')
+    } else if (/timeout|超时/i.test(message)) {
+      toast.error('定位请求超时')
+    } else {
+      toast.error('定位失败')
+    }
+  } finally {
+    locationLoading.value = false
+  }
+}
+
 const getCurrentLocation = () => {
+  // App 原生端没有 navigator.geolocation，走 uni 定位；H5 保持浏览器定位逻辑
+  if (isApp) {
+    locateByApp()
+    return
+  }
+
   if (!navigator.geolocation) {
     toast.error('您的浏览器不支持定位功能')
     return
@@ -298,28 +414,7 @@ const getCurrentLocation = () => {
   navigator.geolocation.getCurrentPosition(
     async (position) => {
       const { latitude, longitude } = position.coords
-      
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&accept-language=zh`
-        )
-        const data = await response.json()
-        
-        const city = data.address.city || data.address.town || data.address.village || ''
-        const district = data.address.suburb || data.address.district || ''
-        
-        if (city) {
-          location.value = district ? `${city}·${district}` : city
-        } else {
-          location.value = `${latitude.toFixed(2)}°N, ${longitude.toFixed(2)}°E`
-        }
-        
-        showLocationModal.value = false
-      } catch (error) {
-        location.value = `${latitude.toFixed(2)}°N, ${longitude.toFixed(2)}°E`
-        showLocationModal.value = false
-      }
-      
+      await applyCurrentLocation(latitude, longitude)
       locationLoading.value = false
     },
     (error) => {

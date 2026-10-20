@@ -320,24 +320,53 @@ describe('Service - GiftService', () => {
   });
 
   describe('getRedPacketHistory', () => {
-    it('returns both sent and received records', async () => {
-      RedPacket.findAll.mockResolvedValue([
-        { id: 1, packet_no: 'P1', total_amount: 10, total_num: 2, type: 1, status: 0, create_time: 2 },
-        { id: 2, packet_no: 'P2', total_amount: 5, total_num: 1, type: 0, status: 1, create_time: 1 }
-      ]);
-      RedPacketLog.findAll.mockResolvedValue([{ id: 1, packet_id: 1, amount: 5, create_time: 3 }]);
+    // 审计 B-11：改为分页返回 { list, pagination }
+    it('returns both sent and received records with pagination', async () => {
+      RedPacket.findAndCountAll.mockResolvedValue({
+        count: 2,
+        rows: [
+          { id: 1, packet_no: 'P1', total_amount: 10, total_num: 2, type: 1, status: 0, create_time: 2 },
+          { id: 2, packet_no: 'P2', total_amount: 5, total_num: 1, type: 0, status: 1, create_time: 1 }
+        ]
+      });
+      RedPacketLog.findAndCountAll.mockResolvedValue({
+        count: 1,
+        rows: [{ id: 1, packet_id: 1, amount: 5, create_time: 3 }]
+      });
       RedPacket.findByPk.mockResolvedValue({ packet_no: 'P1', type: 1 });
 
       const all = await giftService.getRedPacketHistory(2, 'all');
-      expect(all.length).toBe(3);
-      expect(all[0].createTime).toBe(3);
+      expect(all.list.length).toBe(3);
+      expect(all.list[0].createTime).toBe(3);
+      expect(all.pagination).toEqual({ page: 1, pageSize: 20, total: 3, totalPages: 1 });
 
       const sent = await giftService.getRedPacketHistory(2, 'sent');
-      expect(sent.length).toBe(2);
-      expect(sent[0].packetType).toBe('lucky');
+      expect(sent.list.length).toBe(2);
+      expect(sent.list[0].packetType).toBe('lucky');
 
       const received = await giftService.getRedPacketHistory(2, 'received');
-      expect(received.length).toBe(1);
+      expect(received.list.length).toBe(1);
+    });
+
+    it('slices by page and caps pageSize via parseQuery', async () => {
+      RedPacket.findAndCountAll.mockResolvedValue({
+        count: 30,
+        rows: [
+          { id: 3, packet_no: 'P3', total_amount: 1, total_num: 1, type: 0, status: 0, create_time: 3 },
+          { id: 2, packet_no: 'P2', total_amount: 1, total_num: 1, type: 0, status: 0, create_time: 2 }
+        ]
+      });
+      RedPacketLog.findAndCountAll.mockResolvedValue({ count: 0, rows: [] });
+
+      const page2 = await giftService.getRedPacketHistory(2, 'sent', 2, 1);
+      expect(page2.list.length).toBe(1);
+      expect(page2.list[0].id).toBe(2);
+      expect(page2.pagination.page).toBe(2);
+      expect(page2.pagination.total).toBe(30);
+      expect(page2.pagination.totalPages).toBe(30);
+
+      const capped = await giftService.getRedPacketHistory(2, 'sent', 1, 9999);
+      expect(capped.pagination.pageSize).toBe(100);
     });
   });
 });

@@ -4,8 +4,13 @@ const { generateTokenPair, verifyToken, refreshAccessToken, TOKEN_TYPES } = requ
 const { User, UserFollow } = require('../models');
 const bcrypt = require('bcryptjs');
 const smsService = require('./smsService');
+// 《未完成事项清单》B-7：手机号加密 + 盲索引
+const { mobileFields, buildMobileWhere, hashMobile } = require('../utils/mobile');
 const tokenRevocation = require('./tokenRevocation');
+// C-9：隐私开关的服务端消费
+const { getPrivacyPrefs } = require('../utils/privacyPrefs');
 const { getTimestamp } = require('../utils/helper');
+const notificationCenterService = require('./notificationCenterService');
 const { Op } = require('sequelize');
 
 const USER_ID_THRESHOLD = 11000
@@ -22,7 +27,7 @@ const register = async (mobile, password, nickname, code, platform = 'app') => {
   // 验证码由 sendSMS 写入 Redis（非生产环境由接口回传给调用方，生产走真实短信通道）。
   await smsService.verifyCode(mobile, code, 'register');
 
-  const existingUser = await User.findOne({ where: { mobile } });
+  const existingUser = await User.findOne({ where: buildMobileWhere(mobile) });
   
   if (existingUser) {
     throw new Error('该手机号已注册');
@@ -31,7 +36,7 @@ const register = async (mobile, password, nickname, code, platform = 'app') => {
   const hashedPassword = await bcrypt.hash(password, 10);
   
   const user = await User.create({
-    mobile,
+    ...mobileFields(mobile),
     password: hashedPassword,
     nickname: nickname || `用户${mobile.slice(-4)}`,
     platform,
@@ -55,12 +60,12 @@ const loginWithMobile = async (mobile, code, deviceId, platform = 'app') => {
   // 任意账号 —— 完整账户接管。校验放在查库之前，避免"先建号再验码"留下垃圾账号。
   await smsService.verifyCode(mobile, code, 'login');
 
-  let user = await User.findOne({ where: { mobile } });
+  let user = await User.findOne({ where: buildMobileWhere(mobile) });
   let isNewUser = false
   
   if (!user) {
     user = await User.create({
-      mobile,
+      ...mobileFields(mobile),
       nickname: `用户${mobile.slice(-4)}`,
       platform,
       create_time: getTimestamp(),
@@ -217,11 +222,18 @@ const changePassword = async (userId, oldPassword, newPassword) => {
     throw new Error('原密码错误');
   }
   
+  // 审计 H-5（补口）：改密与重置密码同一取向——先确认旧会话可被吊销，再写库。
+  // 否则「密码已改、旧令牌仍有效」的窗口会一直留到令牌自然过期。
+  const revoked = await tokenRevocation.revokeAllUserTokens(userId);
+  if (!revoked.verifiable && tokenRevocation.revocationFailMode() === 'closed') {
+    throw new Error('REVOCATION_UNAVAILABLE');
+  }
+
   const hashedPassword = await bcrypt.hash(newPassword, 10);
-  
+
   await user.update({ password: hashedPassword });
-  
-  return true;
+
+  return { devicesRevoked: revoked.ok };
 };
 
 const loginWithPassword = async (username, password) => {
@@ -230,7 +242,8 @@ const loginWithPassword = async (username, password) => {
     where: {
       [Op.or]: [
         { username: username },
-        { mobile: username }
+        // B-7：手机号登录走盲索引（username 不是手机号时哈希不会命中，等价于只按 username 查）
+        { mobile_hash: hashMobile(username) }
       ]
     }
   });
@@ -353,6 +366,17 @@ const followUser = async (userId, targetUserId, action = 1) => {
 
     await User.increment('fans_num', { where: { id: targetUserId }, transaction });
     await transaction.commit();
+    // U-12：新粉丝通知（失败不影响关注）
+    try {
+      const follower = await User.findByPk(userId);
+      await notificationCenterService.create(
+        targetUserId,
+        'follow',
+        '新粉丝',
+        `${follower?.nickname || '有人'} 关注了你`,
+        { userId: Number(userId) }
+      );
+    } catch (e) { /* 通知失败降级 */ }
   } catch (e) {
     await transaction.rollback();
     throw e;

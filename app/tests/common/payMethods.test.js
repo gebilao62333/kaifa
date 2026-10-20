@@ -42,12 +42,6 @@ describe('common/payMethods', () => {
     const list = mod.getWithdrawMethods('仅支持工行')
     expect(list[2].desc).toBe('仅支持工行')
   })
-
-  it('getOrderPayMethods 仅返回金币支付', () => {
-    const list = mod.getOrderPayMethods()
-    expect(list).toHaveLength(1)
-    expect(list[0].id).toBe('coin')
-  })
 })
 
 describe('common/webrtcConfig', () => {

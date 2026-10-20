@@ -40,6 +40,18 @@ export function pnpmCommand(args) {
   return { cmd: process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm', args, shell: true }
 }
 
+// 通过 npx/corepack 调用 pnpm 时，子进程的 PATH 可能不含 node 安装目录，
+// 导致依赖的 postinstall（如 core-js）报 'node' 不是内部或外部命令。
+// 统一把当前 node 目录补进 PATH，保证 pnpm rebuild 在 CI/npx 下也能跑。
+function withNodePath() {
+  const env = Object.assign({}, process.env)
+  const nodeDir = path.dirname(process.execPath)
+  const parts = (env.PATH || env.Path || '').split(path.delimiter).filter(Boolean)
+  if (!parts.includes(nodeDir)) parts.unshift(nodeDir)
+  env.PATH = parts.join(path.delimiter)
+  return env
+}
+
 export function runStep(label, command, { timeout = 10 * 60 * 1000 } = {}) {
   ensureDirs()
   const file = logPath(label)
@@ -51,7 +63,7 @@ export function runStep(label, command, { timeout = 10 * 60 * 1000 } = {}) {
       cwd: ROOT,
       shell: !!command.shell,
       stdio: ['ignore', 'pipe', 'pipe'],
-      env: process.env
+      env: withNodePath()
     })
     let timer = null
     const finish = (code, reason) => {
@@ -96,7 +108,7 @@ export function startDevServer() {
     cwd: ROOT,
     shell: !!cmd.shell,
     stdio: ['ignore', 'pipe', 'pipe'],
-    env: process.env
+    env: withNodePath()
   })
   child.stdout.on('data', (d) => { process.stdout.write(d); out.write(d) })
   child.stderr.on('data', (d) => { process.stderr.write(d); out.write(d) })

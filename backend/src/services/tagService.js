@@ -2,13 +2,6 @@ const { VirtualUserTag, VirtualUserTagRelation, VirtualUser } = require('../mode
 const { getTimestamp, parseQuery, formatPaginatedResponse } = require('../utils/helper');
 const logger = require('../utils/logger');
 
-const TAG_CATEGORIES = {
-  PERSONALITY: 'personality',
-  EXPERTISE: 'expertise',
-  STYLE: 'style',
-  SCENARIO: 'scenario'
-};
-
 const createTag = async (data) => {
   const {
     name,
@@ -303,7 +296,6 @@ const formatTag = (tag) => {
 };
 
 module.exports = {
-  TAG_CATEGORIES,
   createTag,
   getTagById,
   getAllTags,

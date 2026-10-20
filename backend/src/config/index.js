@@ -56,7 +56,10 @@ module.exports = {
   // 审计 M-8：实名信息（真实姓名/身份证号/正反面照）静态加密密钥（AES-256-GCM，见 utils/pii.js）。
   // 生产环境缺失即拒绝启动（server.js 强制校验），非生产缺失时回落明文存储并告警。
   pii: {
-    encryptionKey: process.env.PII_ENCRYPTION_KEY || ''
+    encryptionKey: process.env.PII_ENCRYPTION_KEY || '',
+    // 审计 B-9：密钥轮换窗口内的「上一把钥匙」。仅在轮换期间配置：
+    // 解密会依次尝试 当前 ← 上一把；用 scripts/rotate-pii-key.js 重加密存量后再移除。
+    encryptionKeyPrevious: process.env.PII_ENCRYPTION_KEY_PREVIOUS || ''
   },
   
   db: {
@@ -143,7 +146,11 @@ module.exports = {
     // 历史口径是 nodeEnv !== 'production'，而 NODE_ENV 未设置时 nodeEnv 会静默回落 'development'——
     // 生产机器忘配 NODE_ENV 就把验证码直接写进响应体，等同于任意账号接管。
     // 现要求「非生产」且「NODE_ENV 由运维显式声明」两个条件同时成立才回传。
-    returnCodeInDev: !isProd && Boolean(process.env.NODE_ENV)
+    returnCodeInDev: !isProd && Boolean(process.env.NODE_ENV),
+    // 测试/演示环境：短信通道未配置时，允许把本次随机验证码直接回传给调用方（前端会自动填入）。
+    // 默认关闭；SMS_TEST_PHONES 非空时只对白名单手机号生效，留空则对所有手机号生效（高风险，仅限内测）。
+    testMode: process.env.SMS_TEST_MODE === 'true',
+    testPhones: (process.env.SMS_TEST_PHONES || '').split(',').map((s) => s.trim()).filter(Boolean)
   },
   
   trtc: {
@@ -211,7 +218,8 @@ module.exports = {
     root: path.resolve(__dirname, '..'),
     // 注意：静态目录由 server.js 挂载自 backend/public/uploads，此处必须与之保持一致
     public: path.resolve(__dirname, '../../public'),
-    uploads: path.resolve(__dirname, '../../public/uploads'),
+    // Sealos/只读镜像场景下可把可写目录指到 /tmp 或挂载卷（默认仍是 backend/public/uploads）
+    uploads: process.env.UPLOADS_PATH ? path.resolve(process.env.UPLOADS_PATH) : path.resolve(__dirname, '../../public/uploads'),
     // 与 docker-compose 的 eudazi_logs 卷（/var/log/eudazi）保持一致；生产可用 LOGS_PATH 覆盖
     logs: path.resolve(__dirname, '../../logs'),
     certs: path.resolve(__dirname, '../cert')

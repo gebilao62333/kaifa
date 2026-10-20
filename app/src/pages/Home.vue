@@ -1,15 +1,16 @@
 <template>
   <PageLayout>
     <template #nav>
-      <div class="search-box" @click="goSearch">
-        <span class="search-icon">🔍</span>
-        <span class="search-text">搜索用户、帖子、游戏</span>
-      </div>
+      <view class="search-box" @click="goSearch">
+        <text class="search-icon">🔍</text>
+        <text class="search-text">搜索用户、帖子、游戏</text>
+      </view>
       <button class="friend-btn" @click="goFriend">交友</button>
     </template>
 
-    <div class="content-container">
+    <view class="content-container">
       <HomeBanner :banners="bannerList" @banner-click="onBannerClick" />
+      <HomeNotice />
       <HomeQuickNav @navigate="handleNavigate" />
       <HomeRecommend
         :companions="recommendList"
@@ -20,19 +21,29 @@
         @user-click="goUserProfile"
         @retry="refreshHomeData"
       />
-    </div>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { onHide, onPageScroll, onShow, onUnload } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
+import { useUserStore } from '../store/user-info'
+import {
+  readScrollTop,
+  restoreScrollTop,
+  restoreTabState,
+  saveScrollTop,
+  saveTabState,
+  setTabStateOwner
+} from '../common/tabState'
 import PageLayout from '../components/PageLayout.vue'
 import HomeBanner from '../components/HomeBanner.vue'
+import HomeNotice from '../components/HomeNotice.vue'
 import HomeQuickNav from '../components/HomeQuickNav.vue'
 import HomeRecommend from '../components/HomeRecommend.vue'
 import homeService from '../services/homeService'
-import { toast } from '../composables/useToast'
 import { genCover } from '../utils/placeholder'
 
 const router = useRouter()
@@ -49,6 +60,43 @@ const loadingCompanions = ref(true)
 const loadError = ref(false)
 const currentPage = ref(1)
 const hasMore = ref(true)
+
+const userStore = useUserStore()
+const TAB_STATE_PATH = '/home'
+const tabOwnerId = () => userStore.profile?.userId || ''
+
+// 主 Tab 用 reLaunch 切页会重建本页：优先恢复上次离开时的快照，避免骨架屏 + 滚动归零。
+// 快照超过 30s 视为过期，列表照常先渲染，但仍静默刷新一次（见 tabState.TAB_STATE_FRESH_MS）。
+const tabRestore = restoreTabState(TAB_STATE_PATH, tabOwnerId(), (snapshot) => {
+  if (Array.isArray(snapshot.bannerList)) bannerList.value = snapshot.bannerList
+  if (Array.isArray(snapshot.recommendList)) recommendList.value = snapshot.recommendList
+  if (typeof snapshot.currentPage === 'number') currentPage.value = snapshot.currentPage
+  if (typeof snapshot.hasMore === 'boolean') hasMore.value = snapshot.hasMore
+  // 有快照时列表可直接渲染，不能停留在首载骨架态
+  loadingCompanions.value = false
+  loadingMore.value = false
+})
+const restoredScrollTop = tabRestore.restored ? readScrollTop(TAB_STATE_PATH) : 0
+let pageScrollTop = restoredScrollTop
+onPageScroll(({ scrollTop }) => {
+  pageScrollTop = Number(scrollTop) || 0
+})
+
+// onHide 在 reLaunch 销毁前触发，onUnload 兜底；两者都触发时只保存一次
+let tabStateSaved = false
+const saveTabSnapshot = () => {
+  if (tabStateSaved) return
+  tabStateSaved = true
+  saveTabState(TAB_STATE_PATH, {
+    bannerList: bannerList.value,
+    recommendList: recommendList.value,
+    currentPage: currentPage.value,
+    hasMore: hasMore.value
+  })
+  saveScrollTop(TAB_STATE_PATH, pageScrollTop)
+}
+onHide(saveTabSnapshot)
+onUnload(saveTabSnapshot)
 
 // 推荐列表全部来自后端 /api/games/companions 接口，不再读取管理端 localStorage 兜底数据
 const goSearch = () => {
@@ -88,19 +136,22 @@ const loadBanners = async () => {
   }
 }
 
-const loadRecommendCompanions = async (reset = false) => {
+const loadRecommendCompanions = async (reset = false, silent = false) => {
   if (reset) {
     currentPage.value = 1
     hasMore.value = true
-    loadingCompanions.value = true
-    recommendList.value = []
+    // 静默刷新（返回首页）保留旧列表，避免整页闪骨架屏
+    if (!silent) {
+      loadingCompanions.value = true
+      recommendList.value = []
+    }
     loadError.value = false
   }
 
   if (!hasMore.value) return
 
   try {
-    if (reset) {
+    if (reset && !silent) {
       loadingCompanions.value = true
     }
 
@@ -118,7 +169,8 @@ const loadRecommendCompanions = async (reset = false) => {
     const list = (result.data && (result.data.list || result.data)) || []
 
     if (list.length > 0) {
-      recommendList.value = [...recommendList.value, ...list]
+      // reset 时普通刷新已清空列表；静默刷新未清空，按替换而非追加
+      recommendList.value = reset ? [...list] : [...recommendList.value, ...list]
       currentPage.value++
       hasMore.value = list.length >= 10
     } else if (reset) {
@@ -152,18 +204,30 @@ const onBannerClick = (banner) => {
   }
 }
 
-const refreshHomeData = async () => {
+const refreshHomeData = async (silent = false) => {
   try {
     await Promise.all([
       loadBanners(),
-      loadRecommendCompanions(true)
+      loadRecommendCompanions(true, silent === true)
     ])
   } catch (error) {
     console.error('刷新首页数据失败:', error)
   }
 }
 
+// 返回首页时静默刷新（onShow），不重复首载、不闪骨架屏
+const refreshOnShow = () => {
+  refreshHomeData(true)
+}
+
 onMounted(async () => {
+  if (tabRestore.restored) {
+    // 列表已由快照渲染，等挂载后再恢复滚动位置（restoreScrollTop 内部会补两次重试）
+    restoreScrollTop(restoredScrollTop)
+    // 快照列表为空（上次加载失败/无数据）时不锁死空态：仍静默拉一次
+    if (tabRestore.needRefresh || recommendList.value.length === 0) refreshHomeData(true)
+    return
+  }
   loadError.value = false
   try {
     await refreshHomeData()
@@ -172,6 +236,19 @@ onMounted(async () => {
     recommendList.value = []
     loadingCompanions.value = false
   }
+})
+
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  // 账号（含登出）变化时清空全部 Tab 缓存，避免跨账号恢复旧列表
+  setTabStateOwner(tabOwnerId())
+  tabStateSaved = false
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
 })
 
 defineExpose({

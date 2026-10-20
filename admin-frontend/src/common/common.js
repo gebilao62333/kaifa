@@ -109,12 +109,14 @@ const DEFAULT_TIMEOUT = 15000
 let isRedirecting = false
 
 export class RequestError extends Error {
-  constructor(message, code = -1, status = 0, fieldErrors = {}) {
+  constructor(message, code = -1, status = 0, fieldErrors = {}, retryAfterSec = 0) {
     super(message)
     this.name = 'RequestError'
     this.code = code
     this.status = status
     this.fieldErrors = fieldErrors
+    // A-4：429/锁定响应派生的「还需等待秒数」，登录页据此做倒计时禁用
+    this.retryAfterSec = retryAfterSec
   }
 }
 
@@ -127,6 +129,84 @@ const readResponseText = async (response) => {
   const buf = await response.arrayBuffer()
   const decoder = new TextDecoder('utf-8')
   return decoder.decode(buf)
+}
+
+// A-4：从 429/503 响应派生「还需等待多少秒」。
+// 优先级：响应体 retryAfterSec（账号失败锁定）→ Retry-After 头（秒数或 HTTP 日期）
+// → express-rate-limit 的 RateLimit-Reset（IP 限流，值为剩余秒数）。
+const parseRetryAfterSec = (body, headers) => {
+  const candidates = []
+  if (body && body.data && body.data.retryAfterSec !== undefined) candidates.push(body.data.retryAfterSec)
+  if (body && body.retryAfterSec !== undefined) candidates.push(body.retryAfterSec)
+  if (headers && typeof headers.get === 'function') {
+    const retryAfter = headers.get('Retry-After')
+    if (retryAfter) {
+      const seconds = Number(retryAfter)
+      if (Number.isFinite(seconds)) {
+        candidates.push(seconds)
+      } else {
+        const at = Date.parse(retryAfter)
+        if (!Number.isNaN(at)) candidates.push(Math.ceil((at - Date.now()) / 1000))
+      }
+    }
+    const reset = headers.get('RateLimit-Reset')
+    if (reset !== null && reset !== undefined && reset !== '') {
+      const seconds = Number(reset)
+      if (Number.isFinite(seconds)) candidates.push(seconds)
+    }
+  }
+  const sec = candidates.map(Number).find(v => Number.isFinite(v) && v > 0)
+  return sec ? Math.ceil(sec) : 0
+}
+
+const ADMIN_REFRESH_TOKEN_KEY = 'admin_refresh_token'
+let adminRefreshPromise = null
+
+// B-5：管理端 401 静默续期（单飞 + 重放一次）。refresh 接口自身走裸 fetch，避免递归。
+const tryRefreshAdminToken = async () => {
+  const refreshToken = localStorage.getItem(ADMIN_REFRESH_TOKEN_KEY) || ''
+  if (!refreshToken) return false
+  if (!adminRefreshPromise) {
+    adminRefreshPromise = (async () => {
+      try {
+        const response = await fetch('/api/admin/refresh-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          cache: 'no-store',
+          body: JSON.stringify({ refreshToken })
+        })
+        if (!response.ok) return false
+        const text = await readResponseText(response)
+        const json = text ? JSON.parse(text) : null
+        const data = (json && json.data) || {}
+        const nextToken = data.token || data.accessToken || ''
+        if (!nextToken) return false
+        localStorage.setItem('admin_token', nextToken)
+        if (data.refreshToken) localStorage.setItem(ADMIN_REFRESH_TOKEN_KEY, data.refreshToken)
+        if (data.user) localStorage.setItem('admin_user', JSON.stringify(data.user))
+        return true
+      } catch (e) {
+        return false
+      } finally {
+        adminRefreshPromise = null
+      }
+    })()
+  }
+  return adminRefreshPromise
+}
+
+// 清理管理端登录态并回登录页（401/403 的「会话失效」分支共用）
+const clearAdminAuth = () => {
+  localStorage.removeItem('admin_token')
+  localStorage.removeItem('admin_refresh_token')
+  localStorage.removeItem('admin_user')
+  if (isRedirecting) return
+  isRedirecting = true
+  setTimeout(() => {
+    // 开发模式 base='/'，生产模式 base='/admin/'
+    const base = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/admin/'
+    window.location.href = base + 'login'
+  }, 100)
 }
 
 const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout = DEFAULT_TIMEOUT, options = {}) => {
@@ -163,7 +243,15 @@ const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout =
     const response = await fetch(url, requestOptions)
     clearTimeout(timeoutId)
 
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
+      // B-5：先静默续期并重放一次（单飞）；refresh 也失效时再清态跳登录
+      if (!skipAuthRedirect && !options.authRetried) {
+        const refreshed = await tryRefreshAdminToken()
+        if (refreshed) {
+          return doRequest(url, method, data, headers, timeout, { ...options, authRetried: true })
+        }
+      }
+
       // 登录接口等场景：只透传后端错误信息，不做强制跳转（避免刚输错密码就整页刷新）
       if (skipAuthRedirect) {
         let message = '登录失败，请检查用户名和密码'
@@ -174,23 +262,33 @@ const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout =
             if (result.message) message = result.message
           }
         } catch (e) { /* 使用默认消息 */ }
-        throw new RequestError(message, -1, response.status)
+        throw new RequestError(message, -1, 401)
       }
 
-      if (!isRedirecting) {
-        isRedirecting = true
-        // 审计 H-5：后端这里的 401 现在多了一种来源——令牌已被服务端吊销（登出/改密/禁用）。
-        // 本地态要整套清干净：只删 admin_token 会把权限快照 admin_user 和 refresh 留在浏览器里。
-        localStorage.removeItem('admin_token')
-        localStorage.removeItem('admin_refresh_token')
-        localStorage.removeItem('admin_user')
-        setTimeout(() => {
-          // 开发模式 base='/'，生产模式 base='/admin/'
-          const base = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.BASE_URL) || '/admin/'
-          window.location.href = base + 'login'
-        }, 100)
+      // 审计 H-5：令牌已被服务端吊销（登出/改密/禁用）时整套清干净
+      clearAdminAuth()
+      throw new RequestError('登录已过期，请重新登录', -1, 401)
+    }
+
+    if (response.status === 403) {
+      let body = null
+      try {
+        const text = await readResponseText(response)
+        if (text) body = JSON.parse(text)
+      } catch (e) { /* 非 JSON 响应保留默认文案 */ }
+
+      // 权限不足（permission.js 的 PERMISSION_DENIED）≠ 会话失效：保留登录态，只把错误抛给页面
+      if (body && body.error === 'PERMISSION_DENIED') {
+        throw new RequestError(body.message || '无权限操作', -1, 403)
       }
-      throw new RequestError('登录已过期，请重新登录', -1, response.status)
+
+      if (skipAuthRedirect) {
+        throw new RequestError((body && body.message) || '登录失败，请检查用户名和密码', -1, 403)
+      }
+
+      // 账号被禁用 / 令牌用途不符 / 无管理员权限 → 清态跳登录
+      clearAdminAuth()
+      throw new RequestError((body && body.message) || '登录已过期，请重新登录', -1, 403)
     }
 
     if (response.status === 500) {
@@ -220,15 +318,17 @@ const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout =
       // 审计 H-3：429/503 的响应体里带的是可读文案（「登录失败次数过多，请 N 分钟后再试」
       // 「登录校验服务暂不可用，请稍后重试」），此前一律吞成「请求失败 (429)」，
       // 管理员既不知道该等多久，也不知道是口令错还是被锁。
+      // A-4：同时把 retryAfterSec 挂到错误对象上，供登录页做倒计时禁用按钮。
       let message = `请求失败 (${response.status})`
+      let body = null
       try {
         const text = await readResponseText(response)
         if (text) {
-          const result = JSON.parse(text)
-          if (result.message) message = result.message
+          body = JSON.parse(text)
+          if (body && body.message) message = body.message
         }
       } catch (e) { /* 响应体不是 JSON 时保留默认文案 */ }
-      throw new RequestError(message, -1, response.status)
+      throw new RequestError(message, -1, response.status, {}, parseRetryAfterSec(body, response.headers))
     }
 
     const text = await readResponseText(response)
@@ -238,11 +338,16 @@ const doRequest = async (url, method = 'GET', data = {}, headers = {}, timeout =
 
     const result = JSON.parse(text)
 
-    if (result.code !== 0 && result.code !== 200) {
+    // P0（2026-10-20 用户端完整度审计）：与用户端同一契约——后端 created() 返回 HTTP 201 +
+    // 业务 code 201（新增 banner/公告/礼物/虚拟用户等），2xx 视为成功并归一为 code 200。
+    const isSuccessCode = result.code === 0 || result.code === 200 || result.code === 201
+    if (!isSuccessCode) {
       throw new RequestError(result.message || '请求失败', result.code, response.status)
     }
 
-    return result
+    return result.code === 201
+      ? { ...result, code: 200, httpStatus: response.status || 201 }
+      : result
   } catch (error) {
     clearTimeout(timeoutId)
     if (error instanceof RequestError) {

@@ -4,6 +4,7 @@ const adminManageController = require('../controllers/adminManage.js');
 const { adminAuth, requirePermission, adminLoginLimiter } = require('../middlewares');
 
 // 登录接口无需认证，但要限流（审计 H-3：与 /api/admin/login 是同一个后台口令入口）
+// @deprecated 兼容别名：新调用一律用 POST /api/admin/login；本入口保留旧后台客户端兼容，不删除、不改行为。
 router.post('/login', adminLoginLimiter, adminManageController.adminLogin);
 
 // 统一使用 middlewares 中的 adminAuth（与 /api/admin 路由同一套鉴权口径）

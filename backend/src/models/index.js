@@ -42,10 +42,13 @@ const Feedback = require('./mysql/Feedback');
 const Admin = require('./mysql/Admin');
 const AdminRole = require('./mysql/AdminRole');
 const SystemSettings = require('./mysql/SystemSettings');
+// 《未完成事项清单》B-3：平台公告落库
+const Notice = require('./mysql/Notice');
 
 // ==================== MongoDB 模型 ====================
 const ChatMessage = require('./mongo/ChatMessage');
 const Notification = require('./mongo/Notification');
+const UserBlock = require('./mongo/UserBlock');
 const UserSession = require('./mongo/UserSession');
 
 module.exports = {
@@ -89,6 +92,7 @@ module.exports = {
   MediaAsset,
   Feedback,
   SystemSettings,
+  Notice,
   VipPackage,
   VipOrder,
   Admin,
@@ -96,5 +100,6 @@ module.exports = {
   // MongoDB
   ChatMessage,
   Notification,
+  UserBlock,
   UserSession
 };

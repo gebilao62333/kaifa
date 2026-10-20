@@ -1,6 +1,6 @@
 ---
 name: kaifa-db-migration
-description: "kaifa 迁移与 PII 安全：幂等写法、runMigrations 接线（只接了 8/10）、备份先行、列加宽先于密钥、存量对账。"
+description: "kaifa 迁移与 PII 安全：幂等写法、runMigrations 接线（16/16 文件、17 步；宽列迁移受 AUTO_MIGRATE_WIDEN_COLUMNS 控制）、备份先行、列加宽先于密钥、存量对账。"
 whenToUse: "新增/修改表、字段、索引或枚举；执行迁移；动 PII_ENCRYPTION_KEY 与实名加密顺序时。"
 tags: ["自习"]
 ---
@@ -19,7 +19,7 @@ tags: ["自习"]
 
 ### 1. 事实基线（先对齐，别凭记忆）
 
-迁移文件共 **10 个**（时间戳命名），**全部幂等**，统一用原生 `sequelize.query` 查 `INFORMATION_SCHEMA`（**不是 Sequelize 的 `describeTable`**）：
+迁移文件共 **16 个**（时间戳命名，`runMigrations` 共 17 步——货币迁移含 `up`+`convertData` 两步），**全部幂等**，统一用原生 `sequelize.query` 查 `INFORMATION_SCHEMA`（**不是 Sequelize 的 `describeTable`**）：
 
 | 类型 | 范式 | 代表 |
 |---|---|---|
@@ -32,10 +32,7 @@ tags: ["自习"]
 
 ⚠️ **两个关键机制（最容易被误判）**：
 
-1. **`runMigrations.js` 只接线了 8 个迁移**（`:15-22` require、`:25-49` 按序 await）。缺：
-   - `20261003000002_widen_user_id_and_ip.js`
-   - `20261004000002_widen_pii_columns.js` ← **PII 列加宽**
-   这两个文件**永远不会被启动自动迁移执行**，只能手动 `node src/migrations/<file>.js`（两文件头部注释已声明该约定）。新增迁移必须同步接线。
+1. **`runMigrations.js` 已接线全部 16 个迁移文件（17 步）**，按时间戳顺序执行。其中两个宽列迁移——`20261003000002_widen_user_id_and_ip.js`、`20261004000002_widen_pii_columns.js`（PII 列加宽）——会触发表重建，受 **`AUTO_MIGRATE_WIDEN_COLUMNS`** 控制：未设置时非生产执行、**production 默认跳过**（需维护窗口显式 `true` 或手工 `node src/migrations/<file>.js`）。新增迁移必须同步接线。
 2. `server.js:451-465` 自动迁移条件：`USE_MOCK_DB` 为真 → 跳过；`AUTO_MIGRATE` 缺省执行、`'false'` 关闭；**失败只 `console.error` 告警、不阻断启动**（30s 超时）。所以「服务起来了」≠「迁移跑过了」。
 
 `runMigrations.js:56-64`：仅 `require.main === module`（直接 node 执行）时自动跑并 `process.exit`；被 `server.js` require 时只导出函数。
@@ -104,8 +101,7 @@ npx jest tests/unit/utils/startupConfigGuard.test.js tests/unit/config/envHygien
 任务：<新增/核对> 迁移 <文件名>。
 硬约束：① up() 必须幂等——用原生 sequelize.query 查 INFORMATION_SCHEMA 判存在后跳过（加列查 COLUMNS、
 建表 CREATE TABLE IF NOT EXISTS、索引查 STATISTICS、改列宽比 CHARACTER_MAXIMUM_LENGTH），数据转换只处理 NULL/空值；
-② 必须把 require + await 追加进 src/migrations/runMigrations.js（该文件目前只接线 8/10 个迁移，
-20261003000002 与 20261004000002 未接线，需单独手工执行）；③ 执行前先 node scripts\backup.js --mode=local --target=mysql；
+② 必须把 require + await 追加进 src/migrations/runMigrations.js（16 个文件已全接线；宽列迁移走 AUTO_MIGRATE_WIDEN_COLUMNS 开关）；③ 执行前先 node scripts\backup.js --mode=local --target=mysql；
 ④ 涉及 xn_user 实名列加宽时，必须先跑迁移再配 PII_ENCRYPTION_KEY。
 验证：npm run migrate 连跑两次（都成功）+ 回库确认列已存在（不能只看服务启动成功）。
 报告：迁移文件与接线行号、两次执行输出摘要、库侧核对结果、未验证项及原因。

@@ -15,7 +15,8 @@ vi.mock('@/services/socketService', () => ({
   default: {
     on: vi.fn(),
     emit: vi.fn(),
-    connect: vi.fn(),
+    // initSocketConnection 以 connect() 返回值判断是否建连成功；真实实现返回 socket 实例
+    connect: vi.fn(() => ({ connected: true })),
     disconnect: vi.fn()
   }
 }))

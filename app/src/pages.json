@@ -417,6 +417,14 @@
       }
     },
     {
+      "path": "pages/RecordsCenter",
+      "style": {
+        "navigationStyle": "custom",
+        "navigationBarTitleText": "我的记录",
+        "backgroundColor": "#f5f5f7"
+      }
+    },
+    {
       "path": "pages/NotFound",
       "style": {
         "navigationStyle": "custom",

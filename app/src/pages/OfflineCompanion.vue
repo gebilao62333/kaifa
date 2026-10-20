@@ -1,30 +1,31 @@
 <template>
-  <div>
-    <div class="offline-grid">
-      <div 
+  <view>
+    <view class="offline-grid">
+      <view 
         class="offline-card" 
         v-for="item in offlineServices" 
-        :key="item.id" 
-        :class="{ 'offline-card-active': selectedIds.includes(item.id) }"
+        :key="item.serviceId" 
+        :class="{ 'offline-card-active': selectedIds.includes(item.serviceId) }"
         @click="handleSelect(item)"
       >
-        <div class="offline-icon-wrap" :style="{ background: item.bgColor }">
-          <span class="offline-icon">{{ item.icon }}</span>
-        </div>
-        <div class="offline-info">
-          <span class="offline-name">{{ item.name }}</span>
-        </div>
-        <div v-if="selectedIds.includes(item.id)" class="selected-check">✓</div>
-      </div>
-    </div>
-    <div class="selection-hint" v-if="selectedIds.length > 0">
+        <view class="offline-icon-wrap" :style="{ background: item.bgColor }">
+          <text class="offline-icon">{{ item.icon }}</text>
+        </view>
+        <view class="offline-info">
+          <text class="offline-name">{{ item.name }}</text>
+        </view>
+        <view v-if="selectedIds.includes(item.id)" class="selected-check">✓</view>
+      </view>
+    </view>
+    <view class="selection-hint" v-if="selectedIds.length > 0">
       已选择 {{ selectedIds.length }} 项服务
-    </div>
-  </div>
+    </view>
+  </view>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
+import gamesService from '../services/gamesService'
 
 const emit = defineEmits(['update:modelValue', 'change'])
 const props = defineProps({
@@ -40,37 +41,39 @@ watch(() => props.modelValue, (newVal) => {
   }
 }, { deep: true })
 
-const offlineActivities = [
-  { id: 201, name: '逛街购物', icon: '🛍️', price: 150, desc: '陪同逛街购物', bgColor: 'var(--gradient-primary)' },
-  { id: 202, name: '看电影', icon: '🎬', price: 200, desc: '陪同观看电影', bgColor: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
-  { id: 203, name: '美食探店', icon: '🍽️', price: 180, desc: '陪同品尝美食', bgColor: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)' },
-  { id: 204, name: '密室逃脱', icon: '🔐', price: 160, desc: '组队密室挑战', bgColor: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }
-]
+const offlineServices = ref([])
 
-const sportsActivities = [
-  { id: 301, name: '运动健身', icon: '💪', price: 120, desc: '陪同健身指导', bgColor: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' },
-  { id: 302, name: '羽毛球', icon: '🏸', price: 100, desc: '双人羽毛球对打', bgColor: 'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)' },
-  { id: 303, name: '跑步陪练', icon: '🏃', price: 80, desc: '户外跑步陪伴', bgColor: 'linear-gradient(135deg, #ff9a9e 0%, #fecfef 100%)' },
-  { id: 304, name: '篮球', icon: '🏀', price: 150, desc: '组队篮球比赛', bgColor: 'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)' }
-]
+// U-18：目录与真实 gameId 由服务端下发，不再把 201-304 假 id 当 gameId
+const loadOfflineServices = async () => {
+  try {
+    const res = await gamesService.getOfflineServices()
+    const data = res?.data || res
+    offlineServices.value = (data.list || []).map(item => ({
+      ...item,
+      id: item.serviceId,
+      tags: item.tags || [item.name]
+    }))
+  } catch (error) {
+    console.error('加载线下服务失败:', error)
+    offlineServices.value = []
+  }
+}
 
-const offlineServices = computed(() => {
-  return [...offlineActivities, ...sportsActivities]
-})
+onMounted(loadOfflineServices)
 
 const handleSelect = (item) => {
-  const index = selectedIds.value.findIndex(id => id === item.id)
+  const index = selectedIds.value.findIndex(id => id === item.serviceId || id === item.id)
   let newSelectedIds
   if (index === -1) {
-    newSelectedIds = [...selectedIds.value, item.id]
+    newSelectedIds = [...selectedIds.value, item.serviceId || item.id]
   } else {
-    newSelectedIds = selectedIds.value.filter(id => id !== item.id)
+    newSelectedIds = selectedIds.value.filter(id => id !== (item.serviceId || item.id))
   }
   selectedIds.value = newSelectedIds
   
   // 直接 emit，不通过 watch
   emit('update:modelValue', [...newSelectedIds])
-  const selectedItems = offlineServices.value.filter(service => newSelectedIds.includes(service.id))
+  const selectedItems = offlineServices.value.filter(service => newSelectedIds.includes(service.serviceId || service.id))
   emit('change', selectedItems)
 }
 </script>

@@ -1,3 +1,4 @@
+import { isApp } from '../common/platform'
 import { trtcService } from './trtcService'
 
 /**
@@ -18,11 +19,20 @@ let trtc = null
 let remoteView = null
 
 export function isTrtcSdkLoaded() {
+  // TRTC Web SDK 只能在浏览器环境加载；App 原生端走 nativeCallService/自建 WebRTC
+  if (isApp) return false
   return typeof window !== 'undefined' && !!window.TRTC
 }
 
 /** 按需加载官方 SDK（同一页面只加载一次） */
 export function loadTrtcSdk() {
+  if (isApp) {
+    // App 端没有 document/script 注入能力，直接返回不可用，让 callService 回退自建 WebRTC
+    return Promise.reject(new Error('App 端不支持 TRTC Web SDK，请使用原生通话通道'))
+  }
+  if (typeof document === 'undefined' || typeof window === 'undefined') {
+    return Promise.reject(new Error('当前环境不支持 TRTC Web SDK'))
+  }
   if (isTrtcSdkLoaded()) return Promise.resolve(window.TRTC)
   if (loading) return loading
   loading = new Promise((resolve, reject) => {

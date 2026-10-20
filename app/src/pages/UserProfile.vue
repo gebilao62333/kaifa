@@ -1,120 +1,121 @@
 <template>
   <PageLayout>
     <template #nav>
-      <span class="back-btn" @click="goBack">←</span>
-      <span class="nav-title">用户资料</span>
-      <span class="placeholder"></span>
+      <text class="back-btn" @click="goBack">←</text>
+      <text class="nav-title">用户资料</text>
+      <text class="placeholder"></text>
     </template>
 
-    <div class="cover-bg" :style="{ backgroundImage: `url(${user.bgImage})` }">
-      <div class="user-info-top">
-        <div class="avatar-frame" :style="avatarFrameStyle">
-          <img class="avatar" :src="user.avatar" alt="" v-img-fallback="user.name" />
-        </div>
-        <div class="info-right">
-          <div class="name-row">
-            <span class="name">{{ user.name }}</span>
-            <span class="level" v-if="user.level">Lv.{{ user.level }}</span>
-            <span class="vip-tag" v-if="user.vip">VIP</span>
-            <span class="badge-tag" v-if="selectedBadge" :style="selectedBadge.style">
-              <span class="badge-icon">{{ selectedBadge.icon }}</span>
+    <view class="cover-bg" :style="{ backgroundImage: `url(${user.bgImage})` }">
+      <view class="user-info-top">
+        <view class="avatar-frame" :style="avatarFrameStyle">
+          <SafeImage class="avatar" :src="user.avatar" alt="" :fallback="user.name" mode="aspectFill" />
+        </view>
+        <view class="info-right">
+          <view class="name-row">
+            <text class="name">{{ user.name }}</text>
+            <text class="level" v-if="user.level">Lv.{{ user.level }}</text>
+            <text class="vip-tag" v-if="user.vip">VIP</text>
+            <text class="badge-tag" v-if="selectedBadge" :style="selectedBadge.style">
+              <text class="badge-icon">{{ selectedBadge.icon }}</text>
               {{ selectedBadge.label }}
-            </span>
-          </div>
-          <div class="signature">{{ user.signature }}</div>
-          <div class="id">ID: {{ user.id }}</div>
-        </div>
-      </div>
-    </div>
+            </text>
+          </view>
+          <view class="signature">{{ user.signature }}</view>
+          <view class="id">ID: {{ user.id }}</view>
+        </view>
+      </view>
+    </view>
 
-    <div class="stats-row">
-      <div class="stat-item">
-        <div class="num">{{ user.follows }}</div>
-        <div class="label">关注</div>
-      </div>
-      <div class="divider"></div>
-      <div class="stat-item">
-        <div class="num">{{ user.fans }}</div>
-        <div class="label">粉丝</div>
-      </div>
-      <div class="divider"></div>
-      <div class="stat-item">
-        <div class="num">{{ user.likes }}</div>
-        <div class="label">获赞</div>
-      </div>
-    </div>
+    <view class="stats-row">
+      <view class="stat-item">
+        <view class="num">{{ user.follows }}</view>
+        <view class="label">关注</view>
+      </view>
+      <view class="divider"></view>
+      <view class="stat-item">
+        <view class="num">{{ user.fans }}</view>
+        <view class="label">粉丝</view>
+      </view>
+      <view class="divider"></view>
+      <view class="stat-item">
+        <view class="num">{{ user.likes }}</view>
+        <view class="label">获赞</view>
+      </view>
+    </view>
 
-    <div class="content">
-      <div class="action-bar">
+    <view class="content">
+      <view class="action-bar">
         <button class="follow-btn" :class="{ followed: isFollowed }" @click="toggleFollow">
           {{ isFollowed ? '已关注' : '+ 关注' }}
         </button>
         <button class="chat-btn" @click="goChat">💬 私信</button>
         <button class="reserve-btn" @click="openReserve">📅 预约</button>
-      </div>
+        <button class="order-btn" @click="openOrder">💰 立即下单</button>
+      </view>
 
-      <div class="section">
-        <div class="section-title">基本信息</div>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="key">性别</span>
-            <span class="value">{{ user.gender === 'male' ? '男' : user.gender === 'female' ? '女' : '保密' }}</span>
-          </div>
-          <div class="info-item">
-            <span class="key">年龄</span>
-            <span class="value">{{ user.age }}岁</span>
-          </div>
-          <div class="info-item">
-            <span class="key">身高</span>
-            <span class="value">{{ user.height }}cm</span>
-          </div>
-          <div class="info-item">
-            <span class="key">地区</span>
-            <span class="value">{{ user.region }}</span>
-          </div>
-        </div>
-      </div>
+      <view class="section">
+        <view class="section-title">基本信息</view>
+        <view class="info-grid">
+          <view class="info-item">
+            <text class="key">性别</text>
+            <text class="value">{{ user.gender === 'male' ? '男' : user.gender === 'female' ? '女' : '保密' }}</text>
+          </view>
+          <view class="info-item">
+            <text class="key">年龄</text>
+            <text class="value">{{ user.age }}岁</text>
+          </view>
+          <view class="info-item">
+            <text class="key">身高</text>
+            <text class="value">{{ user.height }}cm</text>
+          </view>
+          <view class="info-item">
+            <text class="key">地区</text>
+            <text class="value">{{ user.region }}</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="section">
-        <div class="section-title">服务状态</div>
-        <div class="service-status">
-          <div class="service-item" :class="{ active: user.onlineService }">
-            <span class="service-icon">💻</span>
-            <span class="service-name">线上服务</span>
-            <span class="service-badge">{{ user.onlineService ? '已开通' : '未开通' }}</span>
-          </div>
-          <div class="service-item" :class="{ active: user.offlineService }">
-            <span class="service-icon">📍</span>
-            <span class="service-name">线下服务</span>
-            <span class="service-badge">{{ user.offlineService ? '已开通' : '未开通' }}</span>
-          </div>
-        </div>
-      </div>
+      <view class="section">
+        <view class="section-title">服务状态</view>
+        <view class="service-status">
+          <view class="service-item" :class="{ active: user.onlineService }">
+            <text class="service-icon">💻</text>
+            <text class="service-name">线上服务</text>
+            <text class="service-badge">{{ user.onlineService ? '已开通' : '未开通' }}</text>
+          </view>
+          <view class="service-item" :class="{ active: user.offlineService }">
+            <text class="service-icon">📍</text>
+            <text class="service-name">线下服务</text>
+            <text class="service-badge">{{ user.offlineService ? '已开通' : '未开通' }}</text>
+          </view>
+        </view>
+      </view>
 
-      <div class="section">
-        <div class="section-title">兴趣爱好</div>
-        <div class="tags-list">
-          <span class="tag" v-for="(tag, i) in user.tags" :key="i">{{ tag }}</span>
-        </div>
-      </div>
+      <view class="section">
+        <view class="section-title">兴趣爱好</view>
+        <view class="tags-list">
+          <text class="tag" v-for="(tag, i) in user.tags" :key="i">{{ tag }}</text>
+        </view>
+      </view>
 
-      <div class="section">
-        <div class="section-title">擅长游戏</div>
-        <div class="game-list">
-          <div class="game-card" v-for="(game, i) in user.games" :key="i">
-            <div class="game-name">{{ game.name }}</div>
-            <div class="game-level">{{ game.level }}</div>
-          </div>
-        </div>
-      </div>
+      <view class="section">
+        <view class="section-title">擅长游戏</view>
+        <view class="game-list">
+          <view class="game-card" v-for="(game, i) in user.games" :key="i">
+            <view class="game-name">{{ game.name }}</view>
+            <view class="game-level">{{ game.level }}</view>
+          </view>
+        </view>
+      </view>
 
-      <div class="section">
-        <div class="section-title">相册</div>
-        <div class="photo-grid">
-          <img class="photo" v-for="(photo, i) in user.photos" :key="i" :src="photo" alt="" v-img-fallback="user.name" @click="viewPhoto(photo, i)" />
-        </div>
-      </div>
-    </div>
+      <view class="section">
+        <view class="section-title">相册</view>
+        <view class="photo-grid">
+          <SafeImage class="photo" v-for="(photo, i) in user.photos" :key="i" :src="photo" alt="" @click="viewPhoto(photo, i)" :fallback="user.name" mode="aspectFill" />
+        </view>
+      </view>
+    </view>
 
     <ReserveModal
       v-if="showReserve"
@@ -123,19 +124,31 @@
       @close="showReserve = false"
       @submit="handleReserveSubmit"
     />
+
+    <CompanionOrderModal
+      v-if="showOrder"
+      :visible="showOrder"
+      :companion="orderCompanion"
+      @close="showOrder = false"
+      @submitted="handleOrderSubmitted"
+    />
   </PageLayout>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
+import { onShow } from '@dcloudio/uni-app'
 import { useRouter, useRoute } from '@/common/route'
 import { DEFAULT_AVATAR } from '@/common/constants'
 import PageLayout from '../components/PageLayout.vue'
 import ReserveModal from '../components/ReserveModal.vue'
+import CompanionOrderModal from '../components/CompanionOrderModal.vue'
 import reserveService from '../services/reserveService'
 import authService from '../services/authService'
 import gamesService from '../services/gamesService'
+import { albumService } from '../services/albumService'
 import { toast } from '../composables/useToast'
+import SafeImage from '../components/SafeImage.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -176,6 +189,8 @@ const user = ref({
   region: '',
   onlineService: false,
   offlineService: false,
+  price: 0,
+  gameId: 0,
   tags: [],
   games: [],
   photos: []
@@ -203,6 +218,31 @@ const goChat = () => {
 }
 
 const showReserve = ref(false)
+const showOrder = ref(false)
+
+const orderCompanion = computed(() => ({
+  id: Number(user.value.id) || 0,
+  name: user.value.name || '',
+  gameId: Number(user.value.gameId) || 0,
+  price: Number(user.value.price) || 0
+}))
+
+const openOrder = () => {
+  if (!Number(user.value.id)) {
+    toast.error('用户信息不存在，无法下单')
+    return
+  }
+  showOrder.value = true
+}
+
+const handleOrderSubmitted = (data) => {
+  showOrder.value = false
+  toast.success('下单成功，等待陪玩师接单')
+  if (data && data.orderNo) {
+    console.log('订单号:', data.orderNo)
+  }
+  router.push('/my-order')
+}
 
 const reserveCompanion = computed(() => ({
   id: user.value.id,
@@ -266,8 +306,32 @@ const loadUser = async () => {
       fans: d.fansCount || 0,
       tags: Array.isArray(d.tags) ? d.tags : [],
       onlineService: !!d.gameId,
-      offlineService: !!d.offlineService
+      offlineService: !!d.offlineService,
+      price: Number(d.servicePrice) || 0,
+      gameId: Number(d.gameId) || 0
     }
+    // 统计头卡（关注/粉丝/获赞）来自服务端计数，详情接口本身不返回
+    try {
+      const statsRes = await authService.getUserStats(id)
+      const s = statsRes?.data || {}
+      user.value.follows = Number(s.followCount) || 0
+      user.value.fans = Number(s.fansCount) || 0
+      user.value.likes = Number(s.likeCount) || 0
+    } catch (e) { /* 统计失败不影响资料展示 */ }
+    // 擅长游戏：用详情 gameId 映射分类名称
+    try {
+      const catRes = await gamesService.getCategories()
+      const catData = catRes?.data !== undefined ? catRes.data : catRes
+      const list = Array.isArray(catData) ? catData : (catData?.list || [])
+      const game = list.find(g => Number(g.gameId || g.id) === Number(d.gameId))
+      if (game) user.value.games = [{ name: game.gameName || game.name, level: '主玩' }]
+    } catch (e) { /* 分类失败不影响资料展示 */ }
+    // U-13：公开相册
+    try {
+      const albumRes = await albumService.getUserPhotos(id)
+      const albumData = albumRes?.data || {}
+      user.value.photos = (albumData.list || []).map(item => item.url).filter(Boolean)
+    } catch (e) { /* 相册失败不影响资料展示 */ }
   } catch (e) {
     // 回退到通用用户接口
     try {
@@ -292,6 +356,23 @@ const loadUser = async () => {
     if (v !== undefined) isFollowed.value = !!v
   } catch (e) { /* 静默 */ }
 }
+
+// 从关注/粉丝/聊天等页返回时静默刷新资料与关注态、本地装扮选择，
+// 不重走 onMounted 里的访问上报，也不加整页 loading
+const refreshOnShow = () => {
+  loadVipItems()
+  loadUser()
+}
+
+// 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
+let __firstShow = true
+onShow(() => {
+  if (__firstShow) {
+    __firstShow = false
+    return
+  }
+  refreshOnShow()
+})
 
 onMounted(() => {
   loadVipItems()
@@ -499,6 +580,16 @@ const viewPhoto = (url, index) => {
 }
 
 .reserve-btn:active {
+  opacity: 0.85;
+}
+
+.order-btn {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  border: none !important;
+}
+
+.order-btn:active {
   opacity: 0.85;
 }
 

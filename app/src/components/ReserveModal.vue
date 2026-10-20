@@ -1,77 +1,77 @@
 <template>
-  <div class="reserve-modal" v-if="visible" @click.self="close">
-    <div class="modal-mask" @click="close"></div>
-    <div class="modal-container">
-      <div class="modal-header">
-        <div class="header-left">
-          <img class="avatar" :src="companion.avatar" alt="" />
-          <div class="info">
-            <div class="name">{{ companion.name }}</div>
-            <div class="game">{{ companion.game }}</div>
-          </div>
-        </div>
-        <span class="close-btn" @click="close">✕</span>
-      </div>
+  <view class="reserve-modal" v-if="visible" @click.self="close">
+    <view class="modal-mask" @click="close"></view>
+    <view class="modal-container">
+      <view class="modal-header">
+        <view class="header-left">
+          <image mode="scaleToFill" class="avatar" :src="companion.avatar" alt="" />
+          <view class="info">
+            <view class="name">{{ companion.name }}</view>
+            <view class="game">{{ companion.game }}</view>
+          </view>
+        </view>
+        <text class="close-btn" @click="close">✕</text>
+      </view>
 
-      <div class="modal-body">
+      <view class="modal-body">
         <!-- 服务类型 -->
-        <div class="section">
-          <div class="section-title">服务类型</div>
-          <div class="type-options">
-            <div
+        <view class="section">
+          <view class="section-title">服务类型</view>
+          <view class="type-options">
+            <view
               class="type-item"
               :class="{ active: formData.serviceType === 'online' }"
               @click="formData.serviceType = 'online'"
               v-if="companion.onlineService === true"
             >
-              <span class="type-icon">💻</span>
-              <span class="type-name">线上陪玩</span>
-              <span class="type-badge" v-if="companion.onlineService === true">已开通</span>
-            </div>
-            <div
+              <text class="type-icon">💻</text>
+              <text class="type-name">线上陪玩</text>
+              <text class="type-badge" v-if="companion.onlineService === true">已开通</text>
+            </view>
+            <view
               class="type-item"
               :class="{ active: formData.serviceType === 'offline' }"
               @click="formData.serviceType = 'offline'"
               v-if="companion.offlineService"
             >
-              <span class="type-icon">📍</span>
-              <span class="type-name">线下陪玩</span>
-              <span class="type-badge">已开通</span>
-            </div>
-          </div>
-        </div>
+              <text class="type-icon">📍</text>
+              <text class="type-name">线下陪玩</text>
+              <text class="type-badge">已开通</text>
+            </view>
+          </view>
+        </view>
 
         <!-- 游戏选择 -->
-        <div class="section">
-          <div class="section-title">选择游戏</div>
-          <div class="game-options">
-            <div
+        <view class="section">
+          <view class="section-title">选择游戏</view>
+          <view class="game-options">
+            <view
               class="game-item"
               :class="{ active: formData.game === game.name }"
               v-for="game in currentGames"
               :key="game.name"
               @click="formData.game = game.name"
             >
-              <span class="game-icon">{{ game.icon }}</span>
-              <span class="game-name">{{ game.name }}</span>
-            </div>
-          </div>
-          <div class="offline-location" v-if="formData.serviceType === 'offline' && companion.offlineService">
-            <div class="location-header">
-              <span class="location-icon">📍</span>
-              <span class="location-title">选择服务地点</span>
-            </div>
+              <text class="game-icon">{{ game.icon }}</text>
+              <text class="game-name">{{ game.name }}</text>
+            </view>
+          </view>
+          <view class="offline-location" v-if="formData.serviceType === 'offline' && companion.offlineService">
+            <view class="location-header">
+              <text class="location-icon">📍</text>
+              <text class="location-title">选择服务地点</text>
+            </view>
 
-            <div class="location-actions">
+            <view class="location-actions">
               <button class="location-btn locate-btn" @click="getCurrentLocation">
-                <span class="btn-icon">📍</span>
-                <span class="btn-text">{{ locating ? '定位中...' : '定位当前位置' }}</span>
+                <text class="btn-icon">📍</text>
+                <text class="btn-text">{{ locating ? '定位中...' : '定位当前位置' }}</text>
               </button>
-            </div>
+            </view>
 
-            <div class="location-detail">
-              <div class="detail-label">详细地址</div>
-              <div class="detail-input-wrapper" :class="{ active: isCustomLocation }">
+            <view class="location-detail">
+              <view class="detail-label">详细地址</view>
+              <view class="detail-input-wrapper" :class="{ active: isCustomLocation }">
                 <input name="customLocation"
                   type="text"
                   v-model="customLocation"
@@ -80,57 +80,57 @@
                   @input="onCustomLocationInput"
                   @focus="isCustomLocation = true"
                 />
-              </div>
-            </div>
+              </view>
+            </view>
 
-            <div class="location-summary" v-if="formData.offlineLocation">
-              <span class="summary-icon">✓</span>
-              <span class="summary-text">{{ formData.offlineLocation }}</span>
+            <view class="location-summary" v-if="formData.offlineLocation">
+              <text class="summary-icon">✓</text>
+              <text class="summary-text">{{ formData.offlineLocation }}</text>
               <button class="summary-clear" @click="clearLocation">
-                <span class="clear-icon">×</span>
+                <text class="clear-icon">×</text>
               </button>
-            </div>
-          </div>
-        </div>
+            </view>
+          </view>
+        </view>
 
         <!-- 日期选择 -->
-        <div class="section">
-          <div class="section-header">
-            <div class="section-title">选择日期</div>
-          </div>
-          <div class="calendar-container">
-            <div class="calendar-header">
-              <div class="calendar-weekday" v-for="day in weekDays" :key="day">{{ day }}</div>
-            </div>
-            <div class="calendar-grid">
-              <div
+        <view class="section">
+          <view class="section-header">
+            <view class="section-title">选择日期</view>
+          </view>
+          <view class="calendar-container">
+            <view class="calendar-header">
+              <view class="calendar-weekday" v-for="day in weekDays" :key="day">{{ day }}</view>
+            </view>
+            <view class="calendar-grid">
+              <view
                 class="calendar-cell empty"
                 v-for="n in calendarStartOffset"
                 :key="'empty-' + n"
-              ></div>
-              <div
+              ></view>
+              <view
                 class="calendar-cell"
                 :class="{ active: formData.date === date.value, disabled: date.disabled }"
                 v-for="date in availableDates"
                 :key="date.value"
                 @click="!date.disabled && (formData.date = date.value)"
               >
-                <div class="calendar-day">{{ date.day }}</div>
-                <div class="calendar-month" v-if="date.showMonth">{{ date.monthLabel }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
+                <view class="calendar-day">{{ date.day }}</view>
+                <view class="calendar-month" v-if="date.showMonth">{{ date.monthLabel }}</view>
+              </view>
+            </view>
+          </view>
+        </view>
 
         <!-- 时间选择 - 滚轮选择器 -->
-        <div class="section">
-          <div class="section-header">
-            <div class="section-title">选择时间</div>
-          </div>
-          <div class="time-wheel-picker">
-            <div class="wheel-column">
-              <div class="wheel-label">开始时间</div>
-              <div
+        <view class="section">
+          <view class="section-header">
+            <view class="section-title">选择时间</view>
+          </view>
+          <view class="time-wheel-picker">
+            <view class="wheel-column">
+              <view class="wheel-label">开始时间</view>
+              <view
                 class="wheel-container"
                 ref="startWheelRef"
                 @touchstart="onWheelTouchStart($event, 'start')"
@@ -138,9 +138,9 @@
                 @touchend="onWheelTouchEnd($event, 'start')"
                 @mousedown="onWheelMouseDown($event, 'start')"
               >
-                <div class="wheel-scroll" :style="{ transform: `translateY(${startWheelOffset}px)` }">
-                  <div class="wheel-item empty"></div>
-                  <div
+                <view class="wheel-scroll" :style="{ transform: `translateY(${startWheelOffset}px)` }">
+                  <view class="wheel-item empty"></view>
+                  <view
                     class="wheel-item"
                     v-for="(time, index) in timeSlots"
                     :key="'start-' + time"
@@ -150,22 +150,22 @@
                     }"
                   >
                     {{ time }}
-                  </div>
-                  <div class="wheel-item empty"></div>
-                </div>
-                <div class="wheel-indicator"></div>
-              </div>
-            </div>
+                  </view>
+                  <view class="wheel-item empty"></view>
+                </view>
+                <view class="wheel-indicator"></view>
+              </view>
+            </view>
 
-            <div class="wheel-separator">
-              <span class="separator-line"></span>
-              <span class="separator-text">至</span>
-              <span class="separator-line"></span>
-            </div>
+            <view class="wheel-separator">
+              <text class="separator-line"></text>
+              <text class="separator-text">至</text>
+              <text class="separator-line"></text>
+            </view>
 
-            <div class="wheel-column">
-              <div class="wheel-label">结束时间</div>
-              <div
+            <view class="wheel-column">
+              <view class="wheel-label">结束时间</view>
+              <view
                 class="wheel-container"
                 ref="endWheelRef"
                 @touchstart="onWheelTouchStart($event, 'end')"
@@ -173,9 +173,9 @@
                 @touchend="onWheelTouchEnd($event, 'end')"
                 @mousedown="onWheelMouseDown($event, 'end')"
               >
-                <div class="wheel-scroll" :style="{ transform: `translateY(${endWheelOffset}px)` }">
-                  <div class="wheel-item empty"></div>
-                  <div
+                <view class="wheel-scroll" :style="{ transform: `translateY(${endWheelOffset}px)` }">
+                  <view class="wheel-item empty"></view>
+                  <view
                     class="wheel-item"
                     v-for="(time, index) in timeSlots"
                     :key="'end-' + time"
@@ -185,33 +185,37 @@
                     }"
                   >
                     {{ time }}
-                  </div>
-                  <div class="wheel-item empty"></div>
-                </div>
-                <div class="wheel-indicator"></div>
-              </div>
-            </div>
-          </div>
+                  </view>
+                  <view class="wheel-item empty"></view>
+                </view>
+                <view class="wheel-indicator"></view>
+              </view>
+            </view>
+          </view>
 
-          <div class="time-summary" v-if="formData.startTime && formData.endTime">
-            <span class="summary-icon">⏱️</span>
-            <span class="summary-text">
+          <view class="slot-tip" v-if="slotsLoading">正在加载可约时段...</view>
+          <view class="slot-tip error" v-else-if="slotsError">{{ slotsError }}</view>
+          <view class="slot-tip" v-else-if="slotsLoaded && availableTimes.length === 0">该日期暂无可约时段，请选择其他日期</view>
+
+          <view class="time-summary" v-if="formData.startTime && formData.endTime">
+            <text class="summary-icon">⏱️</text>
+            <text class="summary-text">
               已选择 {{ formData.startTime }} - {{ formData.endTime }}，
               共 {{ calculatedDuration }} 小时
-            </span>
-          </div>
-        </div>
+            </text>
+          </view>
+        </view>
 
         <!-- 时长选择 -->
-        <div class="section">
-          <div class="section-header">
-            <div class="section-title">服务时长</div>
-            <div class="section-subtitle">自定义时长和金额</div>
-          </div>
-          <div class="custom-row">
-            <div class="custom-field">
+        <view class="section">
+          <view class="section-header">
+            <view class="section-title">服务时长</view>
+            <view class="section-subtitle">自定义时长和金额</view>
+          </view>
+          <view class="custom-row">
+            <view class="custom-field">
               <label class="field-label">服务时长</label>
-              <div class="input-wrapper">
+              <view class="input-wrapper">
                 <input name="customDuration"
                   type="number"
                   class="custom-input"
@@ -222,14 +226,14 @@
                   step="0.5"
                   @input="onCustomDurationInput"
                 />
-                <span class="input-suffix">小时</span>
-              </div>
-            </div>
-            <div class="custom-divider"></div>
-            <div class="custom-field">
+                <text class="input-suffix">小时</text>
+              </view>
+            </view>
+            <view class="custom-divider"></view>
+            <view class="custom-field">
               <label class="field-label">服务金额</label>
-              <div class="input-wrapper price-input-wrapper">
-                <span class="input-prefix">¥</span>
+              <view class="input-wrapper price-input-wrapper">
+                <text class="input-prefix">¥</text>
                 <input name="customPrice"
                   type="number"
                   class="custom-input"
@@ -239,50 +243,53 @@
                   max="9999"
                   @input="onCustomPriceInput"
                 />
-              </div>
-            </div>
-          </div>
-        </div>
+              </view>
+            </view>
+          </view>
+        </view>
 
         <!-- 备注 -->
-        <div class="section">
-          <div class="section-header">
-            <div class="section-title">备注信息</div>
-            <div class="section-subtitle">选填，最多200字</div>
-          </div>
+        <view class="section">
+          <view class="section-header">
+            <view class="section-title">备注信息</view>
+            <view class="section-subtitle">选填，最多200字</view>
+          </view>
           <textarea name="remark"
             class="remark-input"
             v-model="formData.remark"
             placeholder="请输入备注信息..."
             maxlength="200"
           ></textarea>
-        </div>
-      </div>
+        </view>
+      </view>
 
-      <div class="modal-footer">
-        <div class="terms-checkbox" v-if="formData.serviceType === 'offline'">
+      <view class="modal-footer">
+        <view class="terms-checkbox" v-if="formData.serviceType === 'offline'">
           <label class="checkbox-label">
             <input name="agreeTerms" type="checkbox" v-model="agreeTerms" />
-            <span class="checkbox-check"></span>
-            <span class="checkbox-text">我已阅读并同意<a href="#" class="terms-link">服务条款</a>和<a href="#" class="terms-link">隐私政策</a></span>
+            <text class="checkbox-check"></text>
+            <text class="checkbox-text">我已阅读并同意<a href="#" class="terms-link">服务条款</a>和<a href="#" class="terms-link">隐私政策</a></text>
           </label>
-        </div>
-        <div class="price-info">
-          <span class="price-label">订单金额</span>
-          <span class="price-value">{{ totalPrice }} 金币</span>
-        </div>
+        </view>
+        <view class="price-info">
+          <text class="price-label">订单金额</text>
+          <text class="price-value">{{ totalPrice }} 金币</text>
+        </view>
         <button class="submit-btn" :disabled="!canSubmit || submitting" @click="submit">
-          <span v-if="submitting" class="loading-icon">⏳</span>
+          <text v-if="submitting" class="loading-icon">⏳</text>
           {{ submitting ? '提交中...' : '立即预约' }}
         </button>
-      </div>
-    </div>
-  </div>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { DEFAULT_AVATAR } from '../common/constants';
+import { isApp, isH5 } from '../common/platform';
+import { toast } from '../composables/useToast';
+import reserveService from '../services/reserveService';
 
 const props = defineProps({
   visible: Boolean,
@@ -395,9 +402,56 @@ const clearLocation = () => {
   isCustomLocation.value = false;
 };
 
+// App 端没有 navigator.geolocation：用 uni.getLocation 取 gcj02 坐标；
+// Promise 化后所有失败（含用户拒绝授权）都收口成 toast，不产生未捕获异常
+const getUniLocation = () => new Promise((resolve, reject) => {
+  if (typeof uni === 'undefined' || typeof uni.getLocation !== 'function') {
+    reject(new Error('not_supported'));
+    return;
+  }
+  try {
+    uni.getLocation({
+      type: 'gcj02',
+      success: (res) => resolve(res || {}),
+      fail: (err) => reject(new Error((err && err.errMsg) || '定位失败'))
+    });
+  } catch (e) {
+    reject(e);
+  }
+});
+
+const locateByApp = async () => {
+  locating.value = true;
+  try {
+    const { latitude, longitude } = await getUniLocation();
+    formData.offlineLocation = `当前位置 (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+    isCustomLocation.value = false;
+    customLocation.value = '';
+  } catch (error) {
+    const message = String((error && error.message) || '');
+    if (message === 'not_supported') {
+      toast.error('当前环境不支持定位功能');
+    } else if (/deny|denied|auth|拒绝/i.test(message)) {
+      toast.error('定位权限被拒绝，请在系统设置中开启定位权限');
+    } else if (/timeout|超时/i.test(message)) {
+      toast.error('定位请求超时');
+    } else {
+      toast.error('定位失败');
+    }
+  } finally {
+    locating.value = false;
+  }
+};
+
 const getCurrentLocation = () => {
+  // App 原生端没有 navigator.geolocation，走 uni 定位；H5 保持浏览器定位实现
+  if (isApp) {
+    locateByApp();
+    return;
+  }
+
   if (!navigator.geolocation) {
-    alert('您的浏览器不支持定位功能');
+    toast.error('您的浏览器不支持定位功能');
     return;
   }
 
@@ -426,7 +480,7 @@ const getCurrentLocation = () => {
           errorMsg = '定位请求超时';
           break;
       }
-      alert(errorMsg);
+      toast.error(errorMsg);
     },
     {
       enableHighAccuracy: true,
@@ -509,22 +563,87 @@ const calendarStartOffset = computed(() => {
 
 const availableDates = ref(generateDates());
 
-const bookedTimes = ref(['14:00', '15:00', '20:00']);
+// 可约时段一律以服务端 /api/reserve/slots 返回的 status=0 时段为准，
+// 不再使用写死的“已占用”数组（P0：预约时段硬编码）。
+const availableTimes = ref([]);
+const slotsLoading = ref(false);
+const slotsLoaded = ref(false);
+const slotsError = ref('');
 
 const isTimeAvailable = (time) => {
-  return !bookedTimes.value.includes(time);
+  return slotsLoaded.value && availableTimes.value.includes(time);
 };
 
 const isEndTimeAvailable = (time) => {
-  if (!formData.startTime) return true;
+  if (!formData.startTime || !slotsLoaded.value) return false;
   const startIndex = timeSlots.indexOf(formData.startTime);
   const endIndex = timeSlots.indexOf(time);
   if (endIndex <= startIndex) return false;
-  for (let i = startIndex + 1; i <= endIndex; i++) {
-    if (bookedTimes.value.includes(timeSlots[i])) return false;
+  // 结束时刻本身不必是“可选开始时段”，但消耗的每个整点时段都必须可约
+  for (let i = startIndex; i < endIndex; i++) {
+    if (!availableTimes.value.includes(timeSlots[i])) return false;
   }
   return true;
 };
+
+const applySlotTimes = () => {
+  const times = availableTimes.value;
+  if (times.length === 0) {
+    formData.startTime = '';
+    formData.endTime = '';
+    startWheelOffset.value = 0;
+    endWheelOffset.value = 0;
+    return;
+  }
+  const start = times.includes(formData.startTime) ? formData.startTime : times[0];
+  const startIndex = Math.max(0, timeSlots.indexOf(start));
+  let end = formData.endTime;
+  const endIndex = timeSlots.indexOf(end);
+  const endValid = !!end && endIndex > startIndex &&
+    Array.from({ length: endIndex - startIndex }).every((_, i) => availableTimes.value.includes(timeSlots[startIndex + i]));
+  if (!endValid) end = timeSlots[startIndex + 1] || '';
+  formData.startTime = start;
+  formData.endTime = end;
+  startWheelOffset.value = -startIndex * WHEEL_ITEM_HEIGHT;
+  endWheelOffset.value = end ? -timeSlots.indexOf(end) * WHEEL_ITEM_HEIGHT : 0;
+};
+
+const loadSlots = async () => {
+  const companionId = Number(props.companion && props.companion.id);
+  slotsError.value = '';
+  if (!companionId || !formData.date) {
+    availableTimes.value = [];
+    slotsLoaded.value = true;
+    applySlotTimes();
+    return;
+  }
+  slotsLoading.value = true;
+  try {
+    const res = await reserveService.getSlots({ companionId, date: formData.date });
+    const payload = res && res.data !== undefined ? res.data : res;
+    const list = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.list) ? payload.list : []);
+    availableTimes.value = list
+      .filter(slot => Number(slot.status) === 0)
+      .map(slot => slot.time)
+      // 组件滚轮只渲染 timeSlots 内的整点；其它格式的时段不展示，避免选中态与滚轮错位
+      .filter(time => time && timeSlots.includes(time));
+  } catch (error) {
+    console.error('加载可约时段失败:', error);
+    slotsError.value = error.message || '加载可约时段失败，请重试';
+    availableTimes.value = [];
+  } finally {
+    slotsLoading.value = false;
+    slotsLoaded.value = true;
+    applySlotTimes();
+  }
+};
+
+watch(() => formData.date, () => {
+  formData.startTime = '';
+  formData.endTime = '';
+  slotsLoaded.value = false;
+  loadSlots();
+});
 
 const calculatedDuration = computed(() => {
   if (!formData.startTime || !formData.endTime) return 0;
@@ -601,6 +720,8 @@ const isDragging = ref(false);
 const dragType = ref(null);
 
 const onWheelMouseDown = (event, type) => {
+  // PC 鼠标拖拽是 H5 专属交互：App 端不注册 DOM 监听，触摸拖动仍走 touch 分支
+  if (!isH5) return;
   event.preventDefault();
   isDragging.value = true;
   dragType.value = type;
@@ -643,8 +764,11 @@ const onWheelMouseUp = (event) => {
   snapToItem(currentOffset, dragType.value);
   dragType.value = null;
 
-  document.removeEventListener('mousemove', onWheelMouseMove);
-  document.removeEventListener('mouseup', onWheelMouseUp);
+  // App 端没有注册 mousemove/mouseup，触摸分支不需要退订 DOM 监听
+  if (isH5) {
+    document.removeEventListener('mousemove', onWheelMouseMove);
+    document.removeEventListener('mouseup', onWheelMouseUp);
+  }
 };
 
 const selectStartTime = (time) => {
@@ -675,16 +799,14 @@ watch(() => formData.startTime, (newVal) => {
 });
 
 onMounted(() => {
-  const defaultStartIndex = 0;
-  const defaultEndIndex = 2;
-  startWheelOffset.value = -defaultStartIndex * WHEEL_ITEM_HEIGHT;
-  endWheelOffset.value = -defaultEndIndex * WHEEL_ITEM_HEIGHT;
-  formData.startTime = timeSlots[defaultStartIndex];
-  formData.endTime = timeSlots[defaultEndIndex];
-  
+  startWheelOffset.value = 0;
+  endWheelOffset.value = 0;
+  formData.startTime = '';
+  formData.endTime = '';
   if (availableDates.value.length > 0) {
     formData.date = availableDates.value[0].value;
   }
+  loadSlots();
 });
 
 const totalPrice = computed(() => {
@@ -1658,5 +1780,18 @@ const submit = () => {
 .submit-btn:disabled {
   background: #ccc;
   cursor: not-allowed;
+}
+.slot-tip {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #f5f5f7;
+  color: #666;
+  font-size: 13px;
+  text-align: center;
+}
+.slot-tip.error {
+  color: #e74c3c;
+  background: #fdecea;
 }
 </style>

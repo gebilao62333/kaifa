@@ -1,4 +1,4 @@
-// 本迁移按设计不接入启动自动迁移，需手动单独执行；
+// 本迁移已接入启动自动迁移，但受 AUTO_MIGRATE_WIDEN_COLUMNS 开关控制（生产默认跳过，避免启动时重建大表）；
 // 单独执行时无人预先加载 .env，必须在此显式加载，否则会回落到默认的 127.0.0.1:3306。
 require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 
@@ -12,8 +12,9 @@ const sequelize = require('../config/mysql');
  *    以及 xn_admin.last_login_ip，本次一并纳入。）
  * 本脚本把上述列统一放宽为 BIGINT / VARCHAR(45)。
  *
- * ⚠️ 未接入启动自动迁移（ALTER 会触发表重建，生产大表需自行选择维护窗口），
- *    需要时手动执行：node src/migrations/20261003000002_widen_user_id_and_ip.js
+ * ⚠️ 接线后仍受开关控制：非生产默认执行；生产默认跳过（ALTER 会触发表重建，需维护窗口）。
+ *    生产需要时显式设置 AUTO_MIGRATE_WIDEN_COLUMNS=true，或手动执行：
+ *    node src/migrations/20261003000002_widen_user_id_and_ip.js
  */
 
 const USER_ID_TABLES = [

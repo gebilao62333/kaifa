@@ -1,6 +1,6 @@
 # eu搭子 用户端 App 功能导图
 
-覆盖范围：frontend（用户端 App，Vue3 + Pinia + Vue Router）｜口径：53 条路由 / 57 个页面视图 / 30 个服务模块 / 16 个公共组件
+覆盖范围：`app/`（uni-app 迁移版用户端，Vue3 + Pinia + uni 路由兼容层；`frontend/` 旧站已于 2026-10-21 删除，备份见 `.e2e-run/legacy-frontend-backup-2026-10-21/`）｜口径：53 条路由表 + 1 条 NotFound 兜底 / 58 个页面文件（54 条 pages.json 注册，4 个申请表单子组件）/ 37 个服务模块 / 20 个公共组件 / 5 个 composable（2026-10-21 按源码复核）
 
 ## 1. 账号与认证
 ### 1.1 登录注册
@@ -244,7 +244,7 @@
 - user-info：token、用户资料、登录态、余额、积分、等级、VIP、关注 / 粉丝 / 获赞数、平台配置、UI 状态
 - chat：会话列表、消息列表、未读数（会话 / 通知 / 总计）、消息分页、Socket 连接状态
 ### 12.2 网络与实时通信
-- 服务层 30 个模块统一封装业务接口
+- 服务层 31 个模块统一封装业务接口
 - Socket 长连接：连接 / 心跳 / 重连、typing、private_message、message:read、revoke_message
 - P2P 浏览器直传与升级兜底
 - 网络状态监听与离线提示
@@ -344,5 +344,6 @@
 - 业务主线：找陪玩/找游戏搭子 → 沟通（IM / 通话）→ 下单 / 预约 → 履约 → 评价与结算（钱包 / 提现），社交动态与 VIP 特权作为留存与变现的两条侧翼。
 - 三大变现路径：陪玩订单抽成与金币消耗、VIP 会员与装扮商城、礼物与红包互动。
 - 权限设计：用户端以「路由 meta.requiresAuth + 公开白名单」实现页面级鉴权，真正的接口鉴权在后端。
-- 工程观察：57 个页面视图中有 4 个（OnlineApplyForm / OfflineApplyForm / OnlineCompanion / OfflineCompanion）不是独立路由，而是「申请服务」页内嵌的子表单视图；/tag-manager 目前在页面内没有可见入口，属仅路由可达。
-- 页面体量 TOP5：ChatRoom（2627 行）、PublishDemand（1723 行）、MyServices（1599 行）、CompanionApply（1430 行）、Settings（1172 行），是后续拆分重构的重点。
+- 工程观察：58 个页面文件中有 4 个（OnlineApplyForm / OfflineApplyForm / OnlineCompanion / OfflineCompanion）不是独立路由，而是「申请服务」页内嵌的子表单视图；/tag-manager 已在 Mine 页有可见入口（Mine.vue:110/278），不再属仅路由可达。
+- 迁移状态（2026-10-21）：结构层 1:1 已迁移；App 端聊天选图/录音/定位/剪贴板/分享/预览/网络状态/表单 picker 等均已补 uni 能力分支；列表/详情页 32 个通过 onShow 静默刷新；剩余差异见《前端功能差异清单》§11.8。
+- 页面体量 TOP5：ChatRoom（2777 行）、PublishDemand（1723 行）、MyServices（1599 行）、CompanionApply（1430 行）、Settings（1221 行），是后续拆分重构的重点。

@@ -8,12 +8,14 @@ const { moneyMinus } = require('../utils/sql');
 // 预约完成结算分成（陪玩师占比）默认值：系统设置 reserve_commission_rate 缺省时使用（全额给陪玩师）
 const RESERVE_COMMISSION_DEFAULT = 1;
 
-const getAvailableSlots = async (companionId, date, gameId) => {
+// includeDisabled=true 时同时返回已关闭（status=2）的时段，供陪玩师端做「开启/关闭」管理；
+// 用户预约弹窗只传 false，只能看到可约（status=0）时段。已成交（status=1）永远不返回。
+const getAvailableSlots = async (companionId, date, gameId, includeDisabled = false) => {
   const slots = await ReserveSlot.findAll({
     where: {
       user_id: companionId,
       reserve_date: date,
-      status: 0
+      status: includeDisabled ? { [Op.in]: [0, 2] } : 0
     },
     order: [['reserve_time', 'ASC']]
   });

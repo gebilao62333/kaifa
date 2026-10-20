@@ -257,9 +257,10 @@ object KaifaWebRTC {
         }, desc)
     }
 
-    fun addIceCandidate(userId: String, candidate: String, sdpMid: String, sdpMLineIndex: Int) {
+    // UTS 的 number 生成到 Kotlin 是 Number，这里接收 Number 再转 Int，避免 HBuilderX 编译期类型不匹配
+    fun addIceCandidate(userId: String, candidate: String, sdpMid: String, sdpMLineIndex: Number) {
         try {
-            pc?.addIceCandidate(IceCandidate(sdpMid, sdpMLineIndex, candidate))
+            pc?.addIceCandidate(IceCandidate(sdpMid, sdpMLineIndex.toInt(), candidate))
         } catch (e: Exception) {
             emit("error", JSONObject().put("message", e.message ?: "add ice failed"))
         }
@@ -279,6 +280,11 @@ object KaifaWebRTC {
     fun muteAudio(muted: Boolean) {
         audioTrack?.setEnabled(!muted)
         emit("mute", JSONObject().put("muted", muted))
+    }
+
+    fun muteVideo(muted: Boolean) {
+        videoTrack?.setEnabled(!muted)
+        emit("mute-video", JSONObject().put("muted", muted))
     }
 
     fun switchCamera() {

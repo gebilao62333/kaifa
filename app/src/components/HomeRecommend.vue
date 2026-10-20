@@ -1,69 +1,69 @@
 <template>
-  <div class="recommend-section">
-    <div class="section-header">
-      <div class="section-title">推荐陪玩师</div>
-      <div class="section-more" @click="$emit('load-more')">
+  <view class="recommend-section">
+    <view class="section-header">
+      <view class="section-title">推荐陪玩师</view>
+      <view class="section-more" @click="$emit('load-more')">
         {{ loadingMore ? '加载中...' : '更多' }}
-      </div>
-    </div>
-    <div class="recommend-list">
-      <div v-if="loadingCompanions" class="loading-state">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">加载中...</div>
-      </div>
-      <div
+      </view>
+    </view>
+    <view class="recommend-list">
+      <view v-if="loadingCompanions" class="loading-state">
+        <view class="loading-spinner"></view>
+        <view class="loading-text">加载中...</view>
+      </view>
+      <view
         v-for="(item, index) in companions"
         :key="index"
         class="companion-card"
         @click="$emit('user-click', item.userId)"
       >
-        <div class="name-and-status">
-          <div class="companion-name">{{ item.nickName }}</div>
-          <span class="admin-recommend-badge" v-if="item.isAdminRecommend">推荐</span>
-          <span class="vip-badge-mini" v-if="item.vip">VIP{{ item.vipLevel }}</span>
-          <div class="online-status" :class="{ online: item.online, offline: !item.online }">
-            <span class="status-dot"></span>
-            <span class="status-text">{{ item.online ? '在线' : '离线' }}</span>
-          </div>
-        </div>
-        <div class="avatar-wrapper">
-          <div class="avatar-frame-inline" :class="{ vip: item.vip }">
-            <img class="companion-avatar" v-lazy="item.avatar" alt="" />
-          </div>
-        </div>
-        <div class="companion-tags">
-          <span class="tag" v-for="(tag, idx) in item.tags" :key="idx">{{ tag }}</span>
-        </div>
-        <div class="service-and-level">
-          <div class="companion-service">
-            <span class="service-label">服务：</span>
-            <span class="service-tag" v-if="item.serviceType === 'both'">线上/线下</span>
-            <span class="service-tag" v-else-if="item.serviceType === 'online'">线上陪玩</span>
-            <span class="service-tag" v-else-if="item.serviceType === 'offline'">线下陪玩</span>
-          </div>
-          <div class="companion-level" v-if="item.level">Lv.{{ item.level }}</div>
-        </div>
-        <div class="companion-bottom">
-          <div class="companion-location">
-            <span class="location-icon">📍</span>
-            <span class="location-text">{{ item.location }}</span>
-          </div>
-          <div class="companion-price">
-            <span class="price">{{ item.price }} 金币/时</span>
-          </div>
-        </div>
-      </div>
-      <div v-if="!loadingCompanions && companions.length === 0 && !error" class="empty-state">
-        <div class="empty-icon">👥</div>
-        <div class="empty-text">暂无推荐陪玩师</div>
-      </div>
-      <div v-if="!loadingCompanions && companions.length === 0 && error" class="error-state">
-        <div class="error-icon">⚠️</div>
-        <div class="error-text">加载失败，请稍后重试</div>
+        <view class="name-and-status">
+          <view class="companion-name">{{ item.nickName }}</view>
+          <text class="admin-recommend-badge" v-if="item.isAdminRecommend">推荐</text>
+          <text class="vip-badge-mini" v-if="item.vip">VIP{{ item.vipLevel }}</text>
+          <view class="online-status" :class="{ online: item.online, offline: !item.online }">
+            <text class="status-dot"></text>
+            <text class="status-text">{{ item.online ? '在线' : '离线' }}</text>
+          </view>
+        </view>
+        <view class="avatar-wrapper">
+          <view class="avatar-frame-inline" :class="{ vip: item.vip }">
+            <image mode="aspectFill" class="companion-avatar" :src="item.avatar" />
+          </view>
+        </view>
+        <view class="companion-tags">
+          <text class="tag" v-for="(tag, idx) in item.tags" :key="idx">{{ tag }}</text>
+        </view>
+        <view class="service-and-level">
+          <view class="companion-service">
+            <text class="service-label">服务：</text>
+            <text class="service-tag" v-if="item.serviceType === 'both'">线上/线下</text>
+            <text class="service-tag" v-else-if="item.serviceType === 'online'">线上陪玩</text>
+            <text class="service-tag" v-else-if="item.serviceType === 'offline'">线下陪玩</text>
+          </view>
+          <view class="companion-level" v-if="item.level">Lv.{{ item.level }}</view>
+        </view>
+        <view class="companion-bottom">
+          <view class="companion-location">
+            <text class="location-icon">📍</text>
+            <text class="location-text">{{ item.location }}</text>
+          </view>
+          <view class="companion-price">
+            <text class="price">{{ item.price }} 金币/时</text>
+          </view>
+        </view>
+      </view>
+      <view v-if="!loadingCompanions && companions.length === 0 && !error" class="empty-state">
+        <view class="empty-icon">👥</view>
+        <view class="empty-text">暂无推荐陪玩师</view>
+      </view>
+      <view v-if="!loadingCompanions && companions.length === 0 && error" class="error-state">
+        <view class="error-icon">⚠️</view>
+        <view class="error-text">加载失败，请稍后重试</view>
         <button class="retry-btn" @click="$emit('retry')">重新加载</button>
-      </div>
-    </div>
-  </div>
+      </view>
+    </view>
+  </view>
 </template>
 
 <script setup>

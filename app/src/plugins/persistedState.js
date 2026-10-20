@@ -1,5 +1,6 @@
 import { nextTick } from 'vue'
 import { STORAGE_KEYS } from '../common/constants'
+import storageAdapter from '../common/storage'
 
 const PREFIX = 'pinia-'
 
@@ -47,19 +48,27 @@ const buildPersistedState = (state, paths) => {
   }, {})
 }
 
-// 清空持久化插件写入的所有 key（含 legacy 基准 key 与各 store 的独立 key）
-export function clearPersistedState(storage = localStorage) {
+// 清空持久化插件写入的所有 key（含 legacy 基准 key 与各 store 的独立 key）。
+// 默认走 storageAdapter：uni.storage 与 localStorage 两侧的 pinia key 都要清掉，
+// 否则 App 端单向清理后，下次启动仍会从另一侧恢复出旧的登录态/资料。
+export function clearPersistedState(target = storageAdapter) {
   persistSuppressed = true
   try {
-    const keys = []
-    for (let i = 0; i < storage.length; i++) {
-      keys.push(storage.key(i))
-    }
-    keys.forEach((key) => {
-      if (key && (key === STORAGE_KEYS.PINIA_STATE || key.startsWith(STORAGE_KEYS.PINIA_STORE_PREFIX))) {
-        storage.removeItem(key)
+    if (target && typeof target.clearByPrefix === 'function') {
+      // 'pinia-app-state' 本身也是 'pinia-app-state-<storeId>' 的前缀，一次按前缀清完
+      target.clearByPrefix(STORAGE_KEYS.PINIA_STATE)
+    } else {
+      // 兼容显式传入 Web Storage 的调用方：保持原有的 length/key 枚举方式
+      const keys = []
+      for (let i = 0; i < target.length; i++) {
+        keys.push(target.key(i))
       }
-    })
+      keys.forEach((key) => {
+        if (key && (key === STORAGE_KEYS.PINIA_STATE || key.startsWith(STORAGE_KEYS.PINIA_STORE_PREFIX))) {
+          target.removeItem(key)
+        }
+      })
+    }
   } catch (e) {
     // storage 不可用（隐私模式等）时忽略，避免登出流程被中断
   }

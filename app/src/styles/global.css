@@ -4,8 +4,86 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background: #f5f5f7;
+}
+
+uni-app {
+  min-height: 100dvh;
+}
+
+/* ===== 页面切换过渡（对齐旧版 App.vue 的 page / tab 过渡） =====
+   旧版用 vue-router 的 <transition> + route.path key；uni-app 的页面容器是
+   <uni-page>，因此在全局 CSS 上对页面容器做入场动画。
+   主 Tab 滑动时由 common/route.js 的 setNavDirection() 写入 html[data-nav-dir]，
+   切换完成后 420ms 自动移除。 */
+@keyframes kaifa-page-enter {
+  from { opacity: 0; transform: translateX(8px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes kaifa-tab-left {
+  from { opacity: 0.4; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes kaifa-tab-right {
+  from { opacity: 0.4; transform: translateX(-100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+uni-page {
+  animation: kaifa-page-enter 0.2s ease;
+}
+
+html[data-nav-dir="left"] uni-page {
+  animation: kaifa-tab-left 0.32s ease;
+}
+
+html[data-nav-dir="right"] uni-page {
+  animation: kaifa-tab-right 0.32s ease;
+}
+
+/* ===== PC 端通用样式（旧版 App.vue 全局样式补齐） ===== */
+@media (min-width: 768px) {
+  .login-page,
+  .search-page,
+  .edit-profile-page,
+  .settings-page,
+  .service-list-page,
+  .service-detail-page,
+  .chat-room-page,
+  .user-profile-page {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+    padding-bottom: 16px !important;
+  }
+
+  .card,
+  .list-item,
+  .menu-item {
+    border-radius: 12px !important;
+    margin-bottom: 12px !important;
+  }
+
+  .btn,
+  button {
+    border-radius: 10px !important;
+  }
+
+  input,
+  textarea,
+  .form-input {
+    border-radius: 10px !important;
+    font-size: 15px !important;
+  }
 }
