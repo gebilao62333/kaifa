@@ -107,7 +107,7 @@ docker push <仓库前缀>/eudazi-web:v1
   ```
 - `CORS_ORIGIN=https://<你的Web域名>`
 - `TRUST_PROXY=loopback,10.0.0.0/8,172.16.0.0/12`（不要填 `true/*`）
-- `STORAGE_PROVIDER=local`（先本地；有 COS/OSS 再切远端）
+- `STORAGE_PROVIDER=auto`（默认：配了 COS/七牛/OSS 就优先远端，未配置/失败回落本地；只想本地就写 `local`）
 - `AUTO_MIGRATE=true`（迁移幂等；若需控制初始化窗口，可先 false，第 5 步再手工跑）
 - `ADMIN_EMERGENCY_LOGIN=true` + `ADMIN_USERNAME/ADMIN_PASSWORD`（先用于创建正式管理员，完成后必须关掉）
 
@@ -232,7 +232,7 @@ curl -s -o /dev/null -w '%{http_code}\n' https://<域名>/api/admin/users
 
 ## 9. 已知限制 / 注意
 
-- `STORAGE_PROVIDER=local` 时只能单实例；多实例要切 COS/OSS 或共享存储
+- `STORAGE_PROVIDER` 最终落到 `local` 时只能单实例；多实例要切 COS/OSS/七牛或共享存储
 - Sealos 上**不建议自建 coturn**（需要固定公网 IP + UDP 端口段 + host 网络）；先用 STUN 验证，跨网通话再单独找台 VPS 跑 coturn，把 `TURN_URL/TURN_SECRET` 填到后端
 - 短信/微信/支付宝/TRTC 密钥按需在后端环境变量补；未配置时相关功能不可用
 - 管理员后台 CSP 是 `script-src 'self'`，前端不要新增内联脚本（H5 已把早期错误守卫拆成 `static/early-error-guard.js`）

@@ -175,11 +175,29 @@ const STORAGE_PROVIDERS = {
   oss: { isConfigured: isOssConfigured, upload: uploadToOss, remove: deleteFromOss }
 };
 
-/** 解析出「已配置可用」的 provider 优先级链，至少含 local */
+// 远端存储的默认优先级：只有配置齐全的才参与，顺序固定为 cos → qiniu → oss。
+// 用户诉求「配置了就优先用远端，没配就用本地」即由 auto 模式表达。
+const REMOTE_PRIORITY = ['cos', 'qiniu', 'oss'];
+
+/** 解析出「已配置可用」的 provider 优先级链，至少含 local
+ * - provider=auto（默认，或留空）：已配置的远端按 cos→qiniu→oss 排在前面，其余回落 local
+ * - provider=cos,qiniu,oss,local：按显式顺序；未配置的远端跳过
+ * - provider=local：强制本地（即使远端已配置）
+ */
 const resolveProviderChain = () => {
-  const wanted = String(config.storage.provider || 'local').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const raw = String(config.storage.provider || 'auto').trim().toLowerCase();
+  const wanted = raw.split(',').map((s) => s.trim()).filter(Boolean);
+  const names = [];
+  const push = (name) => { if (name && !names.includes(name)) names.push(name); };
+  // auto 模式：把「已配置的远端」放进链首（保持固定优先级），local 会在末尾兜底
+  if (!wanted.length || wanted.includes('auto')) {
+    for (const name of REMOTE_PRIORITY) {
+      if (STORAGE_PROVIDERS[name].isConfigured()) push(name);
+    }
+  }
+  for (const name of wanted) { if (name !== 'auto') push(name); }
   const chain = [];
-  for (const name of wanted) {
+  for (const name of names) {
     const provider = STORAGE_PROVIDERS[name];
     if (!provider) { logger.warn('[upload] 未知的存储 provider，已忽略: ' + name); continue; }
     if (name !== 'local' && !provider.isConfigured()) { logger.warn('[upload] provider ' + name + ' 未配置完整，已跳过'); continue; }

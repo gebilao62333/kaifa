@@ -32,8 +32,40 @@ describe('Service - 多存储 provider 链', () => {
     mockConfig.storage.oss = {};
   });
 
-  it('默认 local：链里只有本地存储', () => {
+  it('显式 local：链里只有本地存储', () => {
     expect(uploadService.getStorageProviderChain()).toEqual(['local']);
+  });
+
+  it('auto（默认）：未配置任何远端时只剩本地', () => {
+    mockConfig.storage.provider = 'auto';
+    expect(uploadService.getStorageProviderChain()).toEqual(['local']);
+  });
+
+  it('auto：配置了 COS 就自动排在本地前面', () => {
+    mockConfig.storage.provider = 'auto';
+    mockConfig.storage.cos = { secretId: 'id', secretKey: 'key', bucket: 'b', region: 'r' };
+    expect(uploadService.getStorageProviderChain()).toEqual(['cos', 'local']);
+  });
+
+  it('auto：七牛 / OSS 也参与，顺序固定 cos→qiniu→oss→local', () => {
+    mockConfig.storage.provider = 'auto';
+    mockConfig.storage.cos = { secretId: 'id', secretKey: 'key', bucket: 'b', region: 'r' };
+    mockConfig.storage.qiniu = { accessKey: 'a', secretKey: 'b', bucket: 'c' };
+    mockConfig.storage.oss = { accessKeyId: 'a', accessKeySecret: 'b', bucket: 'c' };
+    expect(uploadService.getStorageProviderChain()).toEqual(['cos', 'qiniu', 'oss', 'local']);
+  });
+
+  it('显式 local 时即使远端已配置也只用本地', () => {
+    mockConfig.storage.provider = 'local';
+    mockConfig.storage.cos = { secretId: 'id', secretKey: 'key', bucket: 'b', region: 'r' };
+    expect(uploadService.getStorageProviderChain()).toEqual(['local']);
+  });
+
+
+  it('provider 留空也按 auto 处理：配置了远端就优先远端', () => {
+    mockConfig.storage.provider = '';
+    mockConfig.storage.cos = { secretId: 'id', secretKey: 'key', bucket: 'b', region: 'r' };
+    expect(uploadService.getStorageProviderChain()).toEqual(['cos', 'local']);
   });
 
   it('COS 未配置完整时被跳过，自动回落到 local', () => {

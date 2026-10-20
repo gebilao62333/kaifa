@@ -30,7 +30,8 @@ describe('Config - Upload', () => {
   it('generates a filename preserving the extension', () => {
     const cb = jest.fn();
     opts.storage.filename({}, { originalname: 'photo.PNG' }, cb);
-    expect(cb).toHaveBeenCalledWith(null, expect.stringMatching(/\.PNG$/));
+    // M-12 起落盘扩展名统一小写（安全扫描：上传临时文件后缀收敛），这里断言小写
+    expect(cb).toHaveBeenCalledWith(null, expect.stringMatching(/\.png$/));
   });
 
   it('allows supported mime types', () => {

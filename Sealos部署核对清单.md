@@ -32,8 +32,11 @@
 ### 2. 存储（多家组合，逗号分隔按优先级）
 
 ```bash
-STORAGE_PROVIDER=local            # 只用本地（当前默认，已实测可用）
-# STORAGE_PROVIDER=cos,qiniu,oss,local   # 多家组合，未配置/失败自动降级
+STORAGE_PROVIDER=auto             # 默认：配了 COS/七牛/OSS 就优先远端（cos→qiniu→oss），未配置/失败回落本地
+# STORAGE_PROVIDER=local           # 强制只用本地（当前线上未接远端时用这个）
+# STORAGE_PROVIDER=cos,qiniu,oss,local   # 显式指定优先级链
+# 注意：七牛/OSS 需要镜像内已安装 qiniu / ali-oss SDK；未安装会告警并降级本地
+
 STORAGE_FALLBACK=true             # false = 链首失败直接报错，不降级
 # COS_SECRET_ID / COS_SECRET_KEY / COS_BUCKET / COS_REGION
 # QINIU_ACCESS_KEY / QINIU_SECRET_KEY / QINIU_BUCKET / QINIU_DOMAIN

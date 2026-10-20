@@ -95,9 +95,9 @@ module.exports = {
   },
   
   storage: {
-    // 支持「多家组合」：逗号分隔按优先级尝试，例如 cos,qiniu,oss,local
-    // 未配置或上传失败的 provider 自动跳过，最终至少回落到本地存储
-    provider: process.env.STORAGE_PROVIDER || 'local',
+    // 默认 auto：配置齐全的远端存储按 cos → qiniu → oss 优先，未配置或上传失败自动回落 local。
+    // 也可显式写死优先级链，例如 cos,qiniu,oss,local；写 local 则强制只用本地。
+    provider: process.env.STORAGE_PROVIDER || 'auto',
     // 链首失败是否继续尝试下一家（默认开启，可用性优先）；设为 false 则失败即报错
     fallback: process.env.STORAGE_FALLBACK !== 'false',
     cos: {
