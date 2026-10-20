@@ -2,7 +2,7 @@
 
 > **2026-10-20 已按本文完成一次真实部署**（DevBox 发版 + App Launchpad + 托管数据库）：
 > - 线上地址：`https://fazwhznenrqo.sealoshzh.site`
-> - 部署记录 / 账号 / 已知限制 / 版本演进：`deploy/sealos/DEPLOYED-2026-10-20.md`（当前线上 `kaifa-app:v1.0.7`）
+> - 部署记录 / 账号 / 已知限制 / 版本演进：`deploy/sealos/DEPLOYED-2026-10-20.md`（当前线上 `kaifa-app:v1.0.9`，2026-10-21）
 > - 上线逐项核对（**唯一核对表**）：根目录 `Sealos部署核对清单.md`
 > - 实测路径：DevBox（Node 18）→ 发版构建私有镜像 `hub.hzh.sealos.run/ns-5ios4t6b/kaifa-app` → 应用上线
 > - 本文下面的 `Dockerfile.web` + 自建镜像仓库方案作为「不用 DevBox」的备选路径。

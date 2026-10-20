@@ -35,7 +35,7 @@ pnpm task:context    # 查看上下文使用量（70% 阈值）
 
 ## 线上环境（2026-10-20 已部署）
 
-- H5 / 管理后台 / API：`https://fazwhznenrqo.sealoshzh.site`；线上镜像 `kaifa-app:v1.0.7`
+- H5 / 管理后台 / API：`https://fazwhznenrqo.sealoshzh.site`；线上镜像 `kaifa-app:v1.0.9`
 - 部署事实记录：`deploy/sealos/DEPLOYED-2026-10-20.md`；唯一上线核对表：根目录 `Sealos部署核对清单.md`
 
 ## 迁移完整性（2026-10-21 复核；结构层已 1:1，功能层缺口已收口）
@@ -58,7 +58,7 @@ pnpm task:context    # 查看上下文使用量（70% 阈值）
 
 ## 当前边界（2026-10-21）
 
-- 线上已部署（Sealos，`kaifa-app:v1.0.7`，`/api/health` 200）；**该镜像早于 2026-10-21 代码改动**，本轮修复需重新构建发版后才生效
+- 线上已部署（Sealos，`kaifa-app:v1.0.9`，`/api/health` 200）；本批修复已于 2026-10-21 发版生效
 - 验证现状：`app` vitest 25 文件/251 例在宿主进程内实跑通过；79 个 SFC 编译通过；`uni build`（H5/App）与真机未执行（宿主 shell 不可用）
 - App 上传链路已接入（`VITE_USE_NATIVE_CALL` 不影响上传）；H5 行为保持不变
 - App 通话默认仍走浏览器 WebRTC；打自定义基座且 `VITE_USE_NATIVE_CALL=1` 时切到原生插件

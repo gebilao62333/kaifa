@@ -137,7 +137,7 @@ cd ../admin-frontend && npm ci && npm run build
 > 产物体积参考：管理端主包 ~100KB；用户端 H5 产物整体约 4MB（含按需 chunk）。
 > **2026-10-20 起线上 H5 = `app/dist/build/h5`（uni-app 产物）**，由 DevBox 发版打进 `kaifa-app` 镜像。
 > **2026-10-21 旧站 `frontend/` 已删除**：`docker-compose.yml` 的 nginx 站点根已改挂 `./app/dist/build/h5`；旧站回滚依赖备份 `.e2e-run/legacy-frontend-backup-2026-10-21/dist`（不入库，需另存）。
-> **2026-10-21 迁移缺口收口批后需重新构建发版**：线上镜像 `kaifa-app:v1.0.7` 早于本批代码（聊天选图/录音、第三方登录、存储/路由/冷启动、32 页 onShow、平台化与表单改造），未重新构建则线上仍是旧行为。发版前先跑 `cd app && npx --yes pnpm@10.15.0 build:h5`，再按 `deploy/sealos/README.md` 打 tag；构建期风险清单与改动范围见《前端功能差异清单》§11.8。
+> **2026-10-21 迁移缺口收口批已发版**：线上镜像 `kaifa-app:v1.0.9`（v1.0.8 重建本批 H5/管理端，v1.0.9 修复后端 services 桶导出导致的 `/api/user/pref`、`/api/user/skins` 500 既有缺陷）。后续发版仍按 `cd app && npx --yes pnpm@10.15.0 build:h5` + 管理端 `npm ci && npm run build`，再按 `deploy/sealos/README.md` 打 tag；构建期风险清单与改动范围见《前端功能差异清单》§11.8。
 
 ---
 
