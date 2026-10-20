@@ -546,8 +546,6 @@ const handlePermissionContinue = () => {
 
 .audio-player {
   width: 100%;
-.audio-player {
-  width: 100%;
 }
 
 /* App 端试听按钮：uni 没有可直接播放本地临时文件的 <audio>，走 innerAudioContext */
