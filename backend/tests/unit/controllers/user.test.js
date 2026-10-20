@@ -15,6 +15,8 @@ jest.mock('../../../src/services', () => ({
   smsService: {
     sendSMS: jest.fn(),
     verifyCode: jest.fn(),
+    // resetPassword 的失败日志会调用 maskMobile（生产 smsService 有），mock 缺了会变成 TypeError→500
+    maskMobile: jest.fn((m) => String(m)),
     SMS_SCENES: ['login', 'register', 'reset']
   },
   levelService: {

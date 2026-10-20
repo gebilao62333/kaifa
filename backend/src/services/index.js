@@ -54,5 +54,6 @@ module.exports = {
   feedbackService,
   settingsService,
   levelService,
+  skinService,
   noticeService
 };

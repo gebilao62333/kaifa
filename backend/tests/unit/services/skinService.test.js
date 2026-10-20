@@ -120,6 +120,8 @@ describe('Service - skinService（装扮服务端化）', () => {
     });
 
     it('余额不足：条件扣减未命中则整体回滚且不写所有权', async () => {
+      // sf8 是 VIP4 专属，先垫上 VIP 再验证扣款失败路径（否则会先命中 SKIN_VIP_REQUIRED）
+      User.findByPk.mockResolvedValue(userOf({ vip: 1, vip_lv: 4 }));
       User.decrement.mockResolvedValue([[null, 0]]);
       const row = prefRow({ owned: {}, using: {} });
       UserPref.findOne.mockResolvedValue(row);
