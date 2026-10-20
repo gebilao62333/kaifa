@@ -1,6 +1,6 @@
 # 后续工作清单（2026-10-20 状态更新）
 
-> **2026-10-20 22:30 状态同步**：P1「后端部署」**已完成**（Sealos 线上 `https://fazwhznenrqo.sealoshzh.site`，`/api/health` 200，当前镜像 `kaifa-app:v1.0.9`（2026-10-21 已发版））；P1「真实接口联调」**部分完成**（health、用户手机号+密码登录、钱包真实数据、管理员登录、图片上传、Socket.IO handshake 已在线上验证，见 `deploy/sealos/DEPLOYED-2026-10-20.md`）。P0 真机六项与 P2/P3/P4 仍然有效。迁移/发布口径见根目录 `Sealos部署核对清单.md`。
+> **2026-10-20 22:30 状态同步**：P1「后端部署」**已完成**（Sealos 线上 `https://fazwhznenrqo.sealoshzh.site`，`/api/health` 200，当前镜像 `kaifa-app:v1.0.11`（2026-10-21 已发版；存储 auto，远端凭据待配））；P1「真实接口联调」**部分完成**（health、用户手机号+密码登录、钱包真实数据、管理员登录、图片上传、Socket.IO handshake 已在线上验证，见 `deploy/sealos/DEPLOYED-2026-10-20.md`）。P0 真机六项与 P2/P3/P4 仍然有效。迁移/发布口径见根目录 `Sealos部署核对清单.md`。
 
 ## 本轮已完成（代码层，本机可验证）
 

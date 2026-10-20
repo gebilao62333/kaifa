@@ -2,7 +2,7 @@
 
 > **2026-10-20 已按本文完成一次真实部署**（DevBox 发版 + App Launchpad + 托管数据库）：
 > - 线上地址：`https://fazwhznenrqo.sealoshzh.site`
-> - 部署记录 / 账号 / 已知限制 / 版本演进：`deploy/sealos/DEPLOYED-2026-10-20.md`（当前线上 `kaifa-app:v1.0.9`，2026-10-21）
+> - 部署记录 / 账号 / 已知限制 / 版本演进：`deploy/sealos/DEPLOYED-2026-10-20.md`（当前线上 `kaifa-app:v1.0.11`，2026-10-21）
 > - 上线逐项核对（**唯一核对表**）：根目录 `Sealos部署核对清单.md`
 > - 实测路径：DevBox（Node 18）→ 发版构建私有镜像 `hub.hzh.sealos.run/ns-5ios4t6b/kaifa-app` → 应用上线
 > - 本文下面的 `Dockerfile.web` + 自建镜像仓库方案作为「不用 DevBox」的备选路径。
@@ -233,6 +233,7 @@ curl -s -o /dev/null -w '%{http_code}\n' https://<域名>/api/admin/users
 ## 9. 已知限制 / 注意
 
 - `STORAGE_PROVIDER` 最终落到 `local` 时只能单实例；多实例要切 COS/OSS/七牛或共享存储
+- **DevBox 发布前先瘦身**：删 `app/node_modules`、`admin-frontend/node_modules`、旧站与 npm/pnpm 缓存（保留前端 `dist` 与 `backend/node_modules`）。v1.0.10 因项目 733M 发布失败，瘦身到 256M 后 v1.0.11 成功；需要重建前端时再装依赖，构建完可再次删除。
 - Sealos 上**不建议自建 coturn**（需要固定公网 IP + UDP 端口段 + host 网络）；先用 STUN 验证，跨网通话再单独找台 VPS 跑 coturn，把 `TURN_URL/TURN_SECRET` 填到后端
 - 短信/微信/支付宝/TRTC 密钥按需在后端环境变量补；未配置时相关功能不可用
 - 管理员后台 CSP 是 `script-src 'self'`，前端不要新增内联脚本（H5 已把早期错误守卫拆成 `static/early-error-guard.js`）

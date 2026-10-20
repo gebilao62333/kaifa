@@ -13,7 +13,7 @@
 - P1：Login 补第三方登录入口；`resolve('/')`→Home、真实 fullPath、`canResolve`；`legacy-redirect` 补 `/records-center`；App 冷启动已登录 `reLaunch(Home)`；新增 `common/storage.js` 统一 token/pinia/偏好存储（双写、uni 优先回落）。
 - P2：32 页 `onShow` 静默刷新；manifest 补定位权限；定位/剪贴板/分享/预览/网络状态/权限探测/表单 picker/confirm 平台化；GameIndex 字段归一化召回；删除 `v-lazy`/`v-img-fallback` 死代码；vitest 增 `@dcloudio/uni-app` no-op alias。
 - 验证：`app` vitest **25 文件 / 251 例进程内实跑全过**（runner `.e2e-run/migration-audit/run-vitest.mjs`）；`app/src` 79 SFC 编译通过 + 65 JS 解析通过；`uni build`（H5/App）与真机未执行（宿主 shell 不可用）。
-- 已上线（2026-10-21）：线上镜像 `kaifa-app:v1.0.9`，本批代码已生效。
+- 已上线（2026-10-21）：线上镜像 `kaifa-app:v1.0.11`，本批代码已生效。
 - 详见《前端功能差异清单》§11.8、《未完成事项清单》§8.4、《用户端功能完整度检查报告》§11。
 ## 2026-10-20 镜像轮（frontend C 端改动 → app/）
 
@@ -60,7 +60,7 @@
 ### 5. Sealos 生产部署（2026-10-20 04:05）
 
 - 线上：`https://fazwhznenrqo.sealoshzh.site`（H5 / `/admin` / `/api` / `/socket.io`）
-- 应用：`kaifa-app-release-wrgqvl`；部署时用的是更早的镜像 tag（已停用），**当前线上 `kaifa-app:v1.0.9`**（2026-10-21，版本演进见下）
+- 应用：`kaifa-app-release-wrgqvl`；部署时用的是更早的镜像 tag（已停用），**当前线上 `kaifa-app:v1.0.11`**（2026-10-21，版本演进见下）
 - 短信内测：`SMS_TEST_MODE` 白名单回传验证码（13800138001/13900019999），前端自动填入
 - 数据库：Sealos 托管 MySQL/Mongo/Redis（内网服务名直连，均已 up）
 - 已验证：health、真实用户登录/钱包、管理员登录、图片上传、Socket.IO handshake
@@ -70,6 +70,8 @@
   - `v1.0.7`：用户端（`app/dist/build/h5`）与管理端新页面重新发版
   - `v1.0.8`：本批迁移缺口收口重建发版（含 3 处 CSS 未闭合修复）
   - `v1.0.9`：修复 services 桶漏导出 `skinService`（`/api/user/pref`、`/api/user/skins` 由 500 恢复 200）
+  - `v1.0.10`：存储默认 auto + 内置 ali-oss/qiniu SDK；**发布失败**（镜像未产出，Pod 拉不到镜像）
+  - `v1.0.11`：DevBox 瘦身（733M→256M）后重新发布 v1.0.10 内容，发布成功并切 tag
   - 线上当前版本与逐轮执行记录以 `deploy/sealos/DEPLOYED-2026-10-20.md` 为准
 
 ### 6. App 端兜底
