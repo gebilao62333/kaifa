@@ -84,6 +84,9 @@ let durationTimer = null;
 
 // 是否是来电接听方
 const isIncoming = ref(false);
+// 主叫是否已被接听（后端 status 从 0 呼叫中变为 1）：区分「取消呼叫」与「结束通话」
+const callAccepted = ref(false);
+const handleCallAccepted = () => { callAccepted.value = true; };
 
 const initCall = async () => {
   callerId.value = route.params.id;
@@ -139,6 +142,10 @@ const initCall = async () => {
       }
     }
   });
+
+  // 主叫监听接听事件：接听后即使媒体还没连上，挂断也必须走 endCall（发 call_end），
+  // 否则对端通话页会一直停在「正在连接」，只能等本地超时。
+  socketService.on('call_accept', handleCallAccepted);
 
   try {
     if (isIncoming.value) {
@@ -228,7 +235,14 @@ const hangup = async () => {
     durationTimer = null;
   }
 
-  await callService.endCall(callDuration.value);
+  // 未接通就挂断（后端 status=0 呼叫中）：走 cancelCall 发 call_cancel，
+  // 让对方立刻关闭来电弹窗；endCall 发的是 call_end，弹窗要等 60s 超时才会消失（P1-7）。
+  // 已接听后（status=1，即使媒体还在协商）必须走 endCall，否则对端通话页收不到 call_end。
+  if (!isConnected.value && !isIncoming.value && !callAccepted.value) {
+    await callService.cancelCall(callId.value);
+  } else {
+    await callService.endCall(callDuration.value);
+  }
 
   if (localStream.value && callMode.value !== 'webrtc') {
     localStream.value.getTracks().forEach(track => track.stop());
@@ -252,6 +266,7 @@ onUnmounted(() => {
   }
   callService.cleanup();
   socketService.off('call_end');
+  socketService.off('call_accept', handleCallAccepted);
 });
 </script>
 

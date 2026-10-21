@@ -125,11 +125,24 @@ const handleNavigate = (payload) => {
   }
 }
 
+// 后端 banner.image 可能是裸文件名（如 banner1.png）、/uploads/xxx 或完整 URL。
+// 裸文件名按后端静态目录 /uploads 兜底，避免被相对解析到 /pages/ 下变成 SPA HTML。
+const resolveBannerImage = (image) => {
+  const src = String(image || '').trim()
+  if (!src) return ''
+  if (/^(https?:)?\/\//i.test(src) || /^(data|blob):/i.test(src)) return src
+  if (src.startsWith('/')) return src
+  return '/uploads/' + src
+}
+
 const loadBanners = async () => {
   try {
     const result = await homeService.getBanners()
     if (result.code === 200 && result.data && result.data.list) {
-      bannerList.value = result.data.list
+      bannerList.value = result.data.list.map((banner) => ({
+        ...banner,
+        image: resolveBannerImage(banner.image)
+      }))
     }
   } catch (error) {
     console.error('加载Banner失败:', error)

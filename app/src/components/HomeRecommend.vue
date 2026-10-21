@@ -21,9 +21,12 @@
           <view class="companion-name">{{ item.nickName }}</view>
           <text class="admin-recommend-badge" v-if="item.isAdminRecommend">推荐</text>
           <text class="vip-badge-mini" v-if="item.vip">VIP{{ item.vipLevel }}</text>
-          <view class="online-status" :class="{ online: item.online, offline: !item.online }">
+          <view v-if="item.online !== null && item.online !== undefined" class="online-status" :class="{ online: item.online, offline: !item.online }">
             <text class="status-dot"></text>
             <text class="status-text">{{ item.online ? '在线' : '离线' }}</text>
+          </view>
+          <view v-else class="online-status">
+            <text class="status-text">陪玩师</text>
           </view>
         </view>
         <view class="avatar-wrapper">

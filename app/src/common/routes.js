@@ -190,6 +190,15 @@ export const ROUTES = [
     "fullscreen": false
   },
   {
+    "path": "/my-demand",
+    "name": "MyDemand",
+    "view": "MyDemand",
+    "page": "/pages/MyDemand",
+    "title": "我的需求",
+    "requiresAuth": true,
+    "fullscreen": false
+  },
+  {
     "path": "/my-dynamic",
     "name": "MyDynamic",
     "view": "MyDynamic",

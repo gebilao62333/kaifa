@@ -3,7 +3,7 @@
     <div class="page-actions">
       <select v-model="filterStatus" class="status-select" @change="loadList">
         <option value="">全部状态</option>
-        <option value="0">未申请</option>
+        <option value="0">未通过</option>
         <option value="1">审核中</option>
         <option value="2">已通过</option>
       </select>
@@ -74,7 +74,7 @@ const list = ref([])
 const loading = ref(false)
 const showDetail = ref(false)
 const detailItem = ref({})
-const appStatusText = (s) => ({ 0: '未申请', 1: '审核中', 2: '已通过' }[s] || '未知')
+const appStatusText = (s) => ({ 0: '未通过', 1: '审核中', 2: '已通过' }[s] || '未知')
 const appStatusClass = (s) => ({ 0: 'disabled', 1: 'pending', 2: 'success' }[s] || 'disabled')
 const loadList = async () => {
   loading.value = true

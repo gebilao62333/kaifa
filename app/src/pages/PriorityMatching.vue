@@ -23,15 +23,15 @@
         <view class="status-body">
           <view class="status-row">
             <text class="row-label">优先队列</text>
-            <text class="row-value">{{ priorityEnabled ? `第 ${queuePosition} 位` : '—' }}</text>
+            <text class="row-value">{{ priorityEnabled && queuePosition !== null ? `第 ${queuePosition} 位` : '—' }}</text>
           </view>
           <view class="status-row">
             <text class="row-label">预计匹配时间</text>
-            <text class="row-value highlight">{{ priorityEnabled ? avgMatchTime : '—' }}</text>
+            <text class="row-value highlight">{{ priorityEnabled && avgMatchTime ? avgMatchTime : '—' }}</text>
           </view>
           <view class="status-row">
             <text class="row-label">本月优先匹配</text>
-            <text class="row-value">{{ priorityEnabled ? `${monthMatchCount} 次` : '—' }}</text>
+            <text class="row-value">{{ priorityEnabled && monthMatchCount !== null ? `${monthMatchCount} 次` : '—' }}</text>
           </view>
         </view>
       </view>
@@ -72,25 +72,26 @@
 
       <view class="stats-section">
         <view class="section-title">数据统计</view>
+        <view class="stats-hint">统计接入后展示，当前不展示推测数据</view>
         <view class="stats-grid">
           <view class="stat-card">
             <view class="stat-icon">⚡</view>
-            <view class="stat-value">{{ totalPriorityOrders }}</view>
+            <view class="stat-value">{{ totalPriorityOrders === null ? '—' : totalPriorityOrders }}</view>
             <view class="stat-label">优先订单</view>
           </view>
           <view class="stat-card">
             <view class="stat-icon">⏱️</view>
-            <view class="stat-value">{{ avgResponseTime }}s</view>
+            <view class="stat-value">{{ avgResponseTime === null ? '—' : avgResponseTime + 's' }}</view>
             <view class="stat-label">平均响应</view>
           </view>
           <view class="stat-card">
             <view class="stat-icon">✅</view>
-            <view class="stat-value">{{ matchSuccessRate }}%</view>
+            <view class="stat-value">{{ matchSuccessRate === null ? '—' : matchSuccessRate + '%' }}</view>
             <view class="stat-label">匹配成功率</view>
           </view>
           <view class="stat-card">
             <view class="stat-icon">🏆</view>
-            <view class="stat-value">{{ totalMatched }}</view>
+            <view class="stat-value">{{ totalMatched === null ? '—' : totalMatched }}</view>
             <view class="stat-label">累计匹配</view>
           </view>
         </view>
@@ -134,24 +135,27 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, nextTick, onMounted } from 'vue'
+import { ref, reactive, computed, watch, nextTick, onMounted } from 'vue'
 import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import userPrefService from '../services/userPrefService'
 import { toast } from '../composables/useToast'
 import storage from '../common/storage'
+import { useUserStore } from '../store/user-info'
 
 const router = useRouter()
 
-const currentVipLevel = ref(2)
-const priorityEnabled = ref(true)
-const queuePosition = ref(3)
-const avgMatchTime = ref('约 30秒')
-const monthMatchCount = ref(28)
-const totalPriorityOrders = ref(156)
-const avgResponseTime = ref(12)
-const matchSuccessRate = ref(94)
-const totalMatched = ref(89)
+// VIP 等级必须取自登录用户；此前写死 VIP2 导致未开通用户也显示已开启。
+const userStore = useUserStore()
+const currentVipLevel = ref(0)
+// 真实统计接口尚未提供：全部保持 null，页面显示 “—”，不再编造第 3 位/30 秒/94%。
+const queuePosition = ref(null)
+const avgMatchTime = ref(null)
+const monthMatchCount = ref(null)
+const totalPriorityOrders = ref(null)
+const avgResponseTime = ref(null)
+const matchSuccessRate = ref(null)
+const totalMatched = ref(null)
 
 const settings = reactive({
   priorityPush: true,
@@ -159,6 +163,15 @@ const settings = reactive({
   autoAccept: false,
   sameCity: true
 })
+
+const priorityEnabled = computed(() => currentVipLevel.value >= 1 && (
+  settings.priorityPush || settings.smartRecommend || settings.autoAccept || settings.sameCity
+))
+
+const syncVipLevel = () => {
+  const profile = userStore.profile || {}
+  currentVipLevel.value = Number(profile.vipLevel || profile.vipLv || profile.vip || 0) || 0
+}
 
 const loadSettings = () => {
   try {
@@ -191,7 +204,10 @@ const loadPref = async () => {
   hydrating = false
 }
 
-onMounted(loadPref)
+onMounted(() => {
+  syncVipLevel()
+  loadPref()
+})
 
 const toggleSetting = (key) => {
   settings[key] = !settings[key]
@@ -409,6 +425,12 @@ watch(settings, () => {
 
 .stats-section {
   margin-bottom: 16px;
+}
+
+.stats-hint {
+  font-size: 12px;
+  color: #999;
+  margin: -6px 0 10px;
 }
 
 .stats-grid {

@@ -23,6 +23,12 @@
       </button>
     </view>
 
+    <!-- P1-9：申请审核状态（getApplyStatus 失败静默，不阻塞申请主流程） -->
+    <view class="apply-status-bar" v-if="applyStatusText">
+      <text :class="['apply-status-dot', applyStatusClass]"></text>
+      <text class="apply-status-text">申请状态：{{ applyStatusText }}</text>
+    </view>
+
     <view class="selection-tip">
       <view class="selection-text">请阅读协议后再选择服务</view>
       <view class="agreement-container">
@@ -348,8 +354,39 @@ const loadCities = async () => {
   }
 }
 
+// P1-9：申请审核状态。后端 getApplyStatus.status：0=未提交/未通过 1=审核中 2=已通过 3=已暂停接单
+// 已有申请但 status=0 视为「未通过」；完全无记录 status=0 视为「可编辑」（尚未提交）。
+const applyStatus = ref(null)
+
+const applyStatusText = computed(() => {
+  const status = applyStatus.value?.status
+  if (status === 1) return '审核中'
+  if (status === 2 || status === 3) return '已通过'
+  if (status === 0) return applyStatus.value?.gameId ? '未通过' : '可编辑'
+  return ''
+})
+
+const applyStatusClass = computed(() => {
+  const status = applyStatus.value?.status
+  if (status === 1) return 'pending'
+  if (status === 2 || status === 3) return 'approved'
+  if (status === 0) return applyStatus.value?.gameId ? 'rejected' : 'editable'
+  return ''
+})
+
+const loadApplyStatus = async () => {
+  try {
+    const res = await gamesService.getApplyStatus()
+    applyStatus.value = (res && res.data && typeof res.data === 'object') ? res.data : null
+  } catch (e) {
+    // 审核状态是辅助信息：接口失败不打断申请，静默隐藏状态条
+    applyStatus.value = null
+  }
+}
+
 onMounted(() => {
   loadCities()
+  loadApplyStatus()
 })
 
 const levelOptions = [
@@ -524,10 +561,18 @@ const submitForm = async () => {
       description: formData.value.skillIntro,
       icon: imageUrl,
       voiceIntro,
-      voiceTime: voiceIntro ? recordDuration.value : 0
+      voiceTime: voiceIntro ? recordDuration.value : 0,
+      // P1-9：入驻表单收集的 5 个资料字段随申请一起提交（此前父组件已收集但未提交）
+      city: formData.value.city || '',
+      skillLevel: formData.value.level || '',
+      zone: formData.value.zone || '',
+      position: formData.value.position || '',
+      playType: formData.value.playType || ''
     })
 
     showToastMsg('提交成功，等待审核')
+    // 提交成功后刷新审核状态（服务端新申请为审核中，编辑已通过服务仍为已通过）
+    loadApplyStatus()
     closeCompanionModal()
     formData.value = {
       city: '',
@@ -982,6 +1027,35 @@ onUnmounted(() => {
 .tab-text {
   font-size: 15px;
   font-weight: 600;
+}
+
+.apply-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 10px;
+  padding: 10px 14px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.apply-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #999;
+  flex-shrink: 0;
+}
+
+.apply-status-dot.pending { background: #f5a623; }
+.apply-status-dot.approved { background: #4cd964; }
+.apply-status-dot.rejected { background: #f5576c; }
+.apply-status-dot.editable { background: var(--color-primary); }
+
+.apply-status-text {
+  font-size: 13px;
+  color: #666;
 }
 
 .selection-tip {

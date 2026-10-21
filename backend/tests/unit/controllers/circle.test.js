@@ -166,6 +166,28 @@ describe('Controller - Circle', () => {
       expect(circleService.getPosts).toHaveBeenCalledWith(100001, 5, 1, 20);
     });
 
+    it('should accept tag name for legacy clients（Square 仍传 tag 名称）', async () => {
+      circleService.getPosts.mockResolvedValue({ list: [], total: 0 });
+
+      const req = mockReq({ query: { tag: '游戏陪玩', page: '2', pageSize: '10' } });
+      const res = mockRes();
+
+      await circleController.getPosts(req, res);
+
+      expect(circleService.getPosts).toHaveBeenCalledWith(100001, '游戏陪玩', 2, 10);
+    });
+
+    it('should prefer tagId over tag name', async () => {
+      circleService.getPosts.mockResolvedValue({ list: [], total: 0 });
+
+      const req = mockReq({ query: { tagId: '5', tag: '游戏陪玩' } });
+      const res = mockRes();
+
+      await circleController.getPosts(req, res);
+
+      expect(circleService.getPosts).toHaveBeenCalledWith(100001, 5, 1, 20);
+    });
+
     it('should handle non-paginated response without list', async () => {
       circleService.getPosts.mockResolvedValue([{ id: 1 }]);
 

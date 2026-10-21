@@ -178,6 +178,8 @@
           </view>
         </view>
       </view>
+      <!-- 移动端软键盘的回车不一定触发 keyup.enter：有内容时显示发送按钮，避免发不出消息 -->
+      <view v-if="!isVoice && text && text.trim()" class="send-btn" @click="sendText">发送</view>
       <view class="emoji-btn" @click="toggleEmoji">😊</view>
       <view class="add-btn" @click="toggleAdd">+</view>
     </view>
@@ -393,6 +395,7 @@ import { isApp } from '../common/platform';
 import giftService from '../services/giftService';
 import { uploadFile } from '../services/uploadService';
 import socketService from '../services/socketService';
+import { formatClock, toMs } from '../common/time';
 import authService from '../services/authService';
 import GiftList from '../components/gift-list/gift-list.vue';
 import RedPacketPanel from '../components/RedPacketPanel.vue';
@@ -582,18 +585,14 @@ const scheduleDestroyAt = (message, destroyAtSec) => {
   if (delay <= 0) { apply(); return; }
   destroyTimers.set(key, setTimeout(apply, delay));
 };
-const formatTime = (timestamp) => {
- const date = new Date(timestamp);
- const h = date.getHours().toString().padStart(2, '0');
- const m = date.getMinutes().toString().padStart(2, '0');
- return `${h}:${m}`;
-};
+const formatTime = (timestamp) => formatClock(timestamp);
 const shouldShowTime = (index) => {
  if (index === 0)
  return true;
  const current = messages.value[index];
  const prev = messages.value[index - 1];
- return (current.createTime - prev.createTime) > 300000;
+ // 消息 createTime 为秒级，先归一为毫秒再比较 5 分钟间隔
+ return (toMs(current.createTime) - toMs(prev.createTime)) > 300000;
 };
 const currentDateText = computed(() => {
  if (messages.value.length === 0)
@@ -838,12 +837,8 @@ const sendAudio = async (duration, file) => {
  if (index > -1) {
  messages.value[index].status = 'sent';
  }
- setTimeout(() => {
- const idx = messages.value.findIndex(m => m.id === msgId);
- if (idx > -1) {
- messages.value[idx].status = 'read';
- }
- }, 1000);
+ // 已读态由服务端 message:read 事件驱动（见 socketHandlers['message:read']），
+ // 不能在发送 1 秒后本地伪造 read，否则对方没听也显示「已读」。
  }
  catch (error) {
  const index = messages.value.findIndex(m => m.id === msgId);
@@ -1995,12 +1990,23 @@ const teardownSocketListeners = () => {
 onMounted(async () => {
  loadVipItems();
  const targetId = route.params.id;
- if (targetId && targetId !== 'kefu') {
- userInfo.value.userId = parseInt(targetId);
+ // 历史遗留：消息页「在线客服」曾把 targetId 写成字符串 kefu，导致 targetUserId=0 的空会话。
+ // 统一导流到客服页（由客服页消费 /api/config/support 的真实客服账号）。
+ if (targetId === 'kefu') {
+   toast.info('请选择在线客服');
+   router.replace('/customer-service');
+   return;
+ }
+ const peerId = parseInt(targetId, 10);
+ if (!peerId || peerId <= 0) {
+   toast.error('会话对象不存在');
+   router.replace('/preferred');
+   return;
+ }
+ userInfo.value.userId = peerId;
  // 同步给全局 chat store：全局 private_message 监听据此判断「当前会话」，
  // 否则在聊天页收到消息仍会被累加未读（角标虚高且持久化）。
- chatStore.setCurrentChat({ userId: userInfo.value.userId });
- }
+ chatStore.setCurrentChat({ userId: peerId });
  
  if (!localStorage.getItem(STORAGE_KEYS.TOKEN)) {
  router.replace('/login');
@@ -2017,6 +2023,18 @@ onMounted(async () => {
       avatar: userRes.data.avatar || DEFAULT_AVATAR
     };
  }
+
+ // 对端资料：此前只拉了自己，聊天页头部昵称恒空、头像恒默认。
+ // 失败时保留默认值，不阻塞消息加载。
+ try {
+   const peerRes = await authService.getUserInfo(peerId);
+   const peer = peerRes && peerRes.data;
+   if (peer) {
+     userInfo.value.nickName = peer.nickname || peer.nickName || '';
+     userInfo.value.avatar = peer.avatar || DEFAULT_AVATAR;
+     userInfo.value.isOnline = peer.online === true;
+   }
+ } catch (e) { /* 静默：会话仍可正常收发 */ }
  
  await loadMessages();
  scrollToBottom();
@@ -2367,6 +2385,16 @@ onUnmounted(() => {
 
 .voice-btn, .emoji-btn, .add-btn {
   font-size: 28px;
+  cursor: pointer;
+}
+
+.send-btn {
+  flex-shrink: 0;
+  padding: 8px 14px;
+  border-radius: 18px;
+  background: var(--gradient-primary, linear-gradient(135deg, #667eea, #764ba2));
+  color: #fff;
+  font-size: 14px;
   cursor: pointer;
 }
 

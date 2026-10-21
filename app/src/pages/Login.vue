@@ -136,7 +136,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, onMounted } from 'vue'
 import { useRouter, canResolve } from '@/common/route'
 import { isApp } from '../common/platform'
 import { useUserStore } from '../store/user-info'
@@ -632,6 +632,13 @@ const handleResetPwd = async () => {
     toast.error('重置失败，请重试')
   }
 }
+
+// 已登录用户不应停留在登录页（退出登录会先清 token，不会误跳）
+onMounted(() => {
+  if (userStore.token) {
+    try { router.replace('/home') } catch (e) { /* 交由路由守卫兜底 */ }
+  }
+})
 </script>
 
 <style scoped>

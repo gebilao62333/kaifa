@@ -28,6 +28,10 @@
 | `DB_PASSWORD` / `REDIS_PASSWORD` / `MYSQL_ROOT_PASSWORD` / `MONGO_*` | 同样换强随机 |
 | `CORS_ORIGIN` | 填真实域名（逗号分隔），**不要用 `*`** |
 | `SERVER_URL` | 公网地址；不填微信支付回调会落到 `localhost`（当前不接微信支付，可暂不填） |
+| `NODE_ENV` | **生产必须 `production`**：非 production 时换号/登录等接口会在测试模式下回传验证码，存在账号接管风险 |
+| `SMS_TEST_MODE` / `SMS_TEST_PHONES` | 上线必须关闭（或只保留内测白名单并确保不会长期开放）；开启时验证码会回传前端 |
+
+> **v1.0.12 发版新增迁移**：`20261021120000_add_companion_apply_fields.js`（xn_companion_profile 5 列）。上线前先 `node scripts/backup.js --mode=local --target=mysql` 备份，再执行 `npm run migrate` 并连跑两次验幂等；迁移失败只告警不阻断启动，必须回库确认列已存在。
 
 ### 2. 存储（多家组合，逗号分隔按优先级）
 
@@ -84,7 +88,7 @@ LOGS_PATH=/var/log/eudazi        # 与 compose 的 eudazi_logs 卷一致
    ```bash
    cd backend && node src/migrations/runMigrations.js
    ```
-   其中已包含 17 步：货币单位、虚拟人在线调度、帖子标签相册、交互修复字段、删遗留表、红包唯一约束、**宽列修正（第 8/11 步，受 `AUTO_MIGRATE_WIDEN_COLUMNS` 控制、生产默认跳过）**、**密卡 card_key**、**聊天到期撤回 `xn_chat_log.expire_at`**（第 12 步）、**已读自动销毁**（第 13 步）、**公告/卡密密文/实名回填/手机号加密**（第 14~17 步）。
+   其中已包含 18 步（新增 `20261021120000_add_companion_apply_fields.js`：xn_companion_profile 的 5 个入驻字段 + approve_time/reject_reason）：货币单位、虚拟人在线调度、帖子标签相册、交互修复字段、删遗留表、红包唯一约束、**宽列修正（第 8/11 步，受 `AUTO_MIGRATE_WIDEN_COLUMNS` 控制、生产默认跳过）**、**密卡 card_key**、**聊天到期撤回 `xn_chat_log.expire_at`**（第 12 步）、**已读自动销毁**（第 13 步）、**公告/卡密密文/实名回填/手机号加密**（第 14~17 步）。
 3. 若指向**全新空库**，先导入 `backend/sql/01_init_schema.sql`（已含 `xn_card.card_key` 与唯一索引）。
 4. 宽列迁移（已接线，但 production 默认跳过）：新库初始化时用 `AUTO_MIGRATE_WIDEN_COLUMNS=true node src/migrations/runMigrations.js`，或维护窗口单独执行：
    ```bash

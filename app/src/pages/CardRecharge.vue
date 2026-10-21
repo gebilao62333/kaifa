@@ -7,33 +7,74 @@
 
     <view class="card-form">
       <view class="form-icon">🎫</view>
-      <view class="form-desc">输入25位充值密钥即可充值</view>
 
-      <view class="key-input-wrapper">
-        <input
-          v-model="displayKey"
-          type="text"
-          inputmode="numeric"
-          placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
-          class="key-input"
-          maxlength="29"
-          :disabled="loading"
-          @input="onKeyInput"
-        />
-        <view class="key-blocks">
-          <text
-            v-for="(group, gi) in keyGroups"
-            :key="gi"
-            class="key-block"
-            :class="{ filled: group.length === 5 }"
-          >
+      <!-- P2-10：保留原 25 位密钥流程，新增「卡号+密码」模式 -->
+      <view class="mode-switch">
+        <view
+          class="mode-item"
+          :class="{ active: mode === 'key' }"
+          @click="switchMode('key')"
+        >25位密钥</view>
+        <view
+          class="mode-item"
+          :class="{ active: mode === 'card' }"
+          @click="switchMode('card')"
+        >卡号+密码</view>
+      </view>
+      <view class="form-desc">{{ mode === 'key' ? '输入25位充值密钥即可充值' : '输入卡号与卡密密码即可充值' }}</view>
+
+      <template v-if="mode === 'key'">
+        <view class="key-input-wrapper">
+          <input
+            v-model="displayKey"
+            type="text"
+            inputmode="numeric"
+            placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
+            class="key-input"
+            maxlength="29"
+            :disabled="loading"
+            @input="onKeyInput"
+          />
+          <view class="key-blocks">
             <text
-              v-for="(ch, ci) in group.padEnd(5, ' ')"
-              :key="ci"
-              class="key-char"
-              :class="{ placeholder: ch === ' ' }"
-            >{{ ch }}</text>
-          </text>
+              v-for="(group, gi) in keyGroups"
+              :key="gi"
+              class="key-block"
+              :class="{ filled: group.length === 5 }"
+            >
+              <text
+                v-for="(ch, ci) in group.padEnd(5, ' ')"
+                :key="ci"
+                class="key-char"
+                :class="{ placeholder: ch === ' ' }"
+              >{{ ch }}</text>
+            </text>
+          </view>
+        </view>
+      </template>
+
+      <view class="card-credential-form" v-else>
+        <view class="credential-field">
+          <text class="credential-label">卡号</text>
+          <input
+            v-model="cardNo"
+            type="text"
+            class="credential-input"
+            placeholder="请输入卡号（管理端发放，如 DK 开头）"
+            maxlength="50"
+            :disabled="loading"
+          />
+        </view>
+        <view class="credential-field">
+          <text class="credential-label">密码</text>
+          <input
+            v-model="cardPassword"
+            type="password"
+            class="credential-input"
+            placeholder="请输入卡密密码"
+            maxlength="50"
+            :disabled="loading"
+          />
         </view>
       </view>
 
@@ -43,16 +84,22 @@
         @click="submitRecharge"
       >
         <text v-if="loading" class="btn-loading"></text>
-        {{ retryCooldown > 0 ? retryCooldown + 's 后可重试' : (loading ? '验证中...' : '立即充值') }}
+        {{ retryCooldown > 0 ? retryCooldown + 's 后可重试' : (loading ? (mode === 'key' ? '验证中...' : '充值中...') : '立即充值') }}
       </button>
 
       <view class="tips">
         <h4>使用说明</h4>
-        <ul>
+        <ul v-if="mode === 'key'">
           <li>输入平台发放的25位充值密钥</li>
           <li>每张密钥仅可使用一次</li>
           <li>充值成功后余额将立即到账</li>
           <li>无需区分卡号密码，一键充值</li>
+        </ul>
+        <ul v-else>
+          <li>输入管理端发放的卡号与卡密密码</li>
+          <li>卡号与密码需同时正确，任一错误无法充值</li>
+          <li>每张卡密仅可使用一次</li>
+          <li>充值成功后余额将立即到账</li>
         </ul>
       </view>
     </view>
@@ -73,9 +120,15 @@
 import { ref, computed } from 'vue'
 import { useRouter } from '@/common/route'
 import payService from '../services/payService'
+import { useUserStore } from '../store/user-info'
 import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
+const userStore = useUserStore()
+// P2-10：key=25位密钥（原流程），card=卡号+密码
+const mode = ref('key')
+const cardNo = ref('')
+const cardPassword = ref('')
 const displayKey = ref('')
 const rawKey = ref('')
 const loading = ref(false)
@@ -111,7 +164,14 @@ const keyGroups = computed(() => {
   return groups
 })
 
-const canSubmit = computed(() => rawKey.value.replace(/\D/g, '').length === 25)
+const keyValid = computed(() => rawKey.value.replace(/\D/g, '').length === 25)
+const cardValid = computed(() => cardNo.value.trim().length > 0 && cardPassword.value.trim().length > 0)
+const canSubmit = computed(() => mode.value === 'key' ? keyValid.value : cardValid.value)
+
+const switchMode = (value) => {
+  if (mode.value === value || loading.value) return
+  mode.value = value
+}
 
 const onKeyInput = () => {
   // 只保留数字
@@ -130,15 +190,24 @@ const onKeyInput = () => {
 
 const goBack = () => window.history.length > 1 ? router.back() : router.push('/wallet')
 
-const submitRecharge = async () => {
-  if (!canSubmit.value || loading.value) return
+const refreshBalance = async () => {
+  try {
+    await userStore.fetchUserInfo()
+  } catch (err) {
+    // 余额刷新失败不影响已经成功的充值提示
+    console.error('刷新余额失败:', err)
+  }
+}
 
+const submitKeyRecharge = async () => {
   loading.value = true
   try {
     const key = rawKey.value.replace(/\D/g, '')
     const amount = await payService.redeemCardByKey(key)
     resultAmount.value = amount
     showResultModal(true, '')
+    // 两种模式成功后都刷新余额，避免密钥模式与卡号模式表现不一致
+    await refreshBalance()
   } catch (err) {
     console.error('密钥充值失败:', err)
     showResultModal(false, err.message || '网络错误，请稍后重试')
@@ -146,6 +215,44 @@ const submitRecharge = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// 先校验再核销：校验失败/已使用都直接透出服务端 message
+const submitCardRecharge = async () => {
+  const cardNoValue = cardNo.value.trim()
+  const cardPwdValue = cardPassword.value.trim()
+  if (!cardNoValue || !cardPwdValue) return
+
+  loading.value = true
+  try {
+    const validateRes = await payService.validateCard(cardNoValue, cardPwdValue)
+    if (validateRes && validateRes.code !== 200 && validateRes.code !== 0) {
+      throw new Error(validateRes.message || '卡密验证失败')
+    }
+    const validateData = (validateRes && validateRes.data) || {}
+    const useRes = await payService.useCard(cardNoValue, cardPwdValue)
+    if (useRes && useRes.code !== 200 && useRes.code !== 0) {
+      throw new Error(useRes.message || '卡密充值失败')
+    }
+    const useData = (useRes && useRes.data) || {}
+    resultAmount.value = useData.amount ?? useData.coinAmount ?? validateData.coinAmount ?? 0
+    showResultModal(true, '')
+    cardNo.value = ''
+    cardPassword.value = ''
+    await refreshBalance()
+  } catch (err) {
+    console.error('卡号密码充值失败:', err)
+    showResultModal(false, err.message || '网络错误，请稍后重试')
+    if (err.retryAfterSec) startRetryCooldown(err.retryAfterSec)
+  } finally {
+    loading.value = false
+  }
+}
+
+const submitRecharge = async () => {
+  if (!canSubmit.value || loading.value || retryCooldown.value > 0) return
+  if (mode.value === 'key') return submitKeyRecharge()
+  return submitCardRecharge()
 }
 
 const showResultModal = (success, msg) => {
@@ -197,6 +304,67 @@ const closeResult = () => {
   color: #999;
   font-size: 14px;
   margin-bottom: 28px;
+}
+
+/* P2-10：密钥 / 卡号+密码 模式切换 */
+.mode-switch {
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  margin-bottom: 14px;
+  background: #f5f6ff;
+  border-radius: 12px;
+}
+
+.mode-item {
+  flex: 1;
+  padding: 8px 0;
+  text-align: center;
+  font-size: 14px;
+  color: #666;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-item.active {
+  background: var(--gradient-primary);
+  color: #fff;
+  font-weight: 600;
+}
+
+.card-credential-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.credential-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.credential-label {
+  font-size: 13px;
+  color: #666;
+}
+
+.credential-input {
+  width: 100%;
+  padding: 12px 14px;
+  box-sizing: border-box;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 15px;
+  background: #fafafa;
+}
+
+.credential-input:focus {
+  border-color: #667eea;
+  background: #fff;
+  outline: none;
 }
 
 .key-input-wrapper {

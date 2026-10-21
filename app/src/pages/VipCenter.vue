@@ -12,6 +12,13 @@
       </view>
     </view>
 
+    <!-- P2-10：VIP 订单记录入口（消费 /api/vip/orders 与 /api/vip/order/status） -->
+    <view class="orders-entry" @click="openOrders">
+      <text class="orders-entry-icon">🧾</text>
+      <text class="orders-entry-text">我的 VIP 订单</text>
+      <text class="orders-entry-hint">查看开通记录与状态 ›</text>
+    </view>
+
     <view class="packages">
       <view class="section-title">套餐选择</view>
       <view class="package-list">
@@ -65,6 +72,42 @@
         </view>
       </view>
     </view>
+
+    <!-- P2-10：VIP 订单弹层；空态与加载失败都静默展示，不影响套餐/会员信息 -->
+    <view class="orders-mask" v-if="showOrders" @click.self="showOrders = false">
+      <view class="orders-sheet">
+        <view class="orders-header">
+          <text class="orders-title">我的 VIP 订单</text>
+          <text class="orders-close" @click="showOrders = false">×</text>
+        </view>
+        <view class="orders-empty" v-if="orders.length === 0">
+          <text class="orders-empty-icon">🧾</text>
+          <text class="orders-empty-text">{{ ordersLoading ? '加载中...' : '暂无 VIP 订单' }}</text>
+        </view>
+        <view class="orders-list" v-else>
+          <view class="order-item" v-for="order in orders" :key="order.orderNo">
+            <view class="order-top">
+              <text class="order-package">{{ order.packageName || 'VIP会员' }}</text>
+              <text class="order-status" :class="'status-' + order.status">{{ vipOrderStatusText(order.status) }}</text>
+            </view>
+            <view class="order-meta">
+              <text>订单号 {{ order.orderNo }}</text>
+              <text>{{ formatVipOrderTime(order.createTime) }}</text>
+            </view>
+            <view class="order-bottom">
+              <text class="order-amount">{{ order.amount }} 金币</text>
+              <text class="order-duration" v-if="order.duration">{{ order.duration }} 天</text>
+              <text class="order-refresh" v-if="order.status === 0" @click.stop="refreshOrderStatus(order)">
+                {{ refreshingOrderNo === order.orderNo ? '刷新中...' : '刷新状态' }}
+              </text>
+            </view>
+          </view>
+          <view class="orders-more" v-if="ordersHasMore" @click="loadOrders(true)">
+            {{ ordersLoading ? '加载中...' : '加载更多' }}
+          </view>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
@@ -74,7 +117,7 @@ import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import { useUserStore } from '../store/user-info'
 import { toast } from '../composables/useToast'
-import { getVipPackages, getUserVipInfo, createVipOrder, completeVipOrder } from '../services/vipService'
+import { getVipPackages, getUserVipInfo, createVipOrder, completeVipOrder, getVipOrders, getVipOrderStatus } from '../services/vipService'
 import PageLayout from '../components/PageLayout.vue'
 
 const router = useRouter()
@@ -86,6 +129,16 @@ const selectedPkgId = ref(null)
 const selectedDurations = ref({})
 const packages = ref([])
 const isLoading = ref(false)
+
+// P2-10：VIP 订单记录（后端 xn_vip_order.status：0待支付 1已支付 2已取消）
+const VIP_ORDER_STATUS_TEXT = { 0: '待支付', 1: '已支付', 2: '已取消' }
+const ORDERS_PAGE_SIZE = 10
+const showOrders = ref(false)
+const orders = ref([])
+const ordersLoading = ref(false)
+const ordersPage = ref(1)
+const ordersTotal = ref(0)
+const refreshingOrderNo = ref('')
 
 const privileges = ref([
   { id: 1, name: '专属头像框', icon: '👑', route: '/avatar-frame', vipLevel: 1, vipLabel: '黄金' },
@@ -258,6 +311,82 @@ const loadUserVipInfo = async () => {
     console.error('获取VIP信息失败:', error)
     userVipLevel.value = userStore.vipLevel || 2
     vipExpireTime.value = null
+  }
+}
+
+const vipOrderStatusText = (status) => {
+  // Number(null) === 0 会被误映射成「待支付」，先判空再转换
+  if (status === null || status === undefined || status === '') return '未知状态'
+  return VIP_ORDER_STATUS_TEXT[Number(status)] || '未知状态'
+}
+
+const formatVipOrderTime = (ts) => {
+  if (!ts) return ''
+  const d = new Date(ts * 1000)
+  const pad = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+const ordersHasMore = computed(() => orders.value.length < ordersTotal.value)
+
+// 订单列表失败静默：只在弹层回落空态，不影响套餐/会员信息
+const loadOrders = async (more = false) => {
+  if (ordersLoading.value) return
+  const page = more ? ordersPage.value + 1 : 1
+  ordersLoading.value = true
+  try {
+    const res = await getVipOrders({ page, pageSize: ORDERS_PAGE_SIZE })
+    const data = ((res && res.data !== undefined) ? res.data : res) || {}
+    const list = Array.isArray(data) ? data : (Array.isArray(data.list) ? data.list : [])
+    orders.value = more ? orders.value.concat(list) : list
+    ordersTotal.value = Number(data.total) || orders.value.length
+    ordersPage.value = page
+  } catch (error) {
+    console.error('获取VIP订单失败:', error)
+    if (!more) {
+      orders.value = []
+      ordersTotal.value = 0
+    }
+  } finally {
+    ordersLoading.value = false
+  }
+}
+
+const openOrders = () => {
+  if (!userStore.isLogin) {
+    toast.error('请先登录')
+    return
+  }
+  showOrders.value = true
+  orders.value = []
+  ordersTotal.value = 0
+  ordersPage.value = 1
+  loadOrders()
+}
+
+// 待支付订单支持主动查一次状态；支付成功后同步会员信息与本地资料
+const refreshOrderStatus = async (order) => {
+  if (!order || !order.orderNo || refreshingOrderNo.value) return
+  refreshingOrderNo.value = order.orderNo
+  try {
+    const res = await getVipOrderStatus(order.orderNo)
+    const data = ((res && res.data !== undefined) ? res.data : res) || {}
+    const target = orders.value.find(o => o.orderNo === order.orderNo)
+    if (target) {
+      if (data.status !== undefined && data.status !== null) target.status = Number(data.status)
+      if (data.payTime !== undefined) target.payTime = data.payTime
+      if (data.amount !== undefined && data.amount !== null) target.amount = data.amount
+    }
+    if (Number(data.status) === 1) {
+      toast.success('订单已支付，VIP 已开通')
+      await loadUserVipInfo()
+      if (userStore.fetchUserInfo) await userStore.fetchUserInfo()
+    }
+  } catch (error) {
+    console.error('刷新VIP订单状态失败:', error)
+    toast.error(error.message || '刷新订单状态失败')
+  } finally {
+    refreshingOrderNo.value = ''
   }
 }
 
@@ -596,5 +725,187 @@ onMounted(() => {
 
 .pkg-buy-btn:not(.active):hover {
   background: #e0e0e0;
+}
+
+/* P2-10：VIP 订单入口与弹层 */
+.orders-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 2px;
+  padding: 14px 20px;
+  background: #fff;
+  cursor: pointer;
+  border-bottom: 1px solid #f5f5f5;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.orders-entry-icon {
+  font-size: 22px;
+}
+
+.orders-entry-text {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.orders-entry-hint {
+  font-size: 12px;
+  color: #999;
+}
+
+.orders-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 200;
+}
+
+.orders-sheet {
+  width: min(90vw, 420px);
+  max-height: 80vh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 20px;
+  animation: modal-pop 0.25s ease;
+  -webkit-overflow-scrolling: touch;
+}
+
+@keyframes modal-pop {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.orders-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.orders-title {
+  font-size: 17px;
+  font-weight: bold;
+  color: #333;
+}
+
+.orders-close {
+  font-size: 26px;
+  line-height: 1;
+  color: #999;
+  cursor: pointer;
+}
+
+.orders-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 0;
+}
+
+.orders-empty-icon {
+  font-size: 40px;
+}
+
+.orders-empty-text {
+  font-size: 13px;
+  color: #999;
+}
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.order-item {
+  padding: 14px;
+  background: #fafafa;
+  border-radius: 12px;
+}
+
+.order-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.order-package {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+}
+
+.order-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: #f0f0f0;
+  color: #999;
+}
+
+.order-status.status-0 {
+  background: #fff4e5;
+  color: #ff8c00;
+}
+
+.order-status.status-1 {
+  background: #e8f8ef;
+  color: #10b981;
+}
+
+.order-status.status-2 {
+  background: #f2f2f2;
+  color: #999;
+}
+
+.order-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #999;
+}
+
+.order-bottom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.order-amount {
+  font-size: 14px;
+  font-weight: 600;
+  color: #ff6b6b;
+}
+
+.order-duration {
+  font-size: 12px;
+  color: #999;
+}
+
+.order-refresh {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.orders-more {
+  padding: 12px 0 4px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-primary);
+  cursor: pointer;
 }
 </style>

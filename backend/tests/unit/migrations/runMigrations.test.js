@@ -14,6 +14,7 @@ jest.mock('../../../src/migrations/20261020000000_add_notice', () => ({ up: jest
 jest.mock('../../../src/migrations/20261020000001_encrypt_card_password', () => ({ up: jest.fn(), convertData: jest.fn() }));
 jest.mock('../../../src/migrations/20261020000002_backfill_real_name_encryption', () => ({ up: jest.fn(), convertData: jest.fn() }));
 jest.mock('../../../src/migrations/20261020000003_encrypt_mobile', () => ({ up: jest.fn(), convertData: jest.fn() }));
+jest.mock('../../../src/migrations/20261021120000_add_companion_apply_fields', () => ({ up: jest.fn(), convertData: jest.fn() }));
 
 const MODULES = [
  "20240101000000_add_currency_column",
@@ -31,7 +32,8 @@ const MODULES = [
  "20261020000000_add_notice",
  "20261020000001_encrypt_card_password",
  "20261020000002_backfill_real_name_encryption",
- "20261020000003_encrypt_mobile"
+ "20261020000003_encrypt_mobile",
+ "20261021120000_add_companion_apply_fields"
 ];
 const fns = {};
 for (const m of MODULES) fns[m] = require('../../../src/migrations/' + m);
@@ -56,7 +58,7 @@ describe('migrations/runMigrations 接线（防漏接回归）', () => {
     process.env.NODE_ENV = 'test';
   });
 
-  it('16 个迁移文件的 up（共 17 步，含 2 个宽列迁移）全部被 await 执行一次', async () => {
+  it('17 个迁移文件的 up（共 18 步，含 2 个宽列迁移）全部被 await 执行一次', async () => {
     await runMigrations();
     for (const key of Object.keys(fns)) {
       expect(fns[key].up).toHaveBeenCalledTimes(1);
@@ -64,7 +66,7 @@ describe('migrations/runMigrations 接线（防漏接回归）', () => {
     expect(fns['20240101000000_add_currency_column'].convertData).toHaveBeenCalledTimes(1);
   });
 
-  it('AUTO_MIGRATE_WIDEN_COLUMNS=false 时跳过两个宽列迁移，其余 14 个模块照常执行', async () => {
+  it('AUTO_MIGRATE_WIDEN_COLUMNS=false 时跳过两个宽列迁移，其余 15 个模块照常执行', async () => {
     process.env.AUTO_MIGRATE_WIDEN_COLUMNS = 'false';
     await runMigrations();
 

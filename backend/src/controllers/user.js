@@ -12,6 +12,9 @@ const tokenRevocation = require('../services/tokenRevocation');
 const { verifyToken, TOKEN_TYPES } = require('../config/jwt');
 const socialPrivacy = require('../utils/socialPrivacy');
 const blockService = require('../services/blockService');
+// P1-8：换绑手机号单独成服务（避免与 authService 的登录/注册改动互相冲突），
+// 与上面 tokenRevocation / blockService 一样直接 require 具体服务文件。
+const mobileChangeService = require('../services/mobileChangeService');
 
 // 审计低危项：账号枚举。此前「用户不存在 / 密码错误 / 该用户未设置密码」分别返回
 // 不同文案并定位到不同字段，登录接口因此成了一个「手机号是否已注册」的枚举 oracle
@@ -145,6 +148,62 @@ const changePassword = async (req, res) => {
     }
     logger.error('修改密码错误:', error);
     response.error(res, '密码修改失败');
+  }
+};
+
+// P1-8：换绑手机号错误映射。
+// 业务错误按 code 落到 400/422/429/503，非业务异常（数据库/未知）统一 500 且不外泄内部信息。
+const mobileChangeFailure = (res, error, label) => {
+  if (mobileChangeService.isBusinessError(error)) {
+    switch (error.code) {
+      case 'INVALID_MOBILE':
+      case 'CODE_REQUIRED':
+      case 'CODE_INVALID':
+        return response.badRequest(res, error.message);
+      case 'SMS_RATE_LIMITED':
+        return response.tooManyRequests(res, error.message);
+      case 'SMS_UNAVAILABLE':
+      case 'REVOCATION_UNAVAILABLE':
+        return response.serviceUnavailable(res, error.message);
+      default:
+        return response.unprocessableEntity(res, error.message);
+    }
+  }
+  logger.error(`${label}错误:`, error);
+  return response.error(res, `${label}失败`);
+};
+
+// P1-8：一次请求同时给「当前手机号 + 新手机号」发两个验证码。
+// 挂 smsLimiter 的是本接口，而不是让前端自己调两次 /api/user/send-sms——
+// 否则第二次请求会被 1 分钟 IP 限流拒绝，出现只发到一个号的半成品状态。
+const sendChangeMobileCode = async (req, res) => {
+  try {
+    const { oldPhone, newPhone } = req.body || {};
+    if (!newPhone) {
+      return response.badRequest(res, '请输入新手机号');
+    }
+    const data = await mobileChangeService.sendChangeCode(req.userId, { oldPhone, newPhone });
+    response.success(res, data, '验证码已发送');
+  } catch (error) {
+    return mobileChangeFailure(res, error, '发送换号验证码');
+  }
+};
+
+// P1-8：换号。必须同时校验旧号验证码（本人持有旧号）+ 新号验证码（新号可用且归属本人），
+// 新号唯一性走 mobile_hash 盲索引；成功后该账号全部会话作废，前端需重新登录。
+const changeMobile = async (req, res) => {
+  try {
+    const { newPhone, oldCode, newCode } = req.body || {};
+    if (!newPhone) {
+      return response.badRequest(res, '请输入新手机号');
+    }
+    if (!oldCode || !newCode) {
+      return response.badRequest(res, '请输入原手机号和新手机号的验证码');
+    }
+    const result = await mobileChangeService.changeMobile(req.userId, { newPhone, oldCode, newCode });
+    response.success(res, result, '手机号更换成功，请重新登录');
+  } catch (error) {
+    return mobileChangeFailure(res, error, '更换手机号');
   }
 };
 
@@ -840,6 +899,8 @@ module.exports = {
   register,
   resetPassword,
   changePassword,
+  sendChangeMobileCode,
+  changeMobile,
   getUserInfo,
   getUserStats,
   blockUser,

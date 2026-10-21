@@ -2623,7 +2623,9 @@ const approveCompanionApplication = async (req, res) => {
     if (!cp) return response.notFound(res, '申请不存在');
 
     await cp.update({
-      status: 1,
+      // 全仓口径：1=审核中、2=接单中（审核通过）、3=已暂停；审核通过必须写 2，
+      // 否则 getCompanions 的 status=2 过滤看不到该陪玩师、C 端仍显示审核中。
+      status: 2,
       approve_time: Math.floor(Date.now() / 1000)
     });
 
@@ -2641,7 +2643,9 @@ const rejectCompanionApplication = async (req, res) => {
 
     const { reason } = req.body;
     await cp.update({
-      status: 2,
+      // 拒绝回到 0（C 端以「0 + 有 gameId」判定未通过并允许重新申请）；不能写 2，
+      // 2 在 C 端/列表代表审核通过，会导致被拒用户显示已通过且无法重新申请。
+      status: 0,
       reject_reason: reason || '',
       approve_time: Math.floor(Date.now() / 1000)
     });

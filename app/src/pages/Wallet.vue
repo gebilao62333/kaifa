@@ -71,6 +71,24 @@
       </view>
     </view>
 
+    <!-- P2-10：支出总览卡片/入口（walletService.getExpenseOverview） -->
+    <view class="expense-overview-card" @click="showExpenseOverview = true">
+      <view class="expense-overview-header">
+        <text class="expense-overview-title">📉 支出总览</text>
+        <text class="expense-overview-more">查看详情 ›</text>
+      </view>
+      <view class="expense-overview-body">
+        <view class="expense-overview-item">
+          <text class="expense-overview-label">支出总额</text>
+          <text class="expense-overview-value">{{ formatBalance(expenseOverview.totalExpense) }} 金币</text>
+        </view>
+        <view class="expense-overview-item">
+          <text class="expense-overview-label">今日支出</text>
+          <text class="expense-overview-value expense">{{ formatBalance(expenseOverview.todayExpense) }} 金币</text>
+        </view>
+      </view>
+    </view>
+
     <view class="menu-section">
       <view class="menu-group">
         <view class="menu-title">交易记录</view>
@@ -117,11 +135,38 @@
         </view>
       </view>
     </view>
+
+    <!-- P2-10：支出总览弹层，与收入来源构成弹窗同风格 -->
+    <view class="breakdown-mask" v-if="showExpenseOverview" @click="showExpenseOverview = false">
+      <view class="breakdown-sheet" @click.stop>
+        <view class="breakdown-header">
+          <text class="breakdown-title">支出总览</text>
+          <text class="breakdown-close" @click="showExpenseOverview = false">×</text>
+        </view>
+        <view class="breakdown-total">
+          <text class="label">支出总额</text>
+          <text class="num">{{ formatBalance(expenseOverview.totalExpense) }} 金币</text>
+        </view>
+        <view class="breakdown-list">
+          <view class="breakdown-item" v-for="item in expenseBreakdown" :key="item.name">
+            <text class="item-icon" :style="{ background: item.bgColor }">{{ item.icon }}</text>
+            <view class="item-info">
+              <text class="item-name">{{ item.name }}</text>
+              <text class="item-bar"><i :style="{ width: item.percent + '%' }"></i></text>
+            </view>
+            <view class="item-right">
+              <text class="item-amount">{{ formatBalance(item.amount) }}</text>
+              <text class="item-percent">{{ item.percent }}%</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
   </PageLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
@@ -140,6 +185,20 @@ const assetSources = ref([])
 const userInfo = ref({ vip: false, vipLevel: 0 })
 
 const showBreakdown = ref(false)
+const showExpenseOverview = ref(false)
+// 支出总览单独取数：失败时保留 0，不影响总资产/收入等主数据
+const expenseOverview = ref({ totalExpense: 0, todayExpense: 0 })
+
+// 与收入构成同风格：两项按占比展示（今日 / 往期）
+const expenseBreakdown = computed(() => {
+  const total = Number(expenseOverview.value.totalExpense) || 0
+  const today = Number(expenseOverview.value.todayExpense) || 0
+  const todayPercent = total > 0 ? Math.min(100, Math.round((today / total) * 100)) : 0
+  return [
+    { name: '今日支出', icon: '📅', amount: today, percent: todayPercent, bgColor: 'linear-gradient(135deg, #ffe8e8, #fff5f5)' },
+    { name: '往期支出', icon: '🧾', amount: Math.max(0, total - today), percent: total > 0 ? 100 - todayPercent : 0, bgColor: 'linear-gradient(135deg, #eef2ff, #f5f7ff)' }
+  ]
+})
 
 const fetchWallet = async () => {
   try {
@@ -159,6 +218,17 @@ const fetchWallet = async () => {
     assetSources.value = data.list || []
   } catch (err) {
     console.error('获取收入构成失败:', err)
+  }
+  // P2-10：支出总览失败静默，不能影响上面已渲染的主数据
+  try {
+    const res = await walletService.getExpenseOverview()
+    const data = res.data || res
+    expenseOverview.value = {
+      totalExpense: data.totalExpense || 0,
+      todayExpense: data.todayExpense || 0
+    }
+  } catch (err) {
+    console.error('获取支出总览失败:', err)
   }
 }
 
@@ -624,5 +694,67 @@ const goWithdrawRecords = () => {
   color: #999;
 }
 
+/* P2-10：支出总览卡片（与收入构成弹窗同风格） */
+.expense-overview-card {
+  margin: 0 20px 20px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 0px;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  transition: transform 0.2s;
+  /* 负 margin 抵消 .stats-section 之外的 20px 外边距，水平铺满页面限制框 */
+}
 
+.expense-overview-card:active {
+  transform: scale(0.98);
+}
+
+.expense-overview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.expense-overview-title {
+  font-size: 15px;
+  font-weight: bold;
+  color: #333;
+}
+
+.expense-overview-more {
+  font-size: 12px;
+  color: var(--color-primary);
+}
+
+.expense-overview-body {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.expense-overview-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.06), rgba(239, 68, 68, 0.02));
+  border-radius: 12px;
+}
+
+.expense-overview-label {
+  font-size: 12px;
+  color: #666;
+}
+
+.expense-overview-value {
+  font-size: 17px;
+  font-weight: bold;
+  color: #333;
+}
+
+.expense-overview-value.expense {
+  color: #ef4444;
+}
 </style>

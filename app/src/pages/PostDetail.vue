@@ -99,18 +99,12 @@
           <view class="comment-content">
             <view class="comment-user">
               <text class="comment-nickname">{{ comment.nickname }}</text>
+              <text class="reply-target" v-if="comment.replyUser">回复 @{{ comment.replyUser.nickname }}</text>
               <text class="comment-time">{{ formatTime(comment.createTime) }}</text>
             </view>
             <view class="comment-text">{{ comment.content }}</view>
             <view class="comment-actions">
               <text class="comment-reply" @click="replyTo(comment)">回复</text>
-              <text class="comment-like">{{ comment.isLike ? '❤️' : '🤍' }} {{ comment.likes }}</text>
-            </view>
-            <view class="reply-list" v-if="comment.replyList && comment.replyList.length">
-              <view class="reply-item" v-for="reply in comment.replyList" :key="reply.id">
-                <text class="reply-nickname">{{ reply.nickName }}:</text>
-                <text class="reply-text">{{ reply.content }}</text>
-              </view>
             </view>
           </view>
         </view>
@@ -165,6 +159,7 @@ import circleService from '../services/circleService'
 import authService from '../services/authService'
 import { toast } from '../composables/useToast'
 import { isApp } from '../common/platform'
+import { formatTimeAgo } from '../common/time'
 
 const router = useRouter()
 const route = useRoute()
@@ -185,21 +180,7 @@ const onReported = () => {
   toast.success('举报已提交，我们会尽快处理')
 }
 
-const formatTime = (timestamp) => {
-  if (!timestamp) return ''
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diff = now - date
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
-  
-  if (minutes < 1) return '刚刚'
-  if (minutes < 60) return `${minutes}分钟前`
-  if (hours < 24) return `${hours}小时前`
-  if (days < 7) return `${days}天前`
-  return `${date.getMonth() + 1}-${date.getDate()}`
-}
+const formatTime = (timestamp) => formatTimeAgo(timestamp, { fallback: 'slash' })
 
 const loadPostDetail = async (silent = false) => {
   try {
@@ -221,7 +202,11 @@ const loadComments = async () => {
     const res = await circleService.getComments(postId.value)
     const payload1 = res && res.data !== undefined ? res.data : res
     const list1 = Array.isArray(payload1) ? payload1 : (payload1 && Array.isArray(payload1.list) ? payload1.list : [])
-    commentList.value = list1.filter(Boolean).map((c) => Object.assign({}, c, { replyList: Array.isArray(c.replyList) ? c.replyList.filter(Boolean) : [] }))
+    commentList.value = list1.filter(Boolean)
+    // 历史问题：模板读 commentTotal 但这里从未赋值，导致「评论 (0)」恒为 0。
+    // 后端 comments 接口返回 { total, list }，优先用服务端 total，缺失时回退实际条数。
+    const serverTotal = Number(payload1 && payload1.total)
+    commentTotal.value = Number.isFinite(serverTotal) && serverTotal >= 0 ? serverTotal : commentList.value.length
   } catch (err) {
     console.error('加载评论失败:', err)
   }
@@ -336,7 +321,6 @@ const sendComment = async () => {
     if (postData.value.comments !== undefined) {
       postData.value.comments++
     }
-    commentTotal.value++
   } catch (err) {
     toast.error('评论失败，请重试')
   }
@@ -542,6 +526,12 @@ onShow(() => {
 
 .action-item .icon {
   font-size: 20px;
+}
+
+.reply-target {
+  font-size: 12px;
+  color: #667eea;
+  margin-left: 6px;
 }
 
 .comments-section {

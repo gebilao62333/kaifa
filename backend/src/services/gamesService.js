@@ -70,14 +70,21 @@ const getCompanions = async (gameId, page, pageSize, options = {}) => {
       priority: priorityIds.has(Number(profile.user_id)),
       nickname: user?.nickname || '',
       avatar: user?.avatar || '',
-      city: user?.city || '',
+      city: user?.city || profile.city || '',
       level: user?.lv || 1,
       fansCount: user?.fans_num || 0,
+      // 前端 ChatUsers 性别筛选依赖 sex（0=未设置 1=男 2=女），与详情页 gender 字段并行保留
+      sex: user?.sex || 0,
       gameId: profile.game_id,
       servicePrice: Number(profile.price),
       tags: profile.tags ? profile.tags.split(',') : [],
       voiceIntro: profile.voice_intro,
       voiceDuration: profile.voice_time,
+      // P1-9：入驻资料字段（历史数据/缺列统一回落空串，保持 DTO 稳定）
+      skillLevel: profile.skill_level || '',
+      zone: profile.zone || '',
+      position: profile.position || '',
+      playType: profile.play_type || '',
       totalOrders: profile.order_num,
       rating: Number(profile.star),
       ratingCount: profile.pingjia_num
@@ -509,12 +516,21 @@ const getOrders = async (userId, role, status, page, pageSize) => {
   };
 };
 
+// P1-9：入驻表单 5 字段归一化——去空白、空串存 NULL、按列宽截断（列已在迁移中补齐）
+const normalizeApplyField = (value, maxLength) => {
+  if (value === undefined || value === null) return null;
+  const text = String(value).trim();
+  if (!text) return null;
+  return text.slice(0, maxLength);
+};
+
 const applyAsCompanion = async (userId, gameId, price, tags, profile = {}) => {
   const existing = await CompanionProfile.findOne({
     where: { user_id: userId }
   });
 
   // 仅写入模型实际存在的列，避免 Unknown column
+  const hasOwn = (key) => Object.prototype.hasOwnProperty.call(profile, key);
   const extraFields = {
     icon: profile.icon || null,
     description: profile.description || null,
@@ -525,6 +541,20 @@ const applyAsCompanion = async (userId, gameId, price, tags, profile = {}) => {
       ? profile.serviceType
       : (existing?.service_type || 'online')
   };
+  // P1-9：5 个入驻字段只在请求体显式携带时写入；旧客户端/局部编辑未传时沿用既有值，
+  // 避免「编辑服务一次就把已填的城市/等级等清空」。显式传空串表示清空（写 NULL）。
+  const applyFieldMap = [
+    ['city', 'city', 50],
+    ['skillLevel', 'skill_level', 20],
+    ['zone', 'zone', 50],
+    ['position', 'position', 50],
+    ['playType', 'play_type', 20]
+  ];
+  for (const [requestKey, column, maxLength] of applyFieldMap) {
+    if (hasOwn(requestKey)) extraFields[column] = normalizeApplyField(profile[requestKey], maxLength);
+    else if (existing) extraFields[column] = existing[column] == null ? null : existing[column];
+    else extraFields[column] = null;
+  }
 
   const isEdit = !!profile.edit;
   if (existing) {
@@ -542,7 +572,8 @@ const applyAsCompanion = async (userId, gameId, price, tags, profile = {}) => {
       price,
       tags,
       ...extraFields,
-      status: (isEdit && existing.status === 2) ? 2 : 1,
+      // 编辑已通过(2)/已暂停(3)的服务必须保留原状态；只有新申请/被拒重提才回到审核中(1)。
+      status: (isEdit && (existing.status === 2 || existing.status === 3)) ? existing.status : 1,
       update_time: getTimestamp()
     });
   } else {
@@ -618,7 +649,7 @@ const searchCompanions = async (keyword, gameId, page, pageSize) => {
     include: [{
       model: User,
       as: 'user',
-      attributes: ['id', 'nickname', 'avatar', 'city', 'lv', 'fans_num']
+      attributes: ['id', 'nickname', 'avatar', 'city', 'lv', 'fans_num', 'sex']
     }],
     offset,
     limit,
@@ -638,14 +669,21 @@ const searchCompanions = async (keyword, gameId, page, pageSize) => {
       priority: searchPriorityIds.has(Number(profile.user_id)),
       nickname: user?.nickname || '',
       avatar: user?.avatar || '',
-      city: user?.city || '',
+      city: user?.city || profile.city || '',
       level: user?.lv || 1,
       fansCount: user?.fans_num || 0,
+      // 与列表保持一致：前端性别筛选统一读 sex（0=未设置 1=男 2=女）
+      sex: user?.sex || 0,
       gameId: profile.game_id,
       servicePrice: Number(profile.price),
       tags: profile.tags ? profile.tags.split(',') : [],
       voiceIntro: profile.voice_intro,
       voiceDuration: profile.voice_time,
+      // P1-9：与 getCompanions 保持同一套入驻资料字段
+      skillLevel: profile.skill_level || '',
+      zone: profile.zone || '',
+      position: profile.position || '',
+      playType: profile.play_type || '',
       totalOrders: profile.order_num,
       rating: Number(profile.star),
       ratingCount: profile.pingjia_num
@@ -676,17 +714,26 @@ const getCompanionDetail = async (companionId) => {
     userId: profile.user_id,
     nickname: user?.nickname || '',
     avatar: user?.avatar || '',
-    city: user?.city || '',
+    city: user?.city || profile.city || '',
     level: user?.lv || 1,
     fansCount: user?.fans_num || 0,
     signature: user?.dec || '',
+    // gender 为历史字段名保持不动，新增 sex 供列表/筛选统一消费
     gender: user?.sex || 0,
+    sex: user?.sex || 0,
     age: null,
     gameId: profile.game_id,
+    // 前端 UserProfile 据此区分线上/线下服务状态（历史数据缺省为线上）
+    serviceType: profile.service_type || 'online',
     servicePrice: Number(profile.price),
     tags: profile.tags ? profile.tags.split(',') : [],
     voiceIntro: profile.voice_intro,
     voiceDuration: profile.voice_time,
+    // P1-9：入驻资料字段（历史数据回落空串）
+    skillLevel: profile.skill_level || '',
+    zone: profile.zone || '',
+    position: profile.position || '',
+    playType: profile.play_type || '',
     totalOrders: profile.order_num,
     rating: Number(profile.star),
     ratingCount: profile.pingjia_num
@@ -863,6 +910,14 @@ const getMyServices = async (userId) => {
       voiceIntro: profile.voice_intro || '',
       voiceTime: profile.voice_time || 0,
       tags: profile.tags ? profile.tags.split(',') : [],
+      // P1-9：编辑弹窗回填所需的入驻资料字段
+      city: profile.city || '',
+      // 统一请求/其它 DTO 的命名；level 保留一版兼容旧前端
+      skillLevel: profile.skill_level || '',
+      level: profile.skill_level || '',
+      zone: profile.zone || '',
+      position: profile.position || '',
+      playType: profile.play_type || '',
       // status: 1=审核中 2=接单中 3=已暂停
       status: profile.status,
       orderCount: profile.order_num || 0,

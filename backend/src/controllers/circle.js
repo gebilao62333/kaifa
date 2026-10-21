@@ -90,10 +90,21 @@ const createPost = async (req, res) => {
 
 const getPosts = async (req, res) => {
   try {
-    const { tagId, page = 1, pageSize = 20 } = req.query;
+    const { tagId, tag, tagName, page = 1, pageSize = 20 } = req.query;
+    // 标签筛选优先级：tagId 精确匹配 > 标签名称（tag/tagName，兼容历史前端）
+    let tagFilter = null;
+    if (tagId !== undefined && tagId !== null && String(tagId).trim() !== '') {
+      const rawTagId = String(tagId).trim();
+      tagFilter = /^\d+$/.test(rawTagId) ? parseInt(rawTagId) : rawTagId;
+    }
+    if (tagFilter === null && (tag || tagName)) {
+      const rawName = String(tag || tagName).trim();
+      tagFilter = rawName || null;
+    }
+
     const result = await circleService.getPosts(
       req.userId,
-      tagId ? parseInt(tagId) : null,
+      tagFilter,
       parseInt(page),
       parseInt(pageSize)
     );

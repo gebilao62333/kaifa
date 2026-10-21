@@ -8,6 +8,10 @@ router.post('/register', loginLimiter, userController.register);
 router.post('/reset-password', loginLimiter, userController.resetPassword);
 // 已登录用户修改密码（旧密码校验；改密后全端令牌作废，需重新登录）
 router.post('/change-password', authMiddleware, userController.changePassword);
+// P1-8 换绑手机号：一次请求同时给当前号/新号发码（两个独立短信场景，避免两次请求各撞一次 IP 限流）
+router.post('/change-mobile/send-code', authMiddleware, smsLimiter, userController.sendChangeMobileCode);
+// 换号：旧号+新号验证码双校验、新号唯一（mobile_hash 盲索引），成功后吊销全部会话并需重新登录
+router.post('/change-mobile', authMiddleware, userController.changeMobile);
 router.get('/get', authMiddleware, userController.getUserInfo);
 // 个人中心/主页统计（?userId= 可看他人公开计数）
 router.get('/stats', authMiddleware, userController.getUserStats);

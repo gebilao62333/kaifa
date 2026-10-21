@@ -3,7 +3,7 @@
     <template #nav>
       <text class="back-btn" @click="goBack">←</text>
       <text class="nav-title">收入明细</text>
-      <text class="total">今日 +{{ formatAmount(totalIncome) }} 金币</text>
+      <text class="total">今日 +{{ formatAmount(todayIncome) }} 金币</text>
     </template>
 
   <view class="summary-card">
@@ -14,7 +14,7 @@
       <view class="summary-divider"></view>
       <view class="summary-item">
         <text class="summary-label">收入笔数</text>
-        <text class="summary-value">{{ records.length }} 笔</text>
+        <text class="summary-value">{{ totalCount }} 笔</text>
       </view>
     </view>
 
@@ -32,13 +32,17 @@
       </view>
     </view>
 
-    <EmptyState v-if="records.length === 0" icon="💰" text="暂无收入记录" />
+    <EmptyState v-if="records.length === 0 && !loading" icon="💰" text="暂无收入记录" />
+
+    <view class="load-more" v-if="loadingMore">加载中...</view>
+    <view class="load-more" v-else-if="hasMore" @click="loadMore">加载更多</view>
+    <view class="load-more no-more" v-else-if="records.length > 0">没有更多了</view>
   </PageLayout>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { ref, onMounted } from 'vue'
+import { onReachBottom, onShow } from '@dcloudio/uni-app'
 import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import EmptyState from '../components/EmptyState.vue'
@@ -48,24 +52,63 @@ import { toast } from '../composables/useToast'
 
 const router = useRouter()
 
-const records = ref([])
+// P2-5：明细改为 page/pageSize 分页 + 触底加载，避免历史记录多时只看到最近 50 条
+const PAGE_SIZE = 20
 
-const totalIncome = computed(() => {
-  return records.value.reduce((sum, r) => sum + Number(r.amount || 0), 0)
-})
+const records = ref([])
+const totalIncome = ref(0)
+const todayIncome = ref(0)
+const totalCount = ref(0)
+const currentPage = ref(1)
+const hasMore = ref(false)
+const loading = ref(false)
+const loadingMore = ref(false)
 
 const formatAmount = (val) => {
-  return (val || 0).toFixed(2)
+  return Number(val || 0).toFixed(2)
 }
 
-const fetchRecords = async () => {
+// 汇总数字取钱包总览（累计收入/今日收入），不能用当前页记录累加，否则翻页前后会跳变
+const loadOverview = async () => {
   try {
-    const res = await walletService.getIncomeRecords()
-    const data = res.data || res
-    records.value = data.list || []
+    const res = await walletService.getOverview()
+    const data = res.data || res || {}
+    totalIncome.value = Number(data.grossIncome) || 0
+    todayIncome.value = Number(data.todayIncome) || 0
+  } catch (err) {
+    console.error('获取收入汇总失败:', err)
+  }
+}
+
+const loadPage = async (reset = false) => {
+  const targetPage = reset ? 1 : currentPage.value
+  if (reset) {
+    if (loading.value) return
+    loading.value = true
+  } else {
+    if (loadingMore.value || !hasMore.value) return
+    loadingMore.value = true
+  }
+  try {
+    const res = await walletService.getIncomeRecords({ page: targetPage, pageSize: PAGE_SIZE })
+    const data = res.data || res || {}
+    const list = Array.isArray(data.list) ? data.list : []
+    records.value = reset ? list : records.value.concat(list)
+    const total = Number(data.total)
+    totalCount.value = Number.isFinite(total) ? total : records.value.length
+    hasMore.value = Number.isFinite(total) ? records.value.length < total : list.length >= PAGE_SIZE
+    currentPage.value = targetPage + 1
   } catch (err) {
     console.error('获取收入明细失败:', err)
+    if (reset) toast.error(err && err.message ? err.message : '加载收入明细失败')
+  } finally {
+    loading.value = false
+    loadingMore.value = false
   }
+}
+
+const loadMore = () => {
+  loadPage()
 }
 
 onMounted(async () => {
@@ -74,12 +117,15 @@ onMounted(async () => {
     router.replace('/login')
     return
   }
-  await fetchRecords()
+  // 汇总与第一页并行；汇总失败不影响明细展示
+  await Promise.all([loadOverview(), loadPage(true)])
 })
 
 // 返回收入明细页时静默刷新；未登录时保持原跳转逻辑
 const refreshOnShow = () => {
-  if (isLoggedIn()) fetchRecords()
+  if (!isLoggedIn()) return
+  loadOverview()
+  loadPage(true)
 }
 // 首次 onShow 由 onMounted 首载，后续 onShow（返回本页）才静默刷新
 let __firstShow = true
@@ -89,6 +135,11 @@ onShow(() => {
     return
   }
   refreshOnShow()
+})
+
+// H5/App 触底加载；同时保留「加载更多」按钮兜底
+onReachBottom(() => {
+  loadMore()
 })
 
 const goBack = () => {
@@ -219,5 +270,17 @@ const goBack = () => {
 
 .record-amount.income {
   color: #10b981;
+}
+.load-more {
+  text-align: center;
+  padding: 16px;
+  color: var(--color-primary);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.load-more.no-more {
+  color: #ccc;
+  cursor: default;
 }
 </style>

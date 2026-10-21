@@ -3,7 +3,19 @@
     <view class="banner-swiper" @touchstart="onTouchStart" @touchend="onTouchEnd">
       <view class="banner-track" :style="{ transform: `translateX(-${currentBannerIndex * 100}%)` }">
         <view v-for="(banner, index) in banners" :key="index" class="banner-slide">
-          <image mode="aspectFill" class="banner-image" :src="banner.image" :alt="banner.title" @click="onBannerClick(banner)" />
+          <image
+            v-if="!imageFailed[index]"
+            mode="aspectFill"
+            class="banner-image"
+            :src="banner.image"
+            :alt="banner.title"
+            @error="onImageError(index)"
+            @click="onBannerClick(banner)"
+          />
+          <view v-else class="banner-fallback" @click="onBannerClick(banner)">
+            <text class="banner-fallback-title">{{ banner.title || '活动' }}</text>
+            <text class="banner-fallback-hint">点击查看</text>
+          </view>
         </view>
       </view>
       <view class="banner-dots">
@@ -32,6 +44,11 @@ const props = defineProps({
 const emit = defineEmits(['banner-click'])
 
 const currentBannerIndex = ref(0)
+// 运营位图片可能尚未上传/丢失：失败时用标题占位，避免首页出现 200px 空白
+const imageFailed = ref({})
+const onImageError = (index) => {
+  imageFailed.value = { ...imageFailed.value, [index]: true }
+}
 let autoPlayTimer = null
 let touchStartX = 0
 let touchEndX = 0
@@ -120,6 +137,29 @@ onUnmounted(() => {
   height: 100%;
   object-fit: cover;
   cursor: pointer;
+}
+
+.banner-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  cursor: pointer;
+}
+
+.banner-fallback-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.banner-fallback-hint {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
 }
 
 .banner-dots {

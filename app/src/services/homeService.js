@@ -25,7 +25,10 @@ const homeService = {
         level: c.level || 1,
         tags: Array.isArray(c.tags) ? c.tags : (c.tags ? String(c.tags).split(',') : []),
         price: c.servicePrice != null ? c.servicePrice : (c.price != null ? c.price : 0),
-        online: c.online != null ? c.online : false,
+        // 不能把「后端未下发」伪造成 false：交友页会因此对所有人显示「离线」。
+        online: c.online != null ? c.online : null,
+        // 性别供交友页分类；后端 CompanionProfile DTO 返回 sex（0 保密/1 男/2 女）
+        sex: c.sex != null ? Number(c.sex) : null,
         location: c.city || c.location || '',
         serviceType: c.serviceType || 'both',
         vip: c.vip || false,

@@ -1,6 +1,9 @@
 # eu搭子 - 后端 API 接口文档
 
-> 版本: v6.45.0
+> 版本: v6.50.0
+> v6.50.0 变更（2026-10-21，剩余批次修复）: **新增换绑手机号与用户搜索，资料/入驻扩展字段**。①新增 `POST /api/user/change-mobile/send-code`（一次请求给当前手机号发 `bind_old` 码、给新手机号发 `bind_new` 码；非生产回传 `devCodes`）与 `POST /api/user/change-mobile`（双码校验 + 新号盲索引查重 + 吊销全部会话 + 原子换号，返回 `requireRelogin:true`）；②新增 `GET /api/search/users`（可选登录，昵称模糊搜索，遵守“允许被搜索”隐私开关）；③ `GET /api/user/get` 返回 `profileExtra`（生日/身高/职业/爱好/擅长游戏/主页背景/标签公开，微信/邮箱仅本人）且 `POST /api/user/update` 接受 `profileExtra`；④ `POST /api/games/apply` 接受并落库 `city/skillLevel/zone/position/playType`，`my-services`/`companions`/`companions/:id` 按需返回；⑤ `POST /api/circle/*` 标签/图片契约见 v6.49.0；⑥ 管理端审核口径修正：`/api/admin/companion-applications/:id/approve` 写 `status=2`（接单中/通过）、`reject` 写 `status=0`（未通过，可重新申请），并补 `approve_time/reject_reason` 列，响应字段不变。
+> 版本: v6.49.0
+> v6.49.0 变更（2026-10-21，页面功能检查修复批）: **响应字段与广场标签能力补齐，无路径/状态码变化**。① `GET /api/user/get` 仅当查询本人时新增 `mobile`（脱敏 `138****8888`，查他人不返回）；② `GET /api/games/companions`、`GET /api/games/search` 列表项新增 `sex`（0 保密/1 男/2 女）；③ `GET /api/games/companions/:companionId` 新增 `sex` 与 `serviceType`（`online`/`offline`，驱动用户主页线下服务状态）；④ `GET /api/circle/tags` 不再硬编码返回空数组，改为读启用标签并按 `sort_order,id` 升序返回 `{ id, name, tagId, tagName, icon, sortOrder }`；⑤ `GET /api/circle/posts` 的 `tag` 参数兼容标签名称（数字按 tagId 精确匹配），名称为空/查不到时返回空列表；⑥ `GET /api/circle/post/:id`、`GET /api/circle/my-posts` 的 `images` 统一按 JSON 数组/逗号分隔两种历史格式解析。
 > 版本: v6.48.0
 > v6.48.0 变更（2026-10-20）: **微信支付扫码链路（NATIVE）+ 未配置语义**。①`POST /api/pay/wx-order` 新增可选 `tradeType`（`NATIVE` 默认 / `JSAPI` 需 `openid`），响应新增 `tradeType/codeUrl`；NATIVE 走微信统一下单 `trade_type=NATIVE` 并回传真实 `code_url` 供前端渲染二维码；②未配置微信商户参数时返回 **503**，与业务错误 422 区分；③客户端不再需要伪造回执：入账仍只认 `/wx-notify`（微信服务端）或 `/wx-callback`（服务端反查）——客户端的 `/wx-callback` 调用已从支付页移除；④支付宝渠道后端未实现，充值页隐藏该入口。
 > 版本: v6.47.0
@@ -184,10 +187,15 @@
     "score": 12500,
     "fansCount": 256,
     "isFollow": false,
-    "description": "个性签名"
+    "description": "个性签名",
+    "mobile": "138****8888"
   }
 }
 ```
+
+> `mobile` 仅在 `userId` 为空或等于本人时返回脱敏值；查询他人资料不返回手机号（v6.49.0）。
+
+> `profileExtra`（v6.50.0）：资料扩展字段对象，公开字段 `birthday/height/profession/hobbies/games/bgImage/tags` 所有查看者可见；`wechat/email` 仅本人可见。存量无该数据时字段缺省。
 
 ### 2.2 更新用户信息
 
@@ -200,10 +208,12 @@
   "avatar": "url",
   "sex": 1,
   "city": "北京",
-  "description": "个性签名"
+  "description": "个性签名",
+  "profileExtra": { "birthday": "1998-01-01", "height": 170, "profession": "设计师", "hobbies": ["游戏"], "games": ["王者荣耀"], "price": 88, "wechat": "wx_id", "email": "a@b.com", "bgImage": "url", "tags": [1,2] }
 }
 ```
 - **响应**: `{ "code": 200, "message": "更新成功" }`
+- **profileExtra（v6.50.0）**: 可选对象，存放在 `xn_user_pref.data.profileExtra`（无表结构变更）；只提交 `profileExtra` 时不会触发 User 空更新。数组/数字/空值服务端做边界归一。
 - **等级门槛（v6.5）**: 请求体含非空 `dec`（个性签名，前端字段名为 `description`）时校验 `signature` 权益，Lv.5 以下返回 `422`（`errors.level`，见 2.16）；不填签名、清空签名或只改昵称/头像等均不受限。更新成功不产生经验。
 
 ### 2.3 关注用户
@@ -342,6 +352,18 @@
 - **会话吊销（v6.43.0，补 H-5 口子）**: 旧密码校验通过后、写库**之前**，先吊销该账号全部令牌（水位线 `auth:revoke-user:<userId>`），与 2.10 重置密码同口径；生产环境吊销状态无法确认时返回 **503 且不改库**，避免「密码已改、旧令牌仍有效」的中间态
 - **响应**: `{ "code": 200, "message": "密码修改成功，请重新登录", "data": { "devicesRevoked": true } }`
 - **错误**: 缺参 / 旧密码错误 → **400**；新密码长度不合法或与旧密码相同 → **422**；吊销不可确认（生产 fail-closed）→ **503**
+
+### 2.20 换绑手机号（v6.50.0）
+
+- **发送双验证码**: `POST /api/user/change-mobile/send-code`（`authMiddleware` + `smsLimiter`）
+  - 请求体 `{ "newPhone": "13900000000" }`（旧号取当前登录账号已绑定手机号）
+  - 一次请求分别按 `bind_old` / `bind_new` 场景给旧号、新号发码，避免两次请求撞 IP 1 次/分钟限流；非生产/测试白名单回传 `{ devCodes: { oldCode, newCode } }`
+  - 错误：未绑定手机号 `MOBILE_NOT_BOUND`；新号格式/与旧号相同/已被占用 → 422；短信未配置 → 503
+- **确认换号**: `POST /api/user/change-mobile`（`authMiddleware`）
+  - 请求体 `{ "oldCode": "123456", "newCode": "654321" }`
+  - 服务端双码校验 → `mobile_hash` 唯一查重 → 先吊销该账号全部 access+refresh（水位线）→ 事务内写 `mobile` 密文与 `mobile_hash`
+  - 响应 `{ "code": 200, "message": "手机号更换成功，请重新登录", "data": { "requireRelogin": true } }`
+  - 失败时不改任何数据；吊销不可确认（生产 Redis 不可用）→ 503
 
 ### 2.14 获取等级经验信息
 
@@ -773,6 +795,7 @@
 
 - **接口**: `GET /api/games/companions`
 - **认证**: 需要
+- **响应字段（v6.49.0）**: 列表项新增 `sex`（0 保密/1 男/2 女），供交友页性别筛选；`GET /api/games/search` 同样返回。
 
 ### 6.3 游戏订单操作
 
@@ -793,8 +816,8 @@
 
 | 接口 | 方法 | 说明 |
 |------|------|------|
-| `/api/games/apply` | POST | 申请成为陪玩师；body 支持 `description/icon/voiceIntro/voiceTime/serviceType`（`serviceType` 仅接受 `online`/`offline`，落 `xn_companion_profile.service_type`；缺省或非法值时沿用该用户原记录的类型，无原记录按 `online`；`voiceTime` 为录音秒数） |
-| `/api/games/my-services` | GET | 我的服务列表，返回项含 `serviceType`（`online`/`offline`，无列时回落 `online`）与 `voiceIntro/voiceTime`，供编辑页沿用原类型与原语音时长 |
+| `/api/games/apply` | POST | 申请成为陪玩师；body 支持 `description/icon/voiceIntro/voiceTime/serviceType` 与 v6.50.0 新增 `city/skillLevel/zone/position/playType`（落 `xn_companion_profile` 对应列；`serviceType` 仅接受 `online`/`offline`，缺省或非法值时沿用原记录，无记录按 `online`；`voiceTime` 为录音秒数） |
+| `/api/games/my-services` | GET | 我的服务列表，返回项含 `serviceType`（`online`/`offline`，无列时回落 `online`）与 `voiceIntro/voiceTime`，供编辑页沿用原类型与原语音时长；v6.50.0 起另返回 `city/skillLevel/zone/position/playType` |
 | `/api/games/apply/status` | GET | 查询申请状态 |
 
 ### 6.5 陪玩师详情
@@ -802,6 +825,7 @@
 - **接口**: `GET /api/games/companions/:companionId`
 - **认证**: 需要
 - **说明**: 获取单个陪玩师详细信息（评分/接单量/标签等）。
+- **响应字段（v6.49.0）**: 新增 `sex`（0/1/2）与 `serviceType`（`online`/`offline`，缺省 `online`）；`gender` 保留兼容。
 
 ### 6.6 搜索陪玩师
 
@@ -835,12 +859,13 @@
 
 - **接口**: `GET /api/circle/tags`
 - **认证**: 不需要
+- **响应（v6.49.0）**: `data` 为数组，项含 `{ id, name, tagId, tagName, icon, sortOrder }`（`tagId/tagName` 为前端兼容别名）；只返回启用标签，按 `sort_order,id` 升序；无启用标签时为空数组。
 
 ### 7.2 获取帖子列表
 
 - **接口**: `GET /api/circle/posts`
 - **认证**: 可选
-- **参数**: `?page=1&pageSize=10&tag=游戏`
+- **参数**: `?page=1&pageSize=10&tag=游戏` 或 `?tagId=1`（v6.49.0：`tag` 兼容标签名称，数字按 tagId 精确匹配；名称查不到返回空列表，不退化为全量）
 
 ### 7.3 获取帖子详情
 
@@ -1306,6 +1331,7 @@
 | `/api/search/hot` | GET | 不需要 | 热搜词列表 |
 | `/api/search/posts` | GET | 需要 | 搜索帖子（`?keyword=xxx&page=1&pageSize=10`） |
 | `/api/search/games` | GET | 需要 | 搜索游戏/陪玩师（`?keyword=xxx`） |
+| `/api/search/users` | GET | 可选 | 普通用户搜索（v6.50.0）：`?keyword=xxx&page=1&pageSize=10`；昵称模糊、排除自己、遵守 `allowSearch` 隐私开关；返回 `{ total,page,pageSize,totalPages,list:[{userId,nickname,avatar,level,sex,fansCount}] }` |
 
 ### 16.11 公告模块 (`/api/notice`)（v6.38.0，B-3/B-4）
 

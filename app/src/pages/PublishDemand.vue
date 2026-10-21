@@ -790,11 +790,13 @@ const submitDemand = async () => {
   try {
     const result = await demandService.createDemand(demandData)
     
-    if (result.code === 0) {
+    // 请求层已把 201 Created 归一为 code 200（见 common/common.js），这里必须同时接受 0/200，
+    // 否则需求已落库却弹「发布失败」，用户重试会重复发布。
+    if (result && (result.code === 0 || result.code === 200)) {
       toast.success('需求发布成功！')
       router.back()
     } else {
-      toast.error(result.message || '发布失败，请重试')
+      toast.error((result && result.message) || '发布失败，请重试')
     }
   } catch (error) {
     console.error('发布需求异常:', error)

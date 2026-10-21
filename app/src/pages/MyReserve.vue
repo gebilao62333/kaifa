@@ -111,6 +111,7 @@
             <view class="detail-name">{{ currentOrder?.companionName }}</view>
             <view class="detail-game">{{ currentOrder?.gameName || '陪玩服务' }}</view>
           </view>
+          <text class="detail-loading" v-if="detailLoading">加载中...</text>
           <text class="detail-close" @click="showDetail = false">✕</text>
         </view>
         <view class="detail-body" v-if="currentOrder">
@@ -167,6 +168,7 @@ const STATUS_COLOR = { 0: '#ff9500', 1: '#5b6ef5', 2: '#ff4d4f', 3: '#52c41a', 4
 const tabs = [
   { label: '待确认', value: 0 },
   { label: '已确认', value: 1 },
+  { label: '已拒绝', value: 2 },
   { label: '已完成', value: 3 },
   { label: '已取消', value: 4 }
 ]
@@ -176,6 +178,7 @@ const orders = ref([])
 const loading = ref(false)
 const showDetail = ref(false)
 const currentOrder = ref(null)
+const detailLoading = ref(false)
 
 const filteredOrders = computed(() => orders.value)
 
@@ -367,12 +370,60 @@ const cancelOrder = async (order) => {
 }
 
 const contactUser = (order) => {
-  router.push(`/chat-room/${order.companionId}`)
+  // 「我发起的」联系陪玩师；「我收到的」联系预约用户（后端列表同时返回 userId 与 companionId）。
+  // 历史实现固定用 companionId，接单方点「联系对方」会进入自己与自己的会话。
+  const peerId = role.value === 'companion'
+    ? (order.userId || order.user_id)
+    : (order.companionId || order.companion_id)
+  if (!peerId) {
+    toast.error('对方信息不存在')
+    return
+  }
+  router.push(`/chat-room/${peerId}`)
 }
 
-const viewOrderDetail = (order) => {
+// P2-10：详情弹层先取真实详情，失败回退列表行（不打断展示、不弹错误）
+const mergeReserveDetail = (order, detail) => {
+  const counterpart = role.value === 'companion' ? detail.user : detail.companion
+  return {
+    ...order,
+    reserveId: detail.reserveId ?? order.reserveId,
+    userId: (detail.user && detail.user.userId) ?? order.userId,
+    companionId: (detail.companion && detail.companion.userId) ?? order.companionId,
+    companionName: (counterpart && counterpart.nickname) || order.companionName,
+    companionAvatar: (counterpart && counterpart.avatar) || order.companionAvatar,
+    gameId: detail.gameId ?? order.gameId,
+    gameName: detail.gameName || order.gameName,
+    date: detail.date || order.date,
+    time: detail.time || order.time,
+    status: (detail.status !== undefined && detail.status !== null) ? detail.status : order.status,
+    createTime: detail.createTime || order.createTime,
+    updateTime: detail.updateTime || order.updateTime
+  }
+}
+
+const viewOrderDetail = async (order) => {
   currentOrder.value = order
   showDetail.value = true
+
+  const reserveId = Number(order && order.reserveId)
+  if (!reserveId) return
+
+  detailLoading.value = true
+  try {
+    const res = await reserveService.getReserveDetail(reserveId)
+    const detail = ((res && res.data !== undefined) ? res.data : res) || {}
+    // 详情返回晚于关闭/切换时，只回填仍在展示的同一单
+    if (detail && Number(detail.reserveId)
+      && currentOrder.value && Number(currentOrder.value.reserveId) === reserveId) {
+      currentOrder.value = mergeReserveDetail(order, detail)
+    }
+  } catch (err) {
+    // 失败回退列表行字段：列表已含展示所需字段，静默处理
+    console.error('获取预约详情失败:', err)
+  } finally {
+    detailLoading.value = false
+  }
 }
 
 const goBack = () => router.back()
@@ -886,6 +937,12 @@ onShow(() => {
 .detail-game {
   font-size: 13px;
   color: #999;
+}
+
+.detail-loading {
+  font-size: 12px;
+  color: #999;
+  margin-right: 20px;
 }
 
 .detail-close {

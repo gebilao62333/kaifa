@@ -342,7 +342,12 @@ describe('Controller - Games', () => {
           icon: 'icon.png',
           voiceIntro: 'voice.mp3',
           voiceTime: 12,
-          serviceType: 'offline'
+          serviceType: 'offline',
+          city: '上海',
+          skillLevel: 'professional',
+          zone: 'china-east',
+          position: 'mid',
+          playType: 'carry'
         }
       });
       const res = mockRes();
@@ -355,7 +360,11 @@ describe('Controller - Games', () => {
         1,
         30,
         ['技术流', '温柔'],
-        { description: '五年王者段位', icon: 'icon.png', voiceIntro: 'voice.mp3', voiceTime: 12, serviceType: 'offline' }
+        {
+          description: '五年王者段位', icon: 'icon.png', voiceIntro: 'voice.mp3', voiceTime: 12, serviceType: 'offline',
+          // P1-9：入驻资料 5 字段由控制器透传，避免前端收集后在控制器层丢失
+          city: '上海', skillLevel: 'professional', zone: 'china-east', position: 'mid', playType: 'carry'
+        }
       );
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(

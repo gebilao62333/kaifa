@@ -80,6 +80,9 @@ const showIncomingCall = (info) => {
 
   socketService.on('call_cancel', handleCallCancelled)
   socketService.on('call_reject', handleCallCancelled)
+  // 兜底：对端直接挂断时发的是 call_end（未接通取消发 call_cancel）。不监听的话
+  // 弹窗只能等 60s 超时自动拒绝，主叫已经放弃、被叫还在响铃（P1-7）。
+  socketService.on('call_end', handleCallCancelled)
 }
 
 const hideIncomingCall = () => {
@@ -91,6 +94,7 @@ const hideIncomingCall = () => {
   }
   socketService.off('call_cancel', handleCallCancelled)
   socketService.off('call_reject', handleCallCancelled)
+  socketService.off('call_end', handleCallCancelled)
 }
 
 const handleCallCancelled = () => {
@@ -146,6 +150,7 @@ onUnmounted(() => {
   }
   socketService.off('call_cancel', handleCallCancelled)
   socketService.off('call_reject', handleCallCancelled)
+  socketService.off('call_end', handleCallCancelled)
 })
 
 defineExpose({

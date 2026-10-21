@@ -135,7 +135,8 @@
           <text class="label">手机号</text>
           <view class="phone-display">
             <text class="phone-value">{{ form.phone || '未绑定' }}</text>
-            <text class="phone-btn" @click="showPhoneModal = true">{{ form.phone ? '更换' : '绑定' }}</text>
+            <!-- 换绑统一在设置页完成（真实双验证码 + 全端会话吊销），这里不再保留本地假绑定弹窗 -->
+            <text class="phone-btn" @click="goSettingsPhone">{{ form.phone ? '更换' : '绑定' }}</text>
           </view>
         </view>
 
@@ -246,25 +247,6 @@
       </view>
     </view>
 
-    <view class="modal" v-if="showPhoneModal" @click.self="showPhoneModal = false">
-      <view class="modal-content">
-        <view class="modal-title">绑定手机号</view>
-        <view class="modal-body">
-          <input type="tel" class="modal-input" v-model="newPhone" placeholder="请输入手机号" maxlength="11" />
-          <view class="code-row">
-            <input type="text" class="modal-input code" v-model="verifyCode" placeholder="验证码" maxlength="6" />
-            <button class="code-btn" :class="{ disabled: codeCount > 0 }" @click="sendCode">
-              {{ codeCount > 0 ? `${codeCount}s` : '获取验证码' }}
-            </button>
-          </view>
-        </view>
-        <view class="modal-footer">
-          <button class="modal-btn cancel" @click="showPhoneModal = false">取消</button>
-          <button class="modal-btn confirm" @click="bindPhone">确定绑定</button>
-        </view>
-      </view>
-    </view>
-
     <view class="modal" v-if="showPreview" @click.self="showPreview = false">
       <view class="preview-modal">
         <view class="preview-header">
@@ -299,7 +281,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onBeforeUnmount, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import { toast } from '../composables/useToast'
@@ -356,8 +338,56 @@ const validateEmailFormat = () => {
   return false
 }
 
+// P2-7：扩展资料字段（生日/身高/职业/爱好/擅长游戏/价格/微信号/邮箱/背景图/标签）
+// 存于服务端 xn_user_pref.data.profileExtra（无新表/迁移），随 /api/user/get 回填。
+const toSafeString = (value) => (typeof value === 'string' ? value : (value === undefined || value === null ? '' : String(value)))
+
+const toSafeNumber = (value) => {
+  const num = Number(value)
+  return Number.isFinite(num) && num > 0 ? num : null
+}
+
+const toSafeStringArray = (value) => {
+  if (!Array.isArray(value)) return []
+  return value.filter((item) => typeof item === 'string' && item.trim()).map((item) => item.trim())
+}
+
+const toSafeTagIds = (value) => {
+  if (!Array.isArray(value)) return []
+  return value.map((item) => Number(item)).filter((id) => Number.isInteger(id) && id > 0)
+}
+
+// 回填扩展资料：数组/数字/空值统一兜底，服务端字段缺失或类型异常时不让页面崩
+const applyProfileExtra = (raw) => {
+  const extra = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
+  form.birthday = toSafeString(extra.birthday)
+  form.height = toSafeNumber(extra.height)
+  form.profession = toSafeString(extra.profession)
+  form.hobbies = toSafeStringArray(extra.hobbies)
+  form.games = toSafeStringArray(extra.games)
+  form.price = toSafeNumber(extra.price)
+  form.wechat = toSafeString(extra.wechat)
+  form.email = toSafeString(extra.email)
+  form.bgImage = toSafeString(extra.bgImage)
+  form.tags = toSafeTagIds(extra.tags)
+}
+
+// 提交时只回传 10 个白名单字段；空值用 '' / null / [] 表达，便于用户清空已有内容
+const buildProfileExtra = () => ({
+  birthday: form.birthday || '',
+  height: form.height === '' ? null : toSafeNumber(form.height),
+  profession: form.profession || '',
+  hobbies: toSafeStringArray(form.hobbies),
+  games: toSafeStringArray(form.games),
+  price: form.price === '' ? null : toSafeNumber(form.price),
+  wechat: form.wechat || '',
+  email: form.email || '',
+  bgImage: form.bgImage || '',
+  tags: toSafeTagIds(form.tags)
+})
+
 // 进入页面先回填服务端已有资料：避免「只改昵称保存」时把头像/城市/签名以空串覆盖。
-// 后端 User 表当前只支持 nickname/avatar/sex/city/dec，其余字段仍为本地展示。
+// 基础字段（nickname/avatar/sex/city/dec）在 xn_user，扩展字段在 profileExtra。
 const loadProfile = async () => {
   try {
     const res = await authService.getUserInfo()
@@ -370,6 +400,10 @@ const loadProfile = async () => {
     else if (data.sex === 2) form.gender = 'female'
     form.region = data.city || data.region || form.region
     form.signature = data.signature || data.dec || form.signature
+    // 本人资料返回脱敏 mobile，用于展示；换绑入口跳设置页（真实接口）
+    if (data.mobile) form.phone = data.mobile
+    // 扩展字段：服务端按查看者身份裁剪，本人可拿到 wechat/email
+    applyProfileExtra(data.profileExtra)
     profileLoaded.value = true
   } catch (error) {
     console.error('加载个人资料失败:', error)
@@ -406,7 +440,6 @@ const tagOptions = [
 ]
 
 const showRegionPicker = ref(false)
-const showPhoneModal = ref(false)
 const showPreview = ref(false)
 const regionStep = ref('province')
 const tempRegion = reactive({
@@ -414,11 +447,6 @@ const tempRegion = reactive({
   city: '',
   district: ''
 })
-const newPhone = ref('')
-const verifyCode = ref('')
-const codeCount = ref(0)
-let codeTimer = null
-
 const regionData = ref([]) // 从 API 动态加载省份数据
 const regionCities = ref([])
 const regionDistricts = ref([])
@@ -620,44 +648,9 @@ const confirmRegion = () => {
   showRegionPicker.value = false
 }
 
-const sendCode = () => {
-  if (codeCount.value > 0) return
-  codeCount.value = 60
-  if (codeTimer) clearInterval(codeTimer)
-  codeTimer = setInterval(() => {
-    if (codeCount.value > 0) {
-      codeCount.value--
-    } else {
-      // 倒计时结束后自清理，避免 interval 永久运行
-      clearInterval(codeTimer)
-      codeTimer = null
-    }
-  }, 1000)
-}
-
-// 组件卸载时清除倒计时定时器，防止内存/CPU 泄漏（F-05）
-onBeforeUnmount(() => {
-  if (codeTimer) {
-    clearInterval(codeTimer)
-    codeTimer = null
-  }
-})
-
-const bindPhone = () => {
-  if (!newPhone.value || newPhone.value.length !== 11) {
-    toast.error('请输入正确的手机号')
-    return
-  }
-  if (!verifyCode.value) {
-    toast.error('请输入验证码')
-    return
-  }
-  form.phone = newPhone.value.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
-  showPhoneModal.value = false
-  toast.success('手机号绑定成功！')
-}
-
 const goRealName = () => { router.push('/real-name') }
+// 换绑手机号统一走设置页：双验证码、盲索引查重、全端会话吊销都在服务端完成。
+const goSettingsPhone = () => { router.push('/settings') }
 const goVip = () => { router.push('/vip-center') }
 
 const saveProfile = async () => {
@@ -684,8 +677,8 @@ const saveProfile = async () => {
 
   saving.value = true
   try {
-    // 后端 User 表当前仅支持以下字段，其余资料项待表结构扩展后再提交。
-    // 只提交「有值/已加载」的字段，避免未回填或失败时用空串覆盖已有资料。
+    // 基础字段（nickname/avatar/sex/city/dec）只提交「有值/已加载」项，避免未回填时用空串覆盖；
+    // 扩展字段整体走 profileExtra，由后端存 xn_user_pref.data.profileExtra（P2-7）。
     const payload = { nickname: form.nickname.trim() }
     if (form.avatar && !form.avatar.startsWith('blob:')) payload.avatar = form.avatar
     if (form.gender === 'male' || form.gender === 'female') {
@@ -693,6 +686,7 @@ const saveProfile = async () => {
     }
     if (profileLoaded.value || form.region) payload.city = form.region
     if (profileLoaded.value || form.signature) payload.dec = form.signature
+    payload.profileExtra = buildProfileExtra()
     const res = await authService.updateUserInfo(payload)
 
     if (res?.code === 200) {

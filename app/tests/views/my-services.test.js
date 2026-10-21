@@ -2,7 +2,7 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const { games, upload, toast, router } = vi.hoisted(() => ({
-  games: { getMyServices: vi.fn(), applyCompanion: vi.fn(), toggleServiceStatus: vi.fn() },
+  games: { getMyServices: vi.fn(), applyCompanion: vi.fn(), toggleServiceStatus: vi.fn(), getApplyStatus: vi.fn() },
   upload: { uploadFile: vi.fn() },
   toast: { success: vi.fn(), error: vi.fn() },
   router: { back: vi.fn(), push: vi.fn() }
@@ -49,6 +49,7 @@ describe('MyServices 编辑沿用服务自身类型与语音时长', () => {
   beforeEach(() => {
     games.getMyServices.mockReset().mockResolvedValue({ data: { list: [offlineService] } })
     games.applyCompanion.mockReset().mockResolvedValue({ data: {} })
+    games.getApplyStatus.mockReset().mockResolvedValue({ data: { status: 2, gameId: 2 } })
     upload.uploadFile.mockReset()
     toast.success.mockReset()
     toast.error.mockReset()
@@ -84,6 +85,81 @@ describe('MyServices 编辑沿用服务自身类型与语音时长', () => {
     const payload = games.applyCompanion.mock.calls[0][0]
     expect(payload.serviceType).toBe('online')
     expect(payload.voiceTime).toBe(18)
+  })
+
+  it('P1-9：编辑弹窗回填 5 个入驻资料字段', async () => {
+    games.getMyServices.mockResolvedValue({
+      data: {
+        list: [{
+          ...offlineService,
+          serviceType: 'online',
+          city: 'shanghai',
+          level: 'professional',
+          zone: 'china-east',
+          position: 'mid',
+          playType: 'carry'
+        }]
+      }
+    })
+    const wrapper = await openEditModal()
+    const selects = wrapper.findAll('.form-select').map(s => s.text())
+    expect(selects.some(t => t.includes('上海市'))).toBe(true)
+    expect(selects.some(t => t.includes('职业'))).toBe(true)
+    expect(selects.some(t => t.includes('华东大区'))).toBe(true)
+    expect(selects.some(t => t.includes('中路'))).toBe(true)
+    expect(selects.some(t => t.includes('技术带飞'))).toBe(true)
+  })
+
+  it('P1-9：保存时提交 5 个入驻资料字段', async () => {
+    games.getMyServices.mockResolvedValue({
+      data: {
+        list: [{
+          ...offlineService,
+          serviceType: 'online',
+          city: 'shanghai',
+          level: 'professional',
+          zone: 'china-east',
+          position: 'mid',
+          playType: 'carry'
+        }]
+      }
+    })
+    const wrapper = await openEditModal()
+    await wrapper.find('.submit-btn').trigger('click')
+    await flushPromises()
+
+    expect(games.applyCompanion).toHaveBeenCalledWith(expect.objectContaining({
+      city: 'shanghai',
+      skillLevel: 'professional',
+      zone: 'china-east',
+      position: 'mid',
+      playType: 'carry'
+    }))
+  })
+
+  it('审核状态按 status 展示：1 审核中 / 2 已通过 / 0 有申请未通过 / 0 无申请可编辑', async () => {
+    const cases = [
+      { status: { status: 1, gameId: 2 }, text: '审核中' },
+      { status: { status: 2, gameId: 2 }, text: '已通过' },
+      { status: { status: 0, gameId: 2 }, text: '未通过' },
+      { status: { status: 0 }, text: '可编辑' }
+    ]
+    for (const item of cases) {
+      games.getApplyStatus.mockResolvedValue({ data: item.status })
+      const wrapper = mount(MyServices)
+      await flushPromises()
+      expect(wrapper.find('.apply-status-bar').text()).toContain(item.text)
+      wrapper.unmount()
+    }
+  })
+
+  it('审核状态接口失败时静默，不显示状态条也不影响服务列表', async () => {
+    games.getApplyStatus.mockRejectedValue(new Error('status down'))
+    const wrapper = mount(MyServices)
+    await flushPromises()
+
+    expect(wrapper.find('.apply-status-bar').exists()).toBe(false)
+    expect(wrapper.findAll('.service-card')).toHaveLength(1)
   })
 
   it('服务展示图优先用 profile 自身的 icon，保存时不再被游戏封面覆盖', async () => {

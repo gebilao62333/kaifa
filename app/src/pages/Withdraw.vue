@@ -65,8 +65,8 @@
 
       <template v-if="payMethod === 'card'">
         <view class="receiver-field">
-          <text class="receiver-label">密卡号</text>
-          <input type="text" class="receiver-input" v-model="cardNo" placeholder="请输入密卡号" maxlength="19" />
+          <text class="receiver-label">收款银行卡号</text>
+          <input type="text" class="receiver-input" v-model="cardNo" placeholder="请输入收款银行卡号" maxlength="19" />
         </view>
         <view class="receiver-field">
           <text class="receiver-label">开户银行</text>
@@ -242,7 +242,7 @@ const withdrawBtnText = computed(() => {
   const num = Number(withdrawAmount.value)
   if (num < 100) return '最低提现 100 金币'
   if (num > Math.floor(balance.value * 100) / 100) return '超出可提现余额'
-  if (payMethod.value === 'card' && (!cardNo.value.trim() || !bankName.value)) return '请完善密卡信息'
+  if (payMethod.value === 'card' && (!cardNo.value.trim() || !bankName.value)) return '请完善收款卡信息'
   if (payMethod.value === 'alipay' && !alipayAccount.value.trim() && !alipayQrUrl.value) return '请填写支付宝账号或上传收款码'
   if (payMethod.value === 'wechat' && !wechatAccount.value.trim() && !wechatQrUrl.value) return '请填写微信账号或上传收款码'
   return '确认提现'

@@ -22,7 +22,8 @@
       <view class="pay-qr-section" v-if="waitingPay && !isDone">
         <view class="qr-box">
           <view class="qr-placeholder">
-            <image mode="aspectFit" :src="qrImage" class="qr-img" />
+            <image v-if="qrImage" mode="aspectFit" :src="qrImage" class="qr-img" />
+            <text v-else class="qr-tip">二维码生成失败，请检查微信支付配置</text>
           </view>
           <text class="qr-tip">请使用微信扫码支付</text>
           <button class="qr-check-btn" @click="checkPaidNow">我已完成支付</button>
@@ -70,6 +71,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import qrcode from 'qrcode-generator'
 import { useRouter, useRoute } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
 import payService from '../services/payService'
@@ -113,11 +115,20 @@ const pageTitle = computed(() => (type.value === 'recharge' ? '充值' : type.va
 const amountLabel = computed(() => (type.value === 'recharge' ? '充值金额' : type.value === 'order' ? '支付金额' : '提现金额'))
 const isRechargeWithFiat = computed(() => type.value === 'recharge' && methodId.value === 'wechat')
 
-// 真实微信支付二维码：codeUrl 由服务端统一下单（trade_type=NATIVE）返回，
-// 不再使用 `pay:wechat:金额` 这类无支付语义的伪造文本。
+// 真实微信支付二维码：codeUrl 由服务端统一下单（trade_type=NATIVE）返回。
+// 本地生成 data URL，避免把支付串发给境外第三方二维码服务，
+// 也不再依赖外部网络可用性。
 const qrImage = computed(() => {
   if (!wxCodeUrl.value) return ''
-  return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(wxCodeUrl.value)}`
+  try {
+    const qr = qrcode(0, 'M')
+    qr.addData(wxCodeUrl.value)
+    qr.make()
+    return qr.createDataURL(6, 2)
+  } catch (e) {
+    console.error('生成支付二维码失败:', e)
+    return ''
+  }
 })
 
 const canPay = computed(() => {

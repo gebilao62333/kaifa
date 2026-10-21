@@ -149,7 +149,8 @@ const getOrders = async (req, res) => {
 
 const applyAsCompanion = async (req, res) => {
   try {
-    const { gameId, price, tags, description, icon, voiceIntro, voiceTime, serviceType, edit } = req.body;
+    const { gameId, price, tags, description, icon, voiceIntro, voiceTime, serviceType, edit,
+      city, skillLevel, zone, position, playType } = req.body;
     
     if (!gameId || !price) {
       return response.badRequest(res, '游戏ID和价格不能为空');
@@ -166,6 +167,12 @@ const applyAsCompanion = async (req, res) => {
         voiceIntro,
         voiceTime,
         serviceType,
+        // P1-9：入驻资料 5 字段透传给服务层落库
+        city,
+        skillLevel,
+        zone,
+        position,
+        playType,
         ...((edit === true || edit === 'true') ? { edit: true } : {})
       }
     );

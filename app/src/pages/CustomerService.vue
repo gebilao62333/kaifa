@@ -12,7 +12,7 @@
         <view class="greeting-text">您好，请问有什么可以帮您的？</view>
       </view>
 
-      <view class="agent-section">
+      <view class="agent-section" v-if="agentList.length > 0">
         <view class="section-title">客服人员</view>
         <view class="agent-list">
           <view class="agent-item" v-for="agent in agentList" :key="agent.id" @click="startChat(agent)">
@@ -31,6 +31,13 @@
           </view>
         </view>
       </view>
+      <view class="agent-section" v-else-if="!supportLoading">
+        <view class="section-title">客服人员</view>
+        <view class="agent-empty">
+          <text class="agent-empty-icon">🎧</text>
+          <text class="agent-empty-text">在线客服暂未配置，请拨打客服热线或留言反馈</text>
+        </view>
+      </view>
 
       <view class="contact-section">
         <view class="section-title">其他渠道</view>
@@ -41,7 +48,7 @@
             </view>
             <view class="contact-info">
               <view class="contact-name">客服热线</view>
-              <view class="contact-desc">400-888-8888</view>
+              <view class="contact-desc">{{ hotline }}</view>
             </view>
             <text class="contact-arrow">›</text>
           </view>
@@ -76,48 +83,42 @@ import homeService from '../services/homeService'
 
 const router = useRouter()
 
-const agentList = ref([
-  {
-    id: 1,
-    userId: 1001,
-    name: '小雪',
-    avatar: DEFAULT_AVATAR,
-    online: true,
-    role: 'senior'
-  },
-  {
-    id: 2,
-    userId: 1002,
-    name: '阿杰',
-    avatar: DEFAULT_AVATAR,
-    online: true,
-    role: 'normal'
-  },
-  {
-    id: 3,
-    userId: 1003,
-    name: '小美',
-    avatar: DEFAULT_AVATAR,
-    online: false,
-    role: 'normal'
-  },
-  {
-    id: 4,
-    userId: 1004,
-    name: '大飞',
-    avatar: DEFAULT_AVATAR,
-    online: true,
-    role: 'senior'
-  },
-  {
-    id: 5,
-    userId: 1005,
-    name: '小鹿',
-    avatar: DEFAULT_AVATAR,
-    online: false,
-    role: 'normal'
+// 客服账号必须来自服务端配置（/api/config/support 读 CUSTOMER_SERVICE_USER_IDS），
+// 此前硬编码 1001-1005 是不存在的用户，点进去必然会话加载失败。
+const agentList = ref([])
+const supportLoading = ref(true)
+const hotline = ref('400-888-8888')
+
+const loadSupport = async () => {
+  supportLoading.value = true
+  try {
+    const res = await homeService.getSupport()
+    const data = res && res.data
+    const agents = data && Array.isArray(data.agents) ? data.agents : []
+    agentList.value = agents
+      .filter((a) => a && Number(a.userId) > 0)
+      .map((a, index) => ({
+        id: Number(a.userId) || index,
+        userId: Number(a.userId),
+        name: a.nickname || '客服',
+        avatar: a.avatar || DEFAULT_AVATAR,
+        online: true,
+        role: index === 0 ? 'senior' : 'normal'
+      }))
+  } catch (e) {
+    agentList.value = []
+  } finally {
+    supportLoading.value = false
   }
-])
+}
+
+const loadPlatformConfig = async () => {
+  try {
+    const res = await homeService.getConfig()
+    const data = res && res.data
+    if (data && data.hotline) hotline.value = data.hotline
+  } catch (e) { /* 保留默认热线 */ }
+}
 
 const faqList = ref([
   {
@@ -160,8 +161,13 @@ const startChat = (agent) => {
 }
 
 const callPhone = () => {
-  toast.info('客服热线：400-888-8888\n服务时间：9:00-22:00')
+  toast.info(`客服热线：${hotline.value}\n服务时间：9:00-22:00`)
 }
+
+onMounted(() => {
+  loadSupport()
+  loadPlatformConfig()
+})
 </script>
 
 <style scoped>

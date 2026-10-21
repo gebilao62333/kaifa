@@ -5,12 +5,14 @@ const { User, UserFollow } = require('../models');
 const bcrypt = require('bcryptjs');
 const smsService = require('./smsService');
 // 《未完成事项清单》B-7：手机号加密 + 盲索引
-const { mobileFields, buildMobileWhere, hashMobile } = require('../utils/mobile');
+const { mobileFields, buildMobileWhere, hashMobile, decryptMobile } = require('../utils/mobile');
 const tokenRevocation = require('./tokenRevocation');
 // C-9：隐私开关的服务端消费
 const { getPrivacyPrefs } = require('../utils/privacyPrefs');
 const { getTimestamp } = require('../utils/helper');
 const notificationCenterService = require('./notificationCenterService');
+// P2-7：编辑资料的扩展字段存 xn_user_pref.data.profileExtra（不新增迁移）
+const userPrefService = require('./userPrefService');
 const { Op } = require('sequelize');
 
 const USER_ID_THRESHOLD = 11000
@@ -421,26 +423,53 @@ const getUserInfo = async (userId, targetUserId) => {
   if (Number(userId) === Number(targetUserId)) {
     info.balance = user.money;
     info.giftBalance = user.gift_money;
+    // 仅本人可见脱敏手机号；客户端设置页此前写死 138****8888，与真实绑定号不符。
+    try {
+      const plain = decryptMobile(user.mobile);
+      if (plain) info.mobile = String(plain).replace(/^(\d{3})\d+(\d{4})$/, '$1****$2');
+    } catch (e) { /* 解密切换期失败时不暴露任何手机号 */ }
   }
+
+  // P2-7：扩展资料（生日/身高/职业/爱好/擅长游戏/价格/背景图/标签）存偏好 JSON。
+  // 公开字段所有查看者可见；wechat/email 属联系方式，只在本人查看自己时下发。
+  const profileExtra = await userPrefService.getProfileExtra(targetUserId);
+  info.profileExtra = userPrefService.profileExtraForViewer(
+    profileExtra,
+    Number(userId) === Number(targetUserId)
+  );
 
   return info;
 };
 
 const updateUserInfo = async (userId, updateData) => {
+  const payload = updateData && typeof updateData === 'object' ? updateData : {};
   const allowedFields = ['nickname', 'avatar', 'city', 'sex', 'dec'];
   
   const filteredData = {};
   for (const key of allowedFields) {
-    if (updateData[key] !== undefined) {
+    if (payload[key] !== undefined) {
       const dbKey = key === 'nickname' ? 'nickname' : 
                    key === 'avatar' ? 'avatar' :
                    key === 'city' ? 'city' :
                    key === 'sex' ? 'sex' : 'dec';
-      filteredData[dbKey] = updateData[key];
+      filteredData[dbKey] = payload[key];
     }
   }
   
-  await User.update(filteredData, { where: { id: userId } });
+  // 空对象不再执行 UPDATE（只提交 profileExtra 的请求不应触发一次空更新）
+  if (Object.keys(filteredData).length > 0) {
+    await User.update(filteredData, { where: { id: userId } });
+  }
+
+  // P2-7：扩展字段与基础字段分开落库（基础字段在 xn_user，扩展字段在 xn_user_pref.data.profileExtra）。
+  // 兼容提交 JSON 字符串的旧客户端；非对象/空对象不触发偏好写入，避免无意义地建 pref 行。
+  let profileExtra = payload.profileExtra;
+  if (typeof profileExtra === 'string') {
+    try { profileExtra = JSON.parse(profileExtra); } catch (e) { profileExtra = null; }
+  }
+  if (profileExtra && typeof profileExtra === 'object' && !Array.isArray(profileExtra)) {
+    await userPrefService.saveProfileExtra(userId, profileExtra);
+  }
   
   return true;
 };

@@ -1,4 +1,4 @@
-const { Post, PostLike, PostComment, PostUnlock, User, UserFollow } = require('../models');
+const { Post, PostLike, PostComment, PostUnlock, User, UserFollow, VirtualUserTag } = require('../models');
 const mediaAssetService = require('./mediaAssetService');
 const notificationCenterService = require('./notificationCenterService');
 const levelService = require('./levelService');
@@ -174,6 +174,25 @@ const repostPost = async (userId, repostId, comment = '') => {  // 找原帖
   return { postId: post.id, repostId };
 };
 
+// 广场标签筛选：tagId 精确优先；历史前端仍可能传标签名称，此时按名称反查 id。
+// 名称查不到时返回空列表，避免退化成「忽略筛选、返回全部动态」误导用户。
+const resolveTagFilter = async (tagFilter) => {
+  if (tagFilter === undefined || tagFilter === null) return { matched: true, tagId: null };
+  const raw = typeof tagFilter === 'string' ? tagFilter.trim() : tagFilter;
+  if (raw === '' || raw === 0) return { matched: true, tagId: null };
+
+  const numeric = Number(raw);
+  if (Number.isInteger(numeric) && numeric > 0) {
+    return { matched: true, tagId: numeric };
+  }
+
+  const tag = await VirtualUserTag.findOne({
+    where: { name: String(raw) },
+    attributes: ['id']
+  });
+  return tag ? { matched: true, tagId: tag.id } : { matched: false, tagId: null };
+};
+
 const getPosts = async (userId, tagId, page, pageSize) => {
   const { offset, limit } = parseQuery({ page, pageSize });
   
@@ -182,8 +201,12 @@ const getPosts = async (userId, tagId, page, pageSize) => {
     ...(await buildVisibilityWhere(userId))
   };
   
-  if (tagId) {
-    where.tag_id = tagId;
+  const tagFilter = await resolveTagFilter(tagId);
+  if (!tagFilter.matched) {
+    return { total: 0, list: [] };
+  }
+  if (tagFilter.tagId) {
+    where.tag_id = tagFilter.tagId;
   }
   
   const { count, rows } = await Post.findAndCountAll({
@@ -348,7 +371,8 @@ const getPostDetail = async (userId, postId) => {
     avatar: author?.avatar || '',
     level: author?.lv || 1,
     content: post.content,
-    images: post.images ? post.images.split(',').filter(Boolean) : [],
+    // 与列表/搜索共用 parseImages：兼容逗号分隔与 JSON 数组两种历史存储格式
+    images: parseImages(post.images),
     videos: post.videos || '',
     likes: post.thumb_num,
     comments: post.comment_num,
@@ -460,7 +484,8 @@ const getMyPosts = async (userId, page, pageSize) => {
   const posts = rows.map(post => ({
     postId: post.id,
     content: post.content,
-    images: post.images ? post.images.split(',').filter(Boolean) : [],
+    // 与列表/详情共用 parseImages，避免 JSON 数组被 split 成一段 URL
+    images: parseImages(post.images),
     videos: post.videos || '',
     likes: post.thumb_num,
     comments: post.comment_num,
@@ -607,8 +632,22 @@ const getComments = async (userId, postId, page, pageSize) => {
   };
 };
 
+// 广场标签：真实标签表为 xn_virtual_user_tag（与 /api/tag 标签库同源）。
+// 只返回启用项，按 sort_order/id 升序；同时给 id/name 与前端历史字段 tagId/tagName。
 const getTags = async () => {
-  return [];
+  const tags = await VirtualUserTag.findAll({
+    where: { status: 1 },
+    order: [['sort_order', 'ASC'], ['id', 'ASC']]
+  });
+
+  return tags.map(tag => ({
+    id: tag.id,
+    tagId: tag.id,
+    name: tag.name,
+    tagName: tag.name,
+    icon: tag.icon || '',
+    sortOrder: tag.sort_order
+  }));
 };
 
 // 删除动态：同时级联清理底层存储（COS/本地）与媒资登记，避免孤儿文件

@@ -23,6 +23,9 @@ importers:
       pinia:
         specifier: ^2.1.7
         version: 2.3.1(vue@3.4.21)
+      qrcode-generator:
+        specifier: ^2.0.4
+        version: 2.0.4
       socket.io-client:
         specifier: ^4.7.5
         version: 4.8.4
@@ -2388,6 +2391,9 @@ packages:
   punycode@2.3.1:
     resolution: {integrity: sha512-vYt7UD1U9Wg6138shLtLOvdAu+8DsC/ilFtEVHcH+wydcSpNE20AfSOduf6MkRFahL5FY7X1oU7nKVZFtfq8Fg==}
     engines: {node: '>=6'}
+
+  qrcode-generator@2.0.4:
+    resolution: {integrity: sha512-mZSiP6RnbHl4xL2Ap5HfkjLnmxfKcPWpWe/c+5XxCuetEenqmNFf1FH/ftXPCtFG5/TDobjsjz6sSNL0Sr8Z9g==}
 
   qs@6.11.0:
     resolution: {integrity: sha512-MvjoMCJwEarSbUYk5O+nmoSzSutSsTwF85zcHPQ9OrlFoZOYIjaqBAJIqIXjptyD5vThxGq52Xu/MaJzRkIk4Q==}
@@ -5648,6 +5654,8 @@ snapshots:
       punycode: 2.3.1
 
   punycode@2.3.1: {}
+
+  qrcode-generator@2.0.4: {}
 
   qs@6.11.0:
     dependencies:

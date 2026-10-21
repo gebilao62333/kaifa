@@ -982,6 +982,18 @@ describe('Controller - Admin (admin.js)', () => {
     expect(ok.status).toHaveBeenCalledWith(200);
   });
 
+  it('审核通过写 status=2、审核拒绝写 status=0（与 C 端口径一致）', async () => {
+    const approveRow = { update: jest.fn().mockResolvedValue({}) };
+    CompanionProfile.findByPk.mockResolvedValue(approveRow);
+    await adminController.approveCompanionApplication(mockReq({ params: { id: '1' } }), mockRes());
+    expect(approveRow.update).toHaveBeenCalledWith(expect.objectContaining({ status: 2 }));
+
+    const rejectRow = { update: jest.fn().mockResolvedValue({}) };
+    CompanionProfile.findByPk.mockResolvedValue(rejectRow);
+    await adminController.rejectCompanionApplication(mockReq({ params: { id: '1' }, body: { reason: 'r' } }), mockRes());
+    expect(rejectRow.update).toHaveBeenCalledWith(expect.objectContaining({ status: 0, reject_reason: 'r' }));
+  });
+
   it('approve/reject companion applications', async () => {
     CompanionProfile.findByPk.mockResolvedValue(row());
     const ok = mockRes();

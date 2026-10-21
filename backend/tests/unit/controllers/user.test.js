@@ -36,6 +36,14 @@ jest.mock('../../../src/services', () => ({
   }
 }));
 
+// P1-8：换绑手机号服务在控制器里是「直接 require 具体文件」（不走 services 桶），
+// 因此必须单独 mock 这个路径，否则会加载真实服务并连模型/Redis。
+jest.mock('../../../src/services/mobileChangeService', () => ({
+  sendChangeCode: jest.fn(),
+  changeMobile: jest.fn(),
+  isBusinessError: jest.fn((error) => !!(error && error.isBusinessError))
+}));
+
 jest.mock('../../../src/models', () => ({
   User: { findOne: jest.fn(), findByPk: jest.fn(), findAll: jest.fn(), decrement: jest.fn(), findAndCountAll: jest.fn() },
   Post: { findAll: jest.fn() },
@@ -64,6 +72,7 @@ jest.mock('../../../src/config/jwt', () => ({
 }));
 
 const { authService, smsService, levelService, skinService } = require('../../../src/services');
+const mobileChangeService = require('../../../src/services/mobileChangeService');
 const sequelize = require('../../../src/config/mysql');
 const { User, Post, PostLike, UserFollow, UserVisit, UserPref } = require('../../../src/models');
 const tokenRevocation = require('../../../src/services/tokenRevocation');
@@ -304,6 +313,116 @@ describe('Controller - User', () => {
       const res = mockRes();
       await userController.changePassword(mockReq({ body: { oldPassword: 'oldpwd1', newPassword: 'newpwd1' } }), res);
       expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
+
+  // P1-8：换绑手机号（send-code 一次请求发双码；change-mobile 双码校验 + 全端下线）
+  describe('changeMobile（换绑手机号）', () => {
+    const bizError = (message, code) => Object.assign(new Error(message), { isBusinessError: true, code });
+
+    describe('sendChangeMobileCode', () => {
+      it('rejects missing newPhone', async () => {
+        const res = mockRes();
+        await userController.sendChangeMobileCode(mockReq({ body: {} }), res);
+        expect(res.status).toHaveBeenCalledWith(400);
+        expect(mobileChangeService.sendChangeCode).not.toHaveBeenCalled();
+      });
+
+      it('passes oldPhone/newPhone and forwards devCodes for test mode', async () => {
+        mobileChangeService.sendChangeCode.mockResolvedValue({ devCodes: { oldCode: '111111', newCode: '222222' } });
+        const res = mockRes();
+        await userController.sendChangeMobileCode(
+          mockReq({ body: { oldPhone: '13800000000', newPhone: '13900000000' } }),
+          res
+        );
+        expect(mobileChangeService.sendChangeCode).toHaveBeenCalledWith(100001, {
+          oldPhone: '13800000000',
+          newPhone: '13900000000'
+        });
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json.mock.calls[0][0].data).toEqual({ devCodes: { oldCode: '111111', newCode: '222222' } });
+      });
+
+      it('maps INVALID_MOBILE to 400, MOBILE_TAKEN to 422, SMS_UNAVAILABLE to 503', async () => {
+        mobileChangeService.sendChangeCode.mockRejectedValueOnce(bizError('请输入正确的新手机号', 'INVALID_MOBILE'));
+        const bad = mockRes();
+        await userController.sendChangeMobileCode(mockReq({ body: { newPhone: '1' } }), bad);
+        expect(bad.status).toHaveBeenCalledWith(400);
+
+        mobileChangeService.sendChangeCode.mockRejectedValueOnce(bizError('该手机号已被其他账号绑定', 'MOBILE_TAKEN'));
+        const taken = mockRes();
+        await userController.sendChangeMobileCode(mockReq({ body: { newPhone: '13900000000' } }), taken);
+        expect(taken.status).toHaveBeenCalledWith(422);
+
+        mobileChangeService.sendChangeCode.mockRejectedValueOnce(bizError('短信服务暂不可用，请稍后重试', 'SMS_UNAVAILABLE'));
+        const down = mockRes();
+        await userController.sendChangeMobileCode(mockReq({ body: { newPhone: '13900000000' } }), down);
+        expect(down.status).toHaveBeenCalledWith(503);
+      });
+
+      it('returns 500 on unexpected error', async () => {
+        mobileChangeService.sendChangeCode.mockRejectedValue(new Error('boom'));
+        const res = mockRes();
+        await userController.sendChangeMobileCode(mockReq({ body: { newPhone: '13900000000' } }), res);
+        expect(res.status).toHaveBeenCalledWith(500);
+      });
+    });
+
+    describe('changeMobile', () => {
+      it('rejects missing newPhone or codes', async () => {
+        const noPhone = mockRes();
+        await userController.changeMobile(mockReq({ body: {} }), noPhone);
+        expect(noPhone.status).toHaveBeenCalledWith(400);
+
+        const noCodes = mockRes();
+        await userController.changeMobile(mockReq({ body: { newPhone: '13900000000' } }), noCodes);
+        expect(noCodes.status).toHaveBeenCalledWith(400);
+        expect(mobileChangeService.changeMobile).not.toHaveBeenCalled();
+      });
+
+      it('succeeds and returns requireRelogin', async () => {
+        mobileChangeService.changeMobile.mockResolvedValue({ requireRelogin: true, devicesRevoked: true });
+        const res = mockRes();
+        await userController.changeMobile(
+          mockReq({ body: { newPhone: '13900000000', oldCode: '111111', newCode: '222222' } }),
+          res
+        );
+        expect(mobileChangeService.changeMobile).toHaveBeenCalledWith(100001, {
+          newPhone: '13900000000',
+          oldCode: '111111',
+          newCode: '222222'
+        });
+        expect(res.status).toHaveBeenCalledWith(200);
+        expect(res.json.mock.calls[0][0].data).toEqual({ requireRelogin: true, devicesRevoked: true });
+      });
+
+      it('maps CODE_INVALID to 400 and REVOCATION_UNAVAILABLE to 503', async () => {
+        mobileChangeService.changeMobile.mockRejectedValueOnce(bizError('原手机号验证码错误或已过期', 'CODE_INVALID'));
+        const invalid = mockRes();
+        await userController.changeMobile(
+          mockReq({ body: { newPhone: '13900000000', oldCode: '000000', newCode: '222222' } }),
+          invalid
+        );
+        expect(invalid.status).toHaveBeenCalledWith(400);
+
+        mobileChangeService.changeMobile.mockRejectedValueOnce(bizError('认证服务暂时不可用，请稍后重试', 'REVOCATION_UNAVAILABLE'));
+        const revoked = mockRes();
+        await userController.changeMobile(
+          mockReq({ body: { newPhone: '13900000000', oldCode: '111111', newCode: '222222' } }),
+          revoked
+        );
+        expect(revoked.status).toHaveBeenCalledWith(503);
+      });
+
+      it('returns 500 on unexpected error', async () => {
+        mobileChangeService.changeMobile.mockRejectedValue(new Error('boom'));
+        const res = mockRes();
+        await userController.changeMobile(
+          mockReq({ body: { newPhone: '13900000000', oldCode: '111111', newCode: '222222' } }),
+          res
+        );
+        expect(res.status).toHaveBeenCalledWith(500);
+      });
     });
   });
 

@@ -110,6 +110,7 @@ import circleService from '../services/circleService'
 import { genAvatar } from '../utils/placeholder'
 import SafeImage from '../components/SafeImage.vue'
 import { isApp } from '../common/platform'
+import { formatTimeAgo } from '../common/time'
 
 const router = useRouter()
 
@@ -263,17 +264,8 @@ const onReposted = () => {
   if (post) post.shares = (post.shares || 0) + 1
 }
 
-const formatTime = (time) => {
-  if (!time) return ''
-  const date = new Date(time)
-  const now = new Date()
-  const diff = now - date
-  if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
-  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
-  if (diff < 604800000) return Math.floor(diff / 86400000) + '天前'
-  return date.toLocaleDateString()
-}
+// 后端 /api/circle/posts 的 createTime 是秒级时间戳，统一走 common/time 归一后再格式化
+const formatTime = (time) => formatTimeAgo(time, { fallback: 'locale' })
 
 const handleScroll = () => {
   const scrollTop = window.scrollY || document.documentElement.scrollTop

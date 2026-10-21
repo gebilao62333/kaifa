@@ -27,6 +27,10 @@ const levelService = require('./levelService');
 const skinService = require('./skinService');
 // 《未完成事项清单》B-3：平台公告落库
 const noticeService = require('./noticeService');
+// P1-8：换绑手机号（双场景验证码 + 原子换号 + 全端会话吊销）
+const mobileChangeService = require('./mobileChangeService');
+// P2-7：资料扩展字段（存 xn_user_pref.data.profileExtra）
+const userPrefService = require('./userPrefService');
 
 module.exports = {
   authService,
@@ -55,5 +59,7 @@ module.exports = {
   settingsService,
   levelService,
   skinService,
-  noticeService
+  noticeService,
+  mobileChangeService,
+  userPrefService
 };

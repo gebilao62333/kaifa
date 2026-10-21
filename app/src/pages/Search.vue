@@ -151,6 +151,7 @@ import authService from '@/services/authService'
 import { toast } from '@/composables/useToast'
 import PageLayout from '../components/PageLayout.vue'
 import storage from '../common/storage'
+import { formatTimeAgo } from '../common/time'
 
 const router = useRouter()
 const inputRef = ref(null)
@@ -219,8 +220,10 @@ const doSearch = async () => {
   saveToHistory(keyword)
 
   // 三类结果并行请求，单类失败不影响其它类展示
+  // P2-8：「用户」分类改为普通用户搜索（昵称模糊、排除自己、遵守被搜索隐私开关），
+  // 不再复用陪玩师列表，避免普通用户搜不到。
   const [userRes, postRes, gameRes] = await Promise.allSettled([
-    homeService.searchCompanions({ keyword, page: 1, pageSize: 20 }),
+    searchService.searchUsers({ keyword, page: 1, pageSize: 20 }),
     searchService.searchPosts({ keyword, page: 1, pageSize: 20 }),
     searchService.searchGames({ keyword })
   ])
@@ -236,7 +239,10 @@ const doSearch = async () => {
     nickName: c.nickname || c.nickName || '',
     avatar: c.avatar || '',
     level: c.level || 1,
-    isFollow: false
+    sex: c.sex || 0,
+    fansCount: c.fansCount || 0,
+    // 搜索接口不返回关注态，默认未关注，点击「关注」走真实接口后本地同步
+    isFollow: !!c.isFollow
   }))
 
   searchResults.posts = pick(postRes).map(p => ({
@@ -336,15 +342,8 @@ const viewMore = (type) => {
   }
 }
 
-const formatTime = (timestamp) => {
-  if (!timestamp) return ''
-  const now = Date.now()
-  const diff = now - timestamp
-  if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
-  if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
-  return Math.floor(diff / 86400000) + '天前'
-}
+// 搜索帖子 DTO 的 createTime 为秒级，必须归一后再算相对时间
+const formatTime = (timestamp) => formatTimeAgo(timestamp, { fallback: 'days' })
 </script>
 
 <style scoped>

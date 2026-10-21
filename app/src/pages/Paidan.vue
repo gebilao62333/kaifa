@@ -175,6 +175,7 @@ import PageLayout from '../components/PageLayout.vue'
 import gamesService from '../services/gamesService'
 import { DEFAULT_AVATAR } from '../common/constants'
 import { isApp } from '../common/platform'
+import { formatTimeAgo } from '../common/time'
 
 const router = useRouter()
 
@@ -240,18 +241,7 @@ const onTouchEnd = (e) => {
   }
 }
 
-const formatTime = (timestamp) => {
-  const now = new Date()
-  const date = new Date(timestamp)
-  const diff = now - date
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  
-  if (minutes < 1) return '刚刚'
-  if (minutes < 60) return `${minutes}分钟前`
-  if (hours < 24) return `${hours}小时前`
-  return `${date.getMonth() + 1}月${date.getDate()}日`
-}
+const formatTime = (timestamp) => formatTimeAgo(timestamp, { fallback: 'cn' })
 
 const getStatusText = (status) => {
   const statusMap = {

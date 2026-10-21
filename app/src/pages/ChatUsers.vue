@@ -43,7 +43,7 @@
         <view class="user-info">
           <view class="name-row">
             <text class="nickname">{{ user.nickName }}</text>
-            <text class="gender-tag" :class="user.gender">{{ user.gender === 'male' ? '♂' : '♀' }}</text>
+            <text v-if="user.gender === 'male' || user.gender === 'female'" class="gender-tag" :class="user.gender">{{ user.gender === 'male' ? '♂' : '♀' }}</text>
             <text class="level-tag">Lv.{{ user.level }}</text>
             <text class="vip-tag" v-if="user.isVip">VIP</text>
           </view>
@@ -51,9 +51,10 @@
             <text v-for="tag in user.tags.slice(0, 3)" :key="tag" class="tag">{{ tag }}</text>
           </view>
           <view class="meta-row">
-            <text class="status-text" :class="{ online: user.online }">
+            <text v-if="user.online !== null" class="status-text" :class="{ online: user.online }">
               {{ user.online ? '在线' : '离线' }}
             </text>
+            <text v-else class="status-text">陪玩师</text>
             <text class="region-text" v-if="user.region">{{ user.region }}</text>
           </view>
         </view>
@@ -77,14 +78,17 @@ import homeService from '../services/homeService'
 import { STORAGE_KEYS, DEFAULT_AVATAR } from '../common/constants'
 
 const router = useRouter()
-const activeTab = ref('online')
+// 默认必须是「全部」：此前默认「在线用户」，而列表 DTO 实际没有 online 字段，
+// 过滤后恒为空，首页「交友」入口点进来永远显示「暂无用户」。
+const activeTab = ref('all')
 const loading = ref(false)
 
+// 只保留有真实数据来源的分类：性别取 User.sex（1 男 / 2 女 / 0 保密），萌新按等级。
+// 「在线/活跃」依赖后端批量字段，当前 DTO 未提供，先不下发假分类。
 const categoryTabs = [
-  { key: 'online', label: '在线用户', icon: '🟢' },
+  { key: 'all', label: '全部', icon: '👥' },
   { key: 'male', label: '男用户', icon: '👨' },
   { key: 'female', label: '女用户', icon: '👩' },
-  { key: 'active', label: '活跃用户', icon: '🔥' },
   { key: 'newbie', label: '萌新', icon: '🌱' }
 ]
 
@@ -93,16 +97,13 @@ const allUsers = ref([])
 const filteredUsers = computed(() => {
   const tab = activeTab.value
   switch (tab) {
-    case 'online':
-      return allUsers.value.filter(u => u.online)
     case 'male':
       return allUsers.value.filter(u => u.gender === 'male')
     case 'female':
       return allUsers.value.filter(u => u.gender === 'female')
-    case 'active':
-      return [...allUsers.value].sort((a, b) => b.activityScore - a.activityScore).slice(0, 20)
     case 'newbie':
       return allUsers.value.filter(u => u.isNewbie)
+    case 'all':
     default:
       return allUsers.value
   }
@@ -139,12 +140,13 @@ const loadUsers = async (silent = false) => {
           userId: user.userId || user.id,
           nickName: user.nickName || user.nickname || '用户',
           avatar: user.avatar || DEFAULT_AVATAR,
-          gender: user.gender || 'unknown',
+          // 后端 CompanionProfile 列表 DTO 返回 sex（0 保密/1 男/2 女）；online 字段缺失时保持 null，
+          // 卡片不再对所有人显示「离线」。
+          gender: Number(user.sex) === 1 ? 'male' : (Number(user.sex) === 2 ? 'female' : (user.gender || 'unknown')),
           level,
-          online: user.online === 1 || user.online === true,
+          online: user.online === 1 || user.online === true ? true : ((user.online === 0 || user.online === false) ? false : null),
           isVip: user.vip === 1 || user.vip === true,
           isNewbie: level < 10,
-          activityScore: Number(user.activityScore) || 0,
           tags: Array.isArray(user.tags) ? user.tags : [],
           region: user.region || user.city || ''
         }

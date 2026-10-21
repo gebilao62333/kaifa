@@ -129,11 +129,14 @@ class CallService {
     this.currentMode = 'webrtc'
     // 通过HTTP创建通话记录
     try {
+      // 通话单是计费的唯一依据：isCompanionCall/orderId 必须和 _startTRTCCall 一样透传。
+      // 后端 callBillingService.endCall 只在 is_companion_call===1 时建计费单，
+      // 写死 false/0 会让默认 webrtc 通道下的陪玩通话全部不计费（P1-6 资损）。
       const res = await request('/api/trtc/start', 'POST', {
         calleeId,
         callType,
-        isCompanionCall: false,
-        orderId: 0
+        isCompanionCall,
+        orderId
       })
       const data = res?.data || res
       const callResult = (data?.data || data)
@@ -197,13 +200,27 @@ class CallService {
     if (this.onCallEnd) this.onCallEnd(duration)
   }
 
-  // ===== 取消呼叫 =====
+  // ===== 取消呼叫（仅用于未接通、status 仍为呼叫中的通话） =====
+  // 与 endCall 的区别：取消只发 call_cancel，让被叫立刻关闭来电弹窗；
+  // endCall 发的是 call_end，未接通时被叫弹窗只能等 60s 超时自动拒绝（P1-7）。
   async cancelCall(callId) {
     if (callId) {
       try { await trtcService.cancelCall(callId) } catch {}
     }
-    socketService.emit('call_cancel', { toId: this.remoteUserId })
+    // 释放本地媒体。注意不能调 webrtcCallService.hangup()：它内部还会发 call_end，
+    // 取消场景下对端会同时收到 call_end 与 call_cancel 两个挂断事件；
+    // cleanup() 只清 PeerConnection/本地流、不发信令，正好对应「取消」语义。
+    if (this.currentMode === 'webrtc') {
+      webrtcCallService.cleanup()
+    } else if (this.currentMode === 'trtc') {
+      await trtcRoomService.leave()
+    }
+    if (this.remoteUserId) {
+      socketService.emit('call_cancel', { toId: this.remoteUserId })
+    }
+    this._stopDurationTimer()
     this.currentMode = null
+    this.currentCallId = null
   }
 
   // ===== 计时 =====

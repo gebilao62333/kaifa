@@ -65,13 +65,18 @@ describe('Service - GamesService', () => {
     it('maps companions with and without game filter', async () => {
       CompanionProfile.findAndCountAll.mockResolvedValue({
         count: 1,
-        rows: [{ user_id: 2, game_id: 1, price: '30', tags: 'a,b', voice_intro: 'v', voice_time: 5, order_num: 3, star: '4.5', pingjia_num: 2 }]
+        rows: [{ user_id: 2, game_id: 1, price: '30', tags: 'a,b', voice_intro: 'v', voice_time: 5, order_num: 3, star: '4.5', pingjia_num: 2,
+        city: '沪', skill_level: 'god', zone: 'china-east', position: 'mid', play_type: 'carry' }]
       });
-      User.findByPk.mockResolvedValue({ id: 2, nickname: 'n', avatar: 'a', city: 'c', lv: 2, fans_num: 9 });
+      User.findByPk.mockResolvedValue({ id: 2, nickname: 'n', avatar: 'a', city: 'c', lv: 2, fans_num: 9, sex: 1 });
 
       const result = await gamesService.getCompanions(1, 1, 10);
       expect(result.total).toBe(1);
       expect(result.list[0].tags).toEqual(['a', 'b']);
+      // 前端 ChatUsers 性别筛选读 sex（0=未设置 1=男 2=女）
+      expect(result.list[0].sex).toBe(1);
+      // P1-9：列表返回入驻资料字段
+      expect(result.list[0]).toMatchObject({ skillLevel: 'god', zone: 'china-east', position: 'mid', playType: 'carry' });
       expect(CompanionProfile.findAndCountAll.mock.calls[0][0].where.game_id).toBe(1);
 
       await gamesService.getCompanions(null, 1, 10);
@@ -87,6 +92,8 @@ describe('Service - GamesService', () => {
       const result = await gamesService.getCompanions(null, 1, 10);
       expect(result.list[0].nickname).toBe('');
       expect(result.list[0].tags).toEqual([]);
+      // 用户不存在/未填性别时统一回落 0，避免前端出现 undefined
+      expect(result.list[0].sex).toBe(0);
     });
   });
 
@@ -402,6 +409,58 @@ describe('Service - GamesService', () => {
       expect(CompanionProfile.create).toHaveBeenCalled();
     });
 
+    it('P1-9：新申请与编辑都落库 5 个入驻资料字段', async () => {
+      const fields = { city: '上海', skillLevel: 'professional', zone: 'china-east', position: 'mid', playType: 'carry' };
+      const expected = { city: '上海', skill_level: 'professional', zone: 'china-east', position: 'mid', play_type: 'carry' };
+
+      const update = jest.fn().mockResolvedValue(true);
+      CompanionProfile.findOne.mockResolvedValue({ status: 2, update, service_type: 'online' });
+      await gamesService.applyAsCompanion(2, 1, 30, 'a', { edit: true, ...fields });
+      expect(update.mock.calls[0][0]).toMatchObject(expected);
+
+      CompanionProfile.findOne.mockResolvedValue(null);
+      CompanionProfile.create.mockResolvedValue({ id: 1 });
+      await gamesService.applyAsCompanion(2, 1, 30, 'a', fields);
+      expect(CompanionProfile.create.mock.calls[0][0]).toMatchObject(expected);
+    });
+
+    it('P1-9：入驻字段去空白，空串/缺省存 NULL', async () => {
+      CompanionProfile.findOne.mockResolvedValue(null);
+      CompanionProfile.create.mockResolvedValue({ id: 1 });
+      await gamesService.applyAsCompanion(2, 1, 30, 'a', { city: '  上海  ', skillLevel: '', zone: null });
+      expect(CompanionProfile.create.mock.calls[0][0]).toMatchObject({ city: '上海', skill_level: null, zone: null });
+    });
+
+    it('P2：编辑未传 5 个入驻字段时沿用 existing，不清空已有资料', async () => {
+      const update = jest.fn().mockResolvedValue(true);
+      CompanionProfile.findOne.mockResolvedValue({
+        status: 2,
+        update,
+        service_type: 'online',
+        city: '北京',
+        skill_level: 'god',
+        zone: 'china-north',
+        position: 'top',
+        play_type: 'carry'
+      });
+      await gamesService.applyAsCompanion(2, 1, 30, 'a', { edit: true });
+      expect(update.mock.calls[0][0]).toMatchObject({
+        city: '北京',
+        skill_level: 'god',
+        zone: 'china-north',
+        position: 'top',
+        play_type: 'carry',
+        status: 2
+      });
+    });
+
+    it('P2：编辑已暂停(status=3)的服务保留暂停状态，不被打回审核中', async () => {
+      const update = jest.fn().mockResolvedValue(true);
+      CompanionProfile.findOne.mockResolvedValue({ status: 3, update, service_type: 'online' });
+      await gamesService.applyAsCompanion(2, 1, 30, 'a', { edit: true });
+      expect(update.mock.calls[0][0].status).toBe(3);
+    });
+
     it('persists the submitted service type', async () => {
       const update = jest.fn().mockResolvedValue(true);
       CompanionProfile.findOne.mockResolvedValue({ status: 0, update, service_type: 'offline' });
@@ -442,10 +501,16 @@ describe('Service - GamesService', () => {
   it('searchCompanions supports keyword and embedded user', async () => {
     CompanionProfile.findAndCountAll.mockResolvedValue({
       count: 1,
-      rows: [{ user_id: 2, game_id: 1, price: '30', tags: 'a', user: { nickname: 'n' }, order_num: 0, star: '5', pingjia_num: 0 }]
+      rows: [{ user_id: 2, game_id: 1, price: '30', tags: 'a', user: { nickname: 'n', sex: 2 }, order_num: 0, star: '5', pingjia_num: 0,
+        skill_level: 'master', zone: 'china-south', position: 'adc', play_type: 'rank' }]
     });
     const result = await gamesService.searchCompanions('a', 1, 1, 10);
     expect(result.list[0].nickname).toBe('n');
+    expect(result.list[0].sex).toBe(2);
+    // P1-9：搜索列表与公共列表同一套入驻资料字段
+    expect(result.list[0]).toMatchObject({ skillLevel: 'master', zone: 'china-south', position: 'adc', playType: 'rank' });
+    // include 需要带 sex，否则嵌入式 user 无法回填性别
+    expect(CompanionProfile.findAndCountAll.mock.calls[0][0].include[0].attributes).toContain('sex');
     expect(CompanionProfile.findAndCountAll.mock.calls[0][0].where[require('sequelize').Op.or]).toBeDefined();
   });
 
@@ -472,11 +537,31 @@ describe('Service - GamesService', () => {
   it('getCompanionDetail maps profile and user', async () => {
     CompanionProfile.findOne.mockResolvedValue({
       user_id: 2, game_id: 1, price: '30', tags: 'a,b', voice_intro: 'v', voice_time: 3,
-      order_num: 1, star: '4', pingjia_num: 2, user: { nickname: 'n', avatar: 'a', city: 'c', lv: 2, fans_num: 1, sex: 1, dec: 'sig' }
+      order_num: 1, star: '4', pingjia_num: 2, service_type: 'offline',
+      city: '沪', skill_level: 'god', zone: 'china-east', position: 'mid', play_type: 'carry',
+      user: { nickname: 'n', avatar: 'a', city: 'c', lv: 2, fans_num: 1, sex: 1, dec: 'sig' }
     });
     const result = await gamesService.getCompanionDetail(2);
     expect(result.signature).toBe('sig');
+    // P1-9：详情返回入驻资料字段
+    expect(result).toMatchObject({ skillLevel: 'god', zone: 'china-east', position: 'mid', playType: 'carry' });
+    // 历史 gender 字段保留，同时新增 sex 与列表字段命名一致
     expect(result.gender).toBe(1);
+    expect(result.sex).toBe(1);
+    // 前端 UserProfile 区分线上/线下服务状态
+    expect(result.serviceType).toBe('offline');
+  });
+
+  it('getCompanionDetail 缺省 service_type 时回落 online', async () => {
+    CompanionProfile.findOne.mockResolvedValue({
+      user_id: 2, game_id: 1, price: '30', tags: 'a', order_num: 0, star: '0', pingjia_num: 0,
+      user: { nickname: 'n', sex: 0 }
+    });
+    const result = await gamesService.getCompanionDetail(2);
+    expect(result.serviceType).toBe('online');
+    expect(result.sex).toBe(0);
+    // P1-9：历史数据未回填时入驻字段回落空串，前端不出现 undefined
+    expect(result).toMatchObject({ skillLevel: '', zone: '', position: '', playType: '' });
   });
 
   describe('evaluateOrder', () => {
@@ -571,10 +656,15 @@ describe('Service - GamesService', () => {
 
     CompanionProfile.findAll.mockResolvedValue([{
       id: 2, game_id: 2, price: '10', tags: 'a', status: 3,
-      service_type: 'offline', icon: 'https://cos/me.png', voice_intro: 'https://cos/v.webm', voice_time: 18
+      service_type: 'offline', icon: 'https://cos/me.png', voice_intro: 'https://cos/v.webm', voice_time: 18,
+      city: '上海', skill_level: 'professional', zone: 'china-east', position: 'mid', play_type: 'carry'
     }]);
     const typed = await gamesService.getMyServices(2);
-    expect(typed.list[0]).toMatchObject({ serviceType: 'offline', serviceIcon: 'https://cos/me.png', voiceIntro: 'https://cos/v.webm', voiceTime: 18 });
+    expect(typed.list[0]).toMatchObject({
+      serviceType: 'offline', serviceIcon: 'https://cos/me.png', voiceIntro: 'https://cos/v.webm', voiceTime: 18,
+      // P1-9：编辑弹窗回填 5 个入驻资料字段
+      city: '上海', level: 'professional', zone: 'china-east', position: 'mid', playType: 'carry'
+    });
   });
 
   it('toggleServiceStatus switches between active and paused', async () => {

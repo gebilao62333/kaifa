@@ -11,7 +11,8 @@ jest.mock('../../../src/models', () => {
   });
   return {
     Post: model(), PostLike: model(), PostComment: model(),
-    PostUnlock: model(), User: model(), UserFollow: model()
+    PostUnlock: model(), User: model(), UserFollow: model(),
+    VirtualUserTag: model()
   };
 });
 jest.mock('../../../src/services/mediaAssetService', () => ({
@@ -23,7 +24,7 @@ jest.mock('../../../src/services/levelService', () => ({ addExp: jest.fn() }));
 
 const bcrypt = require('bcryptjs');
 const circleService = require('../../../src/services/circleService');
-const { Post, PostLike, PostComment, PostUnlock, User, UserFollow } = require('../../../src/models');
+const { Post, PostLike, PostComment, PostUnlock, User, UserFollow, VirtualUserTag } = require('../../../src/models');
 const { Op } = require('sequelize');
 const mediaAssetService = require('../../../src/services/mediaAssetService');
 const levelService = require('../../../src/services/levelService');
@@ -143,6 +144,26 @@ describe('Service - CircleService', () => {
       expect(Post.findAndCountAll.mock.calls[0][0].where.tag_id).toBe(1);
     });
 
+    it('按标签名称筛选：名称反查 id 后精确过滤', async () => {
+      Post.findAndCountAll.mockResolvedValue({ count: 0, rows: [] });
+      VirtualUserTag.findOne.mockResolvedValue({ id: 7 });
+
+      const result = await circleService.getPosts(2, '游戏陪玩', 1, 10);
+
+      expect(result).toEqual({ total: 0, list: [] });
+      expect(VirtualUserTag.findOne.mock.calls[0][0].where).toEqual({ name: '游戏陪玩' });
+      expect(Post.findAndCountAll.mock.calls[0][0].where.tag_id).toBe(7);
+    });
+
+    it('标签名称查不到时返回空列表且不退化为全量', async () => {
+      VirtualUserTag.findOne.mockResolvedValue(null);
+
+      const result = await circleService.getPosts(2, '不存在的标签', 1, 10);
+
+      expect(result).toEqual({ total: 0, list: [] });
+      expect(Post.findAndCountAll).not.toHaveBeenCalled();
+    });
+
     it('handles anonymous visitors and missing originals', async () => {
       Post.findAndCountAll.mockResolvedValue({
         count: 1,
@@ -218,6 +239,20 @@ describe('Service - CircleService', () => {
       const result = await circleService.getPostDetail(2, 1);
       expect(result.locked).toBe(false);
       expect(result.isLiked).toBe(false);
+    });
+
+    it('详情图片统一用 parseImages 解析 JSON 数组存储', async () => {
+      Post.findByPk.mockResolvedValue({
+        id: 1, user_id: 3, is_private: 0,
+        images: '["https://cdn/1.jpg","https://cdn/2.jpg"]', videos: 'https://cdn/v.mp4'
+      });
+      User.findByPk.mockResolvedValue({ id: 3, nickname: 'n' });
+      PostLike.findOne.mockResolvedValue(null);
+
+      const result = await circleService.getPostDetail(2, 1);
+
+      expect(result.images).toEqual(['https://cdn/1.jpg', 'https://cdn/2.jpg']);
+      expect(result.videos).toBe('https://cdn/v.mp4');
     });
 
     it('returns owner-visible private posts', async () => {
@@ -317,6 +352,15 @@ describe('Service - CircleService', () => {
     });
   });
 
+  it('getMyPosts 图片统一用 parseImages 解析 JSON 数组存储', async () => {
+    Post.findAndCountAll.mockResolvedValue({
+      count: 1,
+      rows: [{ id: 3, content: 'c', images: '["a.jpg","b.jpg"]', videos: 'v', thumb_num: 0, comment_num: 0, create_time: 1 }]
+    });
+    const result = await circleService.getMyPosts(2, 1, 10);
+    expect(result.list[0].images).toEqual(['a.jpg', 'b.jpg']);
+  });
+
   it('getMyPosts maps rows', async () => {
     Post.findAndCountAll.mockResolvedValue({
       count: 1,
@@ -400,8 +444,29 @@ describe('Service - CircleService', () => {
     expect(PostComment.findAndCountAll).not.toHaveBeenCalled();
   });
 
-  it('getTags returns an empty list', async () => {
-    expect(await circleService.getTags()).toEqual([]);
+  describe('getTags', () => {
+    it('返回启用标签并按 sort_order/id 升序，同时携带前端 tagId/tagName 字段', async () => {
+      VirtualUserTag.findAll.mockResolvedValue([
+        { id: 2, name: '情感', icon: '', sort_order: 1 },
+        { id: 1, name: '游戏', icon: 'game.png', sort_order: 2 }
+      ]);
+
+      const result = await circleService.getTags();
+
+      expect(VirtualUserTag.findAll).toHaveBeenCalledWith({
+        where: { status: 1 },
+        order: [['sort_order', 'ASC'], ['id', 'ASC']]
+      });
+      expect(result).toEqual([
+        { id: 2, tagId: 2, name: '情感', tagName: '情感', icon: '', sortOrder: 1 },
+        { id: 1, tagId: 1, name: '游戏', tagName: '游戏', icon: 'game.png', sortOrder: 2 }
+      ]);
+    });
+
+    it('没有启用标签时返回空列表', async () => {
+      VirtualUserTag.findAll.mockResolvedValue([]);
+      expect(await circleService.getTags()).toEqual([]);
+    });
   });
 
   describe('deletePost', () => {

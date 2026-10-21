@@ -21,37 +21,13 @@
     </view>
 
     <view class="tabs">
-      <view 
-        class="tab-item" 
-        :class="{ active: activeTab === 'all' }"
-        @click="activeTab = 'all'">
-        全部
-      </view>
-      <view 
-        class="tab-item" 
-        :class="{ active: activeTab === '0' }"
-        v-if="role === 'user'"
-        @click="activeTab = '0'">
-        待接单
-      </view>
-      <view 
-        class="tab-item" 
-        :class="{ active: activeTab === '1' }"
-        @click="activeTab = '1'">
-        已接单
-      </view>
-      <view 
-        class="tab-item" 
-        :class="{ active: activeTab === '2' }"
-        @click="activeTab = '2'">
-        进行中
-      </view>
-      <view 
-        class="tab-item" 
-        :class="{ active: activeTab === '3' }"
-        @click="activeTab = '3'">
-        已完成
-      </view>
+      <view
+        v-for="tab in tabs"
+        :key="tab.value"
+        class="tab-item"
+        :class="{ active: activeTab === tab.value }"
+        @click="activeTab = tab.value"
+      >{{ tab.label }}</view>
     </view>
 
     <view class="order-list">
@@ -222,7 +198,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
 import { useRouter, useRoute } from '@/common/route'
 import PageLayout from '../components/PageLayout.vue'
@@ -241,6 +217,25 @@ const currentRateOrder = ref(null)
 const orderList = ref([])
 // 订单视角：user=我买到的（默认），companion=我接的单（陪玩师工作台）
 const role = ref('user')
+// 状态 Tab 以数据驱动：待接单只属于「我买到的」视角，其余状态两个视角都可见。
+// 新增 4(已取消)/5(申诉中)，与后端 xn_game_order.status 数字状态机对齐。
+const tabs = computed(() => {
+  const items = [{ label: '全部', value: 'all' }]
+  if (role.value === 'user') items.push({ label: '待接单', value: '0' })
+  items.push(
+    { label: '已接单', value: '1' },
+    { label: '进行中', value: '2' },
+    { label: '已完成', value: '3' },
+    { label: '已取消', value: '4' },
+    { label: '申诉中', value: '5' }
+  )
+  return items
+})
+
+// 切换视角后若当前 Tab 在新视角不可见，回到「全部」，避免停在空页
+watch(role, () => {
+  if (!tabs.value.some(tab => tab.value === activeTab.value)) activeTab.value = 'all'
+})
 const busyOrderId = ref(0)
 const showDetailModal = ref(false)
 const detailLoading = ref(false)
@@ -560,6 +555,7 @@ const submitRating = async () => {
   color: #666;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tab-item.active {
@@ -653,6 +649,11 @@ const submitRating = async () => {
 .status.cancelled {
   background: #f5f5f5;
   color: #999;
+}
+
+.status.appeal {
+  background: rgba(255, 59, 48, 0.1);
+  color: #ff3b30;
 }
 
 .order-content {

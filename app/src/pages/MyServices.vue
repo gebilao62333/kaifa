@@ -6,6 +6,12 @@
       <text class="placeholder"></text>
     </template>
 
+    <!-- P1-9：申请审核状态（getApplyStatus 失败静默，不阻塞服务列表） -->
+    <view class="apply-status-bar" v-if="applyStatusText">
+      <text :class="['apply-status-dot', applyStatusClass]"></text>
+      <text class="apply-status-text">申请状态：{{ applyStatusText }}</text>
+    </view>
+
     <view class="service-list">
       <view 
         class="service-card" 
@@ -81,6 +87,14 @@
             <label class="form-label">技能等级</label>
             <view class="form-select" @click="openPicker('level')">
               {{ getLevelLabel(editForm.level) || '请选择' }}
+              <text class="select-arrow">›</text>
+            </view>
+          </view>
+
+          <view class="form-item">
+            <label class="form-label">接单大区</label>
+            <view class="form-select" @click="openPicker('zone')">
+              {{ getZoneLabel(editForm.zone) || '请选择' }}
               <text class="select-arrow">›</text>
             </view>
           </view>
@@ -299,6 +313,7 @@ const editForm = ref({
   name: '',
   description: '',
   level: '',
+  zone: '',
   position: '',
   playType: '',
   price: '',
@@ -341,6 +356,15 @@ const levelOptions = [
   { value: 'god', label: '王者' }
 ]
 
+const zoneOptions = [
+  { value: 'china-east', label: '华东大区' },
+  { value: 'china-south', label: '华南大区' },
+  { value: 'china-west', label: '西部大区' },
+  { value: 'china-north', label: '华北大区' },
+  { value: 'china-central', label: '华中大区' },
+  { value: 'china-southwest', label: '西南大区' }
+]
+
 const positionOptions = [
   { value: 'top', label: '上路' },
   { value: 'jungle', label: '打野' },
@@ -362,6 +386,7 @@ const pickerTitle = computed(() => {
   const titleMap = {
     city: '所在城市',
     level: '技能等级',
+    zone: '接单大区',
     position: '擅长位置',
     playType: '陪玩类型',
     skill: '选择常用'
@@ -373,6 +398,7 @@ const pickerOptions = computed(() => {
   const optionMap = {
     city: cityOptions,
     level: levelOptions,
+    zone: zoneOptions,
     position: positionOptions,
     playType: playTypeOptions,
     skill: skillOptions
@@ -393,6 +419,12 @@ const mapService = (s) => ({
   description: (s.tags && s.tags.length) ? s.tags.join(' · ') : '暂无技能介绍',
   tags: s.tags || [],
   price: s.price,
+  // P1-9：服务端返回的入驻资料字段，编辑弹窗据此回填
+  city: s.city || '',
+  level: s.level || '',
+  zone: s.zone || '',
+  position: s.position || '',
+  playType: s.playType || '',
   status: s.status === 2 ? 'active' : (s.status === 3 ? 'paused' : 'pending'),
   orderCount: s.orderCount,
   rating: s.rating,
@@ -412,6 +444,36 @@ const loadServices = async () => {
   }
 }
 
+// P1-9：申请审核状态。status：0=未提交/未通过 1=审核中 2=已通过 3=已暂停接单
+// 已有申请但 status=0 视为「未通过」；完全无记录 status=0 视为「可编辑」。
+const applyStatus = ref(null)
+
+const applyStatusText = computed(() => {
+  const status = applyStatus.value?.status
+  if (status === 1) return '审核中'
+  if (status === 2 || status === 3) return '已通过'
+  if (status === 0) return applyStatus.value?.gameId ? '未通过' : '可编辑'
+  return ''
+})
+
+const applyStatusClass = computed(() => {
+  const status = applyStatus.value?.status
+  if (status === 1) return 'pending'
+  if (status === 2 || status === 3) return 'approved'
+  if (status === 0) return applyStatus.value?.gameId ? 'rejected' : 'editable'
+  return ''
+})
+
+const loadApplyStatus = async () => {
+  try {
+    const res = await gamesService.getApplyStatus()
+    applyStatus.value = (res && res.data && typeof res.data === 'object') ? res.data : null
+  } catch (e) {
+    // 审核状态是辅助信息：接口失败静默隐藏状态条，不影响服务列表与编辑
+    applyStatus.value = null
+  }
+}
+
 const getStatusText = (status) => {
   const statusMap = {
     active: '接单中',
@@ -428,6 +490,11 @@ const getCityLabel = (value) => {
 
 const getLevelLabel = (value) => {
   const item = levelOptions.find(opt => opt.value === value)
+  return item ? item.label : ''
+}
+
+const getZoneLabel = (value) => {
+  const item = zoneOptions.find(opt => opt.value === value)
   return item ? item.label : ''
 }
 
@@ -479,6 +546,7 @@ const editService = (service) => {
     name: service.name,
     description: service.description,
     level: service.level || '',
+    zone: service.zone || '',
     position: service.position || '',
     playType: service.playType || '',
     price: service.price,
@@ -512,6 +580,7 @@ const closeEditModal = () => {
     name: '',
     description: '',
     level: '',
+    zone: '',
     position: '',
     playType: '',
     price: '',
@@ -878,11 +947,18 @@ const saveService = async () => {
       description: editForm.value.description || '',
       icon: iconUrl,
       voiceIntro,
-      voiceTime: editForm.value.audioTime || 0
+      voiceTime: editForm.value.audioTime || 0,
+      // P1-9：编辑弹窗回填的 5 个入驻资料字段此前只回填不提交，这里补上
+      city: editForm.value.city || '',
+      skillLevel: editForm.value.level || '',
+      zone: editForm.value.zone || '',
+      position: editForm.value.position || '',
+      playType: editForm.value.playType || ''
     })
     closeEditModal()
     toast.success('已提交，等待审核')
     loadServices()
+    loadApplyStatus()
   } catch (err) {
     toast.error(err.message || '保存失败')
   }
@@ -914,6 +990,7 @@ const goApply = () => {
 
 onMounted(() => {
   loadServices()
+  loadApplyStatus()
 })
 
 onUnmounted(() => {
@@ -965,6 +1042,35 @@ onUnmounted(() => {
 
 .placeholder {
   width: 40px;
+}
+
+.apply-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 12px 16px 0;
+  padding: 10px 14px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.apply-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #999;
+  flex-shrink: 0;
+}
+
+.apply-status-dot.pending { background: #f5a623; }
+.apply-status-dot.approved { background: #4cd964; }
+.apply-status-dot.rejected { background: #f5576c; }
+.apply-status-dot.editable { background: var(--color-primary); }
+
+.apply-status-text {
+  font-size: 13px;
+  color: #666;
 }
 
 .tabs {

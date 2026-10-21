@@ -59,6 +59,11 @@
             <text class="menu-text">我的订单</text>
             <text class="menu-arrow">›</text>
           </view>
+          <view class="menu-item" @click="goMyDemand">
+            <text class="menu-icon">📌</text>
+            <text class="menu-text">我的需求</text>
+            <text class="menu-arrow">›</text>
+          </view>
           <view class="menu-item" @click="goMyService">
             <text class="menu-icon">⭐</text>
             <text class="menu-text">我的服务</text>
@@ -277,6 +282,11 @@ const goWallet = () => {
 const goMyOrder = () => {
   if (import.meta.env.DEV) console.log('查看我的订单')
   router.push('/my-order')
+}
+
+// P1-12：发布需求后的管理入口（列表/详情/取消）
+const goMyDemand = () => {
+  router.push('/my-demand')
 }
 
 const goMyService = () => {

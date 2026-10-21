@@ -5,7 +5,7 @@
  *
  * 所有迁移均幂等：重复执行安全（字段存在则跳过、数据转换仅针对 NULL/空值）。
  *
- * 接线范围（2026-10-20）：17 个迁移全部接线，其中 2 个「宽列迁移」会触发表重建，
+ * 接线范围（2026-10-21）：全部迁移均已接线，其中 2 个「宽列迁移」会触发表重建，
  * 用 AUTO_MIGRATE_WIDEN_COLUMNS 单独控制：
  *   - 未设置：非生产（development/test/staging）执行、production 跳过；
  *   - true/1/yes/on：任何环境都执行；
@@ -45,6 +45,7 @@ const runMigrations = async () => {
   const { up: encryptCardPwdUp } = require('./20261020000001_encrypt_card_password');
   const { up: backfillRealNameUp } = require('./20261020000002_backfill_real_name_encryption');
   const { up: encryptMobileUp } = require('./20261020000003_encrypt_mobile');
+  const { up: companionApplyFieldsUp } = require('./20261021120000_add_companion_apply_fields');
 
   let step = 0;
   const runStep = async (label, fn) => {
@@ -89,6 +90,7 @@ const runMigrations = async () => {
   await runStep('卡密密码宽列并加密存量（xn_card.card_password，B-10）', encryptCardPwdUp);
   await runStep('存量实名信息加密回填（xn_user.real_name/id_card/正反面照，B-8）', backfillRealNameUp);
   await runStep('手机号加密 + 盲索引（xn_user.mobile/mobile_hash，B-7）', encryptMobileUp);
+  await runStep('补充陪玩师入驻资料字段（xn_companion_profile.city/skill_level/zone/position/play_type，P1-9）', companionApplyFieldsUp);
 
   console.log('\n========== 数据库迁移完成 ==========');
 };

@@ -305,8 +305,9 @@ const loadUser = async () => {
       age: d.age || null,
       fans: d.fansCount || 0,
       tags: Array.isArray(d.tags) ? d.tags : [],
-      onlineService: !!d.gameId,
-      offlineService: !!d.offlineService,
+      // 详情接口返回 serviceType（online/offline）；旧字段 offlineService 仅作兼容
+      onlineService: d.serviceType ? d.serviceType !== 'offline' : !!d.gameId,
+      offlineService: d.serviceType ? d.serviceType === 'offline' : !!d.offlineService,
       price: Number(d.servicePrice) || 0,
       gameId: Number(d.gameId) || 0
     }
@@ -383,6 +384,16 @@ onMounted(() => {
 })
 
 const viewPhoto = (url, index) => {
+  const urls = (user.value.photos || []).filter(Boolean)
+  if (typeof uni !== 'undefined' && typeof uni.previewImage === 'function') {
+    uni.previewImage({
+      urls: urls.length ? urls : [url],
+      current: url,
+      fail: () => toast.info('图片预览失败，请稍后重试')
+    })
+    return
+  }
+  // 非 uni 环境（旧浏览器）保留带序号的兜底提示
   toast.info(`查看第 ${index + 1} 张图片：${url}`)
 }
 </script>

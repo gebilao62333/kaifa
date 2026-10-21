@@ -35,7 +35,13 @@ const applyCompanionSchema = {
     icon: { type: 'string', maxLength: 512 },
     voiceIntro: { type: 'string', maxLength: 512 },
     voiceTime: { type: 'integer', min: 0, max: 600 },
-    serviceType: { type: 'string', maxLength: 32 }
+    serviceType: { type: 'string', maxLength: 32 },
+    // P1-9 入驻资料 5 字段（长度与 xn_companion_profile 列宽一致）
+    city: { type: 'string', maxLength: 50 },
+    skillLevel: { type: 'string', maxLength: 20 },
+    zone: { type: 'string', maxLength: 50 },
+    position: { type: 'string', maxLength: 50 },
+    playType: { type: 'string', maxLength: 20 }
   }
 };
 const evaluateOrderSchema = {

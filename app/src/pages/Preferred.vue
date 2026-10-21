@@ -134,8 +134,10 @@ import PageLayout from '../components/PageLayout.vue'
 import { useChatStore } from '../store/chat'
 import { notificationCenterService } from '../services/notificationCenterService'
 import chatService from '../services/chatService'
+import homeService from '../services/homeService'
 import { DEFAULT_AVATAR } from '../common/constants'
 import storage from '../common/storage'
+import { formatTimeAgo } from '../common/time'
 
 const router = useRouter()
 const chatStore = useChatStore()
@@ -237,21 +239,7 @@ const markNoticeRead = (id) => {
   }
 }
 
-const formatTime = (timestamp) => {
-  const now = Date.now()
-  const diff = now - timestamp
-  const minutes = Math.floor(diff / 60000)
-  const hours = Math.floor(diff / 3600000)
-  const days = Math.floor(diff / 86400000)
-
-  if (minutes < 1) return '刚刚'
-  if (minutes < 60) return `${minutes}分钟前`
-  if (hours < 24) return `${hours}小时前`
-  if (days < 7) return `${days}天前`
-  
-  const date = new Date(timestamp)
-  return `${date.getMonth() + 1}月${date.getDate()}日`
-}
+const formatTime = (timestamp) => formatTimeAgo(timestamp, { fallback: 'cn' })
 
 const loadChatList = async (silent = false) => {
   if (!silent) loadingChat.value = true
@@ -337,15 +325,27 @@ const loadNoticeList = async (silent = false) => {
 }
 
 const updateKefuTime = () => {
-  kefuTime.value = '1小时前'
+  // 客服入口是常驻功能，不伪造「1小时前」这类会话时间
+  kefuTime.value = '在线'
 }
 
 const switchTab = (tab) => {
   activeTab.value = tab
 }
 
-const goKefu = () => {
-  router.push(`/chat-room/kefu`)
+const goKefu = async () => {
+  // 客服账号来自服务端配置；未配置时进入客服页看热线/常见问题，
+  // 不再跳 /chat-room/kefu（targetUserId=0 的空会话）。
+  try {
+    const res = await homeService.getSupport()
+    const agents = (res && res.data && Array.isArray(res.data.agents)) ? res.data.agents : []
+    const first = agents.find((a) => a && Number(a.userId) > 0)
+    if (first) {
+      router.push(`/chat-room/${first.userId}`)
+      return
+    }
+  } catch (e) { /* 回退客服页 */ }
+  router.push('/customer-service')
 }
 
 const goChat = (item) => {

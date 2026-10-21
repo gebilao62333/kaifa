@@ -1,5 +1,6 @@
 import { mount, flushPromises } from '@vue/test-utils'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { createPinia, setActivePinia } from 'pinia'
 
 const { pref, toast } = vi.hoisted(() => ({
   pref: { get: vi.fn(), save: vi.fn() },
@@ -14,6 +15,8 @@ import PriorityMatching from '@/pages/PriorityMatching.vue'
 
 describe('PriorityMatching 设置持久化', () => {
   beforeEach(() => {
+    // 页面现在从 user store 读取真实 VIP 等级
+    setActivePinia(createPinia())
     pref.get.mockReset()
     pref.save.mockReset().mockResolvedValue({ data: { code: 200 } })
     toast.show.mockReset()

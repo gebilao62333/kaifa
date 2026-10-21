@@ -20,10 +20,10 @@
           <text class="menu-status">未认证</text>
           <text class="menu-arrow">›</text>
         </view>
-        <view class="menu-item" @click="showPhone = true">
+        <view class="menu-item" @click="openChangePhone">
           <text class="menu-icon">📱</text>
           <text class="menu-text">绑定手机号</text>
-          <text class="menu-status">138****8888</text>
+          <text class="menu-status">{{ maskedPhone || '未绑定' }}</text>
           <text class="menu-arrow">›</text>
         </view>
         <view class="menu-item" @click="showChangePwd = true">
@@ -99,18 +99,22 @@
       </view>
     </view>
 
-    <view class="modal" v-if="showPhone" @click.self="showPhone = false">
+    <view class="modal" v-if="showPhone" @click.self="closePhoneModal">
       <view class="modal-content">
         <view class="modal-title">更换手机号</view>
         <view class="modal-body">
+          <!-- 当前脱敏号以服务端本人资料为准，避免客户端写死 -->
+          <view class="modal-tip">当前手机号：{{ maskedPhone || '未绑定' }}</view>
           <input type="text" class="modal-input" v-model="phone" placeholder="请输入新手机号" maxlength="11" />
-          <input type="text" class="modal-input" v-model="code" placeholder="请输入验证码" maxlength="6" />
-          <view class="code-btn" @click="sendCode" :class="{ disabled: codeCount > 0 }">
-            {{ codeCount > 0 ? `${codeCount}s` : '获取验证码' }}
+          <input type="text" class="modal-input" v-model="oldCode" placeholder="请输入原手机号验证码" maxlength="6" />
+          <input type="text" class="modal-input" v-model="newCode" placeholder="请输入新手机号验证码" maxlength="6" />
+          <view class="code-btn" @click="sendChangeCode" :class="{ disabled: codeCount > 0 || sendingCode }">
+            {{ codeCount > 0 ? `${codeCount}s` : (sendingCode ? '发送中…' : '获取验证码') }}
           </view>
+          <view class="modal-hint">验证码会同时发到当前手机号和新手机号；换号成功后需重新登录</view>
         </view>
         <view class="modal-footer">
-          <button class="modal-btn cancel" @click="showPhone = false">取消</button>
+          <button class="modal-btn cancel" @click="closePhoneModal">取消</button>
           <button class="modal-btn confirm" @click="confirmPhone">确定</button>
         </view>
       </view>
@@ -297,10 +301,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from '@/common/route'
 import { useUserStore } from '../store/user-info'
 import authService from '../services/authService'
+import mobileChangeService from '../services/mobileChangeService'
 import { STORAGE_KEYS } from '../common/constants'
 import userPrefService from '../services/userPrefService'
 import PageLayout from '../components/PageLayout.vue'
@@ -361,7 +366,20 @@ const applyDarkClass = (enabled) => {
 }
 
 const router = useRouter()
+const userStore = useUserStore()
 const { navAnimationEnabled, setNavAnimation } = useNavAnimation()
+
+// 手机号以服务端本人资料为准（脱敏），不再写死展示值。
+// 优先取 maskedPhone（服务端脱敏字段），兼容历史返回的 mobile（本人资料里同样是脱敏值）。
+const maskedPhone = ref('')
+const loadMaskedPhone = async () => {
+  try {
+    const res = await authService.getUserInfo()
+    const data = res && res.data
+    const value = data && (data.maskedPhone || data.mobile)
+    if (value) maskedPhone.value = value
+  } catch (e) { /* 失败时显示未绑定 */ }
+}
 const toggleNavAnimation = () => setNavAnimation(!navAnimationEnabled.value)
 
 const darkMode = ref(false)
@@ -387,8 +405,12 @@ const showRecallTimeSelect = ref(false)
 const showDestroyTimeSelect = ref(false)
 
 const phone = ref('')
-const code = ref('')
+// 换号需要两个验证码：旧号一个、新号一个（后端两个独立短信场景，不能互相替代）
+const oldCode = ref('')
+const newCode = ref('')
 const codeCount = ref(0)
+const sendingCode = ref(false)
+let codeTimer = null
 
 const oldPwd = ref('')
 const newPwd = ref('')
@@ -518,6 +540,7 @@ const changePassword = async () => {
 }
 
 onMounted(() => {
+  loadMaskedPhone()
   const savedDarkMode = readStorage('darkMode')
   if (savedDarkMode === 'true') {
     darkMode.value = true
@@ -598,29 +621,100 @@ const clearCache = () => {
 const goFeedback = () => {  router.push('/feedback')
 }
 
-const sendCode = () => {
-  if (codeCount.value > 0) return
-  if (!phone.value || phone.value.length !== 11) {
-    toast.error('请输入正确的手机号')
-    return
+// ===== 换绑手机号（P1-8）：一次请求同时给当前号/新号发码 =====
+const stopCountdown = () => {
+  if (codeTimer) {
+    clearInterval(codeTimer)
+    codeTimer = null
   }
+  codeCount.value = 0
+}
+
+const startCountdown = () => {
+  stopCountdown()
   codeCount.value = 60
-  const timer = setInterval(() => {
+  codeTimer = setInterval(() => {
     codeCount.value--
-    if (codeCount.value <= 0) {
-      clearInterval(timer)
-    }
+    if (codeCount.value <= 0) stopCountdown()
   }, 1000)
 }
 
-const confirmPhone = () => {
-  if (!phone.value || !code.value) {
-    toast.error('请填写完整信息')
+const closePhoneModal = () => {
+  showPhone.value = false
+  phone.value = ''
+  oldCode.value = ''
+  newCode.value = ''
+  sendingCode.value = false
+  stopCountdown()
+}
+
+const openChangePhone = () => {
+  phone.value = ''
+  oldCode.value = ''
+  newCode.value = ''
+  sendingCode.value = false
+  stopCountdown()
+  showPhone.value = true
+  loadMaskedPhone()
+}
+
+const sendChangeCode = async () => {
+  if (codeCount.value > 0 || sendingCode.value) return
+  const nextPhone = String(phone.value || '').trim()
+  if (!/^1[3-9]\d{9}$/.test(nextPhone)) {
+    toast.error('请输入正确的新手机号')
     return
   }
-  toast.success('手机号更换成功！')
-  showPhone.value = false
+  // 新旧号相同 / 已被占用由后端统一判定（脱敏展示值无法与明文比较）
+  sendingCode.value = true
+  try {
+    const res = await mobileChangeService.sendCode({ newPhone: nextPhone })
+    // 测试/演示环境后端会把两个验证码一起回传，这里直接回填，省去人工输入
+    const devCodes = (res && res.data && res.data.devCodes) || {}
+    if (devCodes.oldCode) oldCode.value = devCodes.oldCode
+    if (devCodes.newCode) newCode.value = devCodes.newCode
+    toast.success('验证码已发送，请查收新旧手机号')
+    startCountdown()
+  } catch (e) {
+    toast.error(e?.message || '验证码发送失败')
+  } finally {
+    sendingCode.value = false
+  }
 }
+
+const confirmPhone = async () => {
+  const nextPhone = String(phone.value || '').trim()
+  if (!/^1[3-9]\d{9}$/.test(nextPhone)) {
+    toast.error('请输入正确的新手机号')
+    return
+  }
+  if (!oldCode.value || !newCode.value) {
+    toast.error('请填写原手机号和新手机号的验证码')
+    return
+  }
+  try {
+    await mobileChangeService.changeMobile({
+      newPhone: nextPhone,
+      oldCode: oldCode.value,
+      newCode: newCode.value
+    })
+  } catch (e) {
+    toast.error(e?.message || '手机号更换失败')
+    return
+  }
+
+  toast.success('手机号更换成功，请重新登录')
+  closePhoneModal()
+
+  // 服务端已吊销该账号全部会话（access + refresh），本地清态后回登录页
+  try { await userStore.logout() } catch (e) { /* 已全端下线，登出请求失败不阻塞 */ }
+  removeStorage(STORAGE_KEYS.TOKEN)
+  removeStorage(STORAGE_KEYS.PINIA_STATE)
+  router.replace('/login')
+}
+
+// 页面卸载时停掉倒计时，避免定时器在组件销毁后继续跑
+onUnmounted(stopCountdown)
 
 const selectRecallTime = (value) => {
   privacy.value.autoRecall = value
@@ -1047,6 +1141,20 @@ const handleLogout = () => {
   padding: 8px 20px;
 }
 
+/* P1-8：换号弹窗里的当前脱敏号 / 双验证码说明 */
+.modal-tip {
+  padding: 4px 0 10px;
+  font-size: 13px;
+  color: #666;
+}
+
+.modal-hint {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #999;
+}
+
 .modal-input {
   width: 100%;
   padding: 12px 16px;
@@ -1243,6 +1351,11 @@ const handleLogout = () => {
   background-color: #2a2a2a;
   border-color: #3a3a3a;
   color: #e0e0e0;
+}
+
+.dark .modal-tip,
+.dark .modal-hint {
+  color: #888;
 }
 
 .dark .modal-input::placeholder {

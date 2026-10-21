@@ -53,6 +53,7 @@ import EmptyState from '../components/EmptyState.vue'
 import walletService from '../services/walletService'
 import { isLoggedIn } from '@/common/common'
 import { toast } from '../composables/useToast'
+import { formatDateTime } from '../common/time'
 
 const router = useRouter()
 
@@ -80,12 +81,8 @@ const maskAccount = (acc) => {
   return acc.length > 4 ? `尾号${acc.slice(-4)}` : acc
 }
 
-const formatTime = (ts) => {
-  if (!ts) return ''
-  const d = new Date(ts)
-  const p = (n) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
-}
+// 提现记录 createTime 为秒级时间戳，统一归一后再格式化
+const formatTime = (ts) => formatDateTime(ts)
 
 const mapRecord = (r) => {
   const meta = CHANNEL_META[r.type] || { icon: '💸', title: '钱包提现', bgColor: 'linear-gradient(135deg, #fa709a, #fee140)' }

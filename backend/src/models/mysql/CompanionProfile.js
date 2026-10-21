@@ -46,6 +46,32 @@ const CompanionProfile = sequelize.define('xn_companion_profile', {
     defaultValue: 'online',
     comment: '服务类型 online/offline'
   },
+  // P1-9：入驻表单收集的 5 个资料字段（迁移 20261021120000_add_companion_apply_fields）
+  city: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    comment: '入驻填写的所在城市'
+  },
+  skill_level: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    comment: '技能等级'
+  },
+  zone: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    comment: '接单大区'
+  },
+  position: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+    comment: '擅长位置'
+  },
+  play_type: {
+    type: DataTypes.STRING(20),
+    allowNull: true,
+    comment: '陪玩类型'
+  },
   order_num: {
     type: DataTypes.INTEGER,
     defaultValue: 0
@@ -73,7 +99,16 @@ const CompanionProfile = sequelize.define('xn_companion_profile', {
   update_time: {
     type: DataTypes.INTEGER(10),
     defaultValue: 0
-  }
+  },
+  // P1-9 入驻资料扩展字段
+  city: { type: DataTypes.STRING(50), allowNull: true },
+  skill_level: { type: DataTypes.STRING(20), allowNull: true },
+  zone: { type: DataTypes.STRING(50), allowNull: true },
+  position: { type: DataTypes.STRING(50), allowNull: true },
+  play_type: { type: DataTypes.STRING(20), allowNull: true },
+  // 管理端审核结果
+  approve_time: { type: DataTypes.INTEGER(10), defaultValue: 0 },
+  reject_reason: { type: DataTypes.STRING(255), allowNull: true }
 }, {
   tableName: 'xn_companion_profile',
   timestamps: false,

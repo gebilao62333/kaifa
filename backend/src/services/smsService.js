@@ -8,9 +8,11 @@ const maskMobile = (mobile) => String(mobile || '').replace(/^(\d{3})\d+(\d{4})$
 
 const SMS_COOLDOWN = 60;
 const SMS_EXPIRE = 300;
-// 同一手机号在不同场景（登录/注册/重置密码）各自独立成码：
+// 同一手机号在不同场景（登录/注册/重置密码/换绑手机号）各自独立成码：
 // 历史实现三类共用一个 key，登录验证码可直接当重置密码码用（跨场景复用）。
-const SMS_SCENES = ['login', 'register', 'reset'];
+// P1-8：换绑手机号拆成 bind_old（发到当前号）/ bind_new（发到新号）两个场景，
+// 旧号的码绝不能拿去校验新号，反之亦然。
+const SMS_SCENES = ['login', 'register', 'reset', 'bind_old', 'bind_new'];
 // 单个验证码允许的失败次数，超限即作废，必须重新获取（防 5 分钟内穷举 6 位码）
 const SMS_MAX_ATTEMPTS = 5;
 
